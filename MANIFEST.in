@@ -1,0 +1,2 @@
+include digital_land/patch/skip.csv
+include digital_land/patch/null.csv
