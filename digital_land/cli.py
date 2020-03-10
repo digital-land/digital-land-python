@@ -24,11 +24,23 @@ def convert_cmd(input_path, output_path):
     save(reader, output_path)
 
 
-@cli.command("normalise", short_help="removed padding, drop obviously spurious rows")
+@cli.command("normalise", short_help="removed padding, drop empty rows")
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
-def normalise_cmd(input_path, output_path):
-    normaliser = Normaliser()
+@click.option(
+    "--null-path",
+    type=click.Path(exists=True),
+    help="patterns for null fields",
+    default=None,
+)
+@click.option(
+    "--skip-path",
+    type=click.Path(exists=True),
+    help="patterns for skipped lines",
+    default=None,
+)
+def normalise_cmd(input_path, output_path, null_path, skip_path):
+    normaliser = Normaliser(null_path=null_path, skip_path=skip_path)
     stream = load_csv(input_path)
     stream = normaliser.normalise(stream)
     save(stream, output_path)

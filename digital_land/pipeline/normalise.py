@@ -8,20 +8,27 @@ import csv
 
 
 patch_dir = os.path.join(os.path.dirname(__file__), "..", "patch")
-null_path = os.path.join(patch_dir, "null.csv")
-skip_path = os.path.join(patch_dir, "skip.csv")
 
 
 class Normaliser:
     spaces = " \n\r\t\f"
     null_patterns = []
     skip_patterns = []
+    null_path = os.path.join(patch_dir, "null.csv")
+    skip_path = os.path.join(patch_dir, "skip.csv")
 
-    def __init__(self, null_path=null_path, skip_path=skip_path):
-        for row in csv.DictReader(open(null_path, newline="")):
+    def __init__(self, null_path=None, skip_path=None):
+
+        if null_path:
+            self.null_path = null_path
+
+        if skip_path:
+            self.skip_path = skip_path
+
+        for row in csv.DictReader(open(self.null_path, newline="")):
             self.null_patterns.append(re.compile(row["pattern"]))
 
-        for row in csv.DictReader(open(skip_path, newline="")):
+        for row in csv.DictReader(open(self.skip_path, newline="")):
             self.skip_patterns.append(re.compile(row["pattern"]))
 
     def normalise_whitespace(self, row):
