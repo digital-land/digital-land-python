@@ -1,4 +1,4 @@
-from digital_land.pipeline.normalise import Normaliser
+from digital_land.normalise import Normaliser
 
 
 def test_init():

@@ -1,10 +1,10 @@
 import sys
 import click
 import logging
-from .pipeline.load import load, load_csv, load_csv_dict
-from .pipeline.save import save
-from .pipeline.normalise import Normaliser
-from .pipeline.map import Mapper
+from .load import load, load_csv, load_csv_dict
+from .save import save
+from .normalise import Normaliser
+from .map import Mapper
 from .schema import Schema
 
 

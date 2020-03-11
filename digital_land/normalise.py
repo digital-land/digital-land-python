@@ -7,7 +7,7 @@ import sys
 import csv
 
 
-patch_dir = os.path.join(os.path.dirname(__file__), "..", "patch")
+patch_dir = os.path.join(os.path.dirname(__file__), "patch")
 
 
 class Normaliser:

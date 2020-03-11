@@ -1,5 +1,5 @@
 import os
-from digital_land.pipeline import load
+from digital_land import load
 
 
 def test_load_xlsm():

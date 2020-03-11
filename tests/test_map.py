@@ -1,8 +1,8 @@
 from io import StringIO
 import csv
 
-from digital_land.pipeline.save import fsave
-from digital_land.pipeline.map import Mapper
+from digital_land.save import fsave
+from digital_land.map import Mapper
 from digital_land.schema import Schema
 
 
