@@ -22,6 +22,11 @@ def detect_encoding(path):
     return detector.result["encoding"]
 
 
+def load_csv_dict(path):
+    logging.debug(f"reading csv {path}")
+    return csv.DictReader(open(path, newline=""))
+
+
 def load_csv(path, encoding="UTF-8"):
     logging.debug(f"trying csv {path}")
 

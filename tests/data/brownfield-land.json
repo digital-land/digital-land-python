@@ -1,0 +1,489 @@
+{
+    "fields": [
+        {
+            "name": "OrganisationURI",
+            "title": "Organisation URI",
+            "description": "This is the URL of the organisation on https://opendatacommunities.org",
+            "type": "string",
+            "format": "uri",
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "field": "organisation",
+                "typos": [
+                    "OrganistionURI",
+                    "OrganisationURL",
+                    "OrgansiationURI",
+                    "OrganisationURI",
+                    "OrgainisationURL",
+                    "Organisation URL",
+                    "Organisational URI",
+                    "LPA URL",
+                    "OPEN DATA WEBSITE",
+                    "Organisati",
+                    "Org. URI",
+                    "OrgURL",
+                    "Publisher URL",
+                    "Publisher URI",
+                    "URI",
+                    "District"
+                ],
+                "values": {
+                  "dataset": "organisation",
+                  "key": "opendatacommunities"
+                }
+            }
+        },
+        {
+            "name": "OrganisationLabel",
+            "title": "Organisation Label",
+            "description": "The organisation's name",
+            "type": "string",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+                "deprecated": true,
+                "typos": [
+                    "OrganistionLabel",
+                    "OragisationLabel",
+                    "Org. Label",
+                    "OrgLabel"
+                ]
+            }
+        },
+        {
+            "name": "SiteReference",
+            "title": "Site reference",
+            "description": "A unique reference that an organisation uses to identify the site",
+            "type": "string",
+            "unique": true,
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "typos": [
+                    "Alt_Ref",
+                    "Brownfield Register Reference",
+                    "Reference",
+                    "LA SITE REF",
+                    "SHLAA_REF",
+                    "SiteRefere",
+                    "Site reference",
+                    "SiteReference (also SHLAA Reference)",
+                    "Site Ref"
+                ],
+                "field": "site"
+            }
+        },
+        {
+            "name": "SiteNameAddress",
+            "title": "The site name and address",
+            "description": "The name of the site and it's address",
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "concatenate": {
+                  "fields": [
+                    "SITENAME",
+                    "Site Name",
+                    "Address 1",
+                    "Address 2"
+                  ],
+                  "sep": ", "
+                },
+                "field": "site-address",
+                "format": "address",
+                "typos": [
+                  "Address",
+                  "Location / Address",
+                  "Location___Address",
+                  "NAME AND ADDRESS OF SITE",
+                  "Site Address",
+                  "Site Name & Address",
+                  "Site Name Address",
+                  "Site Name, Address",
+                  "Site Name, Address, Postcode",
+                  "Site name/address",
+                  "SiteName Address",
+                  "SiteName/Address",
+                  "SiteNameAddress",
+                  "SiteNameAddresss",
+                  "Site_Address",
+                  "Title"
+                ]
+            }
+        },
+        {
+            "name": "GeoX",
+            "title": "GeoX",
+            "description": "The longitude of a point close to the centre of the site. The value should be 6 or fewer decimal places, using the WGS84 or ETRS89 coordinate system",
+            "type": "number",
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "field": "longitude",
+                "precision": 6,
+                "typos": [
+                  "BNG_Easting",
+                  "GeoX (Longitude or east grid)",
+                  "GeoX [East]",
+                  "Grid reference easting",
+                  "Easting",
+                  "Eastings",
+                  "Eastings (Geo X)",
+                  "OSEasting",
+                  "OSGB36Easting"
+                ]
+            }
+        },
+        {
+            "name": "GeoY",
+            "title": "GeoY",
+            "description": "The latitude of a point close to the centre of the site. The value should be 6 or fewer decimal places, using the WGS84 or ETRS89 coordinate system",
+            "type": "number",
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "field": "latitude",
+                "precision": 6,
+                "typos": [
+                  "BNG_Northing",
+                  "GeoY (Latitude or north grid)",
+                  "GeoY [North]",
+                  "Grid reference northing",
+                  "Northing",
+                  "Northings",
+                  "Northings (Geo Y)",
+                  "OSNorthing",
+                  "OSGB36Northing"
+                ]
+            }
+        },
+        {
+            "name": "SiteplanURL",
+            "title": "Site plan url",
+            "description": "The site plan url if available on a public url",
+            "type": "string",
+            "format": "uri",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+              "field": "site-plan-url",
+              "typos": [
+                "Mapping link [SiteplanURL]",
+                "PLAN OF SITE",
+                "Site Plan",
+                "Site Plan URL",
+                "SitePlanURL",
+                "Site plan (url)",
+                "Site plan URL",
+                "Siteplan",
+                "Siteplan URL",
+                "SiteplanUR",
+                "SiteplanURI",
+                "Weblink"
+              ]
+            }
+        },
+        {
+            "name": "Hectares",
+            "title": "Hectares",
+            "description": "The land area of the site in hectares, up to 3 decimal places.",
+            "type": "number",
+            "constraints": {
+                "required": true,
+                "minimum": 0.001,
+                "maximum": 5000.0
+            },
+            "digital-land": {
+                "field": "hectares",
+                "precision": 3,
+                "strip": [
+                  "\\s*[Hh]ectares?$",
+                  "\\s*ha$"
+                ],
+                "typos": [
+                    "AREA (HA)",
+                    "Area of Land in Hectares",
+                    "Developable area (ha)",
+                    "Hectares (gross)",
+                    "PDL area on the site (hectares)",
+                    "Site Area in ha",
+                    "Site area (ha)",
+                    "Total area (Hectares)",
+                    "Total site area (hectares)"
+                ]
+            }
+        },
+        {
+            "name": "OwnershipStatus",
+            "title": "Ownership",
+            "description": "The site\u2019s ownership",
+            "type": "string",
+            "constraints": {
+                "required": false,
+                "enum": [
+                  "owned by a public authority",
+                  "not owned by a public authority",
+                  "mixed ownership",
+                  ""
+                ]
+            },
+            "digital-land": {
+                "field": "ownership",
+                "typos": [
+                    "OwenrshipStatus",
+                    "Ownership: PA_owner, not PA_own., mixed_o'ship, unknown"
+                ]
+            }
+        },
+        {
+            "name": "HazardousSubstances",
+            "title": "Hazardous substances",
+            "description": "This indicates if the local authority is required by regulation 26(3) of the Planning (Hazardous Substances) Regulations 2015 (https://www.legislation.gov.uk/uksi/2015/627/regulation/26/made) to conduct an environmental impact assessment on the proposed development",
+            "type": "string",
+            "constraints": {
+                "required": false,
+                "enum": [
+                  "yes",
+                  ""
+                ]
+            },
+            "digital-land": {
+                "field": "hazardous-substances",
+                "typos": [
+                  "Hazardous Substances [as identifiied in Appl. form]"
+                ]
+            }
+        },
+        {
+            "name": "PlanningStatus",
+            "title": "Planning status",
+            "description": "The stage of the planning process the site is at",
+            "type": "string",
+            "constraints": {
+                "required": false,
+                "enum": [
+                  "permissioned",
+                  "not permissioned",
+                  "pending decision",
+                  ""
+                ]
+            },
+            "digital-land": {
+                "field": "planning-permission-status",
+                "typos": [
+                  "Planning Permission Status",
+                  "PLANNING STATUS"
+                ]
+            }
+        },
+        {
+            "name": "PermissionType",
+            "title": "Permission type",
+            "description": "The type of permission type for developing the site",
+            "type": "string",
+            "constraints": {
+                "required": false,
+                "enum": [
+                  "full planning permission",
+                  "outline planning permission",
+                  "reserved matters approval",
+                  "permission in principle",
+                  "technical details consent",
+                  "planning permission granted under an order",
+                  "other",
+                  ""
+                ]
+            },
+            "digital-land": {
+                "field": "planning-permission-type"
+            }
+        },
+        {
+            "name": "PermissionDate",
+            "title": "Permission date",
+            "description": "The date the most recent permission was granted on the site",
+            "type": "date",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+                "field": "planning-permission-date"
+            }
+        },
+        {
+            "name": "PlanningHistory",
+            "title": "Planning history",
+            "description": "Links to any web pages that give information on the site\u2019s planning history. Multiple links must be separated by pipe character",
+            "type": "string",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+                "field": "planning-permission-history"
+            }
+        },
+        {
+            "name": "MinNetDwellings",
+            "title": "Minimum dwellings",
+            "description": "Minimum net dwellings, deprecated, replaced by NetDwellingsRangeFrom",
+            "type": "integer",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+                "deprecated": true,
+                "typos": [
+                  "MINHOMES",
+                  "Min dwellings",
+                  "MINIMUM NET DWELLINGS"
+                ]
+            }
+        },
+        {
+            "name": "NetDwellingsRangeFrom",
+            "title": "Net dwellings range from",
+            "description": "The minimum number of dwellings that the local authority estimates the site should support, as defined in http://www.legislation.gov.uk/uksi/2017/403/regulation/2/made",
+            "type": "integer",
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "field": "minimum-net-dwellings",
+                "default": ["MinNetDwellings", "NetDwellingsRangeTo"],
+                "typos": []
+            }
+        },
+        {
+            "name": "NetDwellingsRangeTo",
+            "title": "Net dwellings range to",
+            "description": "The maximum number of dwellings that the local authority estimates the site should support, as defined in regulation 2 of the 2017 Regulations (http://www.legislation.gov.uk/uksi/2017/403/regulation/2/made)",
+            "type": "integer",
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "field": "maximum-net-dwellings",
+                "default": ["NetDwellingsRangeFrom", "MinNetDwellings"],
+                "typos": [
+                  "Max dwellings",
+                  "MAXIMUM NET DWELLINGS"
+                ]
+            }
+        },
+        {
+            "name": "Deliverable",
+            "title": "Deliverable",
+            "description": "This indicates if there is a reasonable prospect that residential development will take place on the land within 5 years of the date you enter this site in the register",
+            "type": "string",
+            "constraints": {
+                "required": false,
+                "enum" : [
+                  "yes",
+                  ""
+                ]
+            },
+            "digital-land": {
+                "field": "deliverable"
+            }
+        },
+        {
+            "name": "Notes",
+            "title": "Notes",
+            "description": "General information about a site that developers might find useful",
+            "type": "string",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+                "concatenate": {
+                  "fields": [
+                    "DevelopmentDescription",
+                    "SiteInformation"
+                  ],
+                  "sep": ". "
+                },
+                "field": "notes"
+            }
+        },
+        {
+            "name": "FirstAddedDate",
+            "title": "First added date",
+            "description": "The date that the site was first added to this register, in the format YYYY-MM-DD",
+            "type": "date",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+                "field": "start-date",
+                "typos": [
+                    "Date first entered on the register",
+                    "DATE ENTERED ON REGISTER",
+                    "FirstAdded",
+                    "First Added Date"
+                ]
+            }
+        },
+        {
+            "name": "LastUpdatedDate",
+            "title": "Last updated date",
+            "description": "The date this entry in the register was updated in the format YYYY-MM-DD",
+            "type": "date",
+            "constraints": {
+                "required": true
+            },
+            "digital-land": {
+                "default": ["FirstAddedDate"],
+                "field": "entry-date",
+                "typos": [
+                  "LastUpdate",
+                  "DATE LAST UPDATED",
+                  "Date last updated on the register",
+                  "Last Updated Date"
+                ]
+            }
+        },
+        {
+            "name": "EndDate",
+            "title": "End date",
+            "description": "The date the site was developed or determined to no longer be a brownfield site, in the format YYYY-MM-DD. If the site no longer needs to be listed it should remain on the register and not be deleted",
+            "type": "date",
+            "constraints": {
+                "required": false
+            },
+            "digital-land": {
+                "field": "end-date"
+            }
+        }
+    ],
+    "digital-land": {
+        "fields": [
+            "entry-date",
+            "organisation",
+            "site",
+            "site-address",
+            "site-plan-url",
+            "deliverable",
+            "ownership",
+            "planning-permission-status",
+            "planning-permission-type",
+            "hazardous-substances",
+            "latitude",
+            "longitude",
+            "hectares",
+            "minimum-net-dwellings",
+            "maximum-net-dwellings",
+            "start-date",
+            "end-date",
+            "notes",
+            "resource"
+        ]
+    }
+}

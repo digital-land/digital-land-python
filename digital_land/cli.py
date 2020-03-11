@@ -1,9 +1,11 @@
 import sys
 import click
 import logging
-from .pipeline.load import load, load_csv
+from .pipeline.load import load, load_csv, load_csv_dict
 from .pipeline.save import save
 from .pipeline.normalise import Normaliser
+from .pipeline.map import Mapper
+from .schema import Schema
 
 
 @click.group()
@@ -44,3 +46,15 @@ def normalise_cmd(input_path, output_path, null_path, skip_path):
     stream = load_csv(input_path)
     stream = normaliser.normalise(stream)
     save(stream, output_path)
+
+
+@cli.command("map", short_help="map misspelt column names to those in a schema")
+@click.argument("input_path", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path())
+@click.argument("schema_path", type=click.Path(exists=True))
+def map_cmd(input_path, output_path, schema_path):
+    schema = Schema(schema_path)
+    mapper = Mapper(schema)
+    stream = load_csv_dict(input_path)
+    stream = mapper.mapper(stream)
+    save(stream, output_path, fieldnames=schema.fieldnames)

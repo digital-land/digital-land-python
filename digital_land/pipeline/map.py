@@ -1,70 +1,45 @@
-#
-#  fix field names using the provide schema
-#
+class Mapper:
 
-import os
-import sys
-import re
-import csv
-import json
+    """
+    fix field names using the provide schema
+    concatenate notes and other fields
+    """
 
-input_path = sys.argv[1]
-output_path = sys.argv[2]
-schema_path = sys.argv[3]
+    def __init__(self, schema):
+        self.schema = schema
+        self.typos = self.schema.typos()
 
-schema = json.load(open(schema_path))
-fields = {field["name"]: field for field in schema["fields"]}
-fieldnames = [field["name"] for field in schema["fields"]]
+    def headers(self, reader):
+        headers = {}
 
+        for header in reader.fieldnames:
+            fieldname = self.schema.normalise(header)
+            if fieldname in self.schema.fieldnames:
+                headers[header] = fieldname
+            elif fieldname in self.typos:
+                headers[header] = self.typos[fieldname]
 
-def normalise(name):
-    return re.sub(normalise.pattern, "", name.lower())
+        return headers
 
+    def concatenate_fields(self, o):
+        for fieldname, field in self.schema.fields.items():
+            if "concatenate" in field.get("digital-land", {}):
+                cat = field["digital-land"]["concatenate"]
+                o.setdefault(fieldname, "")
+                o[fieldname] = cat["sep"].join(
+                    [o[fieldname]] + [row[h] for h in cat["fields"] if row.get(h, None)]
+                )
+        return o
 
-normalise.pattern = re.compile(r"[^a-z0-9]")
-
-
-if __name__ == "__main__":
-    # index of fieldname typos
-    typos = {}
-    for fieldname in fieldnames:
-        field = fields[fieldname]
-        typos[normalise(fieldname)] = fieldname
-        if "title" in field:
-            typos[normalise(field["title"])] = fieldname
-        if "digital-land" in field:
-            for typo in field["digital-land"].get("typos", []):
-                typos[normalise(typo)] = fieldname
-
-    reader = csv.DictReader(open(input_path, newline=""))
-
-    # build index of headers from the input
-    headers = {}
-    if reader.fieldnames:
-        for field in reader.fieldnames:
-            fieldname = normalise(field)
-
-            if fieldname not in fieldnames:
-                if fieldname in typos:
-                    headers[field] = typos[fieldname]
-
-    with open(output_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
+    def mapper(self, reader):
+        headers = self.headers(reader)
 
         for row in reader:
             o = {}
+
             for header in headers:
-                field = headers[header]
-                o[field] = row[header]
+                o[headers[header]] = row[header]
 
-            for fieldname, field in fields.items():
-                if "concatenate" in field.get("digital-land", {}):
-                    cat = field["digital-land"]["concatenate"]
-                    o.setdefault(fieldname, "")
-                    o[fieldname] = cat["sep"].join(
-                        [o[fieldname]]
-                        + [row[h] for h in cat["fields"] if row.get(h, None)]
-                    )
+            o = self.concatenate_fields(o)
 
-            writer.writerow(o)
+            yield o
