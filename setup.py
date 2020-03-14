@@ -44,10 +44,9 @@ setup(
     extras_require={
         "test": [
             "coverage>=4.5.4",
-            "coveralls>=1.11.1",
             "flake8==3.7.9",
             "pytest>=4.0.2",
-            "python-coveralls>=2.9.1",
+            "coveralls>=1.11.1",
             "twine>=1.13.0",
         ]
         + maybe_black
