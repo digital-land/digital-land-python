@@ -27,3 +27,21 @@ def test_integer_normalise():
     assert issue["issue-type"] == "integer"
     assert issue["value"] == "12foo"
     assert issues.rows == []
+
+    integer = IntegerDataType(minimum=35, maximum=68)
+    assert integer.normalise("38", issues=issues) == "38"
+    assert issues.rows == []
+
+    assert integer.normalise("34", issues=issues) == ""
+
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "minimum"
+    assert issue["value"] == "34"
+    assert issues.rows == []
+
+    assert integer.normalise("69", issues=issues) == ""
+
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "maximum"
+    assert issue["value"] == "69"
+    assert issues.rows == []

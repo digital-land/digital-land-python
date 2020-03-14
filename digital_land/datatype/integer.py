@@ -23,12 +23,12 @@ class IntegerDataType(DataType):
 
         if self.minimum is not None and n < self.minimum:
             if issues:
-                issues.log("minimum %s" % (self.minumum), value)
+                issues.log("minimum", value)
             return ""
 
         if self.maximum is not None and n > self.maximum:
             if issues:
-                issues.log("maximum %s" % (self.maximum), value)
+                issues.log("maximum", value)
             return ""
 
         return self.format(n)
