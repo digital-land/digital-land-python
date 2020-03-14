@@ -24,7 +24,6 @@ class DateDataType(DataType):
             "%d/%m/%Y %H:%M",
             "%d-%m-%Y",
             "%d-%m-%y",
-            "%d-%m-%Y",
             "%d.%m.%Y",
             "%d.%m.%y",
             "%d/%m/%Y",
