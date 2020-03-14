@@ -5,7 +5,7 @@
 #
 
 from decimal import Decimal
-from .decimal import format_decimal
+from .decimal import DecimalDataType
 from .datatype import DataType
 
 from pyproj import Transformer
@@ -29,7 +29,12 @@ def within_england(lon, lat):
 
 
 class PointDataType(DataType):
+    def __init__(self, precision=6):
+        self.decimal = DecimalDataType(precision=precision)
+
     def normalise(self, values, default=["", ""], issues=None):
+
+        # assumes values have both been decimal normalised
         if "" in values:
             return default
 
@@ -56,4 +61,4 @@ class PointDataType(DataType):
                 issues.log("out of range", value)
             return default
 
-        return [format_decimal(lon), format_decimal(lat)]
+        return [self.decimal.format(lon), self.decimal.format(lat)]
