@@ -3,7 +3,7 @@
 all:	black test coverage
 
 test:
-	py.test
+	py.test -vv
 
 coverage:
 	coverage run --source digital_land -m py.test && coverage report
