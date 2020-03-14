@@ -4,8 +4,6 @@
 #  -- log issues for suggestions for the user to amend
 #
 
-import os
-import sys
 import digital_land.types as types
 
 
@@ -25,17 +23,9 @@ class Harmoniser:
         if self.issues:
             self.issues.fieldname = fieldname
 
-        field = self.schema.fields[fieldname]
-        constraints = field.get("constraints", {})
-        extra = field.get("digital-land", {})
-
-        for strip in extra.get("strip", []):
-            value = re.sub(strip, "", value)
-        value = value.strip()
-
-        datatype = self.schema.field_type(field)
-
-        return datatype.normalise(issues=self.issues)
+        datatype = self.schema.field_type(fieldname)
+        value = self.schema.strip(fieldname, value)
+        return datatype.normalise(value, issues=self.issues)
 
     def check(self, o):
         for field in self.schema.required_fields:
@@ -77,7 +67,7 @@ class Harmoniser:
             self.check(o)
 
             # fix point geometry
-            if set(["GeoX", "GeoY"]).issubset(fieldnames):
+            if set(["GeoX", "GeoY"]).issubset(self.fieldnames):
                 if self.issues:
                     self.issues.fieldname = "GeoX,GeoY"
                 (o["GeoX"], o["GeoY"]) = types.point.normalise(

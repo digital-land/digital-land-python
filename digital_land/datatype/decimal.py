@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from .datatype import DataType
 
 
@@ -14,17 +14,17 @@ class DecimalDataType(DataType):
     def normalise(self, value, issues=None):
         try:
             d = Decimal(value)
-        except Exception as e:
+        except InvalidOperation:
             if issues:
                 issues.log("decimal", value)
             return ""
 
-        if self.minimum != None and d < self.minimum:
+        if self.minimum is not None and d < self.minimum:
             if issues:
                 issues.log("minimum", value)
             return ""
 
-        if self.maximum != None and d > self.maximum:
+        if self.maximum is not None and d > self.maximum:
             if issues:
                 issues.log("maximum", value)
             return ""

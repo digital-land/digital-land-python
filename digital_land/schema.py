@@ -4,6 +4,7 @@ import json
 from .datatype.address import AddressDataType
 from .datatype.decimal import DecimalDataType
 from .datatype.date import DateDataType
+from .datatype.enum import EnumDataType
 from .datatype.integer import IntegerDataType
 from .datatype.organisation import OrganisationURIDataType
 from .datatype.string import StringDataType
@@ -60,7 +61,7 @@ class Schema:
                     typos[self.normalise(typo)] = fieldname
         return typos
 
-    def field_type(self, field):
+    def field_type(self, fieldname):
         field = self.fields[fieldname]
         constraints = field.get("constraints", {})
         extra = field.get("digital-land", {})
@@ -94,6 +95,14 @@ class Schema:
             return URIDataType()
 
         if field.get("type", "") in ["string", ""]:
-            return StringType()
+            return StringDataType()
 
         raise ValueError("unknown datatype for '%s' field", fieldname)
+
+    def strip(self, fieldname, value):
+        field = self.schema.fields[fieldname]
+        extra = field.get("digital-land", {})
+
+        for strip in extra.get("strip", []):
+            value = re.sub(strip, "", value)
+        return value.strip()

@@ -20,7 +20,8 @@ if sys.version_info > (3, 6):
 setup(
     name="digital-land",
     version=get_version(),
-    description="Python tools to collect and convert CSV and other resources into a Digital Land dataset",
+    description="Python tools to collect and convert CSV "
+    "and other resources into a Digital Land dataset",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="MHCLG Digital Land Team",
@@ -38,11 +39,12 @@ setup(
         "validators==0.14.2",
         "xlrd==1.2.0",
     ],
-    entry_points={"console_scripts": ["digital-land=digital_land.cli:cli",]},
+    entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
     extras_require={
         "test": [
             "coverage>=4.5.3",
+            "flake8==3.7.9",
             "pytest>=4.0.2",
             "python-coveralls>=2.9.1",
             "twine>=1.13.0",

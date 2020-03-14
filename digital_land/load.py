@@ -2,7 +2,6 @@
 #  load XLS or CSV file into a UTF-8 CSV stream
 #
 
-import sys
 from io import StringIO
 from cchardet import UniversalDetector
 import csv
@@ -52,7 +51,7 @@ def load_excel(path):
     logging.debug(f"trying excel {path}")
     try:
         excel = pd.read_excel(path)
-    except:
+    except:  # noqa: E722
         return None
 
     string = excel.to_csv(index=None, header=True, encoding="utf-8")

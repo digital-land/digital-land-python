@@ -16,17 +16,17 @@ class IntegerDataType(DataType):
         value = strip_re.sub("", value, 1)
         try:
             n = int(value)
-        except Exception as e:
+        except ValueError:
             if issues:
                 issues.log("integer", value)
             return ""
 
-        if self.minimum != None and n < self.minimum:
+        if self.minimum is not None and n < self.minimum:
             if issues:
                 issues.log("minimum %s" % (self.minumum), value)
             return ""
 
-        if self.maximum != None and n > self.maximum:
+        if self.maximum is not None and n > self.maximum:
             if issues:
                 issues.log("maximum %s" % (self.maximum), value)
             return ""

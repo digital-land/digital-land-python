@@ -12,6 +12,7 @@ def normalise_value(value):
     return " ".join(strip_re.sub(" ", value.lower()).split())
 
 
+"""
 def init():
     # load enum values from schema
     for field in schema["fields"]:
@@ -35,6 +36,7 @@ def init():
             )
         field_value.setdefault(fieldname, {})
         field_value[fieldname][value] = enum
+"""
 
 
 class EnumDataType(DataType):
@@ -42,12 +44,12 @@ class EnumDataType(DataType):
         pass
 
     def normalise(self, fieldvalue, issues=None):
-        value = normalise_value(fieldvalue)
+        # value = normalise_value(fieldvalue)
 
-        if field in field_value and value in field_value[field]:
-            return field_value[field][value]
+        # if field in field_value and value in field_value[field]:
+        #    return field_value[field][value]
 
         if issues:
-            issue.log("enum", fieldvalue)
+            issues.log("enum", fieldvalue)
 
         return ""

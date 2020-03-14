@@ -1,6 +1,6 @@
 .PHONY: all black test coverage coveralls bump dist upload help clean
 
-all:	black test coverage
+all:	black flake8 test coverage
 
 test:
 	py.test -vv
@@ -13,6 +13,9 @@ coveralls:
 
 black:
 	black .
+
+flake8:
+	flake8 .
 
 bump:
 	git tag $(shell python version.py)

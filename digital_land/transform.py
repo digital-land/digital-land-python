@@ -31,7 +31,7 @@ if __name__ == "__main__":
         if "digital-land" in field and "field" in field["digital-land"]
     }
     for field in fieldnames:
-        if not field in fields:
+        if field not in fields:
             fields[field] = field
 
     resource = os.path.basename(os.path.splitext(input_path)[0])

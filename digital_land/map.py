@@ -21,7 +21,7 @@ class Mapper:
 
         return headers
 
-    def concatenate_fields(self, o):
+    def concatenate_fields(self, row, o):
         for fieldname, field in self.schema.fields.items():
             if "concatenate" in field.get("digital-land", {}):
                 cat = field["digital-land"]["concatenate"]
@@ -40,6 +40,6 @@ class Mapper:
             for header in headers:
                 o[headers[header]] = row[header]
 
-            o = self.concatenate_fields(o)
+            o = self.concatenate_fields(row, o)
 
             yield o
