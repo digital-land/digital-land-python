@@ -43,7 +43,7 @@ setup(
     setup_requires=["pytest-runner"],
     extras_require={
         "test": [
-            "coverage>=4.5.3",
+            "coverage>=4.5.4",
             "flake8==3.7.9",
             "pytest>=4.0.2",
             "python-coveralls>=2.9.1",
