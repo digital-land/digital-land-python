@@ -1,16 +1,9 @@
-import re
 import validators
 from .datatype import DataType
 
-end_of_uri_re = re.compile(r".*/")
-
-
-def end_of_uri(value):
-    return end_of_uri_re.sub("", value.rstrip("/").lower())
-
 
 class URIDataType(DataType):
-    def normalise(self, value):
+    def normalise(self, value, issues=None):
 
         # fix URI values with line-breaks and spaces
         uri = "".join(value.split())

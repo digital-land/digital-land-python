@@ -1,8 +1,15 @@
-from .uri import end_of_uri
+import re
 from .datatype import DataType
 
 organisation_uri = None
 default_values = None
+
+
+end_of_uri_re = re.compile(r".*/")
+
+
+def end_of_uri(value):
+    return end_of_uri_re.sub("", value.rstrip("/").lower())
 
 
 def lower_uri(value):
