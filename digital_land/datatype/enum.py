@@ -4,50 +4,33 @@ from .datatype import DataType
 strip_re = re.compile(r"([^a-z0-9-_ ]+)")
 
 
-field_enum = {}
-field_value = {}
-
-
 def normalise_value(value):
     return " ".join(strip_re.sub(" ", value.lower()).split())
 
 
-"""
-def init():
-    # load enum values from schema
-    for field in schema["fields"]:
-        fieldname = field["name"]
-        if "constraints" in field and "enum" in field["constraints"]:
-            field_enum.setdefault(fieldname, {})
-            field_value.setdefault(fieldname, {})
-            for enum in field["constraints"]["enum"]:
-                value = normalise_value(enum)
-                field_enum[fieldname][enum] = enum
-                field_value[fieldname][value] = enum
-
-    # load fix-ups from patch file
-    for row in csv.DictReader(open("patch/enum.csv", newline="")):
-        fieldname = row["field"]
-        enum = row["enum"]
-        value = normalise_value(row["value"])
-        if enum not in field_enum[fieldname]:
-            raise ValueError(
-                "invalid '%s' enum '%s' in patch/enum.csv" % (fieldname, enum)
-            )
-        field_value.setdefault(fieldname, {})
-        field_value[fieldname][value] = enum
-"""
-
-
 class EnumDataType(DataType):
-    def __init__(self, fieldname, values):
-        pass
+
+    enum = set()
+    value = {}
+
+    def __init__(self, enum=[]):
+        self.add_enum(enum)
+
+    def add_enum(self, enum):
+        self.enum |= set(enum)
+        for value in enum:
+            self.add_value(value, value)
+
+    def add_value(self, enum, value):
+        if enum not in self.enum:
+            raise ValueError
+        self.value[normalise_value(value)] = enum
 
     def normalise(self, fieldvalue, issues=None):
-        # value = normalise_value(fieldvalue)
+        value = normalise_value(fieldvalue)
 
-        # if field in field_value and value in field_value[field]:
-        #    return field_value[field][value]
+        if value in self.value:
+            return self.value[value]
 
         if issues:
             issues.log("enum", fieldvalue)

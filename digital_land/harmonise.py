@@ -6,6 +6,20 @@
 
 import digital_land.types as types
 
+"""
+# this could apply to any field, really
+# TBD: collapse with organisation patches
+def load_field_patches():
+    for row in csv.DictReader(open("patch/enum.csv", newline="")):
+        fieldname = row["field"]
+        enum = row["enum"]
+        value = normalise_value(row["value"])
+        if enum not in field_enum[fieldname]:
+            raise ValueError(
+                "invalid '%s' enum '%s' in patch/enum.csv" % (fieldname, enum)
+            )
+"""
+
 
 class Harmoniser:
     def __init__(self, schema, issues=None):
@@ -67,6 +81,7 @@ class Harmoniser:
             self.check(o)
 
             # fix point geometry
+            # TBD: generalise as a co-constraint
             if set(["GeoX", "GeoY"]).issubset(self.fieldnames):
                 if self.issues:
                     self.issues.fieldname = "GeoX,GeoY"

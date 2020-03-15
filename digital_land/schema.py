@@ -70,7 +70,7 @@ class Schema:
             return OrganisationURIDataType()
 
         if "enum" in field.get("constraints", {}):
-            return EnumDataType(fieldname)
+            return EnumDataType(fieldname, enum=field["constraints"]["enum"])
 
         if field.get("type", "") == "date":
             return DateDataType()
