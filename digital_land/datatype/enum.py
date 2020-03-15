@@ -4,10 +4,6 @@ from .datatype import DataType
 strip_re = re.compile(r"([^a-z0-9-_ ]+)")
 
 
-def normalise_value(value):
-    return " ".join(strip_re.sub(" ", value.lower()).split())
-
-
 class EnumDataType(DataType):
 
     enum = set()
@@ -24,10 +20,13 @@ class EnumDataType(DataType):
     def add_value(self, enum, value):
         if enum not in self.enum:
             raise ValueError
-        self.value[normalise_value(value)] = enum
+        self.value[self.normalise_value(value)] = enum
+
+    def normalise_value(self, value):
+        return " ".join(strip_re.sub(" ", value.lower()).split())
 
     def normalise(self, fieldvalue, issues=None):
-        value = normalise_value(fieldvalue)
+        value = self.normalise_value(fieldvalue)
 
         if value in self.value:
             return self.value[value]
