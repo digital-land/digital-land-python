@@ -32,6 +32,7 @@ setup(
     package_data={"digital-land": ["templates/*.html"]},
     include_package_data=True,
     install_requires=[
+        "canonicaljson==1.1.4",
         "click==7.0",
         "cchardet==2.1.5",
         "pandas==1.0.1",
