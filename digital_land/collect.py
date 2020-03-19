@@ -17,7 +17,6 @@ class Collector:
     user_agent = "Digital Land data collector"
     resource_dir = "collection/resource/"
     log_dir = "collection/log/"
-    dataset_dir = "dataset/"
 
     def save(self, path, data):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -41,7 +40,7 @@ class Collector:
         }
 
         entry = hashlib.sha256(url.encode("utf-8")).hexdigest()
-        log_path = os.path.join(log_dir, headers["datetime"][:10], entry + ".json")
+        log_path = os.path.join(self.log_dir, headers["datetime"][:10], entry + ".json")
 
         if os.path.isfile(log_path):
             return
@@ -50,7 +49,7 @@ class Collector:
 
         try:
             start = timer()
-            response = requests.get(url, headers={"User-Agent": user_agent})
+            response = requests.get(url, headers={"User-Agent": self.user_agent})
         except (
             requests.ConnectionError,
             requests.HTTPError,
@@ -74,15 +73,13 @@ class Collector:
             ].startswith("text/html"):
                 resource = hashlib.sha256(response.content).hexdigest()
                 headers["resource"] = resource
-                save(os.path.join(resource_dir, resource), response.content)
+                self.save(os.path.join(self.resource_dir, resource), response.content)
 
         log_json = canonicaljson.encode_canonical_json(headers)
-        save(log_path, log_json)
+        self.save(log_path, log_json)
 
-    def collect(self, dataset):
-        for row in csv.DictReader(
-            open(os.path.join(dataset_dir, dataset + ".csv"), newline="")
-        ):
+    def collect(self, dataset, path):
+        for row in csv.DictReader(open(path, newline="")):
             self.fetch(
                 dataset, row["organisation"], row["resource-url"], row["end-date"]
             )

@@ -1,0 +1,165 @@
+field,enum,value
+Deliverable,,completed
+Deliverable,yes,deliverable
+Deliverable,yes,developable
+Deliverable,,false
+Deliverable,,no
+Deliverable,yes,possibly developable
+Deliverable,yes,the land is deliverable
+Deliverable,yes,true
+Deliverable,,unsuitable
+Deliverable,yes,y
+Deliverable,yes,yes part
+HazardousSubstances,,expired
+HazardousSubstances,,no
+HazardousSubstances,yes,possible diesel fuel pollution
+HazardousSubstances,yes,potentially subject to broken glass
+HazardousSubstances,yes,y
+OwnershipStatus,not owned by a public authority,in public ownership
+OwnershipStatus,not owned by a public authority,local authority
+OwnershipStatus,mixed ownership,local authority unknown
+OwnershipStatus,mixed ownership,mixed
+OwnershipStatus,mixed ownership,mixed owner
+OwnershipStatus,,multiple ownership
+OwnershipStatus,,multipleowners
+OwnershipStatus,not owned by a public authority,not in public ownership
+OwnershipStatus,not owned by a public authority,not owned by a public aut
+OwnershipStatus,not owned by a public authority,not owned by a public authoritity
+OwnershipStatus,not owned by a public authority,not owned by a public authority
+OwnershipStatus,not owned by a public authority,not owned by apublic authority
+OwnershipStatus,not owned by a public authority,not owned by public authority
+OwnershipStatus,not owned by a public authority,notownedbyapublicauthority
+OwnershipStatus,owned by a public authority,kent county council
+OwnershipStatus,owned by a public authority,onwed by a public authorty
+OwnershipStatus,owned by a public authority,owmed by a public authority
+OwnershipStatus,owned by a public authority,owned by a public authori
+OwnershipStatus,owned by a public authority,owned by a public authority
+OwnershipStatus,owned by a public authority,owned by a public authority - hbc
+OwnershipStatus,mixed ownership,owned by a public authority part
+OwnershipStatus,owned by a public authority,owned by a public authorty
+OwnershipStatus,owned by a public authority,owned by public authority
+OwnershipStatus,owned by a public authority,owned by the london borough of bromley
+OwnershipStatus,owned by a public authority,ownedbyapublicauthority
+OwnershipStatus,,ownership unknown
+OwnershipStatus,not owned by a public authority,private
+OwnershipStatus,not owned by a public authority,private company
+OwnershipStatus,not owned by a public authority,private individual
+OwnershipStatus,not owned by a public authority,promoted
+OwnershipStatus,owned by a public authority,public - thurrock council
+OwnershipStatus,owned by a public authority,public authority
+OwnershipStatus,owned by a public authority,public ownership
+OwnershipStatus,owned by a public authority,qwned by a public authority
+OwnershipStatus,owned by a public authority,swindon borough council
+OwnershipStatus,owned by a public authority,swindon borough council and others
+OwnershipStatus,,unknown
+OwnershipStatus,,unknown owenrship
+OwnershipStatus,,unknown owership
+OwnershipStatus,,unknown owner
+OwnershipStatus,,unknown ownerhip
+OwnershipStatus,,unknown ownership
+OwnershipStatus,,unkown ownership
+PermissionType,,application refused rejected
+PermissionType,other,decision pending
+PermissionType,other,determination for permitted development
+PermissionType,other,expired
+PermissionType,other,extant
+PermissionType,full planning permission,ful
+PermissionType,full planning permission,full
+PermissionType,full planning permission,full permission
+PermissionType,full planning permission,full planning
+PermissionType,full planning permission,full planning application
+PermissionType,full planning permission,full planning permis
+PermissionType,full planning permission,full planning permisison
+PermissionType,full planning permission,full planning permission listed building consent
+PermissionType,planning permission granted under an order,full planning permission planning permission granted under an order
+PermissionType,other,full planning permission prior approval
+PermissionType,full planning permission,full planning permission subject to legal agreement
+PermissionType,full planning permission,full plannng permission
+PermissionType,other,hybrid full outline
+PermissionType,other,hybrid full outline planning permission with all matters reserved
+PermissionType,other,hybrid planning permission
+PermissionType,other,lapsed permission
+PermissionType,other,listed building
+PermissionType,other,listed building consent
+PermissionType,full planning permission,mma full planning permission
+PermissionType,,none
+PermissionType,other,not permissioned
+PermissionType,other,oter
+PermissionType,other,other - s73 mma
+PermissionType,other,other full planning permission
+PermissionType,other,otther
+PermissionType,outline planning permission,ouline planning permission
+PermissionType,outline planning permission,outline
+PermissionType,outline planning permission,outline permission
+PermissionType,outline planning permission,outline planning
+PermissionType,outline planning permission,outline planning app
+PermissionType,outline planning permission,outline planning application
+PermissionType,outline planning permission,outline planning application with all matters reserved
+PermissionType,outline planning permission,outline planning per
+PermissionType,outline planning permission,outline planning permission 15 07 15
+PermissionType,outline planning permission,outline planning permission with all matters reserved
+PermissionType,outline planning permission,outline reg 3 planning permission
+PermissionType,outline planning permission,outline submitted
+PermissionType,other,part outline part fu
+PermissionType,other,part outline part full planning permission
+PermissionType,other,pending
+PermissionType,other,pending decision
+PermissionType,other,permission lapsed
+PermissionType,full planning permission,permissioned
+PermissionType,full planning permission,planning permission
+PermissionType,planning permission granted under an order,planning permission granted under an order
+PermissionType,planning permission granted under an order,planning permission granted under an order full permission
+PermissionType,other,prior approval
+PermissionType,other,prior approval - approved change of use
+PermissionType,other,prior approval - class o
+PermissionType,other,prior notification
+PermissionType,other,renewal - full planning permission
+PermissionType,reserved matters approval,reserve matters
+PermissionType,reserved matters approval,reserved matters
+PermissionType,other,reserved matters and full planning
+PermissionType,reserved matters approval,reserved matters app
+PermissionType,reserved matters approval,reserved matters application
+PermissionType,reserved matters approval,reserved matters approval
+PermissionType,reserved matters approval,reserved matters approval permission approval
+PermissionType,reserved matters approval,reserved matters permission
+PermissionType,reserved matters approval,reserved matters planning permission
+PermissionType,reserved matters approval,reserved mattres approval
+PermissionType,other,residential development
+PermissionType,technical details consent,techincal details consent
+PermissionType,other,technical details co
+PermissionType,other,under construction
+PermissionType,full planning permission,with full permission
+PermissionType,outline planning permission,with outline permission
+PlanningStatus,permissioned,approved
+PlanningStatus,pending decision,decision pending
+PlanningStatus,not permissioned,expired permission
+PlanningStatus,permissioned,full consent
+PlanningStatus,permissioned,full planning permission
+PlanningStatus,not permissioned,lp site not permissioned
+PlanningStatus,not permissioned,no permissioned
+PlanningStatus,not permissioned,not consented
+PlanningStatus,not permissioned,not in planning system
+PlanningStatus,not permissioned,not permisioned
+PlanningStatus,not permissioned,not permissed
+PlanningStatus,not permissioned,not permissionsed
+PlanningStatus,not permissioned,not permissoned
+PlanningStatus,pending decision,outline consent
+PlanningStatus,pending decision,outline permission
+PlanningStatus,pending decision,outline planning permission
+PlanningStatus,pending decision,part permissioned
+PlanningStatus,pending decision,pending
+PlanningStatus,pending decision,pending decision appeal lodged
+PlanningStatus,pending decision,pending descision
+PlanningStatus,pending decision,pending permission
+PlanningStatus,pending decision,pendingdecision
+PlanningStatus,permissioned,permisioned
+PlanningStatus,permissioned,permission
+PlanningStatus,permissioned,permission granted
+PlanningStatus,permissioned,permissiond
+PlanningStatus,permissioned,permissioned part
+PlanningStatus,permissioned,permissoned
+PlanningStatus,permissioned,planningstatus
+PlanningStatus,pending decision,prior notification
+PlanningStatus,pending decision,reserve mattes permi
+PlanningStatus,permissioned,under construction
+PlanningStatus,permissioned,yes

@@ -1,87 +1,41 @@
 import csv
 import re
-from .datatype import DataType
-
-organisation_uri = {}
-default_values = {}
-organisation = {}
+from ..fetch import fetch
+from ..dataset import datasets
+from .enum import EnumDataType
 
 
-end_of_uri_re = re.compile(r".*/")
+uri_basename_re = re.compile(r".*/")
 
 
-def end_of_uri(value):
-    return end_of_uri_re.sub("", value.rstrip("/").lower())
+def uri_basename(value):
+    return uri_basename_re.sub("", value.rstrip("/").lower())
 
 
-def lower_uri(value):
-    return "".join(value.split()).lower()
+class OrganisationURIDataType(EnumDataType):
+    def __init__(
+        self, name="OrganisationURI", dataset="organisation", patches_path=None
+    ):
+        super().__init__(name=name, dataset=dataset, patches_path=patches_path)
 
+    def load_dataset(self, dataset):
+        for row in csv.DictReader(
+            open(fetch(datasets[dataset]["resource-url"]), newline="")
+        ):
+            if "opendatacommunities" in row:
+                uri = row["opendatacommunities"]
 
-# OrganisationURI values
-def load_organisations(path="var/cache/organisation.csv"):
-    for row in csv.DictReader(open(path), newline=""):
-        organisation[row["organisation"]] = row
-        if "opendatacommunities" in row:
+                self.add_enum(uri)
 
-            uri = row["opendatacommunities"].lower()
+                # some publishers just use the end of the URI
+                self.add_value(uri, uri_basename(uri))
 
-            organisation_uri[row["organisation"].lower()] = uri
-            organisation_uri[uri] = uri
-            organisation_uri[end_of_uri(uri)] = uri
-            organisation_uri[row["statistical-geography"].lower()] = uri
+                # some publishers use the ONS/GSS area code
+                self.add_value(uri, row["statistical-geography"])
 
-            if "local-authority-eng" in row["organisation"]:
-                dl_url = "https://digital-land.github.io/organisation/%s/" % (
-                    row["organisation"]
-                )
-                dl_url = dl_url.lower().replace("-eng:", "-eng/")
-                organisation_uri[dl_url] = uri
-
-
-# OrganisationURI patches
-def load_organisation_patches(path="patch/organisation.csv"):
-    for row in csv.DictReader(open(path, newline="")):
-        value = lower_uri(row["value"])
-        if row["organisation"]:
-            organisation_uri[value] = organisation[row["organisation"]][
-                "opendatacommunities"
-            ]
-
-
-# deduce default OrganisationURI and LastUpdatedDate from path
-def load_resource_defaults(input_path, path="index/resource-organisation.csv"):
-    organisation = ""
-    for row in csv.DictReader(open(path), newline=""):
-        if row["resource"] in input_path:
-            default_values["LastUpdatedDate"] = row["start-date"]
-            if not organisation:
-                organisation = row["organisation"]
-            elif organisation != row["organisation"]:
-                # resource has more than one organisation
-                default_values["OrganisationURI"] = ""
-                return
-    default_values["OrganisationURI"] = organisation_uri[organisation.lower()]
-
-
-class OrganisationURIDataType(DataType):
-    def __init__(self, input_path=None):
-        if organisation_uri == {}:
-            load_organisations()
-            load_organisation_patches()
-
-        if input_path and default_values == {}:
-            load_resource_defaults(input_path)
-
-    def normalise(self, fieldvalue, issues=None):
-        value = lower_uri(fieldvalue)
-
-        if value in organisation_uri:
-            return organisation_uri[value]
-
-        s = end_of_uri(value)
-        if s in organisation_uri:
-            return organisation_uri[s]
-
-        issues.log("opendatacommunities-uri", fieldvalue)
-        return ""
+                # some publishers have used the digital-land URL
+                if "local-authority-eng" in row["organisation"]:
+                    dl_url = "https://digital-land.github.io/organisation/%s/" % (
+                        row["organisation"]
+                    )
+                    self.add_value(uri, dl_url.replace("-eng:", "-eng/"))

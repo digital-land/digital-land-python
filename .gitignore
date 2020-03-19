@@ -12,3 +12,4 @@ demodata/
 .DS_Store
 *.swp
 .eggs
+var/cache

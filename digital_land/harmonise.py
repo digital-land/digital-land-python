@@ -18,17 +18,38 @@ def load_field_patches():
             raise ValueError(
                 "invalid '%s' enum '%s' in patch/enum.csv" % (fieldname, enum)
             )
+
+# deduce default OrganisationURI and LastUpdatedDate default_values from path
+# need to make this not file specific ..
+def resource_organisation(default_values, input_path, resource_organisation_path):
+    organisation = ""
+    for row in csv.DictReader(open(resource_organisation_path), newline=""):
+        if row["resource"] in input_path:
+            default_values["LastUpdatedDate"] = row["start-date"]
+            if not organisation:
+                organisation = row["organisation"]
+            elif organisation != row["organisation"]:
+                # resource has more than one organisation
+                default_values["OrganisationURI"] = ""
+                return
+    default_values["OrganisationURI"] = organisation_uri[organisation.lower()]
 """
 
 
 class Harmoniser:
-    def __init__(self, schema, issues=None):
+    def __init__(
+        self, schema, issues=None, input_path=None, resource_organisation_path=None
+    ):
         self.schema = schema
         self.fieldnames = schema.current_fieldnames()
+        self.default_fieldnames = schema.default_fieldnames()
+        self.required_fieldnames = schema.required_fieldnames()
         self.issues = issues
+        self.default_values = {}
 
-        types.enum.init()
-        types.organisation.init()
+        # if "OrganisationURI" in self.fieldnames:
+        #    if input_path and resource_organisation_path:
+        #        resource_organisation(self.default_values, input_path, resource_organisation_path)
 
     def normalise_field(self, fieldname, value):
         if not value:
@@ -42,22 +63,22 @@ class Harmoniser:
         return datatype.normalise(value, issues=self.issues)
 
     def check(self, o):
-        for field in self.schema.required_fields:
-            if not o.get(field, None):
-                self.log_issue(field, "missing", "")
+        for fieldname in self.required_fieldnames:
+            if not o.get(fieldname, None):
+                self.log_issue(fieldname, "missing", "")
 
-    def set_default(self, o, field, value):
-        if value and not o[field]:
-            self.log_issue(field, "default", value)
-            o[field] = value
+    def set_default(self, o, fieldname, value):
+        if value and not o[fieldname]:
+            self.log_issue(fieldname, "default", value)
+            o[fieldname] = value
         return o
 
     def default(self, o):
-        for field in self.default_fields:
-            o = self.set_default(o, field, o[self.default_fields[field]])
+        for fieldname in self.default_fieldnames:
+            o = self.set_default(o, fieldname, o[self.default_fieldnames[fieldname]])
 
-        for field in self.default_values:
-            o = self.set_default(o, field, self.default_values[field])
+        for fieldname in self.default_values:
+            o = self.set_default(o, fieldname, self.default_values[fieldname])
 
         return o
 
@@ -85,6 +106,7 @@ class Harmoniser:
             if set(["GeoX", "GeoY"]).issubset(self.fieldnames):
                 if self.issues:
                     self.issues.fieldname = "GeoX,GeoY"
+
                 (o["GeoX"], o["GeoY"]) = types.point.normalise(
                     [o["GeoX"], o["GeoY"]], issues=self.issues
                 )

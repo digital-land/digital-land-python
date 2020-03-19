@@ -15,6 +15,18 @@ def cli(debug):
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
 
 
+@cli.command(
+    "collect",
+    short_help="collect CSV and other resources into a digital-land collection",
+)
+def collect_cmd(input_path, output_path):
+    reader = load(input_path)
+    if not reader:
+        logging.error(f"Unable to convert {input_path}")
+        sys.exit(2)
+    save(reader, output_path)
+
+
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
