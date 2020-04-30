@@ -2,6 +2,7 @@ import sys
 import click
 import logging
 from .load import load, load_csv, load_csv_dict
+from .collect import Collector
 from .save import save
 from .normalise import Normaliser
 from .map import Mapper
@@ -17,14 +18,15 @@ def cli(debug):
 
 @cli.command(
     "collect",
-    short_help="collect CSV and other resources into a digital-land collection",
+    short_help="collect resources from sources into a digital-land collection",
 )
-def collect_cmd(input_path, output_path):
-    reader = load(input_path)
-    if not reader:
-        logging.error(f"Unable to convert {input_path}")
-        sys.exit(2)
-    save(reader, output_path)
+@click.argument(
+    "path", type=click.Path(exists=True), default="collection/source.csv",
+)
+def collect_cmd(path):
+    """collect resources listed in the resource-url column of the path CSV file"""
+    collector = Collector()
+    collector.collect(path)
 
 
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")

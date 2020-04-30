@@ -25,7 +25,7 @@ class Collector:
             with open(path, "wb") as f:
                 f.write(data)
 
-    def fetch(self, dataset, organisation, url, end_date):
+    def fetch(self, url, end_date=""):
         if not url:
             return
 
@@ -33,8 +33,6 @@ class Collector:
             return
 
         headers = {
-            "dataset": dataset,
-            "organisation": organisation,
             "url": url,
             "datetime": datetime.utcnow().isoformat(),
         }
@@ -45,7 +43,7 @@ class Collector:
         if os.path.isfile(log_path):
             return
 
-        logging.info(" ".join([dataset, organisation, url]))
+        logging.info(" ".join([url]))
 
         try:
             start = timer()
@@ -78,8 +76,6 @@ class Collector:
         log_json = canonicaljson.encode_canonical_json(headers)
         self.save(log_path, log_json)
 
-    def collect(self, dataset, path):
+    def collect(self, path):
         for row in csv.DictReader(open(path, newline="")):
-            self.fetch(
-                dataset, row["organisation"], row["resource-url"], row["end-date"]
-            )
+            self.fetch(row["resource-url"], row["end-date"])
