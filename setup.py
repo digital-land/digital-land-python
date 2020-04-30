@@ -33,7 +33,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "canonicaljson==1.1.4",
-        "click==7.0",
+        "click==7.1.2",
         "cchardet==2.1.5",
         "pandas==1.0.1",
         "pyproj==2.4.2.post1",
