@@ -34,10 +34,10 @@ setup(
     install_requires=[
         "canonicaljson==1.1.4",
         "click==7.1.2",
-        "cchardet==2.1.5",
-        "pandas==1.0.1",
-        "pyproj==2.4.2.post1",
-        "validators==0.14.2",
+        "cchardet==2.1.6",
+        "pandas==1.0.3",
+        "pyproj==2.6.0",
+        "validators==0.14.3",
         "xlrd==1.2.0",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
@@ -46,9 +46,9 @@ setup(
         "test": [
             "coverage>=4.5.4",
             "flake8==3.7.9",
-            "pytest>=4.0.2",
-            "coveralls>=1.11.1",
-            "twine>=1.13.0",
+            "pytest>=5.4.1",
+            "coveralls>=2.0.0",
+            "twine>=3.1.1",
         ]
         + maybe_black
     },
