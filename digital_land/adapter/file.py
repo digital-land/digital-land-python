@@ -1,3 +1,8 @@
+## original code from:
+## https://github.com/dashea/requests-file
+## http://www.apache.org/licenses/LICENSE-2.0
+## forked to experiment with relative file URLs and providing more headers
+
 from requests.adapters import BaseAdapter
 from requests.compat import urlparse, unquote
 from requests import Response, codes
@@ -5,9 +10,9 @@ import errno
 import os
 import stat
 import locale
-import io
 
-from six import BytesIO
+import io
+from email.utils import formatdate
 
 
 class FileAdapter(BaseAdapter):
@@ -34,6 +39,9 @@ class FileAdapter(BaseAdapter):
             raise ValueError("file: URLs with hostname components are not permitted")
 
         resp = Response()
+
+        ## Give the Response some context.
+        resp.request = request
 
         # Open the file, translate certain errors into HTTP responses
         # Use urllib's unquote to translate percent escapes into whatever
@@ -69,9 +77,9 @@ class FileAdapter(BaseAdapter):
                 path_drive = ""
 
             # Try to put the path back together
-            # Join the drive back in, and stick os.sep in front of the path to
-            # make it absolute.
-            path = path_drive + os.sep + os.path.join(*path_parts)
+            ## Join the drive back in,
+            ## don't stick os.sep in front of the path to keep it relative
+            path = path_drive + os.path.join(*path_parts)
 
             # Check if the drive assumptions above were correct. If path_drive
             # is set, and os.path.splitdrive does not return a drive, it wasn't
@@ -96,7 +104,7 @@ class FileAdapter(BaseAdapter):
             # The error message will be localized, try to convert the string
             # representation of the exception into a byte stream
             resp_str = str(e).encode(locale.getpreferredencoding(False))
-            resp.raw = BytesIO(resp_str)
+            resp.raw = io.BytesIO(resp_str)
             if self._set_content_length:
                 resp.headers["Content-Length"] = len(resp_str)
 
@@ -110,6 +118,9 @@ class FileAdapter(BaseAdapter):
             resp_stat = os.fstat(resp.raw.fileno())
             if stat.S_ISREG(resp_stat.st_mode) and self._set_content_length:
                 resp.headers["Content-Length"] = resp_stat.st_size
+
+                ## set Date in RFC 1123 from file mtime
+                resp.headers["Date"] = formatdate(timeval=resp_stat.st_mtime, localtime=False, usegmt=True)
 
         return resp
 

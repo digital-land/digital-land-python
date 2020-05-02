@@ -16,6 +16,14 @@ def cli(debug):
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
 
 
+@cli.command("fetch")
+@click.argument("url")
+def fetch_cmd(url):
+    """fetch a single URL, add it to the collection"""
+    collector = Collector()
+    collector.fetch(url)
+
+
 @cli.command(
     "collect",
     short_help="collect resources from sources into a digital-land collection",
@@ -24,7 +32,7 @@ def cli(debug):
     "path", type=click.Path(exists=True), default="collection/source.csv",
 )
 def collect_cmd(path):
-    """collect resources listed in the resource-url column of the path CSV file"""
+    """fetch URLs listed in the resource-url column of the PATH CSV file"""
     collector = Collector()
     collector.collect(path)
 
