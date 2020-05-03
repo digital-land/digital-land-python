@@ -1,7 +1,7 @@
-## original code from:
-## https://github.com/dashea/requests-file
-## http://www.apache.org/licenses/LICENSE-2.0
-## forked to experiment with relative file URLs and providing more headers
+# original code from:
+# https://github.com/dashea/requests-file
+# http://www.apache.org/licenses/LICENSE-2.0
+# forked to experiment with relative file URLs and providing more headers
 
 from requests.adapters import BaseAdapter
 from requests.compat import urlparse, unquote
@@ -40,7 +40,7 @@ class FileAdapter(BaseAdapter):
 
         resp = Response()
 
-        ## Give the Response some context.
+        # Give the Response some context.
         resp.request = request
 
         # Open the file, translate certain errors into HTTP responses
@@ -77,8 +77,8 @@ class FileAdapter(BaseAdapter):
                 path_drive = ""
 
             # Try to put the path back together
-            ## Join the drive back in,
-            ## don't stick os.sep in front of the path to keep it relative
+            # Join the drive back in,
+            # don't stick os.sep in front of the path to keep it relative
             path = path_drive + os.path.join(*path_parts)
 
             # Check if the drive assumptions above were correct. If path_drive
@@ -119,8 +119,10 @@ class FileAdapter(BaseAdapter):
             if stat.S_ISREG(resp_stat.st_mode) and self._set_content_length:
                 resp.headers["Content-Length"] = resp_stat.st_size
 
-                ## set Date in RFC 1123 from file mtime
-                resp.headers["Date"] = formatdate(timeval=resp_stat.st_mtime, localtime=False, usegmt=True)
+                # set Date in RFC 1123 from file mtime
+                resp.headers["Date"] = formatdate(
+                    timeval=resp_stat.st_mtime, localtime=False, usegmt=True
+                )
 
         return resp
 
