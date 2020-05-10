@@ -19,22 +19,19 @@ def cli(debug):
 @cli.command("fetch")
 @click.argument("url")
 def fetch_cmd(url):
-    """fetch a single URL, add it to the collection"""
+    """fetch a single source endpoint URL, and add it to the collection"""
     collector = Collector()
     collector.fetch(url)
 
 
-@cli.command(
-    "collect",
-    short_help="collect resources from sources into a digital-land collection",
-)
+@cli.command("collect")
 @click.argument(
-    "path", type=click.Path(exists=True), default="collection/source.csv",
+    "endpoint_path", type=click.Path(exists=True), default="collection/endpoint.csv",
 )
-def collect_cmd(path):
-    """fetch URLs listed in the resource-url column of the PATH CSV file"""
+def collect_cmd(endpoint_path):
+    """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
     collector = Collector()
-    collector.collect(path)
+    collector.collect(endpoint_path)
 
 
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")

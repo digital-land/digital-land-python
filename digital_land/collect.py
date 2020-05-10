@@ -22,11 +22,14 @@ class Collector:
     def __init__(self):
         self.session = requests.Session()
         self.session.mount("file:", FileAdapter())
+        self.endpoint = {}
 
-    def log_path(self, log_datetime, url):
+    def url_endpoint(self, url):
+        return hashlib.sha256(url.encode("utf-8")).hexdigest()
+
+    def log_path(self, log_datetime, endpoint):
         log_date = log_datetime.isoformat()[:10]
-        source = hashlib.sha256(url.encode("utf-8")).hexdigest()
-        return os.path.join(self.log_dir, log_date, source + ".json")
+        return os.path.join(self.log_dir, log_date, endpoint + ".json")
 
     def save_log(self, path, log):
         self.save(path, canonicaljson.encode_canonical_json(log))
@@ -77,12 +80,21 @@ class Collector:
 
         return log, content
 
-    def fetch(self, url, log_datetime=datetime.utcnow(), end_date=""):
+    def fetch(self, url, endpoint=None, log_datetime=datetime.utcnow(), end_date=""):
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return
 
+        url_endpoint = self.url_endpoint(url)
+        if not endpoint:
+            endpoint = url_endpoint
+        elif endpoint != url_endpoint:
+            logging.error(
+                "url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint)
+            )
+            return
+
         # fetch each source at most once per-day
-        log_path = self.log_path(log_datetime, url)
+        log_path = self.log_path(log_datetime, endpoint)
         if os.path.isfile(log_path):
             return
 
@@ -98,12 +110,13 @@ class Collector:
 
         self.save_log(log_path, log)
 
-    def collect(self, path):
-        for row in csv.DictReader(open(path, newline="")):
-            url = row["resource-url"]
+    def collect(self, endpoint_path):
+        for row in csv.DictReader(open(endpoint_path, newline="")):
+            endpoint = row["endpoint"]
+            url = row["endpoint-url"]
 
             # skip manually added files ..
-            if url and not url.startswith("file:"):
-                return
+            if not url or url.startswith("file:"):
+                next
 
-            self.fetch(url, end_date=row["end-date"])
+            self.fetch(url, endpoint=endpoint, end_date=row.get("end-date", ""))
