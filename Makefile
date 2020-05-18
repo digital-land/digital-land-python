@@ -3,7 +3,13 @@
 all:	black flake8 test coverage
 
 test:
-	py.test -vv
+	python -m pytest
+
+test-unit:
+	python -m pytest tests/unit
+
+test-integration:
+	python -m pytest tests/integration
 
 coverage:
 	coverage run --source digital_land -m py.test && coverage report
