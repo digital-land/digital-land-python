@@ -52,7 +52,7 @@ setup(
         ]
         + maybe_black
     },
-    tests_require=["openregister[test]"],
+    tests_require=["openregister[test]", "responses"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
