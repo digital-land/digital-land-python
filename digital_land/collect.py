@@ -6,12 +6,20 @@
 import os
 from datetime import datetime
 from timeit import default_timer as timer
+from enum import Enum
 import logging
 import requests
 import hashlib
 import canonicaljson
 import csv
 from .adapter.file import FileAdapter
+
+
+class FetchStatus(Enum):
+    OK = 1
+    EXPIRED = 2
+    HASH_FAILURE = 3
+    ALREADY_FETCHED = 4
 
 
 class Collector:
@@ -82,7 +90,7 @@ class Collector:
 
     def fetch(self, url, endpoint=None, log_datetime=datetime.utcnow(), end_date=""):
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
-            return
+            return FetchStatus.EXPIRED
 
         url_endpoint = self.url_endpoint(url)
         if not endpoint:
@@ -91,12 +99,12 @@ class Collector:
             logging.error(
                 "url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint)
             )
-            return
+            return FetchStatus.HASH_FAILURE
 
         # fetch each source at most once per-day
         log_path = self.log_path(log_datetime, endpoint)
         if os.path.isfile(log_path):
-            return
+            return FetchStatus.ALREADY_FETCHED
 
         log = {
             "url": url,
@@ -109,6 +117,8 @@ class Collector:
             log["resource"] = self.save_content(content)
 
         self.save_log(log_path, log)
+
+        return FetchStatus.OK
 
     def collect(self, endpoint_path):
         for row in csv.DictReader(open(endpoint_path, newline="")):
