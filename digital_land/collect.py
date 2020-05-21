@@ -67,6 +67,7 @@ class Collector:
             requests.Timeout,
             requests.TooManyRedirects,
             requests.exceptions.MissingSchema,
+            requests.exceptions.ChunkedEncodingError,
         ) as exception:
             logging.warning(exception)
             log["exception"] = type(exception).__name__
