@@ -49,6 +49,8 @@ setup(
             "pytest>=5.4.1",
             "coveralls>=2.0.0",
             "twine>=3.1.1",
+            "responses>=0.10.14",
+            "XlsxWriter>=1.2.8",
         ]
         + maybe_black
     },
