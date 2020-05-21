@@ -1,4 +1,4 @@
-.PHONY: all black test coverage coveralls bump dist upload help clean
+.PHONY: all black test test-unit test-integration coverage coveralls bump dist upload help clean
 
 all:	black flake8 test coverage
 
