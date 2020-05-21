@@ -2,8 +2,6 @@ import csv
 import urllib.request
 import json
 import hashlib
-import os
-import subprocess
 from datetime import datetime
 from helpers import execute
 
@@ -20,7 +18,7 @@ def endpoint_csv(tmp_path):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerow(
-            {"endpoint": hash_digest(ENDPOINT), "endpoint-url": ENDPOINT,}
+            {"endpoint": hash_digest(ENDPOINT), "endpoint-url": ENDPOINT}
         )
     return p
 

@@ -6,7 +6,7 @@ def execute(command):
 
     try:
         outs, errs = proc.communicate(timeout=15)
-    except TimeoutExpired:
+    except subprocess.TimeoutExpired:
         proc.kill()
         outs, errs = proc.communicate()
 

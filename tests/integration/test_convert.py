@@ -1,12 +1,7 @@
 import csv
-import json
-import os
-import urllib.request
-from datetime import datetime
 
 import pytest
 import xlsxwriter
-from pytest_cases import cases_data
 
 from helpers import execute
 
