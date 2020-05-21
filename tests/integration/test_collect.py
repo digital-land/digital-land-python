@@ -5,6 +5,7 @@ import hashlib
 import os
 import subprocess
 from datetime import datetime
+from helpers import execute
 
 import pytest
 
@@ -26,18 +27,6 @@ def endpoint_csv(tmp_path):
 
 def hash_digest(url):
     return hashlib.sha256(url.encode("utf-8")).hexdigest()
-
-
-def execute(command):
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    try:
-        outs, errs = proc.communicate(timeout=15)
-    except TimeoutExpired:
-        proc.kill()
-        outs, errs = proc.communicate()
-
-    return proc.returncode, outs.decode("utf-8"), errs.decode("utf-8")
 
 
 def test_collect(endpoint_csv):
