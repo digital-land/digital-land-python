@@ -1,0 +1,16 @@
+{
+    "fields": [
+        {
+            "name": "one",
+            "constraints": {
+                "required": true
+            }
+        },
+        {
+            "name": "two"
+        },
+        {
+            "name": "three"
+        }
+    ]
+}

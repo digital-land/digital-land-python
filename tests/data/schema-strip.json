@@ -1,0 +1,18 @@
+{
+    "fields": [
+        {
+            "name": "one",
+            "digital-land": {
+                "strip": [
+                    "\\s*test-suffix$"
+                ]
+            }
+        },
+        {
+            "name": "two"
+        },
+        {
+            "name": "three"
+        }
+    ]
+}
