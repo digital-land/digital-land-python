@@ -1,0 +1,16 @@
+{
+    "fields": [
+        {
+            "name": "one"
+        },
+        {
+            "name": "two"
+        },
+        {
+            "name": "three",
+            "digital-land": {
+                "deprecated": true
+            }
+        }
+    ]
+}

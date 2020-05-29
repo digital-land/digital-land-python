@@ -1,0 +1,16 @@
+{
+    "fields": [
+        {
+            "name": "one"
+        },
+        {
+            "name": "two",
+            "digital-land": {
+                "default": ["one"]
+            }
+        },
+        {
+            "name": "three"
+        }
+    ]
+}

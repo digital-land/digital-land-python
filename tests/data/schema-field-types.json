@@ -1,0 +1,20 @@
+{
+    "fields": [
+        {
+            "name": "one",
+            "constraints": {
+                "enum": [
+                    "first",
+                    "second",
+                    "third"
+                ]
+            }
+        },
+        {
+            "name": "two"
+        },
+        {
+            "name": "three"
+        }
+    ]
+}

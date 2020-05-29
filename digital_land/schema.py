@@ -28,21 +28,21 @@ class Schema:
     def current_fieldnames(self):
         return [
             field["name"]
-            for field in self.fields
-            if not field["digital-land"].get("deprecated", False)
+            for field in self.fields.values()
+            if not field.get("digital-land", {}).get("deprecated", False)
         ]
 
     def required_fieldnames(self):
         return [
             field["name"]
-            for field in self.fields
-            if field["constraints"].get("required", False)
+            for field in self.fields.values()
+            if field.get("constraints", {}).get("required", False)
         ]
 
     def default_fieldnames(self):
         return {
             field["name"]: field["digital-land"]["default"]
-            for field in self.fields
+            for field in self.fields.values()
             if field.get("digital-land", {}).get("default", None)
         }
 
@@ -70,7 +70,7 @@ class Schema:
             return OrganisationURIDataType()
 
         if "enum" in field.get("constraints", {}):
-            return EnumDataType(fieldname, enum=field["constraints"]["enum"])
+            return EnumDataType(enum=field["constraints"]["enum"], name=fieldname)
 
         if field.get("type", "") == "date":
             return DateDataType()
@@ -100,7 +100,7 @@ class Schema:
         raise ValueError("unknown datatype for '%s' field", fieldname)
 
     def strip(self, fieldname, value):
-        field = self.schema.fields[fieldname]
+        field = self.fields[fieldname]
         extra = field.get("digital-land", {})
 
         for strip in extra.get("strip", []):
