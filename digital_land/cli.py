@@ -1,7 +1,8 @@
 import sys
 import click
 import logging
-from .load import load, load_csv, load_csv_dict
+from . import generate
+from .load import load, load_csv_dict
 from .collect import Collector
 from .save import save
 from .normalise import Normaliser
@@ -62,7 +63,7 @@ def convert_cmd(input_path, output_path):
 )
 def normalise_cmd(input_path, output_path, null_path, skip_path):
     normaliser = Normaliser(null_path=null_path, skip_path=skip_path)
-    stream = load_csv(input_path)
+    stream = load_csv_dict(input_path)
     stream = normaliser.normalise(stream)
     save(stream, output_path)
 
@@ -77,3 +78,9 @@ def map_cmd(input_path, output_path, schema_path):
     stream = load_csv_dict(input_path)
     stream = mapper.mapper(stream)
     save(stream, output_path, fieldnames=schema.fieldnames)
+
+
+@cli.command("generate", short_help="generate json schema")
+@click.argument("schema_path", type=click.Path(exists=True))
+def generate_cmd(schema_path):
+    generate.json_schema(schema_path)
