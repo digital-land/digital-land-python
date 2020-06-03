@@ -6,7 +6,7 @@ def fsave(reader, f, fieldnames=None):
     if not fieldnames:
         writer = csv.writer(f)
     else:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
 
     for row in reader:

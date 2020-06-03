@@ -31,17 +31,18 @@ class Normaliser:
             self.skip_patterns.append(re.compile(row["pattern"]))
 
     def normalise_whitespace(self, row):
-        return [
-            v.strip(self.spaces).replace("\r", "").replace("\n", "\r\n") for v in row
-        ]
+        return {
+            k: v.strip(self.spaces).replace("\r", "").replace("\n", "\r\n")
+            for k, v in row.items() if v is not None
+        }
 
     def strip_nulls(self, row):
         for pattern in self.null_patterns:
-            row = [pattern.sub("", v) for v in row]
+            row = {k: pattern.sub("", v) for k, v in row.items()}
         return row
 
     def skip(self, row):
-        line = ",".join(row)
+        line = ",".join(row.values())
         for pattern in self.skip_patterns:
             if pattern.match(line):
                 return True
@@ -53,7 +54,7 @@ class Normaliser:
             row = self.strip_nulls(row)
 
             # skip blank rows
-            if not "".join(row):
+            if not "".join(row.values()):
                 continue
 
             if self.skip(row):
