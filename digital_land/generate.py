@@ -40,4 +40,4 @@ def json_schema(schema_path):
 
         output_fields.append(new_row)
 
-    json.dump({"fields": output_fields}, sys.stdout)
+    json.dump({"fields": output_fields}, sys.stdout, indent=2)

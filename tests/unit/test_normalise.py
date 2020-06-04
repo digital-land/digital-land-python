@@ -13,31 +13,30 @@ def test_init():
 
 def test_normalise_whitespace():
     n = Normaliser()
-    assert n.normalise_whitespace({"a": "b"}) == {"a": "b"}
-    assert n.normalise_whitespace({"a": "b  "}) == {"a": "b"}
-    assert n.normalise_whitespace({"a": "  b"}) == {"a": "b"}
-    assert n.normalise_whitespace({"a": " b  "}) == {"a": "b"}
-    assert n.normalise_whitespace({"a": "  b  "}) == {"a": "b"}
-    assert n.normalise_whitespace({"a": "b  \n"}) == {"a": "b"}
+    assert n.normalise_whitespace(["a"]) == ["a"]
+    assert n.normalise_whitespace(["a "]) == ["a"]
+    assert n.normalise_whitespace([" a"]) == ["a"]
+    assert n.normalise_whitespace([" a "]) == ["a"]
+    assert n.normalise_whitespace(["a   "]) == ["a"]
+    assert n.normalise_whitespace(["a  \n "]) == ["a"]
 
 
 def test_strip_nulls():
     n = Normaliser(null_path="tests/data/null.csv")
-    assert n.strip_nulls({"a": "b"}) == {"a": "b"}
-    assert n.strip_nulls({"a": "????"}) == {"a": ""}
-    assert n.strip_nulls({"a": "----"}) == {"a": ""}
-    assert n.strip_nulls({"a": "null"}) == {"a": ""}
-    assert n.strip_nulls({"a": "<null>"}) == {"a": ""}
+    assert n.strip_nulls(["a"]) == ["a"]
+    assert n.strip_nulls(["????"]) == [""]
+    assert n.strip_nulls(["----"]) == [""]
+    assert n.strip_nulls(["null"]) == [""]
+    assert n.strip_nulls(["<null>"]) == [""]
 
 
 def test_skip():
     n = Normaliser(skip_path="tests/data/skip.csv")
-    assert n.skip({"a": "Unnamed: 0, "})
-    assert not n.skip({"a": "b", "c": "d"})
+    assert n.skip(["Unnamed: 0", ""])
+    assert not n.skip(["b", "d"])
 
 
 def test_skip_blank_rows():
     n = Normaliser()
     assert list(
-        n.normalise([{"a": "1", "b": "2"}, {"a": "", "b": ""}, {"a": "3", "b": "4"}])
-    ) == [{"a": "1", "b": "2"}, {"a": "3", "b": "4"}]
+        n.normalise([["a"], [""], ["b"]])) == [["a"], ["b"]]
