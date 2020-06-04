@@ -61,11 +61,13 @@ def convert_cmd(input_path, output_path):
     help="patterns for skipped lines",
     default=None,
 )
-def normalise_cmd(input_path, output_path, null_path, skip_path):
+@click.argument("schema_path", type=click.Path(exists=True))
+def normalise_cmd(input_path, output_path, null_path, skip_path, schema_path):
+    schema = Schema(schema_path)
     normaliser = Normaliser(null_path=null_path, skip_path=skip_path)
     stream = load_csv_dict(input_path)
     stream = normaliser.normalise(stream)
-    save(stream, output_path)
+    save(stream, output_path, fieldnames=schema.fieldnames)
 
 
 @cli.command("map", short_help="map misspelt column names to those in a schema")
