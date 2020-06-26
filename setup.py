@@ -37,7 +37,7 @@ setup(
         "cchardet==2.1.6",
         "pandas==1.0.3",
         "pyproj==2.6.0",
-        "validators==0.14.3",
+        "validators==0.15.0",
         "xlrd==1.2.0",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
