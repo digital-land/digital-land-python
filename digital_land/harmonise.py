@@ -4,7 +4,7 @@
 #  -- log issues for suggestions for the user to amend
 #
 
-import digital_land.types as types
+# import .digital_land.types as types
 from digital_land.datatype.point import PointDataType
 import csv
 import re
