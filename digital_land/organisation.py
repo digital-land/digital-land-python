@@ -39,5 +39,6 @@ class Organisation:
                     dl_url = dl_url.lower().replace("-eng:", "-eng/")
                     self.organisation_uri[dl_url] = uri
 
-        for row in load_csv_dict("patch/OrganisationURI.csv"):
-            self.organisation_uri[lower_uri(row["value"])] = row["enum"]
+        for row in load_csv_dict("patch/enum.csv"):
+            if row["field"] == "OrganisationURI":
+                self.organisation_uri[lower_uri(row["value"])] = row["enum"]
