@@ -35,7 +35,7 @@ setup(
         "canonicaljson==1.1.4",
         "click==7.1.2",
         "cchardet==2.1.6",
-        "pandas==1.0.3",
+        "pandas==1.0.5",
         "pyproj==2.6.0",
         "validators==0.15.0",
         "xlrd==1.2.0",
