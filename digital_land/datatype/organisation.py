@@ -14,8 +14,13 @@ def uri_basename(value):
 
 class OrganisationURIDataType(EnumDataType):
     def __init__(
-        self, name="OrganisationURI", dataset="organisation", patches_path=None
+        self,
+        name="OrganisationURI",
+        dataset="organisation",
+        patches_path="patch/enum.csv",
+        resource_organisation={},
     ):
+        self.resource_organisation = resource_organisation
         super().__init__(name=name, dataset=dataset, patches_path=patches_path)
 
     def load_dataset(self, dataset):
@@ -39,3 +44,19 @@ class OrganisationURIDataType(EnumDataType):
                         row["organisation"]
                     )
                     self.add_value(uri, dl_url.replace("-eng:", "-eng/"))
+
+    def normalise(self, fieldvalue, issues=None):
+
+        value = self.normalise_value(fieldvalue)
+
+        if value in self.value:
+            return self.value[value]
+
+        s = value.split()[-1]
+        if s in self.value:
+            return self.value[s]
+
+        if issues:
+            issues.log(self.name, fieldvalue)
+
+        return ""

@@ -25,6 +25,7 @@ class Schema:
         self.fields = {field["name"]: field for field in self.schema["fields"]}
         self.fieldnames = [field["name"] for field in self.schema["fields"]]
 
+    @property
     def current_fieldnames(self):
         return [
             field["name"]
@@ -32,6 +33,7 @@ class Schema:
             if not field.get("digital-land", {}).get("deprecated", False)
         ]
 
+    @property
     def required_fieldnames(self):
         return [
             field["name"]
@@ -39,6 +41,7 @@ class Schema:
             if field.get("constraints", {}).get("required", False)
         ]
 
+    @property
     def default_fieldnames(self):
         return {
             field["name"]: field["digital-land"]["default"]
@@ -49,6 +52,7 @@ class Schema:
     def normalise(self, name):
         return re.sub(self.normalise_re, "", name.lower())
 
+    @property
     def typos(self):
         typos = {}
         for fieldname in self.fieldnames:
@@ -99,10 +103,11 @@ class Schema:
 
         raise ValueError("unknown datatype for '%s' field", fieldname)
 
-    def strip(self, fieldname, value):
-        field = self.fields[fieldname]
-        extra = field.get("digital-land", {})
+    # No longer have the digital-land extension
+    # def strip(self, fieldname, value):
+    #     field = self.fields[fieldname]
+    #     extra = field.get("digital-land", {})
 
-        for strip in extra.get("strip", []):
-            value = re.sub(strip, "", value)
-        return value.strip()
+    #     for strip in extra.get("strip", []):
+    #         value = re.sub(strip, "", value)
+    #     return value.strip()

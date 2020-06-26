@@ -7,7 +7,7 @@ class Mapper:
 
     def __init__(self, schema):
         self.schema = schema
-        self.typos = self.schema.typos()
+        self.typos = self.schema.typos
 
     def headers(self, reader):
         headers = {}

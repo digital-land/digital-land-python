@@ -6,7 +6,9 @@ strip_re = re.compile(r"([^a-z0-9-_ ]+)")
 
 
 class EnumDataType(DataType):
-    def __init__(self, enum=[], name="enum", patches_path=None, dataset=None):
+    def __init__(
+        self, enum=[], name="enum", patches_path="patch/enum.csv", dataset=None
+    ):
         self.name = name
         self.enum = set()
         self.value = {}
@@ -32,7 +34,8 @@ class EnumDataType(DataType):
 
     def load_patches(self, path):
         for row in csv.DictReader(open(path, newline="")):
-            self.add_value(row["enum"], row["value"])
+            if row["field"] == self.name:
+                self.add_value(row["enum"], row["value"])
 
     def normalise_value(self, value):
         return " ".join(strip_re.sub(" ", value.lower()).split())

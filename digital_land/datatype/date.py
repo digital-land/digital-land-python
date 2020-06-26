@@ -4,7 +4,7 @@ from .datatype import DataType
 
 class DateDataType(DataType):
     def normalise(self, fieldvalue, issues=None):
-        value = fieldvalue.strip(' ",')
+        value = fieldvalue.strip().strip('",')
 
         # all of these patterns have been used!
         for pattern in [

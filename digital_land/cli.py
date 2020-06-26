@@ -4,8 +4,13 @@ import logging
 from . import generate
 from .load import load, load_csv_dict
 from .collect import Collector
+from .index import Indexer
 from .save import save
 from .normalise import Normaliser
+from .harmonise import Harmoniser
+from .transform import Transformer
+from .resource_organisation import ResourceOrganisation
+from .organisation import Organisation
 from .map import Mapper
 from .schema import Schema
 
@@ -77,8 +82,46 @@ def normalise_cmd(input_path, output_path, null_path, skip_path, schema_path):
 def map_cmd(input_path, output_path, schema_path):
     schema = Schema(schema_path)
     mapper = Mapper(schema)
-    stream = load_csv_dict(input_path)
+    stream = load_csv_dict(input_path, inject_resource=True)
     stream = mapper.mapper(stream)
+    save(stream, output_path, fieldnames=schema.fieldnames)
+
+
+@cli.command(
+    "index", short_help="create collection indices",
+)
+def index_cmd():
+    indexer = Indexer()
+    indexer.index()
+
+
+@cli.command(
+    "harmonise",
+    short_help="strip whitespace and null fields, remove blank rows and columns",
+)
+@click.argument("input_path", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path())
+@click.argument("schema_path", type=click.Path(exists=True))
+def harmonise_cmd(input_path, output_path, schema_path):
+    schema = Schema(schema_path)
+    issues = None
+    resource_organisation = ResourceOrganisation().resource_organisation
+    organisation = Organisation()
+    harmoniser = Harmoniser(schema, issues, resource_organisation, organisation.organisation_uri)
+    stream = load_csv_dict(input_path, inject_resource=True)
+    stream = harmoniser.harmonise(stream)
+    save(stream, output_path, fieldnames=schema.current_fieldnames)
+
+
+@cli.command("transform", short_help="transform")
+@click.argument("input_path", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path())
+@click.argument("schema_path", type=click.Path(exists=True))
+def transform_cmd(input_path, output_path, schema_path):
+    schema = Schema(schema_path)
+    transformer = Transformer(schema)
+    stream = load_csv_dict(input_path, inject_resource=True)
+    stream = transformer.transform(stream)
     save(stream, output_path, fieldnames=schema.fieldnames)
 
 

@@ -31,3 +31,7 @@ class IssuesFile:
 
     def write(self, row):
         self.writer.writerow(row)
+
+    def write_issues(self, issues):
+        for issue in issues.rows:
+            self.write(issue)
