@@ -335,7 +335,6 @@ class Indexer:
 
         # index for harmonising missing OrganisationURI values
         rows = {}
-        __import__("pdb").set_trace()
         for k, entry in link_resource.items():
             link = entry["link"]
             for organisation in self.idx[link]["organisation"]:
