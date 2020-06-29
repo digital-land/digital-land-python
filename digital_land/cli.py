@@ -2,7 +2,7 @@ import sys
 import click
 import logging
 from . import generate
-from .load import load, load_csv_dict
+from .load import load, load_csv, load_csv_dict
 from .collect import Collector
 from .index import Indexer
 from .save import save
@@ -66,13 +66,11 @@ def convert_cmd(input_path, output_path):
     help="patterns for skipped lines",
     default=None,
 )
-@click.argument("schema_path", type=click.Path(exists=True))
-def normalise_cmd(input_path, output_path, null_path, skip_path, schema_path):
-    schema = Schema(schema_path)
+def normalise_cmd(input_path, output_path, null_path, skip_path):
     normaliser = Normaliser(null_path=null_path, skip_path=skip_path)
-    stream = load_csv_dict(input_path)
+    stream = load_csv(input_path)
     stream = normaliser.normalise(stream)
-    save(stream, output_path, fieldnames=schema.fieldnames)
+    save(stream, output_path)
 
 
 @cli.command("map", short_help="map misspelt column names to those in a schema")
