@@ -61,7 +61,7 @@ def count_rows_in(path):
     try:
         with open(path) as f:
             reader = csv.reader(f)
-            return sum(1 for row in reader)
+            return sum(1 for row in reader) - 1  # Subtract header
     except UnicodeDecodeError:
         return -1
 

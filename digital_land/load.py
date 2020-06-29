@@ -77,7 +77,9 @@ def load_excel(path):
     except:  # noqa: E722
         return None
 
-    string = excel.to_csv(index=None, header=True, encoding="utf-8")
+    string = excel.to_csv(
+        index=None, header=True, encoding="utf-8", quoting=csv.QUOTE_ALL
+    )
     f = StringIO(string)
     return csv.reader(f)
 
