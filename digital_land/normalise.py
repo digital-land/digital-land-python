@@ -48,15 +48,18 @@ class Normaliser:
         return False
 
     def normalise(self, reader):
-        for row in reader:
-            row = self.normalise_whitespace(row)
-            row = self.strip_nulls(row)
+        for stream_data in reader:
+            line = stream_data["line"]
+            line = self.normalise_whitespace(line)
+            line = self.strip_nulls(line)
 
-            # skip blank rows
-            if not "".join(row):
+            # skip blank lines
+            if not "".join(line):
                 continue
 
-            if self.skip(row):
+            if self.skip(line):
                 continue
 
-            yield row
+            stream_data["line"] = line
+
+            yield stream_data

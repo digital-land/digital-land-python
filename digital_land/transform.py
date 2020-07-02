@@ -11,12 +11,6 @@ import os
 import csv
 import json
 
-# input_path = sys.argv[1]
-# output_path = sys.argv[2]
-# schema_path = sys.argv[3]
-
-schema = json.load(open("schema/brownfield-land.json"))
-
 
 class Transformer:
     def __init__(self, schema):
@@ -31,32 +25,28 @@ class Transformer:
                 organisation[row["opendatacommunities"]] = row["organisation"]
 
         # map of harmonised fields to digital-land fields
-        fieldnames = schema["digital-land"]["fields"]
+        fieldnames = self.schema["digital-land"]["fields"]
         fields = {
             field["digital-land"]["field"]: field["name"]
-            for field in schema["fields"]
+            for field in self.schema["fields"]
             if "digital-land" in field and "field" in field["digital-land"]
         }
         for field in fieldnames:
-            if not field in fields:
+            if field not in fields:
                 fields[field] = field
 
-        __import__("pdb").set_trace()
-        resource = os.path.basename(os.path.splitext(input_path)[0])
-        # reader = csv.DictReader(open(input_path, newline=""))
+        for stream_data in reader:
+            row = stream_data["row"]
+            o = {}
+            row["resource"] = stream_data["resource"]
 
-        with open(output_path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
+            # translate OrganisationURI into an organisation CURIE
+            row["OrganisationURI"] = organisation.get(row["OrganisationURI"], "")
 
-            for row in reader:
-                o = {}
-                row["resource"] = resource
+            for field in fieldnames:
+                o[field] = row[fields[field]]
 
-                # translate OrganisationURI into an organisation CURIE
-                row["OrganisationURI"] = organisation.get(row["OrganisationURI"], "")
-
-                for field in fieldnames:
-                    o[field] = row[fields[field]]
-
-                writer.writerow(o)
+            yield {
+                "resource": stream_data["resource"],
+                "row": o,
+            }

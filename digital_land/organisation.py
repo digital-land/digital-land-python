@@ -1,5 +1,5 @@
 import re
-from .load import load_csv_dict
+import csv
 
 
 uri_basename_re = re.compile(r".*/")
@@ -24,7 +24,7 @@ class Organisation:
         self.load_organisation()
 
     def load_organisation(self):
-        for row in load_csv_dict(self.organisation_path):
+        for row in csv.DictReader(open(self.organisation_path)):
             self.organisation[row["organisation"]] = row
             if "opendatacommunities" in row:
                 uri = row["opendatacommunities"].lower()
@@ -39,6 +39,6 @@ class Organisation:
                     dl_url = dl_url.lower().replace("-eng:", "-eng/")
                     self.organisation_uri[dl_url] = uri
 
-        for row in load_csv_dict("patch/enum.csv"):
+        for row in csv.DictReader(open("patch/enum.csv")):
             if row["field"] == "OrganisationURI":
                 self.organisation_uri[lower_uri(row["value"])] = row["enum"]

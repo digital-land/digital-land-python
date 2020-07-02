@@ -13,7 +13,7 @@ class ResourceOrganisation:
         self.load_resource_organisation()
 
     def load_resource_organisation(self):
-        for row in load_csv_dict(self.resource_organisation_path):
+        for row in csv.DictReader(open(self.resource_organisation_path)):
             self.resource_organisation[row["resource"]].append(
                 {
                     "organisation": row["organisation"],

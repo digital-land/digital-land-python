@@ -31,10 +31,11 @@ class Mapper:
                 )
         return o
 
-    def mapper(self, reader):
+    def map(self, reader):
         headers = self.headers(reader)
 
-        for row in reader:
+        for stream_data in reader:
+            row = stream_data["row"]
             o = {}
 
             for header in headers:
@@ -42,4 +43,7 @@ class Mapper:
 
             o = self.concatenate_fields(row, o)
 
-            yield o
+            yield {
+                "resource": stream_data["resource"],
+                "row": o,
+            }

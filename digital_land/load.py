@@ -40,13 +40,8 @@ class DictReaderInjectResource(csv.DictReader):
 
 def load_csv_dict(path, inject_resource=False):
     logging.debug(f"reading csv {path}")
-    resource_hash = resource_hash_from(path)
-    file = open(path, newline="")
-
-    if inject_resource:
-        return DictReaderInjectResource(resource_hash, file)
-
-    return csv.DictReader(file)
+    f = open(path, newline="")
+    return DictReaderInjectResource(resource_hash_from(path), f)
 
 
 def load_csv(path, encoding="UTF-8"):
@@ -67,7 +62,8 @@ def load_csv(path, encoding="UTF-8"):
         return None
 
     f.seek(0)
-    return csv.reader(f)
+
+    return reader_with_line(f, resource_hash_from(path))
 
 
 def load_excel(path):
@@ -81,7 +77,16 @@ def load_excel(path):
         index=None, header=True, encoding="utf-8", quoting=csv.QUOTE_ALL
     )
     f = StringIO(string)
-    return csv.reader(f)
+
+    return reader_with_line(f, resource_hash_from(path))
+
+
+def reader_with_line(f, resource):
+    for line in csv.reader(f):
+        yield {
+            "resource": resource,
+            "line": line,
+        }
 
 
 def load(path):
