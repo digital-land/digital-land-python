@@ -34,8 +34,10 @@ class DictReaderInjectResource(csv.DictReader):
     def __next__(self):
         # Inject the resource into each row
         row = super().__next__()
-        row["resource"] = self.resource
-        return row
+        return {
+            "resource": self.resource,
+            "row": row,
+        }
 
 
 def load_csv_dict(path, inject_resource=False):
