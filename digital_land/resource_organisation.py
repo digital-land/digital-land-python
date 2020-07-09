@@ -1,5 +1,5 @@
+import csv
 from collections import defaultdict
-from .load import load_csv_dict
 
 
 class ResourceOrganisation:
@@ -32,6 +32,3 @@ class ResourceOrganisation:
                 if not start_date:
                     start_date = org["start-date"]
                     continue
-
-                if org["start-date"] != start_date:
-                    __import__('pdb').set_trace()
