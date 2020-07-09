@@ -128,6 +128,6 @@ class Collector:
 
             # skip manually added files ..
             if not url or url.startswith("file:"):
-                next
+                continue
 
             self.fetch(url, endpoint=endpoint, end_date=row.get("end-date", ""))
