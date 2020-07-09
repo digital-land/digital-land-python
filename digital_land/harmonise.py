@@ -139,12 +139,15 @@ class Harmoniser:
 
         last_resource = None
 
-        for row in reader:
+        for stream_data in reader:
+            row = stream_data["row"]
+            resource = stream_data["resource"]
+
             if self.issues:
                 self.issues.row_number += 1
 
-            if not last_resource or last_resource != row["resource"]:
-                self.set_resource_defaults(row["resource"])
+            if not last_resource or last_resource != resource:
+                self.set_resource_defaults(resource)
 
             o = {}
 
@@ -171,6 +174,9 @@ class Harmoniser:
                     [o["GeoX"], o["GeoY"]], issues=self.issues
                 )
 
-            last_resource = row["resource"]
+            last_resource = resource
 
-            yield o
+            yield {
+                "resource": resource,
+                "row": o,
+            }
