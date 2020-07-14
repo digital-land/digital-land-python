@@ -5,30 +5,27 @@
 #  -- make it valid according to the 2019 guidance
 #  -- log fixes as suggestions for the user to amend
 #
-import os
-
-# import sys
-import csv
-import json
 
 
 class Transformer:
-    def __init__(self, schema):
+    def __init__(self, schema, organisation):
         self.schema = schema
+
+        # map of OrganisationURI to organisation CURIE
+        self.organisation_curie = {}
+        for org in organisation.values():
+            if org.get("opendatacommunities", None):
+                self.organisation_curie[org["opendatacommunities"]] = org[
+                    "organisation"
+                ]
 
     def transform(self, reader):
 
-        # map of OrganisationURI to organisation CURIE
-        organisation = {}
-        for row in csv.DictReader(open("var/cache/organisation.csv", newline="")):
-            if row.get("opendatacommunities", None):
-                organisation[row["opendatacommunities"]] = row["organisation"]
-
         # map of harmonised fields to digital-land fields
-        fieldnames = self.schema["digital-land"]["fields"]
+        fieldnames = self.schema.schema["digital-land"]["fields"]
         fields = {
             field["digital-land"]["field"]: field["name"]
-            for field in self.schema["fields"]
+            for field in self.schema.schema["fields"]
             if "digital-land" in field and "field" in field["digital-land"]
         }
         for field in fieldnames:
@@ -41,7 +38,9 @@ class Transformer:
             row["resource"] = stream_data["resource"]
 
             # translate OrganisationURI into an organisation CURIE
-            row["OrganisationURI"] = organisation.get(row["OrganisationURI"], "")
+            row["OrganisationURI"] = self.organisation_curie.get(
+                row["OrganisationURI"], ""
+            )
 
             for field in fieldnames:
                 o[field] = row[fields[field]]

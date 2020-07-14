@@ -26,7 +26,7 @@ class IssuesFile:
     def __init__(self, f=None, path=None):
         if not f:
             f = open(path, "w", newline="")
-        self.writer = csv.DictWriter(f)
+        self.writer = csv.DictWriter(f, fieldnames)
         self.writer.writeheader()
 
     def write(self, row):

@@ -1,4 +1,5 @@
 import sys
+import os
 import click
 import logging
 import tempfile
@@ -8,6 +9,7 @@ from .collect import Collector
 from .index import Indexer
 from .save import save
 from .normalise import Normaliser
+from .issues import Issues, IssuesFile
 from .harmonise import Harmoniser
 from .transform import Transformer
 from .resource_organisation import ResourceOrganisation
@@ -101,9 +103,11 @@ def index_cmd():
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
 @click.argument("schema_path", type=click.Path(exists=True))
-def harmonise_cmd(input_path, output_path, schema_path):
+@click.argument("issue_path", type=click.Path(exists=True))
+def harmonise_cmd(input_path, output_path, schema_path, issue_path):
+    resource_hash = input_path.split('/')[-1]
     schema = Schema(schema_path)
-    issues = None
+    issues = Issues()
     resource_organisation = ResourceOrganisation().resource_organisation
     organisation = Organisation()
     harmoniser = Harmoniser(
@@ -113,6 +117,9 @@ def harmonise_cmd(input_path, output_path, schema_path):
     stream = harmoniser.harmonise(stream)
     save(stream, output_path, fieldnames=schema.current_fieldnames)
 
+    issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
+    issues_file.write_issues(issues)
+
 
 @cli.command("transform", short_help="transform")
 @click.argument("input_path", type=click.Path(exists=True))
@@ -121,7 +128,7 @@ def harmonise_cmd(input_path, output_path, schema_path):
 def transform_cmd(input_path, output_path, schema_path):
     schema = Schema(schema_path)
     organisation = Organisation()
-    transformer = Transformer(schema, organisation.organisation_uri)
+    transformer = Transformer(schema, organisation.organisation)
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
     save(stream, output_path, schema.schema["digital-land"]["fields"])
@@ -132,11 +139,13 @@ def transform_cmd(input_path, output_path, schema_path):
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
 @click.argument("schema_path", type=click.Path(exists=True))
-def pipeline_cmd(input_path, output_path, schema_path):
+@click.argument("issue_path", type=click.Path(exists=True))
+def pipeline_cmd(input_path, output_path, schema_path, issue_path):
+    resource_hash = input_path.split('/')[-1]
     schema = Schema(schema_path)
     organisation = Organisation()
     resource_organisation = ResourceOrganisation().resource_organisation
-    issues = None
+    issues = Issues()
 
     normaliser = Normaliser()
     mapper = Mapper(schema)
@@ -149,7 +158,9 @@ def pipeline_cmd(input_path, output_path, schema_path):
 
     stream = load(input_path)
     normalised = normaliser.normalise(stream)
-    normalised_tmp = tempfile.NamedTemporaryFile(suffix=f".{input_path.split('/')[-1]}.csv")
+    normalised_tmp = tempfile.NamedTemporaryFile(
+        suffix=f".{resource_hash}.csv"  # Keep the resource hash in the temp filename
+    )
     save(normalised, normalised_tmp.name)
 
     stream_dict = load_csv_dict(normalised_tmp.name)
@@ -157,6 +168,9 @@ def pipeline_cmd(input_path, output_path, schema_path):
     harmonised = harmoniser.harmonise(mapped)
     transformed = transformer.transform(harmonised)
     save(transformed, output_path, fieldnames=schema.schema["digital-land"]["fields"])
+
+    issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
+    issues_file.write_issues(issues)
 
 
 @cli.command("generate", short_help="generate json schema")
