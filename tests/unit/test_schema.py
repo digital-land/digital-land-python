@@ -20,7 +20,7 @@ def test_normalise_fieldname():
 
 def test_schema_typos():
     s = Schema("tests/data/schema-typos.json")
-    typos = s.typos()
+    typos = s.typos
     assert typos == {
         "dos": "two",
         "due": "one",
@@ -37,7 +37,7 @@ def test_schema_typos():
 
 def test_current_fieldnames():
     s = Schema("tests/data/schema-deprecated.json")
-    assert s.current_fieldnames() == [
+    assert s.current_fieldnames == [
         "one",
         "two",
     ]
@@ -45,23 +45,14 @@ def test_current_fieldnames():
 
 def test_required_fieldnames():
     s = Schema("tests/data/schema-required.json")
-    assert s.required_fieldnames() == [
+    assert s.required_fieldnames == [
         "one",
     ]
 
 
 def test_default_fieldnames():
     s = Schema("tests/data/schema-default.json")
-    assert s.default_fieldnames() == {"two": ["one"]}
-
-
-def test_strip():
-    s = Schema("tests/data/schema-strip.json")
-
-    assert s.strip("one", "no-op") == "no-op"
-    assert s.strip("one", "data test-suffix") == "data"
-    assert s.strip("two", "data test-suffix") == "data test-suffix"
-    assert s.strip("one", "data test-suffix middle") == "data test-suffix middle"
+    assert s.default_fieldnames == {"two": ["one"]}
 
 
 def test_field_type():
