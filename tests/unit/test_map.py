@@ -6,8 +6,14 @@ from digital_land.map import Mapper
 from digital_land.schema import Schema
 
 
+class CustomReader(csv.DictReader):
+    def __next__(self):
+        row = super().__next__()
+        return {"row": row, "resource": "dummy_resource"}
+
+
 def _reader(s):
-    return csv.DictReader(StringIO(s))
+    return CustomReader(StringIO(s))
 
 
 def test_map_headers():
@@ -28,7 +34,7 @@ def test_map():
 
     assert mapper.headers(stream) == {"one": "one", "two": "two"}
 
-    stream = mapper.mapper(stream)
+    stream = mapper.map(stream)
 
     output = StringIO()
     fsave(stream, output, fieldnames=schema.fieldnames)
