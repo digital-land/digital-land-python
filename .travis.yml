@@ -11,3 +11,5 @@ script:
 - make flake8 test coverage
 after_success:
 - coveralls
+git:
+  depth: false
