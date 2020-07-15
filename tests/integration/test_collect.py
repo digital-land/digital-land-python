@@ -17,9 +17,7 @@ def endpoint_csv(tmp_path):
     with open(p, "w") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerow(
-            {"endpoint": hash_digest(ENDPOINT), "endpoint-url": ENDPOINT}
-        )
+        writer.writerow({"endpoint": hash_digest(ENDPOINT), "endpoint-url": ENDPOINT})
     return p
 
 

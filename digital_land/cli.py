@@ -105,7 +105,7 @@ def index_cmd():
 @click.argument("schema_path", type=click.Path(exists=True))
 @click.argument("issue_path", type=click.Path(exists=True))
 def harmonise_cmd(input_path, output_path, schema_path, issue_path):
-    resource_hash = input_path.split('/')[-1]
+    resource_hash = input_path.split("/")[-1]
     schema = Schema(schema_path)
     issues = Issues()
     resource_organisation = ResourceOrganisation().resource_organisation
@@ -141,7 +141,7 @@ def transform_cmd(input_path, output_path, schema_path):
 @click.argument("schema_path", type=click.Path(exists=True))
 @click.argument("issue_path", type=click.Path(exists=True))
 def pipeline_cmd(input_path, output_path, schema_path, issue_path):
-    resource_hash = input_path.split('/')[-1]
+    resource_hash = input_path.split("/")[-1]
     schema = Schema(schema_path)
     organisation = Organisation()
     resource_organisation = ResourceOrganisation().resource_organisation
