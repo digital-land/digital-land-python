@@ -1,3 +1,4 @@
+import os
 import re
 import csv
 from .datatype import DataType
@@ -17,7 +18,7 @@ class EnumDataType(DataType):
         if dataset and self.load_dataset:
             self.load_dataset(dataset)
 
-        if patches_path:
+        if patches_path and os.path.isfile(patches_path):
             self.load_patches(patches_path)
 
     def add_enum(self, enum):
