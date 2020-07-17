@@ -20,6 +20,6 @@ class Pipeline:
 
     def column_typos(self, resource=None):
         if not resource:
-            return self.column.get(resource, {})
+            return self.column.get(None, {})
 
         return {**self.column.get(resource, {}), **self.column.get(None, {})}
