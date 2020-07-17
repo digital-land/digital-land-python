@@ -18,12 +18,11 @@ class Schema:
     https://frictionlessdata.io/specs/table-schema/
     """
 
-    normalise_re = re.compile(r"[^a-z0-9]")
-
     def __init__(self, path):
         self.schema = json.load(open(path))
         self.fields = {field["name"]: field for field in self.schema["fields"]}
         self.fieldnames = [field["name"] for field in self.schema["fields"]]
+        self.normalised = {self.normalise(name): name for name in self.fieldnames}
 
     @property
     def current_fieldnames(self):
@@ -49,21 +48,10 @@ class Schema:
             if field.get("digital-land", {}).get("default", None)
         }
 
+    normalise_re = re.compile(r"[^a-z0-9]")
+
     def normalise(self, name):
         return re.sub(self.normalise_re, "", name.lower())
-
-    @property
-    def typos(self):
-        typos = {}
-        for fieldname in self.fieldnames:
-            field = self.fields[fieldname]
-            typos[self.normalise(fieldname)] = fieldname
-            if "title" in field:
-                typos[self.normalise(field["title"])] = fieldname
-            if "digital-land" in field:
-                for typo in field["digital-land"].get("typos", []):
-                    typos[self.normalise(typo)] = fieldname
-        return typos
 
     def field_type(self, fieldname):
         field = self.fields[fieldname]

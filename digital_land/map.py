@@ -5,17 +5,19 @@ class Mapper:
     concatenate notes and other fields
     """
 
-    def __init__(self, schema):
+    def __init__(self, schema, typos):
         self.schema = schema
-        self.typos = self.schema.typos
+        self.typos = typos
 
-    def headers(self, reader):
+    def headers(self, fieldnames):
         headers = {}
 
-        for header in reader.fieldnames:
+        for header in fieldnames:
             fieldname = self.schema.normalise(header)
             if fieldname in self.schema.fieldnames:
                 headers[header] = fieldname
+            if fieldname in self.schema.normalised:
+                headers[header] = self.schema.normalised[fieldname]
             elif fieldname in self.typos:
                 headers[header] = self.typos[fieldname]
 
@@ -32,7 +34,7 @@ class Mapper:
         return o
 
     def map(self, reader):
-        headers = self.headers(reader)
+        headers = self.headers(reader.fieldnames)
 
         for stream_data in reader:
             row = stream_data["row"]
