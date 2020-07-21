@@ -21,9 +21,9 @@ def test_map_headers():
     mapper = Mapper(schema)
 
     reader = _reader("one,two\r\n1,2\r\n")
-    assert reader.fieldnames == ["one", "two"]
 
-    assert mapper.headers(reader) == {"one": "one", "two": "two"}
+    assert reader.fieldnames == ["one", "two"]
+    assert mapper.headers(reader.fieldnames) == {"one": "one", "two": "two"}
 
 
 def test_map():
@@ -31,9 +31,6 @@ def test_map():
     mapper = Mapper(schema)
 
     stream = _reader("one,two\r\n1,2\r\n")
-
-    assert mapper.headers(stream) == {"one": "one", "two": "two"}
-
     stream = mapper.map(stream)
 
     output = StringIO()

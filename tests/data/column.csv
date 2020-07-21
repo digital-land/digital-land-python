@@ -1,0 +1,9 @@
+pipeline,resource,pattern,value
+test-pipeline,,un,one
+test-pipeline,,due,one
+test-pipeline,,um,one
+test-pipeline,,una,one
+test-pipeline,,uno,one
+test-pipeline,,dos,two
+test-pipeline,,thirdcolumn,three
+test-pipeline,some-resource,quatro,four
