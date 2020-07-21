@@ -5,7 +5,7 @@ class Mapper:
     concatenate notes and other fields
     """
 
-    def __init__(self, schema, typos):
+    def __init__(self, schema, typos={}):
         self.schema = schema
         self.typos = typos
 

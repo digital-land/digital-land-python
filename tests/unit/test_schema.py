@@ -18,23 +18,6 @@ def test_normalise_fieldname():
     assert s.normalise("A Field") == "afield"
 
 
-def test_schema_typos():
-    s = Schema("tests/data/schema-typos.json")
-    typos = s.typos
-    assert typos == {
-        "dos": "two",
-        "due": "one",
-        "one": "one",
-        "thirdcolumn": "three",
-        "three": "three",
-        "two": "two",
-        "um": "one",
-        "un": "one",
-        "una": "one",
-        "uno": "one",
-    }
-
-
 def test_current_fieldnames():
     s = Schema("tests/data/schema-deprecated.json")
     assert s.current_fieldnames == [

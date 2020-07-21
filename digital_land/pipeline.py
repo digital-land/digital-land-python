@@ -18,8 +18,8 @@ class Pipeline:
             column = self.column.setdefault(row["resource"], {})
             column[row["pattern"]] = row["value"]
 
-    def column_typos(self, resource=None):
+    def column_typos(self, resource=""):
         if not resource:
-            return self.column.get(None, {})
+            return self.column.get("", {})
 
-        return {**self.column.get(resource, {}), **self.column.get(None, {})}
+        return {**self.column.get(resource, {}), **self.column.get("", {})}
