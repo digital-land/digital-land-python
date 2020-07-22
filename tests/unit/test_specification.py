@@ -1,0 +1,23 @@
+from digital_land.specification import Specification
+
+
+def test_dataset_names():
+    specification = Specification("tests/data/specification")
+    assert specification.dataset_names == ["dataset-one", "dataset-two"]
+
+
+def test_dataset():
+    specification = Specification("tests/data/specification")
+    assert specification.dataset["dataset-one"]["name"] == "First Dataset"
+    assert specification.dataset["dataset-one"]["text"] == "Text of first dataset"
+
+
+def test_schema_names():
+    specification = Specification("tests/data/specification")
+    assert specification.schema_names == ["schema-one", "schema-two", "schema-three"]
+
+
+def test_schema():
+    specification = Specification("tests/data/specification")
+    assert specification.schema["schema-one"]["name"] == "First Schema"
+    assert specification.schema["schema-one"]["description"] == "Description one"
