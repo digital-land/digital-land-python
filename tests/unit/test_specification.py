@@ -27,3 +27,13 @@ def test_dataset_schema():
     specification = Specification("tests/data/specification")
     assert specification.dataset_schema["dataset-one"] == ["schema-one"]
     assert specification.dataset_schema["dataset-two"] == ["schema-one", "schema-two"]
+
+
+def test_field_names():
+    specification = Specification("tests/data/specification")
+    assert specification.field_names == ["field-one"]
+
+
+def test_field():
+    specification = Specification("tests/data/specification")
+    assert specification.field["field-one"]["datatype"] == "string"
