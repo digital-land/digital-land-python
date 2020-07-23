@@ -1,0 +1,15 @@
+datatype,name,text
+curie,CURIE,A [CURIE](http://en.wikipedia.org/wiki/CURIE) defines a generic abbreviated syntax for expressing Uniform Resource Identifiers (URIs). eg. `local-authority-eng:DAC`.
+datetime,Datetime,"A combination of a date and a time in the format `YYYY-MM-DDThh:mm:ss[.pppp]Z` as described in chapter 5.4 of [ISO 8601](http://en.wikipedia.org/wiki/ISO_8601). The value can be truncated to just the most significant digits, for example ""2014-05"". Time values, where present, must be in UTC."
+decimal,Decimal,A decimal value compatible with XML Schema xs:decimal type.
+flag,Flag,"A value which is either `yes`, `no`, or blank."
+wkt,WKT,"A geometry encoded in the [OGC Well-known text (WKT)](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) format as defined by [ISO/IEC 13249-3:2016](https://www.iso.org/standard/60343.html) Coordinate values should be 6 or fewer decimal places, using the WGS84 or ETRS89 coordinate system."
+hash,Hash,"A hash value serialised as a hexadecimal string. The default hash function is [SHA2-256](https://en.wikipedia.org/wiki/SHA-2). An alternative hash function may be supplied using a CURIE prefix, or the experimental [multihash](https://multiformats.io/multihash/) code."
+integer,Integer,An integer value compatible with XML Schema xs:integer type.
+json,JSON,A blob of data encoded as a canonicalised JSON string compatible with [RFC 8259](https://tools.ietf.org/html/rfc8259).
+latitude,Latitude,"A latitude value which should be 6 or fewer decimal places, using the WGS84 or ETRS89 coordinate system."
+longitude,Longitude,"A longitude value which should be 6 or fewer decimal places, using the WGS84 or ETRS89 coordinate system."
+pattern,Pattern,A regular expression pattern compatible with the [IEEE POSIX](https://en.wikipedia.org/wiki/POSIX) Basic Regular Syntax (BRE).
+string,String,A string of [Unicode 6.2.x](http://www.unicode.org/versions/Unicode6.2.0/) characters encoded as [UTF-8](http://en.wikipedia.org/wiki/UTF-8).
+text,Text,A string of text which may contain [Markdown](http://en.wikipedia.org/wiki/Markdown) formatting instructions.
+url,URL,A [URL](http://en.wikipedia.org/wiki/Uniform_resource_locator) reference to another resource on the Web.

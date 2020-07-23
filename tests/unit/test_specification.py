@@ -29,6 +29,31 @@ def test_dataset_schema():
     assert specification.dataset_schema["dataset-two"] == ["schema-one", "schema-two"]
 
 
+def test_datatype_names():
+    specification = Specification("tests/data/specification")
+    assert specification.datatype_names == [
+        "curie",
+        "datetime",
+        "decimal",
+        "flag",
+        "wkt",
+        "hash",
+        "integer",
+        "json",
+        "latitude",
+        "longitude",
+        "pattern",
+        "string",
+        "text",
+        "url",
+    ]
+
+
+def test_datatype():
+    specification = Specification("tests/data/specification")
+    assert specification.datatype["integer"]["name"] == "Integer"
+
+
 def test_field_names():
     specification = Specification("tests/data/specification")
     assert specification.field_names == ["field-one"]

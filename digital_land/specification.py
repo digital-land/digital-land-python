@@ -11,10 +11,13 @@ class Specification:
         self.dataset_schema = {}
         self.field = {}
         self.field_names = []
+        self.datatype = {}
+        self.datatype_names = []
 
         self.load_dataset(path)
         self.load_schema(path)
         self.load_dataset_schema(path)
+        self.load_datatype(path)
         self.load_field(path)
 
     def load_dataset(self, path):
@@ -37,6 +40,15 @@ class Specification:
         for row in reader:
             schemas = self.dataset_schema.setdefault(row["dataset"], [])
             schemas.append(row["schema"])
+
+    def load_datatype(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "datatype.csv")))
+        for row in reader:
+            self.datatype_names.append(row["datatype"])
+            self.datatype[row["datatype"]] = {
+                "name": row["name"],
+                "text": row["text"],
+            }
 
     def load_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "field.csv")))
