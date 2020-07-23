@@ -9,16 +9,16 @@ class Specification:
         self.schema = {}
         self.schema_names = []
 
-        self.load_datasets(path)
-        self.load_schemas(path)
+        self.load_dataset(path)
+        self.load_schema(path)
 
-    def load_datasets(self, path):
+    def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
         for row in reader:
             self.dataset_names.append(row["dataset"])
             self.dataset[row["dataset"]] = {"name": row["name"], "text": row["text"]}
 
-    def load_schemas(self, path):
+    def load_schema(self, path):
         reader = csv.DictReader(open(os.path.join(path, "schema.csv")))
         for row in reader:
             self.schema_names.append(row["schema"])
