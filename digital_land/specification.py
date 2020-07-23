@@ -8,9 +8,11 @@ class Specification:
         self.dataset_names = []
         self.schema = {}
         self.schema_names = []
+        self.dataset_schema = {}
 
         self.load_dataset(path)
         self.load_schema(path)
+        self.load_dataset_schema(path)
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
@@ -26,3 +28,9 @@ class Specification:
                 "name": row["name"],
                 "description": row["description"],
             }
+
+    def load_dataset_schema(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "dataset-schema.csv")))
+        for row in reader:
+            schemas = self.dataset_schema.setdefault(row["dataset"], [])
+            schemas.append(row["schema"])

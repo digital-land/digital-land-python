@@ -21,3 +21,9 @@ def test_schema():
     specification = Specification("tests/data/specification")
     assert specification.schema["schema-one"]["name"] == "First Schema"
     assert specification.schema["schema-one"]["description"] == "Description one"
+
+
+def test_dataset_schema():
+    specification = Specification("tests/data/specification")
+    assert specification.dataset_schema["dataset-one"] == ["schema-one"]
+    assert specification.dataset_schema["dataset-two"] == ["schema-one", "schema-two"]
