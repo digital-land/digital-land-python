@@ -1,0 +1,2 @@
+field,name,datatype,cardinality,parent-field,replacement-field,description
+field-one,First field,string,1,text,,
