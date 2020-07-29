@@ -62,3 +62,8 @@ def test_field_names():
 def test_field():
     specification = Specification("tests/data/specification")
     assert specification.field["field-one"]["datatype"] == "string"
+
+
+def test_schema_field():
+    specification = Specification("tests/data/specification")
+    assert specification.schema_field["schema-one"] == ["name"]

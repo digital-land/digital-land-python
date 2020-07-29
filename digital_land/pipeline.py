@@ -1,11 +1,12 @@
+import re
 import os
 import csv
 
 
 class Pipeline:
-    column = {}
-
     def __init__(self, pipeline, path):
+        self.column = {}
+        self.fieldnames = []
         self.pipeline = pipeline
         self.load(path)
 
@@ -18,7 +19,10 @@ class Pipeline:
             column = self.column.setdefault(row["resource"], {})
             column[row["pattern"]] = row["value"]
 
-    def column_typos(self, resource=""):
+            if row["value"] not in self.fieldnames:
+                self.fieldnames.append(row["value"])
+
+    def columns(self, resource=""):
         if not resource:
             return self.column.get("", {})
 

@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 
 
 class Specification:
@@ -13,12 +14,14 @@ class Specification:
         self.field_names = []
         self.datatype = {}
         self.datatype_names = []
+        self.schema_field = {}
 
         self.load_dataset(path)
         self.load_schema(path)
         self.load_dataset_schema(path)
         self.load_datatype(path)
         self.load_field(path)
+        self.load_schema_field(path)
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
@@ -62,3 +65,9 @@ class Specification:
                 "replacement-field": row["replacement-field"],
                 "description": row["description"],
             }
+
+    def load_schema_field(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "schema-field.csv")))
+        for row in reader:
+            self.schema_field.setdefault(row["schema"], [])
+            self.schema_field[row["schema"]].append(row["field"])

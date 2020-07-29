@@ -17,6 +17,7 @@ from .organisation import Organisation
 from .map import Mapper
 from .schema import Schema
 from .pipeline import Pipeline
+from .specification import Specification
 
 
 @click.group()
@@ -77,18 +78,17 @@ def normalise_cmd(input_path, output_path, null_path, skip_path):
     save(stream, output_path)
 
 
-@cli.command("map", short_help="map misspelt column names to those in a schema")
+@cli.command("map", short_help="map misspelt column names to those in a pipeline")
+@click.argument("schema_name", type=click.STRING)
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
-@click.argument("schema_path", type=click.Path(exists=True))
 @click.argument("pipeline_path", type=click.Path(exists=True))
-def map_cmd(input_path, output_path, schema_path, pipeline_path):
-    schema = Schema(schema_path)
+def map_cmd(schema_name, input_path, output_path, pipeline_path):
     pipeline = Pipeline("brownfield-land", pipeline_path)
-    mapper = Mapper(schema, pipeline.column_typos())
+    mapper = Mapper(pipeline.columns())
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
-    save(stream, output_path, fieldnames=schema.fieldnames)
+    save(stream, output_path, fieldnames=pipeline.fieldnames)
 
 
 @cli.command(

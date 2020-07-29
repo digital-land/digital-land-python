@@ -2,8 +2,8 @@ from digital_land.pipeline import Pipeline
 
 
 def test_typos():
-    p = Pipeline("test-pipeline", "tests/data/")
-    typos = p.column_typos()
+    p = Pipeline("pipeline-one", "tests/data/")
+    typos = p.columns()
 
     assert typos == {
         "dos": "two",
@@ -17,8 +17,8 @@ def test_typos():
 
 
 def test_resource_specific_typos():
-    p = Pipeline("test-pipeline", "tests/data/")
-    typos = p.column_typos("some-resource")
+    p = Pipeline("pipeline-one", "tests/data/")
+    typos = p.columns("some-resource")
 
     assert (
         list(typos)[0] == "quatro"
