@@ -90,6 +90,7 @@ class Specification:
                 "name": row["name"],
                 "text": row["text"],
             }
+
     def field_type(self, fieldname):
         datatype = self.field[fieldname]["datatype"]
         typemap = {

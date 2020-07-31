@@ -9,7 +9,7 @@ def test_init():
 
     n = Normaliser([r"^,*[^,]*,*$"], null_path="tests/data/null.csv")
     assert n.null_path == "tests/data/null.csv"
-    assert n.skip_patterns == [re.compile('^,*[^,]*,*$')]
+    assert n.skip_patterns == [re.compile("^,*[^,]*,*$")]
 
 
 def test_normalise_whitespace():
