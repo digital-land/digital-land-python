@@ -17,6 +17,7 @@ from .organisation import Organisation
 from .map import Mapper
 from .schema import Schema
 from .pipeline import Pipeline
+from .specification import Specification
 
 
 @click.group()
@@ -56,6 +57,7 @@ def convert_cmd(input_path, output_path):
 
 
 @cli.command("normalise", short_help="removed padding, drop empty rows")
+@click.argument("pipeline_name", type=click.STRING)
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
 @click.option(
@@ -70,25 +72,31 @@ def convert_cmd(input_path, output_path):
     help="patterns for skipped lines",
     default=None,
 )
-def normalise_cmd(input_path, output_path, null_path, skip_path):
-    normaliser = Normaliser(null_path=null_path, skip_path=skip_path)
+@click.argument("pipeline_path", type=click.Path(exists=True))
+def normalise_cmd(
+    pipeline_name, input_path, output_path, null_path, skip_path, pipeline_path
+):
+    pipeline = Pipeline(pipeline_path)
+    normaliser = Normaliser(pipeline.skip_patterns(pipeline_name), null_path=null_path)
     stream = load_csv(input_path)
     stream = normaliser.normalise(stream)
     save(stream, output_path)
 
 
-@cli.command("map", short_help="map misspelt column names to those in a schema")
+@cli.command("map", short_help="map misspelt column names to those in a pipeline")
+@click.argument("pipeline_name", type=click.STRING)
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
-@click.argument("schema_path", type=click.Path(exists=True))
+@click.argument("specification_path", type=click.Path(exists=True))
 @click.argument("pipeline_path", type=click.Path(exists=True))
-def map_cmd(input_path, output_path, schema_path, pipeline_path):
-    schema = Schema(schema_path)
-    pipeline = Pipeline("brownfield-land", pipeline_path)
-    mapper = Mapper(schema, pipeline.column_typos())
+def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline_path):
+    pipeline = Pipeline(pipeline_path)
+    specification = Specification(specification_path)
+    mapper = Mapper(pipeline.columns(pipeline_name))
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
-    save(stream, output_path, fieldnames=schema.fieldnames)
+    fieldnames = specification.schema_field[pipeline.pipeline[pipeline_name]]
+    save(stream, output_path, fieldnames=fieldnames)
 
 
 @cli.command(

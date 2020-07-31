@@ -21,14 +21,12 @@ class Normaliser:
         if null_path:
             self.null_path = null_path
 
-        if skip_path:
-            self.skip_path = skip_path
+        self.skip_patterns = []
+        for pattern in skip_patterns:
+            self.skip_patterns.append(re.compile(pattern))
 
         for row in csv.DictReader(open(self.null_path, newline="")):
             self.null_patterns.append(re.compile(row["pattern"]))
-
-        for row in csv.DictReader(open(self.skip_path, newline="")):
-            self.skip_patterns.append(re.compile(row["pattern"]))
 
     def normalise_whitespace(self, row):
         return [

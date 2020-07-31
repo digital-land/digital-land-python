@@ -1,0 +1,10 @@
+typology,name,text
+category,Category,
+datetime,Datetime,
+document,Document,
+geography,Geography,
+geometry,Geometry,
+organisation,Organisation,
+specification,Specification,
+url,URL,
+value,Value,

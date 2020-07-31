@@ -1,37 +1,37 @@
 class Mapper:
 
     """
-    fix field names using the provide schema
-    concatenate notes and other fields
+    fix field names using the provided column map
+    concatenate notes and other fields  # TODO reimplement concatenation!!
     """
 
-    def __init__(self, schema, typos={}):
-        self.schema = schema
-        self.typos = typos
+    def __init__(self, column):
+        self.column = column
+        self.output_fieldnames = {name for name in column.values()}
 
     def headers(self, fieldnames):
         headers = {}
 
         for header in fieldnames:
-            fieldname = self.schema.normalise(header)
-            if fieldname in self.schema.fieldnames:
-                headers[header] = fieldname
-            if fieldname in self.schema.normalised:
-                headers[header] = self.schema.normalised[fieldname]
-            elif fieldname in self.typos:
-                headers[header] = self.typos[fieldname]
+            if header in self.output_fieldnames:
+                headers[header] = header
+                continue
+
+            for pattern, value in self.column.items():
+                if header == pattern:
+                    headers[header] = value
 
         return headers
 
-    def concatenate_fields(self, row, o):
-        for fieldname, field in self.schema.fields.items():
-            if "concatenate" in field.get("digital-land", {}):
-                cat = field["digital-land"]["concatenate"]
-                o.setdefault(fieldname, "")
-                o[fieldname] = cat["sep"].join(
-                    [o[fieldname]] + [row[h] for h in cat["fields"] if row.get(h, None)]
-                )
-        return o
+    # def concatenate_fields(self, row, o):
+    #     for fieldname, field in self.schema.fields.items():
+    #         if "concatenate" in field.get("digital-land", {}):
+    #             cat = field["digital-land"]["concatenate"]
+    #             o.setdefault(fieldname, "")
+    #             o[fieldname] = cat["sep"].join(
+    #                 [o[fieldname]] + [row[h] for h in cat["fields"] if row.get(h, None)]
+    #             )
+    #     return o
 
     def map(self, reader):
         headers = self.headers(reader.fieldnames)
@@ -43,7 +43,7 @@ class Mapper:
             for header in headers:
                 o[headers[header]] = row[header]
 
-            o = self.concatenate_fields(row, o)
+            # o = self.concatenate_fields(row, o)
 
             yield {
                 "resource": stream_data["resource"],

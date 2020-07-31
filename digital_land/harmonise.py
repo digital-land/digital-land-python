@@ -60,13 +60,18 @@ class Harmoniser:
         self.organisation_uri = organisation_uri
         self.default_values = {}
         self.patches_path = patches_path
-        self.load_patches()
+
+        # TODO Get patches from Pipeline
+        # self.load_patches()
 
         # if "OrganisationURI" in self.fieldnames:
         #    if input_path and resource_organisation_path:
         #        resource_organisation(self.default_values, input_path, resource_organisation_path)
 
     def load_patches(self):
+        if not self.patches_path:
+            return
+
         with open(self.patches_path) as f:
             for rule in csv.DictReader(f):
                 self.patch_fields.add(rule["field"])
@@ -75,7 +80,8 @@ class Harmoniser:
                 self.patch[rule["field"]] = patch
 
     def log_issue(self, field, issue, value):
-        pass  # TODO
+        if self.issues:
+            self.issues.log_issue(field, issue, value)
 
     def harmonise_field(self, fieldname, value):
         if not value:
@@ -94,9 +100,6 @@ class Harmoniser:
             if match:
                 return match.expand(patch["value"])
         return value
-
-        if self.issues:
-            self.issues.do_sometehing
 
     def check(self, o):
         for fieldname in self.required_fieldnames:

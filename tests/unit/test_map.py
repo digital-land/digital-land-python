@@ -3,7 +3,6 @@ import csv
 
 from digital_land.save import fsave
 from digital_land.map import Mapper
-from digital_land.schema import Schema
 
 
 class CustomReader(csv.DictReader):
@@ -17,22 +16,29 @@ def _reader(s):
 
 
 def test_map_headers():
-    schema = Schema("tests/data/schema.json")
-    mapper = Mapper(schema)
+    columns = {
+        "one": "One",
+        "Two": "Two",
+    }
+    mapper = Mapper(columns)
 
-    reader = _reader("one,two\r\n1,2\r\n")
+    reader = _reader("one,Two\r\n1,2\r\n")
 
-    assert reader.fieldnames == ["one", "two"]
-    assert mapper.headers(reader.fieldnames) == {"one": "one", "two": "two"}
+    assert reader.fieldnames == ["one", "Two"]
+    assert mapper.headers(reader.fieldnames) == {"one": "One", "Two": "Two"}
 
 
 def test_map():
-    schema = Schema("tests/data/schema.json")
-    mapper = Mapper(schema)
+    columns = {
+        "one": "one",
+        "two": "two",
+        "three": "three",
+    }
+    mapper = Mapper(columns)
 
     stream = _reader("one,two\r\n1,2\r\n")
     stream = mapper.map(stream)
 
     output = StringIO()
-    fsave(stream, output, fieldnames=schema.fieldnames)
+    fsave(stream, output, fieldnames=columns.values())
     assert output.getvalue() == "one,two,three\r\n1,2,\r\n"

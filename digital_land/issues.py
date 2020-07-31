@@ -12,9 +12,12 @@ class Issues:
         self.rows.append(row)
 
     def log(self, issue_type, value):
+        self.log_issue(self.fieldname, issue_type, value)
+
+    def log_issue(self, fieldname, issue_type, value):
         self.write(
             {
-                "field": self.fieldname,
+                "field": fieldname,
                 "issue-type": issue_type,
                 "value": value,
                 "row-number": self.row_number,

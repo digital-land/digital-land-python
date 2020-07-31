@@ -1,11 +1,16 @@
 from digital_land.pipeline import Pipeline
 
 
-def test_typos():
-    p = Pipeline("test-pipeline", "tests/data/")
-    typos = p.column_typos()
+def test_pipeline():
+    p = Pipeline("tests/data/pipeline/")
+    assert p.pipeline["pipeline-one"] == "schema-one"
 
-    assert typos == {
+
+def test_columns():
+    p = Pipeline("tests/data/pipeline/")
+    column = p.columns("pipeline-one")
+
+    assert column == {
         "dos": "two",
         "due": "one",
         "thirdcolumn": "three",
@@ -16,15 +21,15 @@ def test_typos():
     }
 
 
-def test_resource_specific_typos():
-    p = Pipeline("test-pipeline", "tests/data/")
-    typos = p.column_typos("some-resource")
+def test_resource_specific_columns():
+    p = Pipeline("tests/data/pipeline/")
+    column = p.columns("pipeline-one", "some-resource")
 
     assert (
-        list(typos)[0] == "quatro"
-    ), "resource specific typo 'quatro' should appear first in the returned dict"
+        list(column)[0] == "quatro"
+    ), "resource specific column 'quatro' should appear first in the returned dict"
 
-    assert typos == {
+    assert column == {
         "dos": "two",
         "due": "one",
         "thirdcolumn": "three",
@@ -34,3 +39,8 @@ def test_resource_specific_typos():
         "uno": "one",
         "quatro": "four",
     }
+
+
+def test_skip_patterns():
+    p = Pipeline("tests/data/pipeline/")
+    pattern = p.skip_patterns("pipeline-one")

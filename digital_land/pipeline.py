@@ -3,23 +3,45 @@ import csv
 
 
 class Pipeline:
-    column = {}
+    def __init__(self, path):
+        self.pipeline = {}
+        self.column = {}
+        self.skip_pattern = {}
+        self.load_pipeline(path)
+        self.load_column(path)
+        self.load_skip_patterns(path)
 
-    def __init__(self, pipeline, path):
-        self.pipeline = pipeline
-        self.load(path)
+    def load_pipeline(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
+        for row in reader:
+            self.pipeline[row["pipeline"]] = row["schema"]
 
-    def load(self, path):
+    def load_column(self, path):
         reader = csv.DictReader(open(os.path.join(path, "column.csv")))
         for row in reader:
-            if row["pipeline"] != self.pipeline:
-                continue
-
-            column = self.column.setdefault(row["resource"], {})
+            pipeline_column = self.column.setdefault(row["pipeline"], {})
+            column = pipeline_column.setdefault(row["resource"], {})
             column[row["pattern"]] = row["value"]
 
-    def column_typos(self, resource=""):
-        if not resource:
-            return self.column.get("", {})
+    def load_skip_patterns(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "skip.csv")))
+        for row in reader:
+            pipeline_skip_pattern = self.skip_pattern.setdefault(row["pipeline"], {})
+            pattern = pipeline_skip_pattern.setdefault(row["resource"], [])
+            pattern.append(row["pattern"])
 
-        return {**self.column.get(resource, {}), **self.column.get("", {})}
+    def columns(self, pipeline, resource=""):
+        column = self.column[pipeline]
+
+        if not resource:
+            return column.get("", {})
+
+        return {**column.get(resource, {}), **column.get("", {})}
+
+    def skip_patterns(self, pipeline, resource=""):
+        pattern = self.skip_pattern[pipeline]
+
+        if not resource:
+            return pattern.get("", {})
+
+        return {**pattern.get(resource, {}), **pattern.get("", {})}
