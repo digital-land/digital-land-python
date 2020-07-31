@@ -14,9 +14,8 @@ class Normaliser:
     null_patterns = []
     skip_patterns = []
     null_path = os.path.join(patch_dir, "null.csv")
-    skip_path = os.path.join(patch_dir, "skip.csv")
 
-    def __init__(self, null_path=None, skip_path=None):
+    def __init__(self, null_path=None, skip_patterns=[]):
 
         if null_path:
             self.null_path = null_path

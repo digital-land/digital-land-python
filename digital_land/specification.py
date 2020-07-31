@@ -1,6 +1,5 @@
 import csv
 import os
-import re
 
 from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
