@@ -2,6 +2,15 @@ import csv
 import os
 import re
 
+from .datatype.address import AddressDataType
+from .datatype.date import DateDataType
+from .datatype.decimal import DecimalDataType
+from .datatype.enum import EnumDataType
+from .datatype.integer import IntegerDataType
+from .datatype.organisation import OrganisationURIDataType
+from .datatype.string import StringDataType
+from .datatype.uri import URIDataType
+
 
 class Specification:
     def __init__(self, path):
@@ -15,6 +24,7 @@ class Specification:
         self.datatype = {}
         self.datatype_names = []
         self.schema_field = {}
+        self.typology = {}
 
         self.load_dataset(path)
         self.load_schema(path)
@@ -22,6 +32,7 @@ class Specification:
         self.load_datatype(path)
         self.load_field(path)
         self.load_schema_field(path)
+        self.load_typology(path)
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
@@ -71,3 +82,28 @@ class Specification:
         for row in reader:
             self.schema_field.setdefault(row["schema"], [])
             self.schema_field[row["schema"]].append(row["field"])
+
+    def load_typology(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "typology.csv")))
+        for row in reader:
+            self.typology[row["typology"]] = {
+                "name": row["name"],
+                "text": row["text"],
+            }
+    def field_type(self, fieldname):
+        datatype = self.field[fieldname]["datatype"]
+        typemap = {
+            "integer": IntegerDataType,
+            "decimal": DecimalDataType,
+            "string": StringDataType,
+            "datetime": DateDataType,
+            "url": URIDataType,
+        }
+
+        if datatype in typemap:
+            return typemap[datatype]()
+
+        if fieldname in ["OrganisationURI"]:
+            return OrganisationURIDataType()
+
+        raise ValueError("unknown datatype for '%s' field", fieldname)

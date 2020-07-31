@@ -257,6 +257,7 @@ class Indexer:
         for resource, r in self.resources.items():
             if not r or "row-count" not in r:
                 logging.error("%s missing" % resource)
+                self.resources[resource] = {}
             # if not r or "valid" not in r:
             #     logging.error("%s%s.json missing" % (validation_dir, resource))
 

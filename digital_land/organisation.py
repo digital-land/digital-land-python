@@ -39,6 +39,7 @@ class Organisation:
                     dl_url = dl_url.lower().replace("-eng:", "-eng/")
                     self.organisation_uri[dl_url] = uri
 
-        for row in csv.DictReader(open("patch/enum.csv")):
+        # TODO get the patch details from Pipeline
+        for row in csv.DictReader(open("pipeline/patch.csv")):
             if row["field"] == "OrganisationURI":
-                self.organisation_uri[lower_uri(row["value"])] = row["enum"]
+                self.organisation_uri[lower_uri(row["pattern"])] = row["value"]

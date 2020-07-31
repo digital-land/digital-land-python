@@ -1,14 +1,15 @@
+import re
 from digital_land.normalise import Normaliser
 
 
 def test_init():
     n = Normaliser()
     assert n.null_path.endswith("patch/null.csv")
-    assert n.skip_path.endswith("patch/skip.csv")
+    assert n.skip_patterns == []
 
-    n = Normaliser(skip_path="tests/data/skip.csv", null_path="tests/data/null.csv")
+    n = Normaliser([r"^,*[^,]*,*$"], null_path="tests/data/null.csv")
     assert n.null_path == "tests/data/null.csv"
-    assert n.skip_path == "tests/data/skip.csv"
+    assert n.skip_patterns == [re.compile('^,*[^,]*,*$')]
 
 
 def test_normalise_whitespace():
@@ -31,8 +32,8 @@ def test_strip_nulls():
 
 
 def test_skip():
-    n = Normaliser(skip_path="tests/data/skip.csv")
-    assert n.skip({"a": "Unnamed: 0, "})
+    n = Normaliser(["^Unnamed: 0,"])
+    assert n.skip(["Unnamed: 0, "])
     assert not n.skip({"a": "b", "c": "d"})
 
 

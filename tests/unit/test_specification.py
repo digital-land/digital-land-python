@@ -1,4 +1,6 @@
 from digital_land.specification import Specification
+from digital_land.datatype.string import StringDataType
+from digital_land.datatype.integer import IntegerDataType
 
 
 def test_dataset_names():
@@ -56,14 +58,25 @@ def test_datatype():
 
 def test_field_names():
     specification = Specification("tests/data/specification")
-    assert specification.field_names == ["field-one"]
+    assert specification.field_names == ["field-string", "field-integer"]
 
 
 def test_field():
     specification = Specification("tests/data/specification")
-    assert specification.field["field-one"]["datatype"] == "string"
+    assert specification.field["field-string"]["datatype"] == "string"
 
 
 def test_schema_field():
     specification = Specification("tests/data/specification")
     assert specification.schema_field["schema-one"] == ["name"]
+
+
+def test_field_type():
+    specification = Specification("tests/data/specification")
+    assert type(specification.field_type("field-string")) is StringDataType
+    assert type(specification.field_type("field-integer")) is IntegerDataType
+
+
+def test_typology():
+    specification = Specification("tests/data/specification")
+    assert specification.typology["category"]["name"] == "Category"

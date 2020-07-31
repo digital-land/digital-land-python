@@ -1,0 +1,7 @@
+pipeline,resource,pattern
+pipeline-one,,"^,*[^,]*,*$"
+pipeline-one,,"^.*Unnamed: 1,Unnamed: 2,Unnamed: 3,Unnamed: 4,Unnamed: 5,Unnamed: 6.*$"
+pipeline-one,,"^Unnamed: 0,"
+pipeline-one,,"^1,2,3,4,5,6,7,8,"
+pipeline-one,,"^(Mandatory|Optional)(,Mandatory|,Optional){6,}"
+pipeline-one,,"^,,,*\(OUT, FULL etc\),yyyy-mm-dd,,*$"
