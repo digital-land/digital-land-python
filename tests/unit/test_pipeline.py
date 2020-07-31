@@ -44,3 +44,4 @@ def test_resource_specific_columns():
 def test_skip_patterns():
     p = Pipeline("tests/data/pipeline/")
     pattern = p.skip_patterns("pipeline-one")
+    assert "^Unnamed: 0," in pattern

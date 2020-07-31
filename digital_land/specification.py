@@ -2,10 +2,8 @@ import csv
 import os
 import re
 
-from .datatype.address import AddressDataType
 from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
-from .datatype.enum import EnumDataType
 from .datatype.integer import IntegerDataType
 from .datatype.organisation import OrganisationURIDataType
 from .datatype.string import StringDataType
