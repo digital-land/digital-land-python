@@ -7,9 +7,11 @@ class Pipeline:
         self.pipeline = {}
         self.column = {}
         self.skip_pattern = {}
+        self.patch = {}
         self.load_pipeline(path)
         self.load_column(path)
         self.load_skip_patterns(path)
+        self.load_patch(path)
 
     def load_pipeline(self, path):
         reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
@@ -30,6 +32,14 @@ class Pipeline:
             pattern = pipeline_skip_pattern.setdefault(row["resource"], [])
             pattern.append(row["pattern"])
 
+    def load_patch(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "patch.csv")))
+        for row in reader:
+            pipeline_patch = self.patch.setdefault(row["pipeline"], {})
+            resource_patch = pipeline_patch.setdefault(row["resource"], {})
+            field_patch = resource_patch.setdefault(row["field"], [])
+            field_patch.append((row["pattern"], row["value"]))
+
     def columns(self, pipeline, resource=""):
         column = self.column[pipeline]
 
@@ -45,3 +55,11 @@ class Pipeline:
             return pattern.get("", {})
 
         return {**pattern.get(resource, {}), **pattern.get("", {})}
+
+    def patches(self, pipeline, resource=""):
+        patch = self.patch[pipeline]
+
+        if not resource:
+            return patch.get("", {})
+
+        return {**patch.get(resource, {}), **patch.get("", {})}

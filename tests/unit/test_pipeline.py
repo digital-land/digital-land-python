@@ -45,3 +45,9 @@ def test_skip_patterns():
     p = Pipeline("tests/data/pipeline/")
     pattern = p.skip_patterns("pipeline-one")
     assert "^Unnamed: 0," in pattern
+
+
+def test_patches():
+    p = Pipeline("tests/data/pipeline/")
+    patches = p.patches("pipeline-one")
+    assert patches == {"field-one": [("pat", "val")]}
