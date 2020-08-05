@@ -50,4 +50,10 @@ def test_skip_patterns():
 def test_patches():
     p = Pipeline("tests/data/pipeline/")
     patches = p.patches("pipeline-one")
-    assert patches == {"field-one": [("pat", "val")]}
+    assert patches == {"field-one": {"pat": "val"}}
+
+
+def test_resource_specific_patches():
+    p = Pipeline("tests/data/pipeline/")
+    patches = p.patches("pipeline-one", "resource-one")
+    assert patches == {"field-one": {"something": "else", "pat": "val"}}

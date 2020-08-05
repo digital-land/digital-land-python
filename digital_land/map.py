@@ -5,9 +5,9 @@ class Mapper:
     concatenate notes and other fields  # TODO reimplement concatenation!!
     """
 
-    def __init__(self, column):
+    def __init__(self, fieldnames, column):
         self.column = column
-        self.output_fieldnames = {name for name in column.values()}
+        self.output_fieldnames = fieldnames
 
     def headers(self, fieldnames):
         headers = {}

@@ -37,8 +37,8 @@ class Pipeline:
         for row in reader:
             pipeline_patch = self.patch.setdefault(row["pipeline"], {})
             resource_patch = pipeline_patch.setdefault(row["resource"], {})
-            field_patch = resource_patch.setdefault(row["field"], [])
-            field_patch.append((row["pattern"], row["value"]))
+            field_patch = resource_patch.setdefault(row["field"], {})
+            field_patch[row["pattern"]] = row["value"]
 
     def columns(self, pipeline, resource=""):
         column = self.column[pipeline]
@@ -59,7 +59,24 @@ class Pipeline:
     def patches(self, pipeline, resource=""):
         patch = self.patch[pipeline]
 
-        if not resource:
-            return patch.get("", {})
+        generic_patch = patch.get("", {})
 
-        return {**patch.get(resource, {}), **patch.get("", {})}
+        if not resource:
+            return generic_patch
+
+        resource_patch = patch.get(resource, {})
+
+        result = {}
+        fields = list(dict.fromkeys({**resource_patch, **generic_patch}))
+        for field in fields:
+            if field in resource_patch and field in generic_patch:
+                result[field] = {
+                    **resource_patch.get(field, {}),
+                    **generic_patch.get(field, {}),
+                }
+            elif field not in resource_patch:
+                result[field] = generic_patch[field]
+            else:
+                result[field] = resource_patch[field]
+
+        return result

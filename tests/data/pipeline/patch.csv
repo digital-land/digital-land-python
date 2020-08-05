@@ -1,5 +1,6 @@
 pipeline,resource,field,pattern,value
 pipeline-one,,field-one,pat,val,
+pipeline-one,resource-one,field-one,something,else,
 brownfield-land,,,"^<*[Nn][Uu][Ll][Ll]>*$",
 brownfield-land,,,"^#*[Nn]/?[Aa]$",
 brownfield-land,,,"^\?*$",

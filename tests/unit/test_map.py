@@ -16,11 +16,11 @@ def _reader(s):
 
 
 def test_map_headers():
-    columns = {
+    column = {
         "one": "One",
         "Two": "Two",
     }
-    mapper = Mapper(columns)
+    mapper = Mapper([], column)
 
     reader = _reader("one,Two\r\n1,2\r\n")
 
@@ -29,16 +29,15 @@ def test_map_headers():
 
 
 def test_map():
-    columns = {
-        "one": "one",
-        "two": "two",
-        "three": "three",
+    fieldnames = ["One", "Two"]
+    column = {
+        "one": "One",
     }
-    mapper = Mapper(columns)
+    mapper = Mapper(fieldnames, column)
 
-    stream = _reader("one,two\r\n1,2\r\n")
+    stream = _reader("one,Two,Three\r\n1,2,3\r\n")
     stream = mapper.map(stream)
 
     output = StringIO()
-    fsave(stream, output, fieldnames=columns.values())
-    assert output.getvalue() == "one,two,three\r\n1,2,\r\n"
+    fsave(stream, output, fieldnames=fieldnames)
+    assert output.getvalue() == "One,Two\r\n1,2\r\n"

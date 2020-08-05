@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 
 from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
@@ -7,6 +8,7 @@ from .datatype.integer import IntegerDataType
 from .datatype.organisation import OrganisationURIDataType
 from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
+from .datatype.flag import FlagDataType
 
 
 class Specification:
@@ -88,6 +90,12 @@ class Specification:
                 "text": row["text"],
             }
 
+
+    normalise_re = re.compile(r"[^a-z0-9]")
+
+    def normalise(self, name):
+        return re.sub(self.normalise_re, "", name.lower())
+
     def field_type(self, fieldname):
         datatype = self.field[fieldname]["datatype"]
         typemap = {
@@ -96,6 +104,7 @@ class Specification:
             "string": StringDataType,
             "datetime": DateDataType,
             "url": URIDataType,
+            "flag": FlagDataType,
         }
 
         if datatype in typemap:
@@ -104,4 +113,4 @@ class Specification:
         if fieldname in ["OrganisationURI"]:
             return OrganisationURIDataType()
 
-        raise ValueError("unknown datatype for '%s' field", fieldname)
+        raise ValueError("unknown datatype '%s' for '%s' field", datatype, fieldname)

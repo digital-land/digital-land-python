@@ -92,10 +92,10 @@ def normalise_cmd(
 def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline_path):
     pipeline = Pipeline(pipeline_path)
     specification = Specification(specification_path)
-    mapper = Mapper(pipeline.columns(pipeline_name))
+    fieldnames = specification.schema_field[pipeline.pipeline[pipeline_name]]
+    mapper = Mapper(fieldnames, pipeline.columns(pipeline_name))
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
-    fieldnames = specification.schema_field[pipeline.pipeline[pipeline_name]]
     save(stream, output_path, fieldnames=fieldnames)
 
 
@@ -111,18 +111,37 @@ def index_cmd():
     "harmonise",
     short_help="strip whitespace and null fields, remove blank rows and columns",
 )
+@click.argument("pipeline_name", type=click.STRING)
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
 @click.argument("schema_path", type=click.Path(exists=True))
 @click.argument("issue_path", type=click.Path(exists=True))
-def harmonise_cmd(input_path, output_path, schema_path, issue_path):
+@click.argument("specification_path", type=click.Path(exists=True))
+@click.argument("pipeline_path", type=click.Path(exists=True))
+def harmonise_cmd(
+    pipeline_name,
+    input_path,
+    output_path,
+    schema_path,
+    issue_path,
+    specification_path,
+    pipeline_path,
+):
     resource_hash = input_path.split("/")[-1]
     schema = Schema(schema_path)
     issues = Issues()
     resource_organisation = ResourceOrganisation().resource_organisation
     organisation = Organisation()
+    specification = Specification(specification_path)
+    pipeline = Pipeline(pipeline_path)
+    patch = pipeline.patches(pipeline_name, resource_hash)
     harmoniser = Harmoniser(
-        schema, issues, resource_organisation, organisation.organisation_uri
+        schema,
+        specification,
+        issues,
+        resource_organisation,
+        organisation.organisation_uri,
+        patch,
     )
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)

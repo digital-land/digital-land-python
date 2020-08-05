@@ -46,12 +46,14 @@ class Harmoniser:
     def __init__(
         self,
         schema,
+        specification,
         issues=None,
         resource_organisation=None,
         organisation_uri=None,
-        patches_path="patch/harmonise.csv",
+        patch={},
     ):
         self.schema = schema
+        self.specification = specification
         self.fieldnames = schema.fieldnames
         self.default_fieldnames = schema.default_fieldnames
         self.required_fieldnames = schema.required_fieldnames
@@ -59,25 +61,11 @@ class Harmoniser:
         self.resource_organisation = resource_organisation
         self.organisation_uri = organisation_uri
         self.default_values = {}
-        self.patches_path = patches_path
-
-        # TODO Get patches from Pipeline
-        # self.load_patches()
+        self.patch = patch
 
         # if "OrganisationURI" in self.fieldnames:
         #    if input_path and resource_organisation_path:
         #        resource_organisation(self.default_values, input_path, resource_organisation_path)
-
-    def load_patches(self):
-        if not self.patches_path:
-            return
-
-        with open(self.patches_path) as f:
-            for rule in csv.DictReader(f):
-                self.patch_fields.add(rule["field"])
-                patch = self.patch.setdefault(rule["field"], [])
-                patch.append({"expression": rule["expression"], "value": rule["value"]})
-                self.patch[rule["field"]] = patch
 
     def log_issue(self, field, issue, value):
         if self.issues:
@@ -90,7 +78,7 @@ class Harmoniser:
         if self.issues:
             self.issues.fieldname = fieldname
 
-        datatype = self.schema.field_type(fieldname)
+        datatype = self.specification.field_type(fieldname)
         # value = self.schema.strip(fieldname, value)  # TODO what about strip?
         return datatype.normalise(value, issues=self.issues)
 
