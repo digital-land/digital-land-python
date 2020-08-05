@@ -6,7 +6,6 @@
 
 # import .digital_land.types as types
 from digital_land.datatype.point import PointDataType
-import csv
 import re
 
 """
