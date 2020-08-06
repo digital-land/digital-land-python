@@ -53,9 +53,9 @@ class Harmoniser:
     ):
         self.schema = schema
         self.specification = specification
-        self.fieldnames = schema.fieldnames
+        # self.fieldnames = schema.fieldnames
         self.default_fieldnames = schema.default_fieldnames
-        self.required_fieldnames = schema.required_fieldnames
+        # self.required_fieldnames = schema.required_fieldnames
         self.issues = issues
         self.resource_organisation = resource_organisation
         self.organisation_uri = organisation_uri
