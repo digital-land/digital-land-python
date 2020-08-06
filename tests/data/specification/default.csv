@@ -1,0 +1,3 @@
+pipeline,resource,field,default-field,entry-date,start-date,end-date
+"pipeline-one",,"field-one","field-two",,,
+"pipeline-one","resource-one","field-three","field-four",,,

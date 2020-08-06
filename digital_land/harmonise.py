@@ -89,9 +89,12 @@ class Harmoniser:
         return value
 
     def check(self, o):
-        for fieldname in self.required_fieldnames:
-            if not o.get(fieldname, None):
-                self.log_issue(fieldname, "missing", "")
+        pass
+        # NO LONGER HAVE REQUIRED FIELDS... CONFIRM
+        # 
+        # for fieldname in self.required_fieldnames:
+        #     if not o.get(fieldname, None):
+        #         self.log_issue(fieldname, "missing", "")
 
     def set_default(self, o, fieldname, value):
         if value and not o[fieldname]:
@@ -144,7 +147,7 @@ class Harmoniser:
             for field in self.patch_fields:
                 row[field] = self.apply_patch(field, row[field])
 
-            for field in self.fieldnames:
+            for field in reader.fieldnames:
                 o[field] = self.harmonise_field(field, row[field])
 
             # default missing values
@@ -155,7 +158,7 @@ class Harmoniser:
 
             # fix point geometry
             # TBD: generalise as a co-constraint
-            if set(["GeoX", "GeoY"]).issubset(self.fieldnames):
+            if set(["GeoX", "GeoY"]).issubset(reader.fieldnames):
                 if self.issues:
                     self.issues.fieldname = "GeoX,GeoY"
 

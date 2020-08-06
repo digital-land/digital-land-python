@@ -145,7 +145,7 @@ def harmonise_cmd(
     )
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)
-    save(stream, output_path, fieldnames=schema.current_fieldnames)
+    save(stream, output_path, fieldnames=specification.field_names)
 
     issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
     issues_file.write_issues(issues)
