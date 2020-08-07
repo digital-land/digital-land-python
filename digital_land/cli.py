@@ -78,7 +78,9 @@ def normalise_cmd(
 ):
     pipeline = Pipeline(pipeline_path, pipeline_name)
     stream = load_csv(input_path)
-    normaliser = Normaliser(pipeline.skip_patterns(stream.resource), null_path=null_path)
+    normaliser = Normaliser(
+        pipeline.skip_patterns(stream.resource), null_path=null_path
+    )
     stream = normaliser.normalise(stream)
     save(stream, output_path)
 
