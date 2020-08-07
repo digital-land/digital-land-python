@@ -6,8 +6,19 @@ class FlagDataType(DataType):
         pass
 
     def normalise(self, value, issues=None):
-        value = value.strip()
-        if value not in ["", "yes", "no"]:
-            raise ValueError()
+        value = value.strip().lower()
 
-        return value
+        lookup = {
+            "y": "yes",
+            "n": "no",
+        }
+
+        value = lookup.get(value, value)
+
+        if value in ["", "yes", "no"]:
+            return value
+
+        if issues:
+            issues.log("flag", value)
+
+        return ""

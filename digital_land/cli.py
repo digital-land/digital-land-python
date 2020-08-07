@@ -76,9 +76,9 @@ def convert_cmd(input_path, output_path):
 def normalise_cmd(
     pipeline_name, input_path, output_path, null_path, skip_path, pipeline_path
 ):
-    pipeline = Pipeline(pipeline_path)
-    normaliser = Normaliser(pipeline.skip_patterns(pipeline_name), null_path=null_path)
+    pipeline = Pipeline(pipeline_path, pipeline_name)
     stream = load_csv(input_path)
+    normaliser = Normaliser(pipeline.skip_patterns(stream.resource), null_path=null_path)
     stream = normaliser.normalise(stream)
     save(stream, output_path)
 
@@ -90,9 +90,9 @@ def normalise_cmd(
 @click.argument("specification_path", type=click.Path(exists=True))
 @click.argument("pipeline_path", type=click.Path(exists=True))
 def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline_path):
-    pipeline = Pipeline(pipeline_path)
+    pipeline = Pipeline(pipeline_path, pipeline_name)
     specification = Specification(specification_path)
-    fieldnames = specification.schema_field[pipeline.pipeline[pipeline_name]]
+    fieldnames = specification.schema_field[pipeline.schema]
     mapper = Mapper(fieldnames, pipeline.columns(pipeline_name))
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
@@ -130,8 +130,8 @@ def harmonise_cmd(
     resource_organisation = ResourceOrganisation().resource_organisation
     organisation_uri = Organisation().organisation_uri
     specification = Specification(specification_path)
-    pipeline = Pipeline(pipeline_path)
-    patch = pipeline.patches(pipeline_name, resource_hash)
+    pipeline = Pipeline(pipeline_path, pipeline_name)
+    patch = pipeline.patches(resource_hash)
     harmoniser = Harmoniser(
         specification, pipeline, issues, resource_organisation, organisation_uri, patch,
     )
