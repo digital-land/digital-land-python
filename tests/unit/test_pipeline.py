@@ -2,13 +2,13 @@ from digital_land.pipeline import Pipeline
 
 
 def test_pipeline():
-    p = Pipeline("tests/data/pipeline/")
-    assert p.pipeline["pipeline-one"] == "schema-one"
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    assert p.schema == "schema-one"
 
 
 def test_columns():
-    p = Pipeline("tests/data/pipeline/")
-    column = p.columns("pipeline-one")
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    column = p.columns()
 
     assert column == {
         "dos": "two",
@@ -22,8 +22,8 @@ def test_columns():
 
 
 def test_resource_specific_columns():
-    p = Pipeline("tests/data/pipeline/")
-    column = p.columns("pipeline-one", "some-resource")
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    column = p.columns("some-resource")
 
     assert (
         list(column)[0] == "quatro"
@@ -42,18 +42,30 @@ def test_resource_specific_columns():
 
 
 def test_skip_patterns():
-    p = Pipeline("tests/data/pipeline/")
-    pattern = p.skip_patterns("pipeline-one")
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    pattern = p.skip_patterns()
     assert "^Unnamed: 0," in pattern
 
 
 def test_patches():
-    p = Pipeline("tests/data/pipeline/")
-    patches = p.patches("pipeline-one")
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    patches = p.patches()
     assert patches == {"field-one": {"pat": "val"}}
 
 
 def test_resource_specific_patches():
-    p = Pipeline("tests/data/pipeline/")
-    patches = p.patches("pipeline-one", "resource-one")
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    patches = p.patches("resource-one")
     assert patches == {"field-one": {"something": "else", "pat": "val"}}
+
+
+def test_default_fieldnames():
+    p = Pipeline("tests/data/pipeline", "pipeline-one")
+    assert p.default_fieldnames() == {"field-integer": ["field-two"]}
+
+
+def test_resource_specific_default_fieldnames():
+    p = Pipeline("tests/data/pipeline", "pipeline-one")
+    assert p.default_fieldnames("resource-one") == {
+        "field-integer": ["field-other-integer", "field-two"]
+    }

@@ -58,7 +58,12 @@ def test_datatype():
 
 def test_field_names():
     specification = Specification("tests/data/specification")
-    assert specification.field_names == ["field-string", "field-integer", "field-old"]
+    assert specification.field_names == [
+        "field-string",
+        "field-integer",
+        "field-other-integer",
+        "field-old",
+    ]
 
 
 def test_field():
@@ -85,16 +90,3 @@ def test_field_type():
 def test_typology():
     specification = Specification("tests/data/specification")
     assert specification.typology["category"]["name"] == "Category"
-
-
-def test_default_fieldnames():
-    specification = Specification("tests/data/specification")
-    assert specification.default_fieldnames("pipeline-one") == ["field-one"]
-
-
-def test_resource_specific_default_fieldnames():
-    specification = Specification("tests/data/specification")
-    assert specification.default_fieldnames("pipeline-one", "resource-one") == [
-        "field-one",
-        "field-three",
-    ]

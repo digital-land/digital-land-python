@@ -114,7 +114,6 @@ def index_cmd():
 @click.argument("pipeline_name", type=click.STRING)
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path())
-@click.argument("schema_path", type=click.Path(exists=True))
 @click.argument("issue_path", type=click.Path(exists=True))
 @click.argument("specification_path", type=click.Path(exists=True))
 @click.argument("pipeline_path", type=click.Path(exists=True))
@@ -122,26 +121,19 @@ def harmonise_cmd(
     pipeline_name,
     input_path,
     output_path,
-    schema_path,
     issue_path,
     specification_path,
     pipeline_path,
 ):
     resource_hash = input_path.split("/")[-1]
-    schema = Schema(schema_path)
     issues = Issues()
     resource_organisation = ResourceOrganisation().resource_organisation
-    organisation = Organisation()
+    organisation_uri = Organisation().organisation_uri
     specification = Specification(specification_path)
     pipeline = Pipeline(pipeline_path)
     patch = pipeline.patches(pipeline_name, resource_hash)
     harmoniser = Harmoniser(
-        schema,
-        specification,
-        issues,
-        resource_organisation,
-        organisation.organisation_uri,
-        patch,
+        specification, pipeline, issues, resource_organisation, organisation_uri, patch,
     )
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)

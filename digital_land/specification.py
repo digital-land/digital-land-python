@@ -1,3 +1,4 @@
+from datetime import datetime
 import csv
 import os
 import re
@@ -24,7 +25,6 @@ class Specification:
         self.datatype_names = []
         self.schema_field = {}
         self.typology = {}
-        self.default = {}
 
         self.load_dataset(path)
         self.load_schema(path)
@@ -33,7 +33,6 @@ class Specification:
         self.load_field(path)
         self.load_schema_field(path)
         self.load_typology(path)
-        self.load_default(path)
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
@@ -93,14 +92,6 @@ class Specification:
                 "text": row["text"],
             }
 
-    def load_default(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "default.csv")))
-        for row in reader:
-            default = self.default.setdefault(row["pipeline"], {})
-            resource_default = default.setdefault(row["resource"], {})
-            field_default = resource_default.setdefault(row["field"], [])
-            field_default.append(row["default-field"])
-
     @property
     def current_fieldnames(self):
         return [
@@ -109,15 +100,6 @@ class Specification:
             if not value["end-date"]
             or value["end-date"] > datetime.now().strftime("%Y-%m-%d")
         ]
-
-    def default_fieldnames(self, pipeline, resource=None):
-        generic_default = self.default.get(pipeline, {}).get("", {})
-        if not resource:
-            return list(generic_default.keys())
-
-        resource_default = self.default.get(pipeline, {}).get(resource, {})
-
-        return list(set(list(resource_default.keys()) + list(generic_default.keys())))
 
     normalise_re = re.compile(r"[^a-z0-9]")
 

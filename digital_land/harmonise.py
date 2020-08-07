@@ -44,22 +44,21 @@ class Harmoniser:
 
     def __init__(
         self,
-        schema,
         specification,
+        pipeline,
         issues=None,
-        resource_organisation=None,
+        resource_organisation={},
         organisation_uri=None,
         patch={},
     ):
-        self.schema = schema
         self.specification = specification
-        # self.fieldnames = schema.fieldnames
-        self.default_fieldnames = schema.default_fieldnames
+        self.pipeline = pipeline
+        self.default_values = {}
+        self.default_fieldnames = {}
         # self.required_fieldnames = schema.required_fieldnames
         self.issues = issues
         self.resource_organisation = resource_organisation
         self.organisation_uri = organisation_uri
-        self.default_values = {}
         self.patch = patch
 
         # if "OrganisationURI" in self.fieldnames:
@@ -113,7 +112,9 @@ class Harmoniser:
         return o
 
     def set_resource_defaults(self, resource):
-        if len(self.resource_organisation[resource]) > 0:
+        self.default_values = {}
+        self.default_fieldnames = self.pipeline.default_fieldnames(resource)
+        if len(self.resource_organisation.get(resource, [])) > 0:
             resource_defaults = self.resource_organisation[resource]
             self.default_values["LastUpdatedDate"] = resource_defaults[0]["start-date"]
             if len(resource_defaults) > 1:

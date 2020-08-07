@@ -1,4 +1,5 @@
 field,name,datatype,cardinality,parent-field,replacement-field,description,end-date
 field-string,First field,string,1,text,,
 field-integer,,integer,1,,
+field-other-integer,,integer,1,,,,2020-01-01
 field-old,,flag,1,,,,2020-01-01
