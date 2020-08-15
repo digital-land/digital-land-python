@@ -37,6 +37,7 @@ setup(
         "cchardet==2.1.6",
         "pandas",
         "pyproj==2.6.0",
+        "requests==2.24.0",
         "validators",
         "xlrd==1.2.0",
     ],
