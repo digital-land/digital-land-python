@@ -12,4 +12,5 @@ demodata/
 .DS_Store
 *.swp
 .eggs
+.venv
 var/cache
