@@ -90,7 +90,7 @@ class Harmoniser:
     def check(self, o):
         pass
         # NO LONGER HAVE REQUIRED FIELDS... CONFIRM
-        # 
+        #
         # for fieldname in self.required_fieldnames:
         #     if not o.get(fieldname, None):
         #         self.log_issue(fieldname, "missing", "")
