@@ -70,7 +70,10 @@ def test_resource_specific_default_fieldnames():
         "field-integer": ["field-other-integer", "field-two"]
     }
 
+
 def test_concat():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
     concat = p.concatenations()
-    assert concat == {"combined-field": {"fields": ["field-one", "field-two"], "separator": ". "}}
+    assert concat == {
+        "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "}
+    }
