@@ -3,6 +3,7 @@ import os
 import click
 import logging
 import tempfile
+from pathlib import Path
 from . import generate
 from .load import load, load_csv, load_csv_dict
 from .collect import Collector
@@ -76,11 +77,11 @@ def convert_cmd(input_path, output_path):
 def normalise_cmd(
     pipeline_name, input_path, output_path, null_path, skip_path, pipeline_path
 ):
+    filename = input_path.split("/")[-1]
+    resource_hash = resource_hash_from(input_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
     stream = load_csv(input_path)
-    normaliser = Normaliser(
-        pipeline.skip_patterns(stream.resource), null_path=null_path
-    )
+    normaliser = Normaliser(pipeline.skip_patterns(resource_hash), null_path=null_path)
     stream = normaliser.normalise(stream)
     save(stream, output_path)
 
@@ -127,7 +128,7 @@ def harmonise_cmd(
     specification_path,
     pipeline_path,
 ):
-    resource_hash = input_path.split("/")[-1]
+    resource_hash = resource_hash_from(input_path)
     issues = Issues()
     resource_organisation = ResourceOrganisation().resource_organisation
     organisation_uri = Organisation().organisation_uri
@@ -165,7 +166,7 @@ def transform_cmd(input_path, output_path, schema_path):
 @click.argument("schema_path", type=click.Path(exists=True))
 @click.argument("issue_path", type=click.Path(exists=True))
 def pipeline_cmd(input_path, output_path, schema_path, issue_path):
-    resource_hash = input_path.split("/")[-1]
+    resource_hash = resource_hash_from(input_path)
     schema = Schema(schema_path)
     organisation = Organisation()
     resource_organisation = ResourceOrganisation().resource_organisation
@@ -201,3 +202,7 @@ def pipeline_cmd(input_path, output_path, schema_path, issue_path):
 @click.argument("schema_path", type=click.Path(exists=True))
 def generate_cmd(schema_path):
     generate.json_schema(schema_path)
+
+
+def resource_hash_from(path):
+    return Path(path).stem
