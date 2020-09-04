@@ -16,16 +16,34 @@ def _reader(s):
 
 
 def test_map_headers():
-    column = {
-        "one": "One",
-        "Two": "Two",
-    }
-    mapper = Mapper([], column)
+    mapper = Mapper(["One", "Two"])
 
     reader = _reader("one,Two\r\n1,2\r\n")
 
     assert reader.fieldnames == ["one", "Two"]
     assert mapper.headers(reader.fieldnames) == {"one": "One", "Two": "Two"}
+
+
+def test_map_headers_normalisation():
+    mapper = Mapper(["One", "Two", "RequiresNormalisation"])
+
+    reader = _reader("one,Two,requires normalisation\r\n1,2\r\n")
+
+    assert reader.fieldnames == ["one", "Two", "requires normalisation"]
+    assert mapper.headers(reader.fieldnames) == {
+        "one": "One",
+        "Two": "Two",
+        "requires normalisation": "RequiresNormalisation",
+    }
+
+
+def test_map_headers_patch():
+    column = {"oen": "One"}
+    mapper = Mapper(["One"], column)
+
+    reader = _reader("oen,two\r\n1,2\r\n")
+
+    assert mapper.headers(reader.fieldnames) == {"oen": "One"}
 
 
 def test_map():
