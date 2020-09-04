@@ -72,7 +72,7 @@ class Pipeline:
         if not resource:
             return self.skip_pattern.get("", {})
 
-        return {**self.skip_pattern.get(resource, {}), **self.skip_pattern.get("", {})}
+        return self.skip_pattern.get(resource, []) + self.skip_pattern.get("", [])
 
     def patches(self, resource=""):
         general_patch = self.patch.get("", {})
