@@ -111,6 +111,8 @@ class Specification:
         typemap = {
             "integer": IntegerDataType,
             "decimal": DecimalDataType,
+            "latitude": DecimalDataType,
+            "longitude": DecimalDataType,
             "string": StringDataType,
             "text": StringDataType,  # TODO do we need dedicated type for Text?
             "datetime": DateDataType,
