@@ -77,7 +77,6 @@ def convert_cmd(input_path, output_path):
 def normalise_cmd(
     pipeline_name, input_path, output_path, null_path, skip_path, pipeline_path
 ):
-    filename = input_path.split("/")[-1]
     resource_hash = resource_hash_from(input_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
     stream = load_csv(input_path)
