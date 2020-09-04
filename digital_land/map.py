@@ -18,7 +18,6 @@ class Mapper:
 
         for header in fieldnames:
             fieldname = self.normalise(header)
-                headers[header] = header
             if fieldname in self.normalised_fieldnames:
                 headers[header] = self.normalised_fieldnames[fieldname]
                 continue
