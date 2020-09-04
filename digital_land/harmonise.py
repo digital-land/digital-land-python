@@ -40,7 +40,6 @@ def resource_organisation(default_values, input_path, resource_organisation_path
 
 class Harmoniser:
     patch = {}
-    patch_fields = set()
 
     def __init__(
         self,
@@ -77,14 +76,14 @@ class Harmoniser:
             self.issues.fieldname = fieldname
 
         datatype = self.specification.field_type(fieldname)
-        # value = self.schema.strip(fieldname, value)  # TODO what about strip?
         return datatype.normalise(value, issues=self.issues)
 
     def apply_patch(self, fieldname, value):
-        for patch in self.patch[fieldname]:
-            match = re.search(patch["expression"], value)
+        patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
+        for pattern, replacement in patches.items():
+            match = re.match(pattern, value.lower())
             if match:
-                return match.expand(patch["value"])
+                return match.expand(replacement)
         return value
 
     def check(self, o):
@@ -145,10 +144,8 @@ class Harmoniser:
 
             o = {}
 
-            for field in self.patch_fields:
+            for field in row:
                 row[field] = self.apply_patch(field, row[field])
-
-            for field in reader.fieldnames:
                 o[field] = self.harmonise_field(field, row[field])
 
             # default missing values
@@ -159,7 +156,7 @@ class Harmoniser:
 
             # fix point geometry
             # TBD: generalise as a co-constraint
-            if set(["GeoX", "GeoY"]).issubset(reader.fieldnames):
+            if set(["GeoX", "GeoY"]).issubset(row.keys()):
                 if self.issues:
                     self.issues.fieldname = "GeoX,GeoY"
 
