@@ -1,3 +1,6 @@
+import re
+
+
 class Mapper:
 
     """
@@ -5,16 +8,19 @@ class Mapper:
     concatenate notes and other fields  # TODO reimplement concatenation!!
     """
 
-    def __init__(self, fieldnames, column):
+    def __init__(self, fieldnames, column={}, concat={}):
         self.column = column
-        self.output_fieldnames = fieldnames
+        self.concat = concat
+        self.normalised_fieldnames = {self.normalise(f): f for f in fieldnames}
 
     def headers(self, fieldnames):
         headers = {}
 
         for header in fieldnames:
-            if header in self.output_fieldnames:
+            fieldname = self.normalise(header)
                 headers[header] = header
+            if fieldname in self.normalised_fieldnames:
+                headers[header] = self.normalised_fieldnames[fieldname]
                 continue
 
             for pattern, value in self.column.items():
@@ -32,6 +38,11 @@ class Mapper:
     #                 [o[fieldname]] + [row[h] for h in cat["fields"] if row.get(h, None)]
     #             )
     #     return o
+
+    normalise_pattern = re.compile(r"[^a-z0-9-]")
+
+    def normalise(self, name):
+        return re.sub(self.normalise_pattern, "", name.lower())
 
     def map(self, reader):
         headers = self.headers(reader.fieldnames)
