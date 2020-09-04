@@ -29,7 +29,17 @@ class Mapper:
 
         return headers
 
-    # def concatenate_fields(self, row, o):
+    def concatenate_fields(self, row, o):
+        for fieldname, cat in self.concat.items():
+            o[fieldname] = cat["separator"].join(
+                filter(
+                    None,
+                    [o.get(fieldname, None)]
+                    + [row.get(h, None) for h in cat["fields"]],
+                )
+            )
+        return o
+
     #     for fieldname, field in self.schema.fields.items():
     #         if "concatenate" in field.get("digital-land", {}):
     #             cat = field["digital-land"]["concatenate"]
@@ -54,7 +64,7 @@ class Mapper:
             for header in headers:
                 o[headers[header]] = row[header]
 
-            # o = self.concatenate_fields(row, o)
+            o = self.concatenate_fields(row, o)
 
             yield {
                 "resource": stream_data["resource"],

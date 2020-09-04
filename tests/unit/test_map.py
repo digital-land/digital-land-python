@@ -59,3 +59,16 @@ def test_map():
     output = StringIO()
     fsave(stream, output, fieldnames=fieldnames)
     assert output.getvalue() == "One,Two\r\n1,2\r\n"
+
+
+def test_map_concat():
+    fieldnames = ["CombinedField"]
+    concat = {"CombinedField": {"fields": ["part1", "part2"], "separator": "."}}
+    mapper = Mapper(fieldnames, concat=concat)
+
+    stream = _reader("part1,part2\r\nfirst,second\r\n")
+    stream = mapper.map(stream)
+
+    output = StringIO()
+    fsave(stream, output, fieldnames=fieldnames)
+    assert output.getvalue() == "CombinedField\r\nfirst.second\r\n"
