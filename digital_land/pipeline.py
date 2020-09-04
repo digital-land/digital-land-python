@@ -10,11 +10,13 @@ class Pipeline:
         self.skip_pattern = {}
         self.patch = {}
         self.default = {}
+        self.concat = {}
         self.load_pipeline(path)
         self.load_column(path)
         self.load_skip_patterns(path)
         self.load_patch(path)
         self.load_default(path)
+        self.load_concat(path)
 
     def load_pipeline(self, path):
         reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
@@ -62,6 +64,14 @@ class Pipeline:
             field_default = resource_default.setdefault(row["field"], [])
             field_default.append(row["default-field"])
 
+    def load_concat(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "concat.csv")))
+        for row in reader:
+            self.concat[row["field"]] = {
+                "fields": row["fields"].split(";"),
+                "separator": row["separator"],
+            }
+
     def columns(self, resource=""):
         if not resource:
             return self.column.get("", {})
@@ -105,3 +115,6 @@ class Pipeline:
         result.update(general_default)
 
         return result
+
+    def concatenations(self):
+        return self.concat
