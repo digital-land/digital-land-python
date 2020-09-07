@@ -92,10 +92,11 @@ def normalise_cmd(
 @click.argument("specification_path", type=click.Path(exists=True))
 @click.argument("pipeline_path", type=click.Path(exists=True))
 def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline_path):
+    resource_hash = resource_hash_from(input_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
     specification = Specification(specification_path)
     fieldnames = specification.schema_field[pipeline.schema]
-    mapper = Mapper(fieldnames, pipeline.columns(pipeline_name))
+    mapper = Mapper(fieldnames, pipeline.columns(resource_hash), pipeline.concatenations(resource_hash))
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
     save(stream, output_path, fieldnames=fieldnames)
