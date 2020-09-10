@@ -3,15 +3,17 @@
 #
 #  collect resource
 #
+import csv
+import hashlib
+import logging
 import os
 from datetime import datetime
-from timeit import default_timer as timer
 from enum import Enum
-import logging
-import requests
-import hashlib
+from timeit import default_timer as timer
+
 import canonicaljson
-import csv
+import requests
+
 from .adapter.file import FileAdapter
 
 

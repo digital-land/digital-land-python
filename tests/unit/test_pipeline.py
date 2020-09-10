@@ -71,9 +71,21 @@ def test_resource_specific_default_fieldnames():
     }
 
 
-def test_concat():
+def test_concatenations():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
     concat = p.concatenations()
     assert concat == {
         "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "}
+    }
+
+
+def test_resource_specific_concatenations():
+    p = Pipeline("tests/data/pipeline", "pipeline-one")
+    concat = p.concatenations("some-resource")
+    assert concat == {
+        "other-combined-field": {
+            "fields": ["field-one", "field-three"],
+            "separator": ". ",
+        },
+        "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "},
     }

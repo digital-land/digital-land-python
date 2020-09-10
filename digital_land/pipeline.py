@@ -1,5 +1,6 @@
-import os
 import csv
+import os
+import re
 
 
 class Pipeline:
@@ -33,7 +34,7 @@ class Pipeline:
                 continue
 
             column = self.column.setdefault(row["resource"], {})
-            column[row["pattern"]] = row["value"]
+            column[self.normalise(row["pattern"])] = row["value"]
 
     def load_skip_patterns(self, path):
         reader = csv.DictReader(open(os.path.join(path, "skip.csv")))
@@ -67,7 +68,11 @@ class Pipeline:
     def load_concat(self, path):
         reader = csv.DictReader(open(os.path.join(path, "concat.csv")))
         for row in reader:
-            self.concat[row["field"]] = {
+            if row["pipeline"] != self.name:
+                continue
+
+            resource_concat = self.concat.setdefault(row["resource"], {})
+            resource_concat[row["field"]] = {
                 "fields": row["fields"].split(";"),
                 "separator": row["separator"],
             }
@@ -116,5 +121,20 @@ class Pipeline:
 
         return result
 
-    def concatenations(self):
-        return self.concat
+    def concatenations(self, resource=None):
+        general_concat = self.concat.get("", {})
+
+        if not resource:
+            return general_concat
+
+        resource_concat = self.concat.get(resource, {})
+
+        result = {}
+        result.update(general_concat)
+        result.update(resource_concat)
+        return result
+
+    normalise_pattern = re.compile(r"[^a-z0-9-]")
+
+    def normalise(self, name):
+        return re.sub(self.normalise_pattern, "", name.lower())

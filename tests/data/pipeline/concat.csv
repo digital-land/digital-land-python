@@ -1,2 +1,3 @@
 pipeline,resource,field,fields,separator,entry-date,start-date,end-date
 pipeline-one,,combined-field,field-one;field-two,. ,2020-09-04,2020-09-04,
+pipeline-one,some-resource,other-combined-field,field-one;field-three,. ,2020-09-04,2020-09-04,
