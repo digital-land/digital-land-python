@@ -31,6 +31,6 @@ jobs:
     - name: Make Init
       run: |
         make init
-    - name: Black, Flake8, Test, Coverage
+    - name: Black Flake8 Test Coverage
       run: |
         make
