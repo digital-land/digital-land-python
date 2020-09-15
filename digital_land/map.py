@@ -1,11 +1,12 @@
 import re
+import itertools
 
 
 class Mapper:
 
     """
     fix field names using the provided column map
-    concatenate notes and other fields  # TODO reimplement concatenation!!
+    concatenate notes and other fields
     """
 
     def __init__(self, fieldnames, column={}, concat={}):
@@ -23,7 +24,7 @@ class Mapper:
                 continue
 
             for pattern, value in self.column.items():
-                if header == pattern:
+                if fieldname == pattern:
                     headers[header] = value
 
         return headers
@@ -31,22 +32,16 @@ class Mapper:
     def concatenate_fields(self, row, o):
         for fieldname, cat in self.concat.items():
             o[fieldname] = cat["separator"].join(
-                filter(
-                    None,
-                    [o.get(fieldname, None)]
-                    + [row.get(h, None) for h in cat["fields"]],
+                itertools.chain(
+                    [o.get(fieldname, "")],
+                    [
+                        row[h]
+                        for h in cat["fields"]
+                        if h in row and row[h].strip() != ""
+                    ],
                 )
             )
         return o
-
-    #     for fieldname, field in self.schema.fields.items():
-    #         if "concatenate" in field.get("digital-land", {}):
-    #             cat = field["digital-land"]["concatenate"]
-    #             o.setdefault(fieldname, "")
-    #             o[fieldname] = cat["sep"].join(
-    #                 [o[fieldname]] + [row[h] for h in cat["fields"] if row.get(h, None)]
-    #             )
-    #     return o
 
     normalise_pattern = re.compile(r"[^a-z0-9-]")
 
