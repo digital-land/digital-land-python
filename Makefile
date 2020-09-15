@@ -1,6 +1,6 @@
 .PHONY: all black black-check test test-unit test-integration coverage coveralls bump dist upload help clean
 
-all:	black-check flake8 test coverage
+all:	lint test coverage
 
 test:
 	python -m pytest
@@ -25,6 +25,8 @@ black-check:
 
 flake8:
 	flake8 .
+
+lint: black-check flake8
 
 bump:
 	git tag $(shell python version.py)

@@ -30,6 +30,6 @@ jobs:
     - name: Make Init
       run: |
         make init
-    - name: Black, Flake8, Test, Coverage
+    - name: Lint, Test, Coverage
       run: |
         make
