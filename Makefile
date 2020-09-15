@@ -1,6 +1,6 @@
-.PHONY: all black test test-unit test-integration coverage coveralls bump dist upload help clean
+.PHONY: all black black-check test test-unit test-integration coverage coveralls bump dist upload help clean
 
-all:	black flake8 test coverage
+all:	black-check flake8 test coverage
 
 test:
 	python -m pytest
@@ -19,6 +19,9 @@ coveralls:
 
 black:
 	black .
+
+black-check:
+	black --check .
 
 flake8:
 	flake8 .
