@@ -271,7 +271,9 @@ class Indexer:
 
         # save index CSV files
         self.save_csv(
-            "resource", ["resource", "row-count"], self.resources,
+            "resource",
+            ["resource", "row-count"],
+            self.resources,
         )
         self.save_csv("link", ["link", "url"], self.idx)
 

@@ -38,7 +38,9 @@ def fetch_cmd(url):
 
 @cli.command("collect")
 @click.argument(
-    "endpoint_path", type=click.Path(exists=True), default="collection/endpoint.csv",
+    "endpoint_path",
+    type=click.Path(exists=True),
+    default="collection/endpoint.csv",
 )
 def collect_cmd(endpoint_path):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
@@ -96,14 +98,19 @@ def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline
     pipeline = Pipeline(pipeline_path, pipeline_name)
     specification = Specification(specification_path)
     fieldnames = specification.schema_field[pipeline.schema]
-    mapper = Mapper(fieldnames, pipeline.columns(resource_hash), pipeline.concatenations(resource_hash))
+    mapper = Mapper(
+        fieldnames,
+        pipeline.columns(resource_hash),
+        pipeline.concatenations(resource_hash),
+    )
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
     save(stream, output_path, fieldnames=fieldnames)
 
 
 @cli.command(
-    "index", short_help="create collection indices",
+    "index",
+    short_help="create collection indices",
 )
 def index_cmd():
     indexer = Indexer()
@@ -136,7 +143,12 @@ def harmonise_cmd(
     pipeline = Pipeline(pipeline_path, pipeline_name)
     patch = pipeline.patches(resource_hash)
     harmoniser = Harmoniser(
-        specification, pipeline, issues, resource_organisation, organisation_uri, patch,
+        specification,
+        pipeline,
+        issues,
+        resource_organisation,
+        organisation_uri,
+        patch,
     )
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)
