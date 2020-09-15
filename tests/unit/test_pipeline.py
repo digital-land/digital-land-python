@@ -89,3 +89,9 @@ def test_resource_specific_concatenations():
         },
         "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "},
     }
+
+
+def test_transform():
+    p = Pipeline("tests/data/pipeline", "pipeline-one")
+    transform = p.transformations()
+    assert transform == {"FieldOne": "field-one"}
