@@ -71,4 +71,4 @@ def test_map_concat():
 
     output = StringIO()
     fsave(stream, output, fieldnames=fieldnames)
-    assert output.getvalue() == "CombinedField\r\nfirst.second\r\n"
+    assert output.getvalue() == "CombinedField\r\n.first.second\r\n"
