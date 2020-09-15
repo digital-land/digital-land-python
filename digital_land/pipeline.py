@@ -12,12 +12,14 @@ class Pipeline:
         self.patch = {}
         self.default = {}
         self.concat = {}
+        self.transform = {}
         self.load_pipeline(path)
         self.load_column(path)
         self.load_skip_patterns(path)
         self.load_patch(path)
         self.load_default(path)
         self.load_concat(path)
+        self.load_transform(path)
 
     def load_pipeline(self, path):
         reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
@@ -77,6 +79,14 @@ class Pipeline:
                 "separator": row["separator"],
             }
 
+    def load_transform(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "transform.csv")))
+        for row in reader:
+            if row["pipeline"] != self.name:
+                continue
+
+            self.transform[row["field"]] = row["replacement-field"]
+
     def columns(self, resource=""):
         if not resource:
             return self.column.get("", {})
@@ -133,6 +143,9 @@ class Pipeline:
         result.update(general_concat)
         result.update(resource_concat)
         return result
+
+    def transformations(self):
+        return self.transform
 
     normalise_pattern = re.compile(r"[^a-z0-9-]")
 
