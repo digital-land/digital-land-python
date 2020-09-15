@@ -98,6 +98,10 @@ def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline
     pipeline = Pipeline(pipeline_path, pipeline_name)
     specification = Specification(specification_path)
     fieldnames = specification.schema_field[pipeline.schema]
+    replacement_fields = list(pipeline.transformations().values())
+    for field in replacement_fields:
+        if field in fieldnames:
+            fieldnames.remove(field)
     mapper = Mapper(
         fieldnames,
         pipeline.columns(resource_hash),
