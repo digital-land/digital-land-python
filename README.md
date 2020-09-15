@@ -1,7 +1,7 @@
 # Digital Land Pipeline
 
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/digital-land.svg)](https://pypi.python.org/pypi/digital-land/)
-[![Build](https://travis-ci.org/digital-land/pipeline.svg?branch=master)](https://travis-ci.org/digital-land/pipeline)
+[![Build](https://github.com/digital-land/pipeline/workflows/Digital-Land%20Continuous%20Integration/badge.svg)]
 [![Coverage](https://coveralls.io/repos/github/digital-land/pipeline/badge.svg?branch=master)](https://coveralls.io/github/digital-land/pipeline?branch=master)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/digital-land/pipeline/blob/master/LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://black.readthedocs.io/en/stable/)
