@@ -4,7 +4,6 @@
 #  -- log fixes as suggestions for the user to amend
 #
 
-import logging
 import decimal
 from .decimal import DecimalDataType
 from .datatype import DataType
@@ -43,7 +42,7 @@ class PointDataType(DataType):
             (lon, lat) = [decimal.Decimal(value) for value in values]
         except decimal.ConversionSyntax:
             if issues:
-                issues.log("Invalid point %s", value)
+                issues.log("Failed to convert point to decimal %s", values)
             return default
 
         value = ",".join(values)
