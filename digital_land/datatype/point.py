@@ -4,7 +4,8 @@
 #  -- log fixes as suggestions for the user to amend
 #
 
-from decimal import Decimal
+import logging
+import decimal
 from .decimal import DecimalDataType
 from .datatype import DataType
 
@@ -38,7 +39,13 @@ class PointDataType(DataType):
         if "" in values:
             return default
 
-        (lon, lat) = [Decimal(value) for value in values]
+        try:
+            (lon, lat) = [decimal.Decimal(value) for value in values]
+        except decimal.ConversionSyntax:
+            if issues:
+                issues.log("Invalid point %s", value)
+            return default
+
         value = ",".join(values)
 
         if degrees_like(lon, lat):
