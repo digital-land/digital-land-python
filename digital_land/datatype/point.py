@@ -40,7 +40,7 @@ class PointDataType(DataType):
 
         try:
             (lon, lat) = [decimal.Decimal(value) for value in values]
-        except decimal.ConversionSyntax:
+        except decimal.InvalidOperation:
             if issues:
                 issues.log("Failed to convert point to decimal %s", values)
             return default
