@@ -97,11 +97,7 @@ def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline
     resource_hash = resource_hash_from(input_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
     specification = Specification(specification_path)
-    fieldnames = specification.schema_field[pipeline.schema]
-    replacement_fields = list(pipeline.transformations().values())
-    for field in replacement_fields:
-        if field in fieldnames:
-            fieldnames.remove(field)
+    fieldnames = intermediary_fieldnames(specification, pipeline)
     mapper = Mapper(
         fieldnames,
         pipeline.columns(resource_hash),
@@ -146,6 +142,7 @@ def harmonise_cmd(
     specification = Specification(specification_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
     patch = pipeline.patches(resource_hash)
+    fieldnames = intermediary_fieldnames(specification, pipeline)
     harmoniser = Harmoniser(
         specification,
         pipeline,
@@ -156,7 +153,7 @@ def harmonise_cmd(
     )
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)
-    save(stream, output_path, fieldnames=specification.field_names)
+    save(stream, output_path, fieldnames=fieldnames)
 
     issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
     issues_file.write_issues(issues)
@@ -222,3 +219,12 @@ def generate_cmd(schema_path):
 
 def resource_hash_from(path):
     return Path(path).stem
+
+
+def intermediary_fieldnames(specification, pipeline):
+    fieldnames = specification.schema_field[pipeline.schema]
+    replacement_fields = list(pipeline.transformations().values())
+    for field in replacement_fields:
+        if field in fieldnames:
+            fieldnames.remove(field)
+    return fieldnames
