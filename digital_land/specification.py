@@ -3,6 +3,7 @@ import csv
 import os
 import re
 
+from .datatype.address import AddressDataType
 from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
 from .datatype.integer import IntegerDataType
@@ -114,6 +115,7 @@ class Specification:
             "latitude": DecimalDataType,
             "longitude": DecimalDataType,
             "string": StringDataType,
+            "address": AddressDataType,
             "text": StringDataType,  # TODO do we need dedicated type for Text?
             "datetime": DateDataType,
             "url": URIDataType,
