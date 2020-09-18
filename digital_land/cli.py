@@ -1,24 +1,55 @@
-import sys
-import os
-import click
+import functools
 import logging
+import os
+import sys
 import tempfile
 from pathlib import Path
-from . import generate
-from .load import load, load_csv, load_csv_dict
+
+import click
+
 from .collect import Collector
-from .index import Indexer
-from .save import save
-from .normalise import Normaliser
-from .issues import Issues, IssuesFile
 from .harmonise import Harmoniser
-from .transform import Transformer
-from .resource_organisation import ResourceOrganisation
-from .organisation import Organisation
+from .index import Indexer
+from .issues import Issues, IssuesFile
+from .load import load, load_csv, load_csv_dict
 from .map import Mapper
-from .schema import Schema
+from .normalise import Normaliser
+from .organisation import Organisation
 from .pipeline import Pipeline
+from .resource_organisation import ResourceOrganisation
+from .save import save
+from .schema import Schema
 from .specification import Specification
+from .transform import Transformer
+
+
+# Custom decorators for common command arguments
+def input_output_path(f):
+    arguments = [
+        click.argument("input_path", type=click.Path(exists=True)),
+        click.argument("output_path", type=click.Path()),
+    ]
+    return functools.reduce(lambda x, arg: arg(x), reversed(arguments), f)
+
+
+def pipeline_path(f):
+    return click.argument(
+        "pipeline_path", type=click.Path(exists=True), default="pipeline/"
+    )(f)
+
+
+def specification_path(f):
+    return click.argument(
+        "specification_path",
+        type=click.Path(exists=True),
+        default="specification/specification/",
+    )(f)
+
+
+def issue_path(f):
+    return click.argument(
+        "issue_path", type=click.Path(exists=True), default="var/issue/"
+    )(f)
 
 
 @click.group()
@@ -49,8 +80,7 @@ def collect_cmd(endpoint_path):
 
 
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
-@click.argument("input_path", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path())
+@input_output_path
 def convert_cmd(input_path, output_path):
     reader = load(input_path)
     if not reader:
@@ -61,8 +91,7 @@ def convert_cmd(input_path, output_path):
 
 @cli.command("normalise", short_help="removed padding, drop empty rows")
 @click.argument("pipeline_name", type=click.STRING)
-@click.argument("input_path", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path())
+@input_output_path
 @click.option(
     "--null-path",
     type=click.Path(exists=True),
@@ -75,7 +104,7 @@ def convert_cmd(input_path, output_path):
     help="patterns for skipped lines",
     default=None,
 )
-@click.argument("pipeline_path", type=click.Path(exists=True))
+@pipeline_path
 def normalise_cmd(
     pipeline_name, input_path, output_path, null_path, skip_path, pipeline_path
 ):
@@ -89,10 +118,9 @@ def normalise_cmd(
 
 @cli.command("map", short_help="map misspelt column names to those in a pipeline")
 @click.argument("pipeline_name", type=click.STRING)
-@click.argument("input_path", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path())
-@click.argument("specification_path", type=click.Path(exists=True))
-@click.argument("pipeline_path", type=click.Path(exists=True))
+@input_output_path
+@specification_path
+@pipeline_path
 def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline_path):
     resource_hash = resource_hash_from(input_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
@@ -122,11 +150,10 @@ def index_cmd():
     short_help="strip whitespace and null fields, remove blank rows and columns",
 )
 @click.argument("pipeline_name", type=click.STRING)
-@click.argument("input_path", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path())
-@click.argument("issue_path", type=click.Path(exists=True))
-@click.argument("specification_path", type=click.Path(exists=True))
-@click.argument("pipeline_path", type=click.Path(exists=True))
+@input_output_path
+@issue_path
+@specification_path
+@pipeline_path
 def harmonise_cmd(
     pipeline_name,
     input_path,
@@ -160,8 +187,7 @@ def harmonise_cmd(
 
 
 @cli.command("transform", short_help="transform")
-@click.argument("input_path", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path())
+@input_output_path
 @click.argument("schema_path", type=click.Path(exists=True))
 def transform_cmd(input_path, output_path, schema_path):
     schema = Schema(schema_path)
@@ -174,10 +200,9 @@ def transform_cmd(input_path, output_path, schema_path):
 
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
-@click.argument("input_path", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path())
+@input_output_path
 @click.argument("schema_path", type=click.Path(exists=True))
-@click.argument("issue_path", type=click.Path(exists=True))
+@issue_path
 def pipeline_cmd(input_path, output_path, schema_path, issue_path):
     resource_hash = resource_hash_from(input_path)
     schema = Schema(schema_path)
@@ -209,12 +234,6 @@ def pipeline_cmd(input_path, output_path, schema_path, issue_path):
 
     issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
     issues_file.write_issues(issues)
-
-
-@cli.command("generate", short_help="generate json schema")
-@click.argument("schema_path", type=click.Path(exists=True))
-def generate_cmd(schema_path):
-    generate.json_schema(schema_path)
 
 
 def resource_hash_from(path):
