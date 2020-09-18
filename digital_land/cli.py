@@ -27,9 +27,13 @@ from .transform import Transformer
 def input_output_path(f):
     arguments = [
         click.argument("input_path", type=click.Path(exists=True)),
-        click.argument("output_path", type=click.Path()),
+        click.argument("output_path", type=click.Path(), default=""),
     ]
     return functools.reduce(lambda x, arg: arg(x), reversed(arguments), f)
+
+
+def pipeline_name(f):
+    return click.argument("pipeline_name", type=click.STRING)(f)
 
 
 def pipeline_path(f):
@@ -82,6 +86,9 @@ def collect_cmd(endpoint_path):
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
 @input_output_path
 def convert_cmd(input_path, output_path):
+    if not output_path:
+        output_path = default_output_path_for("converted", input_path)
+
     reader = load(input_path)
     if not reader:
         logging.error(f"Unable to convert {input_path}")
@@ -90,7 +97,7 @@ def convert_cmd(input_path, output_path):
 
 
 @cli.command("normalise", short_help="removed padding, drop empty rows")
-@click.argument("pipeline_name", type=click.STRING)
+@pipeline_name
 @input_output_path
 @click.option(
     "--null-path",
@@ -108,6 +115,9 @@ def convert_cmd(input_path, output_path):
 def normalise_cmd(
     pipeline_name, input_path, output_path, null_path, skip_path, pipeline_path
 ):
+    if not output_path:
+        output_path = default_output_path_for("normalised", input_path)
+
     resource_hash = resource_hash_from(input_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
     stream = load_csv(input_path)
@@ -117,11 +127,14 @@ def normalise_cmd(
 
 
 @cli.command("map", short_help="map misspelt column names to those in a pipeline")
-@click.argument("pipeline_name", type=click.STRING)
+@pipeline_name
 @input_output_path
 @specification_path
 @pipeline_path
 def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline_path):
+    if not output_path:
+        output_path = default_output_path_for("mapped", input_path)
+
     resource_hash = resource_hash_from(input_path)
     pipeline = Pipeline(pipeline_path, pipeline_name)
     specification = Specification(specification_path)
@@ -149,7 +162,7 @@ def index_cmd():
     "harmonise",
     short_help="strip whitespace and null fields, remove blank rows and columns",
 )
-@click.argument("pipeline_name", type=click.STRING)
+@pipeline_name
 @input_output_path
 @issue_path
 @specification_path
@@ -162,6 +175,9 @@ def harmonise_cmd(
     specification_path,
     pipeline_path,
 ):
+    if not output_path:
+        output_path = default_output_path_for("harmonised", input_path)
+
     resource_hash = resource_hash_from(input_path)
     issues = Issues()
     resource_organisation = ResourceOrganisation().resource_organisation
@@ -187,9 +203,17 @@ def harmonise_cmd(
 
 
 @cli.command("transform", short_help="transform")
+@pipeline_name
 @input_output_path
-@click.argument("schema_path", type=click.Path(exists=True))
-def transform_cmd(input_path, output_path, schema_path):
+@click.argument("schema_path", type=click.Path(), default="")
+def transform_cmd(pipeline_name, input_path, output_path, schema_path):
+    if not output_path:
+        output_path = default_output_path_for("transformed", input_path)
+
+    # schema will be removed soon
+    if not schema_path:
+        schema_path = f"schema/{pipeline_name}.json"
+
     schema = Schema(schema_path)
     organisation = Organisation()
     transformer = Transformer(schema, organisation.organisation)
@@ -247,3 +271,7 @@ def intermediary_fieldnames(specification, pipeline):
         if field in fieldnames:
             fieldnames.remove(field)
     return fieldnames
+
+
+def default_output_path_for(command, input_path):
+    return f"var/{command}/{resource_hash_from(input_path)}.csv"
