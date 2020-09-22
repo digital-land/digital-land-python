@@ -85,7 +85,16 @@ class Pipeline:
             if row["pipeline"] != self.name:
                 continue
 
-            self.transform[row["field"]] = row["replacement-field"]
+            if row["replacement-field"] == "":
+                continue
+
+            if row["replacement-field"] in self.transform:
+                raise ValueError(
+                    "replacement-field %s has more than one transform Entry"
+                    % row["replacement-field"]
+                )
+
+            self.transform[row["replacement-field"]] = row["field"]
 
     def columns(self, resource=""):
         if not resource:

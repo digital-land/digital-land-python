@@ -94,4 +94,4 @@ def test_resource_specific_concatenations():
 def test_transform():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
     transform = p.transformations()
-    assert transform == {"FieldOne": "field-one"}
+    assert transform == {"field-one": "FieldOne"}
