@@ -205,22 +205,21 @@ def harmonise_cmd(
 @cli.command("transform", short_help="transform")
 @pipeline_name
 @input_output_path
-@click.argument("schema_path", type=click.Path(), default="")
-def transform_cmd(pipeline_name, input_path, output_path, schema_path):
+@specification_path
+@pipeline_path
+def transform_cmd(
+    pipeline_name, input_path, output_path, specification_path, pipeline_path
+):
     if not output_path:
         output_path = default_output_path_for("transformed", input_path)
 
-    # schema will be removed soon
-    if not schema_path:
-        schema_path = f"schema/{pipeline_name}.json"
-
-    schema = Schema(schema_path)
+    specification = Specification(specification_path)
+    pipeline = Pipeline(pipeline_path, pipeline_name)
     organisation = Organisation()
-    transformer = Transformer(schema, organisation.organisation)
+    transformer = Transformer(pipeline.transformations(), organisation.organisation)
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
-    save(stream, output_path, schema.schema["digital-land"]["fields"])
-    schema = Schema(schema_path)
+    save(stream, output_path, specification.current_fieldnames)
 
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
@@ -266,7 +265,7 @@ def resource_hash_from(path):
 
 def intermediary_fieldnames(specification, pipeline):
     fieldnames = specification.schema_field[pipeline.schema]
-    replacement_fields = list(pipeline.transformations().values())
+    replacement_fields = list(pipeline.transformations().keys())
     for field in replacement_fields:
         if field in fieldnames:
             fieldnames.remove(field)
