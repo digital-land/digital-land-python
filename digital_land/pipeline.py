@@ -90,7 +90,7 @@ class Pipeline:
 
             if row["replacement-field"] in self.transform:
                 raise ValueError(
-                    "replacement-field %s has more than one transform Entry"
+                    "replacement-field %s has more than one transform entry"
                     % row["replacement-field"]
                 )
 
