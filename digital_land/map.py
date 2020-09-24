@@ -15,6 +15,9 @@ class Mapper:
         self.normalised_fieldnames = {self.normalise(f): f for f in fieldnames}
 
     def headers(self, fieldnames):
+        if not fieldnames:
+            return {}
+
         headers = {}
 
         for header in fieldnames:
