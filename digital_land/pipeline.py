@@ -6,6 +6,7 @@ import re
 class Pipeline:
     def __init__(self, path, name):
         self.name = name
+        self.path = path
         self.schema = []
         self.column = {}
         self.skip_pattern = {}
@@ -13,78 +14,70 @@ class Pipeline:
         self.default = {}
         self.concat = {}
         self.transform = {}
-        self.load_pipeline(path)
-        self.load_column(path)
-        self.load_skip_patterns(path)
-        self.load_patch(path)
-        self.load_default(path)
-        self.load_concat(path)
-        self.load_transform(path)
+        self.load_pipeline()
+        self.load_column()
+        self.load_skip_patterns()
+        self.load_patch()
+        self.load_default()
+        self.load_concat()
+        self.load_transform()
 
-    def load_pipeline(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
+    def _row_reader(self, filename):
+        # read a file from the pipeline path, ignore if missing
+        # and filter out rows not relevant to this pipeline
+
+        file = os.path.join(self.path, filename)
+        if not os.path.isfile(file):
+            return []
+        reader = csv.DictReader(open(file))
         for row in reader:
             if row["pipeline"] != self.name:
                 continue
+            yield row
 
+    def load_pipeline(self):
+        reader = self._row_reader("pipeline.csv")
+        for row in reader:
             self.schema = row["schema"]
 
-    def load_column(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "column.csv")))
+    def load_column(self):
+        reader = self._row_reader("column.csv")
         for row in reader:
-            if row["pipeline"] != self.name:
-                continue
-
             column = self.column.setdefault(row["resource"], {})
             column[self.normalise(row["pattern"])] = row["value"]
 
-    def load_skip_patterns(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "skip.csv")))
+    def load_skip_patterns(self):
+        reader = self._row_reader("skip.csv")
         for row in reader:
-            if row["pipeline"] != self.name:
-                continue
-
             pattern = self.skip_pattern.setdefault(row["resource"], [])
             pattern.append(row["pattern"])
 
-    def load_patch(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "patch.csv")))
+    def load_patch(self):
+        reader = self._row_reader("patch.csv")
         for row in reader:
-            if row["pipeline"] != self.name:
-                continue
-
             resource_patch = self.patch.setdefault(row["resource"], {})
             field_patch = resource_patch.setdefault(row["field"], {})
             field_patch[row["pattern"]] = row["value"]
 
-    def load_default(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "default.csv")))
+    def load_default(self):
+        reader = self._row_reader("default.csv")
         for row in reader:
-            if row["pipeline"] != self.name:
-                continue
-
             resource_default = self.default.setdefault(row["resource"], {})
             field_default = resource_default.setdefault(row["field"], [])
             field_default.append(row["default-field"])
 
-    def load_concat(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "concat.csv")))
+    def load_concat(self):
+        reader = self._row_reader("concat.csv")
         for row in reader:
-            if row["pipeline"] != self.name:
-                continue
-
             resource_concat = self.concat.setdefault(row["resource"], {})
             resource_concat[row["field"]] = {
                 "fields": row["fields"].split(";"),
                 "separator": row["separator"],
             }
 
-    def load_transform(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "transform.csv")))
+    def load_transform(self):
+        reader = self._row_reader("transform.csv")
         for row in reader:
-            if row["pipeline"] != self.name:
-                continue
-
             if row["replacement-field"] == "":
                 continue
 
