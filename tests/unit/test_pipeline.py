@@ -44,6 +44,7 @@ def test_resource_specific_columns():
 def test_skip_patterns():
     p = Pipeline("tests/data/pipeline/", "pipeline-one")
     pattern = p.skip_patterns()
+    assert isinstance(pattern, list)
     assert "^Unnamed: 0," in pattern
 
 
