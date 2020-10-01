@@ -17,7 +17,8 @@ from helpers import execute
         "tests/data/resource_examples/kml.resource",
         "tests/data/resource_examples/kml_multilayer.resource",
         "tests/data/resource_examples/gml.resource",
-        # "tests/data/resource_examples/shapefile_zip.resource",
+        "tests/data/resource_examples/shapefile_zip.resource",
+        # "tests/data/resource_examples/shapefile_zip_not_in_root.resource",
     ],
 )
 def test_convert(input_file, tmp_path):

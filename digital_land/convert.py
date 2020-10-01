@@ -1,7 +1,9 @@
 import csv
 import logging
+import os
 import subprocess
 import tempfile
+import zipfile
 from io import StringIO
 
 import pandas as pd
@@ -17,9 +19,11 @@ class Converter:
         encoding = detect_encoding(input_path)
         logging.debug("encoding detected: %s", encoding)
         if encoding:
-            return self._read_text_file(input_path, encoding)
+            reader = self._read_text_file(input_path, encoding)
         else:
-            return self._read_binary_file(input_path)
+            reader = self._read_binary_file(input_path)
+
+        return reader_with_line(reader, resource=resource_hash_from(input_path))
 
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
@@ -42,17 +46,25 @@ class Converter:
 
         if converted_csv_file:
             f.close()
-            reader = read_csv(converted_csv_file, "utf-8")
+            reader = read_csv(converted_csv_file)
         else:
             reader = f
 
-        return reader_with_line(reader, resource_hash_from(input_path))
+        return reader
 
     def _read_binary_file(self, input_path):
         # First try excel
         excel_reader = read_excel(input_path)
         if excel_reader:
             return excel_reader
+
+        # Then try zip
+        if zipfile.is_zipfile(input_path):
+            temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
+            os.link(input_path, temp_path)
+            zip_path = f"/vsizip/{temp_path}"
+            csv_path = convert_features_to_csv(zip_path)
+            return read_csv(csv_path)
 
 
 def execute(command):
@@ -67,7 +79,7 @@ def execute(command):
     return proc.returncode, outs.decode("utf-8"), errs.decode("utf-8")
 
 
-def read_csv(input_path, encoding):
+def read_csv(input_path, encoding="utf-8"):
     return open(input_path, encoding=encoding, newline="")
 
 
@@ -82,7 +94,7 @@ def read_excel(path):
     )
     f = StringIO(string)
 
-    return reader_with_line(f, resource_hash_from(path))
+    return f
 
 
 def convert_features_to_csv(input_path):
