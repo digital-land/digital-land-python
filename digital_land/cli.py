@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from .collect import Collector
+from .convert import Converter
 from .harmonise import Harmoniser
 from .index import Indexer
 from .issues import Issues, IssuesFile
@@ -84,12 +85,16 @@ def collect_cmd(endpoint_path):
 
 
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
+@pipeline_name
 @input_output_path
-def convert_cmd(input_path, output_path):
+@pipeline_path
+def convert_cmd(pipeline_name, input_path, output_path, pipeline_path):
     if not output_path:
         output_path = default_output_path_for("converted", input_path)
 
-    reader = load(input_path)
+    pipeline = Pipeline(pipeline_path, pipeline_name)
+    converter = Converter(pipeline.conversions())
+    reader = converter.convert(input_path)
     if not reader:
         logging.error(f"Unable to convert {input_path}")
         sys.exit(2)

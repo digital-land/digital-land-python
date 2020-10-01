@@ -149,6 +149,9 @@ class Pipeline:
     def transformations(self):
         return self.transform
 
+    def conversions(self):
+        return {}  # TODO
+
     normalise_pattern = re.compile(r"[^a-z0-9-]")
 
     def normalise(self, name):
