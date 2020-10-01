@@ -1,6 +1,7 @@
 import csv
 import logging
 import os
+import pathlib
 import subprocess
 import tempfile
 import zipfile
@@ -60,11 +61,26 @@ class Converter:
 
         # Then try zip
         if zipfile.is_zipfile(input_path):
+            internal_path = self._path_to_shp_files(input_path)
             temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
             os.link(input_path, temp_path)
-            zip_path = f"/vsizip/{temp_path}"
+            zip_path = f"/vsizip/{temp_path}{internal_path}"
             csv_path = convert_features_to_csv(zip_path)
             return read_csv(csv_path)
+
+    def _path_to_shp_files(self, input_file):
+        zip_ = zipfile.ZipFile(input_file)
+        files = zip_.namelist()
+        shp_files = filter(lambda s: s.endswith(".shp"), files)
+        shp_dirs = set([pathlib.Path(file).parent for file in shp_files])
+        if len(shp_dirs) != 1:
+            raise ValueError(
+                "Expected exactly one directory containing shp files, but none found"
+            )
+        shp_dir = shp_dirs.pop()
+        if shp_dir.name:
+            return f"/{shp_dir}"
+        return ""
 
 
 def execute(command):
