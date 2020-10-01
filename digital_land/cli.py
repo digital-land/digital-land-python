@@ -19,7 +19,6 @@ from .organisation import Organisation
 from .pipeline import Pipeline
 from .resource_organisation import ResourceOrganisation
 from .save import save
-from .schema import Schema
 from .specification import Specification
 from .transform import Transformer
 
@@ -229,21 +228,36 @@ def transform_cmd(
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
 @input_output_path
-@click.argument("schema_path", type=click.Path(exists=True))
+@specification_path
+@pipeline_path
 @issue_path
-def pipeline_cmd(input_path, output_path, schema_path, issue_path):
+def pipeline_cmd(
+    input_path, output_path, specification_path, pipeline_path, issue_path
+):
     resource_hash = resource_hash_from(input_path)
-    schema = Schema(schema_path)
     organisation = Organisation()
     resource_organisation = ResourceOrganisation().resource_organisation
+    pipeline = Pipeline(pipeline_path, pipeline_name)
+    specification = Specification(specification_path)
     issues = Issues()
+    fieldnames = specification.current_fieldnames
+    patch = pipeline.patches(resource_hash)
 
     normaliser = Normaliser()
-    mapper = Mapper(schema)
-    harmoniser = Harmoniser(
-        schema, issues, resource_organisation, organisation.organisation_uri
+    mapper = Mapper(
+        fieldnames,
+        pipeline.columns(resource_hash),
+        pipeline.concatenations(resource_hash),
     )
-    transformer = Transformer(schema, organisation.organisation)
+    harmoniser = Harmoniser(
+        specification,
+        pipeline,
+        issues,
+        resource_organisation,
+        Organisation().organisation_uri,
+        patch,
+    )
+    transformer = Transformer(pipeline.transformations(), organisation.organisation)
 
     # pipeline = compose(normaliser.normalise, mapper.map, harmoniser.harmonise, transformer.transform)
 
@@ -258,7 +272,7 @@ def pipeline_cmd(input_path, output_path, schema_path, issue_path):
     mapped = mapper.map(stream_dict)
     harmonised = harmoniser.harmonise(mapped)
     transformed = transformer.transform(harmonised)
-    save(transformed, output_path, fieldnames=schema.schema["digital-land"]["fields"])
+    save(transformed, output_path, fieldnames=fieldnames)
 
     issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
     issues_file.write_issues(issues)
