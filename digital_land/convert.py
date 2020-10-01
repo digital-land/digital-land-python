@@ -2,7 +2,6 @@ import csv
 import logging
 import subprocess
 import tempfile
-import zipfile
 from io import StringIO
 
 import pandas as pd
