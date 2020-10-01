@@ -27,10 +27,8 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Find GDAL
-      run: sudo apt-cache search gdal
-    - name: Install GDAL
-      run: sudo apt-get install gdal
+    - name: Install GDAL utilities
+      run: sudo apt-get install gdal-bin
     - name: Make Init
       run: |
         make init
