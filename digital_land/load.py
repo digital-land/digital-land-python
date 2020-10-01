@@ -2,11 +2,13 @@
 #  load XLS or CSV file into a UTF-8 CSV stream
 #
 
-from io import StringIO
-from cchardet import UniversalDetector
 import csv
-import pandas as pd
 import logging
+from io import StringIO
+from pathlib import Path
+
+import pandas as pd
+from cchardet import UniversalDetector
 
 
 def detect_encoding(path):
@@ -22,8 +24,7 @@ def detect_encoding(path):
 
 
 def resource_hash_from(path):
-    filename = path.split("/")[-1]
-    return ".".join(filename.split(".")[0:-1])
+    return Path(path).stem
 
 
 class DictReaderInjectResource(csv.DictReader):
