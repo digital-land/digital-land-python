@@ -1,10 +1,12 @@
 import csv
+import difflib
 import filecmp
 import pathlib
 
 import pytest
 import xlsxwriter
 from helpers import execute
+from wasabi import color
 
 
 @pytest.mark.parametrize(
@@ -26,9 +28,36 @@ def test_convert(input_file, tmp_path):
     output_file = tmp_path / (input_file.stem + ".csv")
     _execute_convert(input_file, output_file)
     golden_master = input_file.with_suffix(".csv")
-    assert filecmp.cmp(
+    assert filecmp.cmp(output_file, golden_master), print_diffs(
         output_file, golden_master
-    ), f"output does not match golden master {golden_master}"
+    )
+
+
+def print_diffs(fromfile, tofile):
+    # helper function to print detailed diffs between two files
+    file_a = open(fromfile).readlines()
+    file_b = open(tofile).readlines()
+    count = 0
+    message = []
+    for a, b in zip(file_a, file_b):
+        count += 1
+        if a == b:
+            continue
+        message.append(f"line {count} differs: ")
+        matcher = difflib.SequenceMatcher(None, a, b)
+        output = []
+        for opcode, a0, a1, b0, b1 in matcher.get_opcodes():
+            if opcode == "equal":
+                output.append(a[a0:a1])
+            elif opcode == "insert":
+                output.append(color(b[b0:b1], fg=16, bg="green"))
+            elif opcode == "delete":
+                output.append(color(a[a0:a1], fg=16, bg="red"))
+            elif opcode == "replace":
+                output.append(color(b[b0:b1], fg=16, bg="green"))
+                output.append(color(a[a0:a1], fg=16, bg="red"))
+        message.append("".join(output))
+    return "".join(message)
 
 
 @pytest.fixture()
