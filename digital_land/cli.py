@@ -7,6 +7,7 @@ from pathlib import Path
 
 import click
 
+from .collection import Collection
 from .collect import Collector
 from .convert import Converter
 from .harmonise import Harmoniser
@@ -46,7 +47,7 @@ def specification_path(f):
     return click.argument(
         "specification_path",
         type=click.Path(exists=True),
-        default="specification/specification/",
+        default="specification/",
     )(f)
 
 
@@ -160,6 +161,24 @@ def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline
 def index_cmd():
     indexer = Indexer()
     indexer.index()
+
+
+#
+# collection commands:
+#
+#   collection-resources -- list resources in a collection, filtered by the optional pipeline
+#
+@cli.command("collection-resources", short_help="list resources in a collection")
+@pipeline_name
+@specification_path
+@pipeline_path
+def pipeline_resources_cmd(pipeline_name, specification_path, pipeline_path):
+    specification = Specification(specification_path)
+    pipeline = Pipeline(pipeline_path, pipeline_name)
+    collection = Collection()
+    collection.load()
+    for resource in collection.resources(pipeline=pipeline_name):
+        print(collection.resource_path(resource))
 
 
 @cli.command(
