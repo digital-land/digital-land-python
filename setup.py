@@ -52,6 +52,7 @@ setup(
             "twine>=3.1.1",
             "responses>=0.10.14",
             "XlsxWriter>=1.2.8",
+            "wasabi>=0.8.0",
         ]
         + maybe_black
     },
