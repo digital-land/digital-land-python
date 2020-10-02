@@ -127,6 +127,7 @@ def _execute_convert(input_file, output_file):
             "some-pipeline",
             input_file,
             output_file,
+            "--pipeline_path",
             "tests/data/pipeline",
         ]
     )

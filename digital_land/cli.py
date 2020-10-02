@@ -37,22 +37,23 @@ def pipeline_name(f):
 
 
 def pipeline_path(f):
-    return click.argument(
-        "pipeline_path", type=click.Path(exists=True), default="pipeline/"
+    return click.option(
+        "--pipeline_path", "-p", type=click.Path(exists=True), default="pipeline/"
     )(f)
 
 
 def specification_path(f):
-    return click.argument(
-        "specification_path",
+    return click.option(
+        "--specification_path",
+        "-s",
         type=click.Path(exists=True),
         default="specification/specification/",
     )(f)
 
 
 def issue_path(f):
-    return click.argument(
-        "issue_path", type=click.Path(exists=True), default="var/issue/"
+    return click.option(
+        "--issue_path", "-i", type=click.Path(exists=True), default="var/issue/"
     )(f)
 
 
