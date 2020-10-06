@@ -144,12 +144,15 @@ def _execute_convert(input_file, output_file):
     returncode, outs, errs = execute(
         [
             "digital-land",
-            "convert",
+            "-n",
             "some-pipeline",
+            "-p",
+            "tests/data/pipeline",
+            "-s",
+            "tests/data/specification",
+            "convert",
             input_file,
             output_file,
-            "--pipeline_path",
-            "tests/data/pipeline",
         ]
     )
     assert returncode == 0, f"return code non-zero: {errs}"

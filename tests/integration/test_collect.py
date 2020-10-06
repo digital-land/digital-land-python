@@ -26,12 +26,22 @@ def hash_digest(url):
 
 
 def test_collect(endpoint_csv):
-    returncode, outs, errs = execute(["digital-land", "collect", endpoint_csv])
+    returncode, outs, errs = execute(
+        [
+            "digital-land",
+            "-p",
+            "tests/data/pipeline",
+            "-s",
+            "tests/data/specification",
+            "collect",
+            endpoint_csv,
+        ]
+    )
 
     log_date = datetime.utcnow().isoformat()[:10]
     log_file = f"./collection/log/{log_date}/{hash_digest(ENDPOINT)}.json"
 
-    assert returncode == 0, "return code non-zero"
+    assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs
 
     resource = read_log(log_file)

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import click
 
+from .collection import Collection
 from .collect import Collector
 from .convert import Converter
 from .harmonise import Harmoniser
@@ -23,45 +24,56 @@ from .specification import Specification
 from .transform import Transformer
 
 
+PIPELINE = None
+SPECIFICATION = None
+
+
 # Custom decorators for common command arguments
 def input_output_path(f):
     arguments = [
-        click.argument("input_path", type=click.Path(exists=True)),
-        click.argument("output_path", type=click.Path(), default=""),
+        click.argument("input-path", type=click.Path(exists=True)),
+        click.argument("output-path", type=click.Path(), default=""),
     ]
     return functools.reduce(lambda x, arg: arg(x), reversed(arguments), f)
 
 
 def pipeline_name(f):
-    return click.argument("pipeline_name", type=click.STRING)(f)
+    return click.option("--pipeline-name", "-n", type=click.STRING)(f)
 
 
 def pipeline_path(f):
     return click.option(
-        "--pipeline_path", "-p", type=click.Path(exists=True), default="pipeline/"
+        "--pipeline-path", "-p", type=click.Path(exists=True), default="pipeline/"
     )(f)
 
 
 def specification_path(f):
     return click.option(
-        "--specification_path",
+        "--specification-path",
         "-s",
         type=click.Path(exists=True),
-        default="specification/specification/",
+        default="specification/",
     )(f)
 
 
 def issue_path(f):
     return click.option(
-        "--issue_path", "-i", type=click.Path(exists=True), default="var/issue/"
+        "--issue-path", "-i", type=click.Path(exists=True), default="var/issue/"
     )(f)
 
 
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
-def cli(debug):
+@pipeline_name
+@pipeline_path
+@specification_path
+def cli(debug, pipeline_name, pipeline_path, specification_path):
     level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
+    global PIPELINE
+    global SPECIFICATION
+    PIPELINE = Pipeline(pipeline_path, pipeline_name)
+    SPECIFICATION = Specification(specification_path)
 
 
 @cli.command("fetch")
@@ -74,7 +86,7 @@ def fetch_cmd(url):
 
 @cli.command("collect")
 @click.argument(
-    "endpoint_path",
+    "endpoint-path",
     type=click.Path(exists=True),
     default="collection/endpoint.csv",
 )
@@ -85,15 +97,12 @@ def collect_cmd(endpoint_path):
 
 
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
-@pipeline_name
 @input_output_path
-@pipeline_path
-def convert_cmd(pipeline_name, input_path, output_path, pipeline_path):
+def convert_cmd(input_path, output_path):
     if not output_path:
         output_path = default_output_path_for("converted", input_path)
 
-    pipeline = Pipeline(pipeline_path, pipeline_name)
-    converter = Converter(pipeline.conversions())
+    converter = Converter(PIPELINE.conversions())
     reader = converter.convert(input_path)
     if not reader:
         logging.error(f"Unable to convert {input_path}")
@@ -102,7 +111,6 @@ def convert_cmd(pipeline_name, input_path, output_path, pipeline_path):
 
 
 @cli.command("normalise", short_help="removed padding, drop empty rows")
-@pipeline_name
 @input_output_path
 @click.option(
     "--null-path",
@@ -116,38 +124,29 @@ def convert_cmd(pipeline_name, input_path, output_path, pipeline_path):
     help="patterns for skipped lines",
     default=None,
 )
-@pipeline_path
-def normalise_cmd(
-    pipeline_name, input_path, output_path, null_path, skip_path, pipeline_path
-):
+def normalise_cmd(input_path, output_path, null_path, skip_path):
     if not output_path:
         output_path = default_output_path_for("normalised", input_path)
 
     resource_hash = resource_hash_from(input_path)
-    pipeline = Pipeline(pipeline_path, pipeline_name)
     stream = load_csv(input_path)
-    normaliser = Normaliser(pipeline.skip_patterns(resource_hash), null_path=null_path)
+    normaliser = Normaliser(PIPELINE.skip_patterns(resource_hash), null_path=null_path)
     stream = normaliser.normalise(stream)
     save(stream, output_path)
 
 
 @cli.command("map", short_help="map misspelt column names to those in a pipeline")
-@pipeline_name
 @input_output_path
-@specification_path
-@pipeline_path
-def map_cmd(pipeline_name, input_path, output_path, specification_path, pipeline_path):
+def map_cmd(input_path, output_path):
     if not output_path:
         output_path = default_output_path_for("mapped", input_path)
 
     resource_hash = resource_hash_from(input_path)
-    pipeline = Pipeline(pipeline_path, pipeline_name)
-    specification = Specification(specification_path)
-    fieldnames = intermediary_fieldnames(specification, pipeline)
+    fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
     mapper = Mapper(
         fieldnames,
-        pipeline.columns(resource_hash),
-        pipeline.concatenations(resource_hash),
+        PIPELINE.columns(resource_hash),
+        PIPELINE.concatenations(resource_hash),
     )
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
@@ -163,22 +162,29 @@ def index_cmd():
     indexer.index()
 
 
+#
+# collection commands:
+#
+#   collection-resources -- list resources in a collection, filtered by the optional pipeline
+#
+@cli.command("collection-resources", short_help="list resources in a collection")
+def pipeline_resources_cmd():
+    collection = Collection()
+    collection.load()
+    for resource in collection.resources(pipeline=PIPELINE.name):
+        print(collection.resource_path(resource))
+
+
 @cli.command(
     "harmonise",
     short_help="strip whitespace and null fields, remove blank rows and columns",
 )
-@pipeline_name
 @input_output_path
 @issue_path
-@specification_path
-@pipeline_path
 def harmonise_cmd(
-    pipeline_name,
     input_path,
     output_path,
     issue_path,
-    specification_path,
-    pipeline_path,
 ):
     if not output_path:
         output_path = default_output_path_for("harmonised", input_path)
@@ -187,13 +193,11 @@ def harmonise_cmd(
     issues = Issues()
     resource_organisation = ResourceOrganisation().resource_organisation
     organisation_uri = Organisation().organisation_uri
-    specification = Specification(specification_path)
-    pipeline = Pipeline(pipeline_path, pipeline_name)
-    patch = pipeline.patches(resource_hash)
-    fieldnames = intermediary_fieldnames(specification, pipeline)
+    patch = PIPELINE.patches(resource_hash)
+    fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
     harmoniser = Harmoniser(
-        specification,
-        pipeline,
+        SPECIFICATION,
+        PIPELINE,
         issues,
         resource_organisation,
         organisation_uri,
@@ -208,23 +212,16 @@ def harmonise_cmd(
 
 
 @cli.command("transform", short_help="transform")
-@pipeline_name
 @input_output_path
-@specification_path
-@pipeline_path
-def transform_cmd(
-    pipeline_name, input_path, output_path, specification_path, pipeline_path
-):
+def transform_cmd(input_path, output_path):
     if not output_path:
         output_path = default_output_path_for("transformed", input_path)
 
-    specification = Specification(specification_path)
-    pipeline = Pipeline(pipeline_path, pipeline_name)
     organisation = Organisation()
-    transformer = Transformer(pipeline.transformations(), organisation.organisation)
+    transformer = Transformer(PIPELINE.transformations(), organisation.organisation)
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
-    save(stream, output_path, specification.current_fieldnames)
+    save(stream, output_path, SPECIFICATION.current_fieldnames)
 
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
@@ -232,33 +229,29 @@ def transform_cmd(
 @specification_path
 @pipeline_path
 @issue_path
-def pipeline_cmd(
-    input_path, output_path, specification_path, pipeline_path, issue_path
-):
+def pipeline_cmd(input_path, output_path, issue_path):
     resource_hash = resource_hash_from(input_path)
     organisation = Organisation()
     resource_organisation = ResourceOrganisation().resource_organisation
-    pipeline = Pipeline(pipeline_path, pipeline_name)
-    specification = Specification(specification_path)
     issues = Issues()
-    fieldnames = specification.current_fieldnames
-    patch = pipeline.patches(resource_hash)
+    fieldnames = SPECIFICATION.current_fieldnames
+    patch = PIPELINE.patches(resource_hash)
 
     normaliser = Normaliser()
     mapper = Mapper(
         fieldnames,
-        pipeline.columns(resource_hash),
-        pipeline.concatenations(resource_hash),
+        PIPELINE.columns(resource_hash),
+        PIPELINE.concatenations(resource_hash),
     )
     harmoniser = Harmoniser(
-        specification,
-        pipeline,
+        SPECIFICATION,
+        PIPELINE,
         issues,
         resource_organisation,
         Organisation().organisation_uri,
         patch,
     )
-    transformer = Transformer(pipeline.transformations(), organisation.organisation)
+    transformer = Transformer(PIPELINE.transformations(), organisation.organisation)
 
     # pipeline = compose(normaliser.normalise, mapper.map, harmoniser.harmonise, transformer.transform)
 
