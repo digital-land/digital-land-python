@@ -3,7 +3,6 @@
 
 import os
 import os.path
-import re
 import logging
 import hashlib
 import csv

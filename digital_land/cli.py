@@ -174,8 +174,6 @@ def index_cmd():
 @specification_path
 @pipeline_path
 def pipeline_resources_cmd(pipeline_name, specification_path, pipeline_path):
-    specification = Specification(specification_path)
-    pipeline = Pipeline(pipeline_path, pipeline_name)
     collection = Collection()
     collection.load()
     for resource in collection.resources(pipeline=pipeline_name):
