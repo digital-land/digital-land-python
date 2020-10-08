@@ -33,7 +33,7 @@
 
 ## Development environment
 
-Development requires Python 3.6 or later, we recommend using a [virtual environment](https://docs.python.org/3/library/venv.html):
+Development requires Python 3.6.2 or later, we recommend using a [virtual environment](https://docs.python.org/3/library/venv.html):
 
     make init
     make
