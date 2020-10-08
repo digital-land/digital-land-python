@@ -33,6 +33,8 @@
 
 ## Development environment
 
+The GDAL tools are required to convert geographic data, and in order for all of the tests to pass.
+
 Development requires Python 3.6.2 or later, we recommend using a [virtual environment](https://docs.python.org/3/library/venv.html):
 
     make init
