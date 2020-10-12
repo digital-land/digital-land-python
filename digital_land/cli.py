@@ -52,7 +52,7 @@ def specification_path(f):
         "--specification-path",
         "-s",
         type=click.Path(exists=True),
-        default="specification/specification/",
+        default="specification/",
     )(f)
 
 
