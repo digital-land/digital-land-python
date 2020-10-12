@@ -2,6 +2,8 @@ import csv
 import os
 import re
 
+csv.field_size_limit(1048576)
+
 
 class Pipeline:
     def __init__(self, path, name):
