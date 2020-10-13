@@ -23,6 +23,7 @@ running_on_macos = platform.system() == "Darwin"
         ("tests/data/resource_examples/kml.resource", False),
         ("tests/data/resource_examples/kml_multilayer.resource", False),
         ("tests/data/resource_examples/gml.resource", False),
+        ("tests/data/resource_examples/gml_very_long_rows.resource", False),
         ("tests/data/resource_examples/shapefile_zip.resource", True),
         ("tests/data/resource_examples/shapefile_zip_not_in_root.resource", True),
     ],
