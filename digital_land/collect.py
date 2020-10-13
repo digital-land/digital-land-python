@@ -84,7 +84,7 @@ class Collector:
             log["request-headers"] = dict(response.request.headers)
             log["response-headers"] = dict(response.headers)
 
-            if log["status"] == "200" and not log["response-headers"].get(
+            if log["status"] == "200" and not response.headers.get(
                 "Content-Type", ""
             ).startswith("text/html"):
                 content = response.content
