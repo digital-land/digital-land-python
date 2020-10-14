@@ -1,9 +1,12 @@
 import hashlib
+import json
 import os
+import pathlib
 from datetime import datetime, timedelta
 
 import pytest
 import responses
+import requests
 
 from digital_land.collect import Collector, FetchStatus
 
@@ -34,10 +37,7 @@ def test_fetch(collector, prepared_response, tmp_path):
     output_path = tmp_path / f"resource/{sha_digest('some data')}"
     assert os.path.isfile(output_path)
     assert open(output_path).read() == "some data"
-
-    assert os.path.isfile(
-        tmp_path / f"log/{datetime.now().strftime('%Y-%m-%d')}/{sha_digest(url)}.json"
-    )
+    assert os.path.isfile(pathlib.Path(collector.log_dir) / log_file(url))
 
 
 @responses.activate
@@ -71,3 +71,27 @@ def test_hash_failure(collector, prepared_response):
     status = collector.fetch("http://some.url", endpoint="http://other.url")
 
     assert status == FetchStatus.HASH_FAILURE
+
+
+@responses.activate
+def test_ssl_bad_cert(collector):
+    url = "https://some.url.with.ssl.error"
+    responses.add(responses.GET, url, body=requests.exceptions.SSLError())
+
+    # Allow the request to work the second time. Unfortunately there is no
+    # simple way to check that verify=False is passed to reqests.get
+    responses.add(responses.GET, url, body="some data")
+
+    status = collector.fetch(url)
+
+    log = read_log(collector, url)
+    assert status == FetchStatus.OK
+    assert not log.get("ssl-verify", True)
+
+
+def read_log(collector, url):
+    return json.load(open(pathlib.Path(collector.log_dir) / log_file(url)))
+
+
+def log_file(url):
+    return f"{datetime.now().strftime('%Y-%m-%d')}/{sha_digest(url)}.json"
