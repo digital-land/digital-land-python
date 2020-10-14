@@ -74,20 +74,12 @@ def test_hash_failure(collector, prepared_response):
 
 
 @responses.activate
-def test_ssl_good_cert(collector):
-    url = "https://some.url.with.ssl.error"
-    responses.add(responses.GET, url, body="some data")
-    status = collector.fetch(url)
-    log = read_log(collector, url)
-
-    assert status == FetchStatus.OK
-    assert "ssl-verify" not in log
-
-
-@responses.activate
 def test_ssl_bad_cert(collector):
     url = "https://some.url.with.ssl.error"
     responses.add(responses.GET, url, body=requests.exceptions.SSLError())
+
+    # Allow the request to work the second time. Unfortunately there is no
+    # simple way to check that verify=False is passed to reqests.get
     responses.add(responses.GET, url, body="some data")
 
     status = collector.fetch(url)
