@@ -22,6 +22,7 @@ class FetchStatus(Enum):
     EXPIRED = 2
     HASH_FAILURE = 3
     ALREADY_FETCHED = 4
+    FAILED = 5
 
 
 class Collector:
@@ -57,12 +58,18 @@ class Collector:
             with open(path, "wb") as f:
                 f.write(data)
 
-    def get(self, url, log={}):
+    def get(self, url, log={}, verify_ssl=True):
         logging.info("get %s" % url)
 
         try:
             start = timer()
-            response = self.session.get(url, headers={"User-Agent": self.user_agent})
+            response = self.session.get(
+                url, headers={"User-Agent": self.user_agent}, verify=verify_ssl
+            )
+        except requests.exceptions.SSLError:
+            logging.warning("Retrying without certificate validation due to SSLError")
+            log["ssl-verify"] = False
+            return self.get(url, log, False)
         except (
             requests.ConnectionError,
             requests.HTTPError,
@@ -118,10 +125,13 @@ class Collector:
 
         if content:
             log["resource"] = self.save_content(content)
+            status = FetchStatus.OK
+        else:
+            status = FetchStatus.FAILED
 
         self.save_log(log_path, log)
 
-        return FetchStatus.OK
+        return status
 
     def collect(self, endpoint_path):
         for row in csv.DictReader(open(endpoint_path, newline="")):
