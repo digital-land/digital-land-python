@@ -60,6 +60,7 @@ class Collector:
 
     def get(self, url, log={}, verify_ssl=True):
         logging.info("get %s" % url)
+        log["ssl-verify"] = verify_ssl
 
         try:
             start = timer()
@@ -68,7 +69,6 @@ class Collector:
             )
         except requests.exceptions.SSLError:
             logging.warning("Retrying without certificate validation due to SSLError")
-            log["ssl-verify"] = False
             return self.get(url, log, False)
         except (
             requests.ConnectionError,
