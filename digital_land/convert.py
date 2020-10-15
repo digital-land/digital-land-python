@@ -2,6 +2,7 @@ import csv
 import logging
 import os
 import pathlib
+import sqlite3
 import subprocess
 import tempfile
 import zipfile
@@ -57,15 +58,29 @@ class Converter:
         # First try excel
         excel_reader = read_excel(input_path)
         if excel_reader:
+            logging.debug(f"{input_path} looks like excel")
             return excel_reader
 
         # Then try zip
         if zipfile.is_zipfile(input_path):
+            logging.debug(f"{input_path} looks like zip")
             internal_path = self._path_to_shp_files(input_path)
             temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
             os.link(input_path, temp_path)
             zip_path = f"/vsizip/{temp_path}{internal_path}"
             csv_path = convert_features_to_csv(zip_path)
+            return read_csv(csv_path)
+
+        # Then try SQLite (GeoPackage)
+        try:
+            conn = sqlite3.connect(input_path)
+            cursor = conn.cursor()
+            cursor.execute("pragma quick_check")
+        except:  # noqa: E722
+            pass
+        else:
+            logging.debug(f"{input_path} looks like SQLite")
+            csv_path = convert_features_to_csv(input_path)
             return read_csv(csv_path)
 
     def _path_to_shp_files(self, input_file):
