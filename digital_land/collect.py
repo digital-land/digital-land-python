@@ -65,7 +65,10 @@ class Collector:
         try:
             start = timer()
             response = self.session.get(
-                url, headers={"User-Agent": self.user_agent}, timeout=120, verify=verify_ssl
+                url,
+                headers={"User-Agent": self.user_agent},
+                timeout=120,
+                verify=verify_ssl,
             )
         except requests.exceptions.SSLError:
             logging.warning("Retrying without certificate validation due to SSLError")
