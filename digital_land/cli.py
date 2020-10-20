@@ -62,6 +62,12 @@ def issue_path(f):
     )(f)
 
 
+def index_dir(f):
+    return click.option(
+        "--index-dir", "-x", type=click.Path(exists=True), default="index/"
+    )(f)
+
+
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
 @pipeline_name
@@ -163,16 +169,26 @@ def index_cmd():
 
 
 #
-# collection commands:
+#  collection commands
 #
-#   collection-resources -- list resources in a collection, filtered by the optional pipeline
-#
-@cli.command("collection-resources", short_help="list resources in a collection")
+@cli.command("collection-list-resources", short_help="list resources for a pipeline")
 def pipeline_resources_cmd():
     collection = Collection()
     collection.load()
     for resource in collection.resources(pipeline=PIPELINE.name):
         print(collection.resource_path(resource))
+
+
+@cli.command("collection-resource-organisations", short_help="the organisations which ")
+@index_dir
+def pipeline_resources_cmd(index_dir):
+    collection = Collection()
+    collection.load()
+    save(
+        collection.resource_organisations(),
+        index_dir + "resource-organisation.csv",
+        ["resource", "organisation", "start-date", "end-date"],
+    )
 
 
 @cli.command(
