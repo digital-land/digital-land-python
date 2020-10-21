@@ -62,12 +62,6 @@ def issue_path(f):
     )(f)
 
 
-def index_dir(f):
-    return click.option(
-        "--index-dir", "-x", type=click.Path(exists=True), default="index/"
-    )(f)
-
-
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
 @pipeline_name
@@ -102,6 +96,31 @@ def collect_cmd(endpoint_path):
     collector.collect(endpoint_path)
 
 
+#
+#  collection commands
+#
+@cli.command(
+    "index",
+    short_help="create collection indices",
+)
+def index_cmd():
+    # TBD: replace with Collection()
+    indexer = Indexer()
+    indexer.index()
+
+
+@cli.command("collection-list-resources", short_help="list resources for a pipeline")
+def pipeline_resources_cmd():
+    collection = Collection()
+    # can be loaded from a collection directory, or a collection datapackage
+    collection.load()
+    for resource in collection.resources(pipeline=PIPELINE.name):
+        print(collection.resource_path(resource))
+
+
+#
+#  pipeline commands
+#
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
 @input_output_path
 def convert_cmd(input_path, output_path):
@@ -157,38 +176,6 @@ def map_cmd(input_path, output_path):
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
     save(stream, output_path, fieldnames=fieldnames)
-
-
-@cli.command(
-    "index",
-    short_help="create collection indices",
-)
-def index_cmd():
-    indexer = Indexer()
-    indexer.index()
-
-
-#
-#  collection commands
-#
-@cli.command("collection-list-resources", short_help="list resources for a pipeline")
-def pipeline_resources_cmd():
-    collection = Collection()
-    collection.load()
-    for resource in collection.resources(pipeline=PIPELINE.name):
-        print(collection.resource_path(resource))
-
-
-@cli.command("collection-resource-organisations", short_help="the organisations which ")
-@index_dir
-def pipeline_resources_cmd(index_dir):
-    collection = Collection()
-    collection.load()
-    save(
-        collection.resource_organisations(),
-        index_dir + "resource-organisation.csv",
-        ["resource", "organisation", "start-date", "end-date"],
-    )
 
 
 @cli.command(
