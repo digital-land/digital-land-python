@@ -101,26 +101,51 @@ class SourceRegister(Register):
     ]
 
 
+class ResourceRegister(Register):
+    register = "resource"
+    fieldnames = [
+        "resource",
+        "start-date",
+    ]
+
+    def load_from_log(self, log):
+        resources = {}
+        for entry in log.entries:
+            if "resource" in entry.item:
+                resource = entry.item["resource"]
+                if resource in resources:
+                    resources[resource]["start-date"] = min(
+                        resources[resource]["start-date"], entry.item["entry-date"]
+                    )
+                else:
+                    resources[resource] = {"start-date": entry.item["entry-date"]}
+
+        for key, resource in sorted(resources.items()):
+            self.add(Item({"resource": key, "start-date": resource["start-date"]}))
+
+
 # this is a DataPackage ..
 class Collection:
     dirname = "collection/"
 
-    def __init__(self):
+    def __init__(self, dirname=None):
+        if dirname:
+            self.dirname = dirname
+
         self.source = SourceRegister()
         self.endpoint = EndpointRegister()
         self.log = LogRegister()
+        self.resource = ResourceRegister()
 
     def load(self):
         self.log.load_collection()
         self.endpoint.load()
         self.source.load()
+        self.resource.load_from_log(self.log)
 
     def resources(self, pipeline=None):
-        resources = {}
-        for entry in self.log.entries:
-            if "resource" in entry.item:
-                resources[entry.item["resource"]] = True
-        return sorted(resources)
+        # TODO is pipeline param needed?
+        return sorted(self.resource.record)
 
     def resource_organisation(self, resource):
         "return the list of organisations for which a resource was collected"
