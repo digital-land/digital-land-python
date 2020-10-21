@@ -59,7 +59,7 @@ class Register:
         self.entries.append(item)
         key = item.item[self.key]
         self.record.setdefault(key, [])
-        self.record[key].append(len(self.entries)-1)
+        self.record[key].append(len(self.entries) - 1)
 
     def path(self, path=None):
         return path or os.path.join(self.dirname, self.register + ".csv")
