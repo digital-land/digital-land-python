@@ -96,6 +96,31 @@ def collect_cmd(endpoint_path):
     collector.collect(endpoint_path)
 
 
+#
+#  collection commands
+#
+@cli.command(
+    "index",
+    short_help="create collection indices",
+)
+def index_cmd():
+    # TBD: replace with Collection()
+    indexer = Indexer()
+    indexer.index()
+
+
+@cli.command("collection-list-resources", short_help="list resources for a pipeline")
+def pipeline_resources_cmd():
+    collection = Collection()
+    # can be loaded from a collection directory, or a collection datapackage
+    collection.load()
+    for resource in collection.resources(pipeline=PIPELINE.name):
+        print(collection.resource_path(resource))
+
+
+#
+#  pipeline commands
+#
 @cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
 @input_output_path
 def convert_cmd(input_path, output_path):
@@ -151,28 +176,6 @@ def map_cmd(input_path, output_path):
     stream = load_csv_dict(input_path)
     stream = mapper.map(stream)
     save(stream, output_path, fieldnames=fieldnames)
-
-
-@cli.command(
-    "index",
-    short_help="create collection indices",
-)
-def index_cmd():
-    indexer = Indexer()
-    indexer.index()
-
-
-#
-# collection commands:
-#
-#   collection-resources -- list resources in a collection, filtered by the optional pipeline
-#
-@cli.command("collection-resources", short_help="list resources in a collection")
-def pipeline_resources_cmd():
-    collection = Collection()
-    collection.load()
-    for resource in collection.resources(pipeline=PIPELINE.name):
-        print(collection.resource_path(resource))
 
 
 @cli.command(

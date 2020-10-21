@@ -5,14 +5,7 @@ import logging
 from .register import Register, Item, hash_value
 
 
-log_dir = "collection/log"
-resource_dir = "collection/resource/"
-endpoint_path = "collection/endpoint.csv"
-
-
 class LogItem(Item):
-    schema = "log"
-
     def migrate(self):
         # default entry-date field
         if "datetime" in self.item:
@@ -50,9 +43,11 @@ class LogItem(Item):
 # https://digital-land.github.io/specification/schema/log/
 class LogRegister(Register):
     register = "log"
+    key = "endpoint"
+    dirname = "collection/"
     fieldnames = [
-        "elapsed",
         "endpoint",
+        "elapsed",
         "request-headers",
         "resource",
         "response-headers",
@@ -61,30 +56,112 @@ class LogRegister(Register):
         "start-date",
         "end-date",
     ]
+    Item = LogItem
 
-    def load_collection(self, log_dir):
+    def load_collection(self, log_dir="collection/log/"):
         for path in glob.glob("%s/*/*.json" % (log_dir)):
-            item = LogItem()
+            item = self.Item()
             item.load_json(path)
             item.check_path(path)
             self.add(item)
 
 
+# fieldnames should come from, or be checked against the specification:
+# https://digital-land.github.io/specification/schema/source/
+class EndpointRegister(Register):
+    register = "endpoint"
+    dirname = "collection/"
+    fieldnames = [
+        "endpoint",
+        "endpoint-url",
+        "plugin",
+        "parameters",
+        "entry-date",
+        "start-date",
+        "end-date",
+    ]
+
+
+# fieldnames should come from, or be checked against the specification:
+# https://digital-land.github.io/specification/schema/source/
+class SourceRegister(Register):
+    register = "source"
+    dirname = "collection/"
+    key = "endpoint"
+    fieldnames = [
+        "source",
+        "attribution",
+        "collection",
+        "documentation-url",
+        "endpoint",
+        "status",
+        "entry-date",
+        "start-date",
+        "end-date",
+    ]
+
+
+class ResourceRegister(Register):
+    register = "resource"
+    fieldnames = [
+        "resource",
+        "start-date",
+    ]
+
+    def load_from_log(self, log):
+        resources = {}
+        for entry in log.entries:
+            if "resource" in entry.item:
+                resource = entry.item["resource"]
+                if resource in resources:
+                    resources[resource]["start-date"] = min(
+                        resources[resource]["start-date"], entry.item["entry-date"]
+                    )
+                else:
+                    resources[resource] = {"start-date": entry.item["entry-date"]}
+
+        for key, resource in sorted(resources.items()):
+            self.add(Item({"resource": key, "start-date": resource["start-date"]}))
+
+
+# this is a DataPackage ..
 class Collection:
-    def __init__(self, log_dir=log_dir, resource_dir=resource_dir):
+    dirname = "collection/"
+
+    def __init__(self, dirname=None):
+        if dirname:
+            self.dirname = dirname
+
+        self.source = SourceRegister()
+        self.endpoint = EndpointRegister()
         self.log = LogRegister()
-        self.log_dir = log_dir
-        self.resource_dir = resource_dir
+        self.resource = ResourceRegister()
 
     def load(self):
-        self.log.load_collection(self.log_dir)
+        self.log.load_collection()
+        self.endpoint.load()
+        self.source.load()
+        self.resource.load_from_log(self.log)
 
     def resources(self, pipeline=None):
-        resources = {}
+        # TODO is pipeline param needed?
+        return sorted(self.resource.record)
+
+    def resource_organisation(self, resource):
+        "return the list of organisations for which a resource was collected"
+        endpoints = {}
+        organisations = {}
+
+        # entries which collected the resource
         for entry in self.log.entries:
-            if "resource" in entry.item:
-                resources[entry.item["resource"]] = True
-        return sorted(resources)
+            if "resource" in entry.item and entry.item["resource"] == resource:
+                endpoints[entry.item["endpoint"]] = True
+
+        # sources which cite the endpoint
+        for endpoint in endpoints:
+            for n in self.source.record[endpoint]:
+                organisations[self.source.entries[n].item["organisation"]] = True
+        return sorted(organisations)
 
     def resource_path(self, resource):
-        return os.path.join(self.resource_dir, resource)
+        return os.path.join(self.dirname, "resource", resource)

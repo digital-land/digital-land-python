@@ -23,8 +23,8 @@ def save(path, data):
 
 
 class Item:
-    def __init__(self):
-        self.item = {}
+    def __init__(self, item={}):
+        self.item = item
 
     def migrate(self):
         pass
@@ -44,17 +44,33 @@ class Item:
 
 class Register:
     register = "unknown"
+    key = None
     fieldnames = []
+    dirname = "dataset/"
+    Item = Item
 
-    def __init__(self, entries=[]):
-        self.entries = entries
+    def __init__(self):
+        self.entries = []
+        self.record = {}
+        if not self.key:
+            self.key = self.register
 
     def add(self, item):
         self.entries.append(item)
+        key = item.item[self.key]
+        self.record.setdefault(key, [])
+        self.record[key].append(len(self.entries) - 1)
+
+    def path(self, path=None):
+        return path or os.path.join(self.dirname, self.register + ".csv")
+
+    def load(self, path=None):
+        path = self.path(path)
+        for row in csv.DictReader(open(path, newline="")):
+            self.add(self.Item(row))
 
     def save(self, path=None):
-        if not path:
-            path = "dataset/%s.csv" % (self.register)
+        path = self.path(path)
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
         writer = csv.DictWriter(
@@ -62,6 +78,6 @@ class Register:
         )
         writer.writeheader()
 
-        path = os.path.join(self.index_dir, self.register + ".csv")
+        path = os.path.join(self.dirname, self.register + ".csv")
         for entry in self.entries:
-            writer.writerow(entry)
+            writer.writerow(entry.item)
