@@ -141,6 +141,8 @@ def convert_features_to_csv(input_path):
             "LINEFORMAT=CRLF",
             "-f",
             "CSV",
+            "-nlt",
+            "MULTIPOLYGON",
             "-nln",
             "MERGED",
             output_path,
