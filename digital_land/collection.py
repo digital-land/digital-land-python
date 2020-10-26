@@ -65,6 +65,7 @@ class LogRegister(Register):
             item.check_path(path)
             self.add(item)
 
+
 # fieldnames should come from, or be checked against the specification:
 # https://digital-land.github.io/specification/schema/source/
 class EndpointRegister(Register):
