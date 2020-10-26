@@ -59,7 +59,7 @@ class LogRegister(Register):
     Item = LogItem
 
     def load_collection(self, log_dir="collection/log/"):
-        for path in glob.glob("%s/*/*.json" % (log_dir)):
+        for path in sorted(glob.glob("%s/*/*.json" % (log_dir))):
             item = self.Item()
             item.load_json(path)
             item.check_path(path)
