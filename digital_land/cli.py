@@ -80,7 +80,7 @@ def cli(debug, pipeline_name, pipeline_path, specification_path):
 @click.argument("url")
 def fetch_cmd(url):
     """fetch a single source endpoint URL, and add it to the collection"""
-    collector = Collector()
+    collector = Collector(PIPELINE.name)
     collector.fetch(url)
 
 
@@ -92,7 +92,7 @@ def fetch_cmd(url):
 )
 def collect_cmd(endpoint_path):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
-    collector = Collector()
+    collector = Collector(PIPELINE.name)
     collector.collect(endpoint_path)
 
 
