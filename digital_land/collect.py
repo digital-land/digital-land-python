@@ -144,7 +144,7 @@ class Collector:
 
         return status
 
-    strip_exp = re.compile(b'timeStamp="[^"]*"')
+    strip_exp = re.compile(b' ?timeStamp="[^"]*"')
 
     def strip_timestamps(self, content):
         return self.strip_exp.sub(b"", content)
