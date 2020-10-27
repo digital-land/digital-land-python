@@ -40,6 +40,7 @@ setup(
         "requests==2.24.0",
         "validators",
         "xlrd==1.2.0",
+        "Shapely==1.7.1",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],

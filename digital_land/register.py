@@ -49,11 +49,19 @@ class Register:
     dirname = "dataset/"
     Item = Item
 
-    def __init__(self):
+    def __init__(self, dirname=None):
+        if dirname:
+            self.dirname = dirname
         self.entries = []
         self.record = {}
         if not self.key:
             self.key = self.register
+
+    def __getitem__(self, key):
+        if key not in self.record:
+            raise KeyError()
+        idxs = self.record[key]
+        return [self.entries[i] for i in idxs]
 
     def add(self, item):
         self.entries.append(item)

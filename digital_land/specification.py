@@ -11,6 +11,7 @@ from .datatype.organisation import OrganisationURIDataType
 from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
 from .datatype.flag import FlagDataType
+from .datatype.wkt import WktDataType
 
 
 class Specification:
@@ -120,6 +121,7 @@ class Specification:
             "datetime": DateDataType,
             "url": URIDataType,
             "flag": FlagDataType,
+            "wkt": WktDataType,
         }
 
         if datatype in typemap:

@@ -46,6 +46,7 @@ class Harmoniser:
         specification,
         pipeline,
         issues=None,
+        collection={},
         resource_organisation={},
         organisation_uri=None,
         patch={},
@@ -56,6 +57,7 @@ class Harmoniser:
         self.default_fieldnames = {}
         # self.required_fieldnames = schema.required_fieldnames
         self.issues = issues
+        self.collection = collection
         self.resource_organisation = resource_organisation
         self.organisation_uri = organisation_uri
         self.patch = patch
@@ -86,14 +88,6 @@ class Harmoniser:
                 return match.expand(replacement)
         return value
 
-    def check(self, o):
-        pass
-        # NO LONGER HAVE REQUIRED FIELDS... CONFIRM
-        #
-        # for fieldname in self.required_fieldnames:
-        #     if not o.get(fieldname, None):
-        #         self.log_issue(fieldname, "missing", "")
-
     def set_default(self, o, fieldname, value):
         if value and not o[fieldname]:
             self.log_issue(fieldname, "default", value)
@@ -110,7 +104,8 @@ class Harmoniser:
 
         return o
 
-    def set_resource_defaults(self, resource):
+    def set_resource_defaults_legacy(self, resource):
+        # Used only for brownfield-land
         self.default_values = {}
         self.default_fieldnames = self.pipeline.default_fieldnames(resource)
         if len(self.resource_organisation.get(resource, [])) > 0:
@@ -124,6 +119,22 @@ class Harmoniser:
             self.default_values["OrganisationURI"] = self.organisation_uri[
                 resource_defaults[0]["organisation"].lower()
             ]
+
+    def set_resource_defaults(self, resource):
+        self.default_values = {}
+        if not resource:
+            return
+        self.default_fieldnames = self.pipeline.default_fieldnames(resource)
+        resource_entry = self.collection.resource[resource][0].serialise()
+        self.default_values["entry-date"] = resource_entry["start-date"]
+
+        resource_organisations = self.collection.resource_organisation(resource)
+        if len(resource_organisations) > 1:
+            # resource has more than one organisation
+            self.default_values["organisation"] = ""
+            return
+
+        self.default_values["organisation"] = resource_organisations[0]
 
     def harmonise(self, reader):
 
@@ -140,7 +151,10 @@ class Harmoniser:
                 self.issues.row_number += 1
 
             if not last_resource or last_resource != resource:
-                self.set_resource_defaults(resource)
+                if self.pipeline.name == "brownfield-land":
+                    self.set_resource_defaults_legacy(resource)
+                else:
+                    self.set_resource_defaults(resource)
 
             o = {}
 
@@ -150,9 +164,6 @@ class Harmoniser:
 
             # default missing values
             o = self.default(o)
-
-            # check for missing required values
-            self.check(o)
 
             # fix point geometry
             # TBD: generalise as a co-constraint
