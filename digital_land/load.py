@@ -11,14 +11,18 @@ import pandas as pd
 from cchardet import UniversalDetector
 
 
-def detect_encoding(path):
+def detect_file_encoding(path):
+    with open(path, "rb") as f:
+        return detect_encoding(f)
+
+
+def detect_encoding(f):
     detector = UniversalDetector()
     detector.reset()
-    with open(path, "rb") as f:
-        for line in f:
-            detector.feed(line)
-            if detector.done:
-                break
+    for line in f:
+        detector.feed(line)
+        if detector.done:
+            break
     detector.close()
     return detector.result["encoding"]
 
@@ -51,7 +55,7 @@ def load_csv(path, encoding="UTF-8"):
     logging.debug(f"trying csv {path}")
 
     if not encoding:
-        encoding = detect_encoding(path)
+        encoding = detect_file_encoding(path)
 
         if not encoding:
             return None

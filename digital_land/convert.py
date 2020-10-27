@@ -10,7 +10,7 @@ from io import StringIO
 
 import pandas as pd
 
-from .load import detect_encoding, reader_with_line, resource_hash_from
+from .load import detect_file_encoding, reader_with_line, resource_hash_from
 
 
 class Converter:
@@ -18,7 +18,7 @@ class Converter:
         self.conversions = conversions
 
     def convert(self, input_path):
-        encoding = detect_encoding(input_path)
+        encoding = detect_file_encoding(input_path)
         logging.debug("encoding detected: %s", encoding)
         if encoding:
             reader = self._read_text_file(input_path, encoding)

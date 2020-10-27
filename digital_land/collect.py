@@ -5,8 +5,10 @@
 #
 import csv
 import hashlib
+import io
 import logging
 import os
+import re
 from datetime import datetime
 from enum import Enum
 from timeit import default_timer as timer
@@ -15,6 +17,7 @@ import canonicaljson
 import requests
 
 from .adapter.file import FileAdapter
+from .load import detect_encoding
 
 
 class FetchStatus(Enum):
@@ -30,7 +33,8 @@ class Collector:
     resource_dir = "collection/resource/"
     log_dir = "collection/log/"
 
-    def __init__(self):
+    def __init__(self, pipeline_name=""):
+        self.pipeline_name = pipeline_name
         self.session = requests.Session()
         self.session.mount("file:", FileAdapter())
         self.endpoint = {}
@@ -127,6 +131,10 @@ class Collector:
         log, content = self.get(url, log)
 
         if content:
+            if self.pipeline_name == "conservation-area-geography":
+                encoding = detect_encoding(io.BytesIO(content))
+                if encoding:
+                    content = self.strip_timestamps(content)
             log["resource"] = self.save_content(content)
             status = FetchStatus.OK
         else:
@@ -135,6 +143,11 @@ class Collector:
         self.save_log(log_path, log)
 
         return status
+
+    strip_exp = re.compile(b'timeStamp="[^"]*"')
+
+    def strip_timestamps(self, content):
+        return self.strip_exp.sub(b"", content)
 
     def collect(self, endpoint_path):
         for row in csv.DictReader(open(endpoint_path, newline="")):
