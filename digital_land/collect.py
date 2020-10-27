@@ -134,7 +134,7 @@ class Collector:
             if self.pipeline_name == "conservation-area-geography":
                 encoding = detect_encoding(io.BytesIO(content))
                 if encoding:
-                    content = self.strip_timestamps(content)
+                    content = self.strip_variable_content(content)
             log["resource"] = self.save_content(content)
             status = FetchStatus.OK
         else:
@@ -144,10 +144,15 @@ class Collector:
 
         return status
 
-    strip_exp = re.compile(b' ?timeStamp="[^"]*"')
+    strip_exps = [
+        (re.compile(br' ?timeStamp="[^"]*"'), br""),
+        (re.compile(br'(gml:id="[^"]+.fid-[^_]*)[^"]*'), br"\1"),
+    ]
 
-    def strip_timestamps(self, content):
-        return self.strip_exp.sub(b"", content)
+    def strip_variable_content(self, content):
+        for strip_exp, replacement in self.strip_exps:
+            content = strip_exp.sub(replacement, content)
+        return content
 
     def collect(self, endpoint_path):
         for row in csv.DictReader(open(endpoint_path, newline="")):
