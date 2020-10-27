@@ -1,8 +1,10 @@
-import os
 import glob
-import re
 import logging
-from .register import Register, Item, hash_value
+import os
+import re
+from datetime import datetime
+
+from .register import Item, Register, hash_value
 
 
 class LogItem(Item):
@@ -58,7 +60,9 @@ class LogRegister(Register):
     ]
     Item = LogItem
 
-    def load_collection(self, log_dir="collection/log/"):
+    def load_collection(self, log_dir=None):
+        if not log_dir:
+            log_dir = self.dirname / "log"
         for path in sorted(glob.glob("%s/*/*.json" % (log_dir))):
             item = self.Item()
             item.load_json(path)
@@ -94,6 +98,9 @@ class SourceRegister(Register):
         "collection",
         "documentation-url",
         "endpoint",
+        "licence",
+        "organisation",
+        "pipeline",
         "status",
         "entry-date",
         "start-date",
@@ -121,7 +128,16 @@ class ResourceRegister(Register):
                     resources[resource] = {"start-date": entry.item["entry-date"]}
 
         for key, resource in sorted(resources.items()):
-            self.add(Item({"resource": key, "start-date": resource["start-date"]}))
+            self.add(
+                Item(
+                    {
+                        "resource": key,
+                        "start-date": datetime.fromisoformat(
+                            resource["start-date"]
+                        ).strftime("%Y-%m-%d"),
+                    }
+                )
+            )
 
 
 # this is a DataPackage ..
@@ -132,10 +148,10 @@ class Collection:
         if dirname:
             self.dirname = dirname
 
-        self.source = SourceRegister()
-        self.endpoint = EndpointRegister()
-        self.log = LogRegister()
-        self.resource = ResourceRegister()
+        self.source = SourceRegister(self.dirname)
+        self.endpoint = EndpointRegister(self.dirname)
+        self.log = LogRegister(self.dirname)
+        self.resource = ResourceRegister(self.dirname)
 
     def load(self):
         self.log.load_collection()

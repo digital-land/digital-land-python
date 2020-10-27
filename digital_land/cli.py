@@ -194,7 +194,17 @@ def harmonise_cmd(
 
     resource_hash = resource_hash_from(input_path)
     issues = Issues()
-    resource_organisation = ResourceOrganisation().resource_organisation
+
+    if PIPELINE.name == "brownfield-land":
+        # TODO Remove this temporary hack once LogRegistry can
+        # be loaded in a reasonable time from datapackage
+        resource_organisation = ResourceOrganisation().resource_organisation
+        collection = {}
+    else:
+        resource_organisation = {}
+        collection = Collection()
+        collection.load()
+
     organisation_uri = Organisation().organisation_uri
     patch = PIPELINE.patches(resource_hash)
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
@@ -202,6 +212,7 @@ def harmonise_cmd(
         SPECIFICATION,
         PIPELINE,
         issues,
+        collection,
         resource_organisation,
         organisation_uri,
         patch,
