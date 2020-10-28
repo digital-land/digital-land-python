@@ -146,7 +146,7 @@ class Collector:
 
     strip_exps = [
         (re.compile(br' ?timeStamp="[^"]*"'), br""),
-        (re.compile(br'(gml:id="[^"]+.fid-[^_]*)[^"]*'), br"\1"),
+        (re.compile(br'(gml:id="[^."]+)[^"]*'), br"\1"),
     ]
 
     def strip_variable_content(self, content):
