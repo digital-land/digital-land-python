@@ -4,6 +4,8 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from datetime import date
+import canonicaljson
 
 import click
 
@@ -22,6 +24,7 @@ from .resource_organisation import ResourceOrganisation
 from .save import save
 from .specification import Specification
 from .transform import Transformer
+from .update import get_failing_endpoints_from_registers
 
 
 PIPELINE = None
@@ -284,6 +287,37 @@ def pipeline_cmd(input_path, output_path, issue_path):
 
     issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
     issues_file.write_issues(issues)
+
+
+# Endpoint commands
+
+
+@cli.command("endpoints-check", short_help="check logs for failing endpoints")
+@click.argument("first-date", type=click.DateTime(formats=["%Y-%m-%d"]))
+@click.option(
+    "--log-path",
+    type=click.Path(exists=True),
+    help="path to log files",
+    default="collection/log/",
+)
+@click.option(
+    "--endpoints-path",
+    type=click.Path(exists=True),
+    help="path to endpoint file",
+    default="collection/endpoint.csv",
+)
+@click.option(
+    "--last-date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="upper bound of date range to consider",
+    default=str(date.today()),
+)
+def endpoints_check_cmd(log_path, endpoints_path, first_date, last_date):
+    """find active endpoints that are failing during collection"""
+    output = get_failing_endpoints_from_registers(
+        log_path, endpoints_path, first_date.date(), last_date.date()
+    )
+    print(canonicaljson.encode_canonical_json(output))
 
 
 def resource_hash_from(path):
