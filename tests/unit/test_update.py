@@ -90,25 +90,25 @@ def test_get_entries_between_keys():
 def test_has_collected_resource_404():
     # Return false due to 404
     result, reason = has_collected_resource(LOG_ENTRIES[0].item)
-    assert result == False
+    assert result is False
 
 
 def test_has_collected_resource_exception():
     # Return false due to exception
     result, reason = has_collected_resource(LOG_ENTRIES[3].item)
-    assert result == False
+    assert result is False
 
 
 def test_has_collected_resource_no_resource():
     # Return false due to missing resource
     result, reason = has_collected_resource(LOG_ENTRIES[4].item)
-    assert result == False
+    assert result is False
 
 
 def test_has_collected_resource():
     # Return true
     result, reason = has_collected_resource(LOG_ENTRIES[1].item)
-    assert result == True
+    assert result is True
 
 
 def test_get_failing_endpoints_filter_inactive():
