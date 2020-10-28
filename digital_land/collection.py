@@ -62,7 +62,7 @@ class LogRegister(Register):
 
     def load_collection(self, log_dir=None):
         if not log_dir:
-            log_dir = self.dirname / "log"
+            log_dir = os.path.join((self.dirname), "log")
         for path in sorted(glob.glob("%s/*/*.json" % (log_dir))):
             item = self.Item()
             item.load_json(path)
