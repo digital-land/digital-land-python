@@ -307,26 +307,17 @@ def pipeline_cmd(input_path, output_path, issue_path):
     default="collection/endpoint.csv",
 )
 @click.option(
-    "--output-path",
-    type=click.Path(exists=True),
-    help="path to output result",
-    default="collection/",
-)
-@click.option(
     "--last-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
     help="upper bound of date range to consider",
     default=str(date.today()),
 )
-def endpoints_check_cmd(log_path, endpoints_path, output_path, first_date, last_date):
+def endpoints_check_cmd(log_path, endpoints_path, first_date, last_date):
     """find active endpoints that are failing during collection"""
     output = get_failing_endpoints_from_registers(
         log_path, endpoints_path, first_date.date(), last_date.date()
     )
-    output_path += "failing-endpoints.json"
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "wb") as f:
-        f.write(canonicaljson.encode_canonical_json(output))
+    print(canonicaljson.encode_canonical_json(output))
 
 
 def resource_hash_from(path):
