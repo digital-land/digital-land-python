@@ -1,6 +1,30 @@
 from datetime import datetime, date
-from digital_land.collection import LogRegister, EndpointRegister
+from digital_land.register import Item
+from digital_land.collection import LogRegister, EndpointRegister, SourceRegister
+import hashlib
 
+
+class ResourceEntry:
+
+    fieldnames = [
+        "attribution",
+        "collection",
+        "documentation_url",
+        "endpoint_url",
+        "endpoint",
+        "licence",
+        "organisation",
+        "pipeline",
+        "start_date",
+        "end_date",
+    ]
+
+    def __init__(self, endpoint_url, organisation, **kwargs):
+        self.__dict__.update((key, "") for key in self.fieldnames)
+        self.endpoint_url = endpoint_url
+        self.endpoint = hashlib.sha256(endpoint_url.encode("utf-8")).hexdigest()
+        self.organisation = organisation
+        self.__dict__.update((key,value) for key, value in kwargs.items() if key in self.fieldnames)
 
 def get_failing_endpoints_from_registers(
     log_path, endpoints_path, first_date, last_date=date.today()
@@ -66,33 +90,96 @@ def has_collected_resource(log_item):
     return True, failure_reason
 
 
+def add_new_resource_entry(resource_entry):
+    endpoint_register = EndpointRegister("/Users/kishan.patelcommunities.gov.uk/Code/brownfield-land-pipeline/collection")
+    source_register = SourceRegister("/Users/kishan.patelcommunities.gov.uk/Code/brownfield-land-pipeline/collection")
+    endpoint_register.load()
+    source_register.load()
+
+    endpoint_entries = endpoint_register.entries.copy()
+    endpoint_key = resource_entry.endpoint
+    add_new_endpoint(endpoint_key, resource_entry.endpoint_url, endpoint_entries, endpoint_register.record)
+
+    source_entries = source_register.entries.copy()
+    add_new_source(resource_entry, source_entries, source_register.record)
+
+
+def add_new_endpoint(endpoint_key, endpoint_url, endpoint_entries, records):
+    if endpoint_key in records:
+        existing_idx = records[endpoint_key][0]
+        if endpoint_entries[existing_idx].item["end-date"]:
+            print("WARNING: endpoint end-date {} found for URL {}".format(
+                endpoint_entries[existing_idx].item["end-date"],
+                endpoint_url))
+        else:
+            # No op if active entry already exists
+            print("Active endpoint already exists for URL {}".format(
+                endpoint_url))
+            return
+
+    endpoint_item = Item({"endpoint": endpoint_key,
+                          "endpoint-url": endpoint_url,
+                          "start-date": date.today().strftime("%Y-%m-%d"),
+                          "end-date": ""})
+    endpoint_entries.append(endpoint_item)
+
+
+def add_new_source(resource_entry, source_entries, records):
+    if resource_entry.endpoint in records:
+        for idx in records[resource_entry.endpoint]:
+            if resource_entry.organisation == source_entries[idx].item["organisation"]:
+                if source_entries[idx].item["end-date"]:
+                    print("WARNING: source end-date {} found for URL {}".format(
+                        source_entries[idx].item["end-date"],
+                        resource_entry.endpoint_url))
+                    break
+                else:
+                    print("Active source entry already exists for organisation {} and URL {}".format(
+                        resource_entry.organisation,
+                        resource_entry.endpoint_url))
+                    return
+
+    source_item = Item({"collection": resource_entry.pipeline,
+                        "pipeline": resource_entry.pipeline,
+                        "organisation": resource_entry.organisation,
+                        "endpoint": resource_entry.endpoint,
+                        "documentation_url": resource_entry.documentation_url,
+                        "licence": resource_entry.licence,
+                        "attribution": resource_entry.attribution,
+                        "start-date": date.today().strftime("%Y-%m-%d"),
+                        "end-date": ""})
+    source_entries.append(source_item)
+
+
 def get_entries_between_keys(start_key, end_key, length, register_lookup):
     if end_key < start_key:
-        return -1, -1
+        return None, None
 
     lo = 0
     hi = length
+    return bisect_left(start_key, lo, hi, register_lookup), bisect_right(end_key, lo, hi, register_lookup)
 
-    # Binary search adapted from bisect module. See bisect_left and bisect_right.
-    while lo < hi:
-        mid = (lo + hi) // 2
-        key = register_lookup(mid)
-        if key < start_key:
-            lo = mid + 1
+
+def bisect_left(key, start, end, lookup):
+    while start < end:
+        mid = (start + end) // 2
+        test_key = lookup(mid)
+        if test_key < key:
+            start = mid + 1
         else:
-            hi = mid
+            end = mid
 
-    start_idx = lo
-    lo = 0
-    hi = length
+    return start
 
-    while lo < hi:
-        mid = (lo + hi) // 2
-        key = register_lookup(mid)
-        if end_key < key:
-            hi = mid
+
+def bisect_right(key, start, end, lookup):
+    while start < end:
+        mid = (start + end) // 2
+        test_key = lookup(mid)
+        if key < test_key:
+            end = mid
         else:
-            lo = mid + 1
+            start = mid + 1
 
-    last_idx = lo - 1
-    return start_idx, last_idx
+    return start - 1
+
