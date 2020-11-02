@@ -1,26 +1,16 @@
 from datetime import datetime, date
 from digital_land.register import Item
 from digital_land.collection import LogRegister, EndpointRegister, SourceRegister
+from pathlib import Path
 import hashlib
 
 
 class ResourceEntry:
 
-    fieldnames = [
-        "attribution",
-        "collection",
-        "documentation_url",
-        "endpoint_url",
-        "endpoint",
-        "licence",
-        "organisation",
-        "pipeline",
-        "start_date",
-        "end_date",
-    ]
+    fieldnames = list(set(EndpointRegister.fieldnames + SourceRegister.fieldnames))
 
     def __init__(self, endpoint_url, organisation, **kwargs):
-        self.__dict__.update((key, "") for key in self.fieldnames)
+        self.__dict__.update((key, None) for key in self.fieldnames)
         self.endpoint_url = endpoint_url
         self.endpoint = hashlib.sha256(endpoint_url.encode("utf-8")).hexdigest()
         self.organisation = organisation
@@ -90,23 +80,24 @@ def has_collected_resource(log_item):
     return True, failure_reason
 
 
-def add_new_resource_entry(resource_entry):
-    endpoint_register = EndpointRegister("/Users/kishan.patelcommunities.gov.uk/Code/brownfield-land-pipeline/collection")
-    source_register = SourceRegister("/Users/kishan.patelcommunities.gov.uk/Code/brownfield-land-pipeline/collection")
+def add_new_resource_entry(resource_entry, endpoint_path, source_path):
+    endpoint_register = EndpointRegister(endpoint_path)
+    source_register = SourceRegister(source_path)
     endpoint_register.load()
     source_register.load()
 
-    endpoint_entries = endpoint_register.entries.copy()
     endpoint_key = resource_entry.endpoint
-    add_new_endpoint(endpoint_key, resource_entry.endpoint_url, endpoint_entries, endpoint_register.record)
+    add_new_endpoint(endpoint_key, resource_entry.endpoint_url, endpoint_register)
+    add_new_source(resource_entry, source_register)
 
-    source_entries = source_register.entries.copy()
-    add_new_source(resource_entry, source_entries, source_register.record)
+    source_register.save(Path(source_path) / "source.csv")
+    endpoint_register.save(Path(endpoint_path) / "endpoint.csv")
 
 
-def add_new_endpoint(endpoint_key, endpoint_url, endpoint_entries, records):
-    if endpoint_key in records:
-        existing_idx = records[endpoint_key][0]
+def add_new_endpoint(endpoint_key, endpoint_url, endpoint_register):
+    endpoint_entries = endpoint_register.entries
+    if endpoint_key in endpoint_register.record:
+        existing_idx = endpoint_register.record[endpoint_key][0]
         if endpoint_entries[existing_idx].item["end-date"]:
             print("WARNING: endpoint end-date {} found for URL {}".format(
                 endpoint_entries[existing_idx].item["end-date"],
@@ -119,14 +110,16 @@ def add_new_endpoint(endpoint_key, endpoint_url, endpoint_entries, records):
 
     endpoint_item = Item({"endpoint": endpoint_key,
                           "endpoint-url": endpoint_url,
+                          "entry-date": date.today().strftime("%Y-%m-%d"),
                           "start-date": date.today().strftime("%Y-%m-%d"),
                           "end-date": ""})
-    endpoint_entries.append(endpoint_item)
+    endpoint_register.add(endpoint_item)
 
 
-def add_new_source(resource_entry, source_entries, records):
-    if resource_entry.endpoint in records:
-        for idx in records[resource_entry.endpoint]:
+def add_new_source(resource_entry, source_register):
+    source_entries = source_register.entries
+    if resource_entry.endpoint in source_register.record:
+        for idx in source_register.record[resource_entry.endpoint]:
             if resource_entry.organisation == source_entries[idx].item["organisation"]:
                 if source_entries[idx].item["end-date"]:
                     print("WARNING: source end-date {} found for URL {}".format(
@@ -143,12 +136,14 @@ def add_new_source(resource_entry, source_entries, records):
                         "pipeline": resource_entry.pipeline,
                         "organisation": resource_entry.organisation,
                         "endpoint": resource_entry.endpoint,
-                        "documentation_url": resource_entry.documentation_url,
+                        "documentation-url": resource_entry.documentation_url,
                         "licence": resource_entry.licence,
                         "attribution": resource_entry.attribution,
-                        "start-date": date.today().strftime("%Y-%m-%d"),
-                        "end-date": ""})
-    source_entries.append(source_item)
+                        "entry-date": date.today().strftime("%Y-%m-%d"),
+                        "start-date":
+                        "end-date": resource_entry.end_date})
+
+    source_register.add(source_item)
 
 
 def get_entries_between_keys(start_key, end_key, length, register_lookup):
