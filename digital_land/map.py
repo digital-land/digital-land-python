@@ -32,13 +32,16 @@ class Mapper:
     def concatenate_fields(self, row, o):
         for fieldname, cat in self.concat.items():
             o[fieldname] = cat["separator"].join(
-                itertools.chain(
-                    [o.get(fieldname, "")],
-                    [
-                        row[h]
-                        for h in cat["fields"]
-                        if h in row and row[h].strip() != ""
-                    ],
+                filter(
+                    None,
+                    itertools.chain(
+                        [o.get(fieldname, None)],
+                        [
+                            row[h]
+                            for h in cat["fields"]
+                            if h in row and row[h].strip() != ""
+                        ],
+                    ),
                 )
             )
         return o
