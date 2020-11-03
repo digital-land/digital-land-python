@@ -16,7 +16,7 @@ class Mapper:
 
     def headers(self, fieldnames):
         headers = {}
-
+        matched = []
         for header in fieldnames:
             fieldname = self.normalise(header)
             if fieldname in self.normalised_fieldnames:
@@ -24,7 +24,11 @@ class Mapper:
                 continue
 
             for pattern, value in self.column.items():
+                if value in matched:
+                    # avoid clashing with previously mapped column
+                    continue
                 if fieldname == pattern:
+                    matched.append(value)
                     headers[header] = value
 
         return headers

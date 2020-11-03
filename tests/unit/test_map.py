@@ -46,6 +46,15 @@ def test_map_headers_patch():
     assert mapper.headers(reader.fieldnames) == {"oen": "One"}
 
 
+def test_map_headers_column_clash():
+    column = {"une": "One", "ein": "One"}
+    mapper = Mapper(["One"], column)
+
+    reader = _reader("une,ein\r\n1,2\r\n")
+
+    assert mapper.headers(reader.fieldnames) == {"une": "One"}
+
+
 def test_map():
     fieldnames = ["One", "Two"]
     column = {
