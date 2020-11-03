@@ -73,6 +73,7 @@ def source_endpoint_dir(f):
         default="collection",
     )(f)
 
+
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
 @pipeline_name
@@ -299,6 +300,7 @@ def pipeline_cmd(input_path, output_path, issue_path):
 
 # Endpoint commands
 
+
 @cli.command("endpoints-check", short_help="check logs for failing endpoints")
 @click.argument("first-date", type=click.DateTime(formats=["%Y-%m-%d"]))
 @click.option(
@@ -322,9 +324,11 @@ def endpoints_check_cmd(first_date, log_dir, source_endpoint_dir, last_date):
     print(canonicaljson.encode_canonical_json(output))
 
 
-@cli.command("add-source-endpoint",
-             short_help="Add a new source/endpoint entry",
-             context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
+@cli.command(
+    "add-source-endpoint",
+    short_help="Add a new source/endpoint entry",
+    context_settings=dict(ignore_unknown_options=True, allow_extra_args=True),
+)
 @click.pass_context
 @click.argument("endpoint-url", type=click.STRING)
 @click.argument("organisation", type=click.STRING)
@@ -335,7 +339,9 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, source_endpoint_dir
 
     Note, if unspecified, start-date is set to current date by default.
     """
-    entry = {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)}
+    entry = {
+        ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)
+    }
     entry["endpoint-url"] = endpoint_url
     entry["organisation"] = organisation
     add_new_source_endpoint(entry, source_endpoint_dir)

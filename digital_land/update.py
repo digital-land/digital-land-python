@@ -77,7 +77,9 @@ def add_new_source_endpoint(resource_entry, source_endpoint_dir):
     endpoint_register.load()
     source_register.load()
 
-    resource_entry["endpoint"] = hashlib.sha256(resource_entry["endpoint-url"].encode("utf-8")).hexdigest()
+    resource_entry["endpoint"] = hashlib.sha256(
+        resource_entry["endpoint-url"].encode("utf-8")
+    ).hexdigest()
     add_new_endpoint(resource_entry, endpoint_register)
     add_new_source(resource_entry, source_register)
 
@@ -91,25 +93,36 @@ def add_new_endpoint(resource_entry, endpoint_register):
         existing_idx = endpoint_register.record[resource_entry["endpoint"]][0]
         if endpoint_entries[existing_idx].item["end-date"]:
             # Entry already exists with an end-date
-            print("WARNING: endpoint end-date {} found for URL {}".format(
-                endpoint_entries[existing_idx].item["end-date"],
-                resource_entry["endpoint-url"]))
+            print(
+                "WARNING: endpoint end-date {} found for URL {}".format(
+                    endpoint_entries[existing_idx].item["end-date"],
+                    resource_entry["endpoint-url"],
+                )
+            )
         else:
             # No op if active entry already exists
-            print("Active endpoint already exists for URL {}".format(
-                resource_entry["endpoint-url"]))
+            print(
+                "Active endpoint already exists for URL {}".format(
+                    resource_entry["endpoint-url"]
+                )
+            )
             return
 
-    endpoint_entry = {"endpoint": resource_entry.get("endpoint"),
-                      "endpoint-url": resource_entry.get("endpoint-url"),
-                      "entry-date": date.today().strftime("%Y-%m-%d"),
-                      "end-date": datetime.strptime(resource_entry["end-date"], '%Y-%m-%d').date()
-                      if "end-date" in resource_entry else ""}
+    endpoint_entry = {
+        "endpoint": resource_entry.get("endpoint"),
+        "endpoint-url": resource_entry.get("endpoint-url"),
+        "entry-date": date.today().strftime("%Y-%m-%d"),
+        "end-date": datetime.strptime(resource_entry["end-date"], "%Y-%m-%d").date()
+        if "end-date" in resource_entry
+        else "",
+    }
 
     # If empty start-date set by user then no date should be set. Otherwise set user-specified date or use current date
     if "start-date" in resource_entry:
         if resource_entry["start-date"]:
-            endpoint_entry["start-date"] = datetime.strptime(resource_entry["start-date"], '%Y-%m-%d').date()
+            endpoint_entry["start-date"] = datetime.strptime(
+                resource_entry["start-date"], "%Y-%m-%d"
+            ).date()
     else:
         endpoint_entry["start-date"] = date.today().strftime("%Y-%m-%d")
 
@@ -121,35 +134,50 @@ def add_new_source(resource_entry, source_register):
     source_entries = source_register.entries
     if resource_entry["endpoint"] in source_register.record:
         for idx in source_register.record[resource_entry["endpoint"]]:
-            if resource_entry["organisation"] == source_entries[idx].item["organisation"]:
+            if (
+                resource_entry["organisation"]
+                == source_entries[idx].item["organisation"]
+            ):
                 if source_entries[idx].item["end-date"]:
                     # Entry already exists with an end-date
-                    print("WARNING: source end-date {} found for URL {}".format(
-                        source_entries[idx].item["end-date"],
-                        resource_entry["endpoint-url"]))
+                    print(
+                        "WARNING: source end-date {} found for URL {}".format(
+                            source_entries[idx].item["end-date"],
+                            resource_entry["endpoint-url"],
+                        )
+                    )
                     break
                 else:
                     # No op if active entry already exists
-                    print("Active source entry already exists for organisation {} and URL {}".format(
-                        resource_entry["organisation"],
-                        resource_entry["endpoint-url"]))
+                    print(
+                        "Active source entry already exists for organisation {} and URL {}".format(
+                            resource_entry["organisation"],
+                            resource_entry["endpoint-url"],
+                        )
+                    )
                     return
 
-    source_entry = {"collection": resource_entry.get("pipeline", ""),
-                    "pipeline": resource_entry.get("pipeline", ""),
-                    "organisation": resource_entry.get("organisation", ""),
-                    "endpoint": resource_entry.get("endpoint"),
-                    "documentation-url": resource_entry.get("documentation-url", ""),
-                    "licence": resource_entry.get("licence", ""),
-                    "attribution": resource_entry.get("attribution", ""),
-                    "entry-date": date.today().strftime("%Y-%m-%d"),
-                    "end-date": datetime.strptime(resource_entry["end-date"], '%Y-%m-%d').date()
-                    if "end-date" in resource_entry else ""}
+    source_entry = {
+        "collection": resource_entry.get("pipeline", ""),
+        "pipeline": resource_entry.get("pipeline", ""),
+        "organisation": resource_entry.get("organisation", ""),
+        "endpoint": resource_entry.get("endpoint"),
+        "documentation-url": resource_entry.get("documentation-url", ""),
+        "licence": resource_entry.get("licence", ""),
+        "attribution": resource_entry.get("attribution", ""),
+        "entry-date": date.today().strftime("%Y-%m-%d"),
+        "end-date": datetime.strptime(resource_entry["end-date"], "%Y-%m-%d").date()
+        if "end-date" in resource_entry
+        else "",
+    }
 
     # If empty start-date set by user then no date should be set. Otherwise set user-specified date or use current date
     if "start-date" in resource_entry:
-        source_entry["start-date"] = datetime.strptime(resource_entry["start-date"], '%Y-%m-%d').date() \
-            if resource_entry["start-date"] else ""
+        source_entry["start-date"] = (
+            datetime.strptime(resource_entry["start-date"], "%Y-%m-%d").date()
+            if resource_entry["start-date"]
+            else ""
+        )
     else:
         source_entry["start-date"] = date.today().strftime("%Y-%m-%d")
 
@@ -163,7 +191,9 @@ def get_entries_between_keys(start_key, end_key, length, register_lookup):
 
     lo = 0
     hi = length
-    return bisect_left(start_key, lo, hi, register_lookup), bisect_right(end_key, lo, hi, register_lookup)
+    return bisect_left(start_key, lo, hi, register_lookup), bisect_right(
+        end_key, lo, hi, register_lookup
+    )
 
 
 def bisect_left(key, start, end, lookup):
@@ -188,4 +218,3 @@ def bisect_right(key, start, end, lookup):
             start = mid + 1
 
     return start - 1
-
