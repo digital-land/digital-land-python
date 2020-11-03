@@ -1,5 +1,5 @@
 import pytest
-
+from collections import defaultdict
 from datetime import date
 from digital_land.register import Item
 from digital_land.collection import SourceRegister, EndpointRegister, LogItem
@@ -185,12 +185,15 @@ def test_add_new_endpoint_order(endpoint_register):
     expected_result = endpoint_register.entries.copy()
     test_key = "BBC"
     test_url = "www.someurl.com"
-    entry = {
-        "endpoint-url": test_url,
-        "endpoint": test_key,
-        "organisation": "DWF",
-        "documentation-url": "www.doc.com",
-    }
+    entry = defaultdict(str)
+    entry.update(
+        {
+            "endpoint-url": test_url,
+            "endpoint": test_key,
+            "organisation": "DWF",
+            "documentation-url": "www.doc.com",
+        }
+    )
     add_new_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
     assert endpoint_register.entries[-1].item["endpoint"] == test_key
@@ -199,12 +202,15 @@ def test_add_new_endpoint_order(endpoint_register):
 
 def test_add_new_endpoint_existing_no_op(endpoint_register):
     expected_result = endpoint_register.entries.copy()
-    entry = {
-        "endpoint-url": "www.eee.com",
-        "endpoint": "EEE",
-        "organisation": "DWF",
-        "documentation-url": "www.doc.com",
-    }
+    entry = defaultdict(str)
+    entry.update(
+        {
+            "endpoint-url": "www.eee.com",
+            "endpoint": "EEE",
+            "organisation": "DWF",
+            "documentation-url": "www.doc.com",
+        }
+    )
     add_new_endpoint(entry, endpoint_register)
     assert endpoint_register.entries == expected_result
 
@@ -212,12 +218,15 @@ def test_add_new_endpoint_existing_no_op(endpoint_register):
 def test_add_new_endpoint_existing_end_date(endpoint_register):
     test_key = "DDD"
     expected_result = endpoint_register.entries.copy()
-    entry = {
-        "endpoint-url": "www.someurl.com",
-        "endpoint": test_key,
-        "organisation": "DWF",
-        "documentation-url": "www.doc.com",
-    }
+    entry = defaultdict(str)
+    entry.update(
+        {
+            "endpoint-url": "www.someurl.com",
+            "endpoint": test_key,
+            "organisation": "DWF",
+            "documentation-url": "www.doc.com",
+        }
+    )
     add_new_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
     assert endpoint_register.entries[-1].item["endpoint"] == test_key
@@ -225,13 +234,16 @@ def test_add_new_endpoint_existing_end_date(endpoint_register):
 
 def test_add_new_source(source_register):
     expected_result = source_register.entries.copy()
-    entry = {
-        "endpoint-url": "www.test.com",
-        "endpoint": "EEE",
-        "organisation": "CXJ",
-        "documentation-url": "www.doc.com",
-        "start-date": "",
-    }
+    entry = defaultdict(str)
+    entry.update(
+        {
+            "endpoint-url": "www.test.com",
+            "endpoint": "EEE",
+            "organisation": "CXJ",
+            "documentation-url": "www.doc.com",
+            "start-date": "",
+        }
+    )
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
@@ -244,12 +256,15 @@ def test_add_new_source(source_register):
 
 def test_add_new_source_existing_endpoint(source_register):
     expected_result = source_register.entries.copy()
-    entry = {
-        "endpoint-url": "www.test.com",
-        "endpoint": "BBB",
-        "organisation": "ERT",
-        "documentation-url": "www.doc.com",
-    }
+    entry = defaultdict(str)
+    entry.update(
+        {
+            "endpoint-url": "www.test.com",
+            "endpoint": "BBB",
+            "organisation": "ERT",
+            "documentation-url": "www.doc.com",
+        }
+    )
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
@@ -261,24 +276,30 @@ def test_add_new_source_existing_endpoint(source_register):
 
 def test_add_new_source_existing_no_op(source_register):
     expected_result = source_register.entries.copy()
-    entry = {
-        "endpoint-url": "www.test.com",
-        "endpoint": "BBB",
-        "organisation": "DWF",
-        "documentation-url": "www.doc.com",
-    }
+    entry = defaultdict(str)
+    entry.update(
+        {
+            "endpoint-url": "www.test.com",
+            "endpoint": "BBB",
+            "organisation": "DWF",
+            "documentation-url": "www.doc.com",
+        }
+    )
     add_new_source(entry, source_register)
     assert source_register.entries == expected_result
 
 
 def test_add_new_source_existing_end_date(source_register):
     expected_result = source_register.entries.copy()
-    entry = {
-        "endpoint-url": "www.test.com",
-        "endpoint": "BBB",
-        "organisation": "BYT",
-        "documentation-url": "www.doc.com",
-    }
+    entry = defaultdict(str)
+    entry.update(
+        {
+            "endpoint-url": "www.test.com",
+            "endpoint": "BBB",
+            "organisation": "BYT",
+            "documentation-url": "www.doc.com",
+        }
+    )
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]

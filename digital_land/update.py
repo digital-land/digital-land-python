@@ -12,7 +12,7 @@ def get_source_endpoint_fieldnames():
 def get_failing_endpoints_from_registers(
     log_path, endpoints_dir, first_date, last_date=date.today()
 ):
-    endpoints_path = Path(endpoints_dir) / "endpoint.csv"
+    endpoints_path = Path(endpoints_dir)
     log_register = LogRegister()
     endpoint_register = EndpointRegister()
     log_register.load_collection(log_path)
@@ -74,12 +74,13 @@ def has_collected_resource(log_item):
     return True, failure_reason
 
 
-def add_new_source_endpoint(resource_entry, source_endpoint_dir):
-    source_endpoint_dir = Path(source_endpoint_dir)
-    endpoint_register = EndpointRegister(source_endpoint_dir)
-    source_register = SourceRegister(source_endpoint_dir)
-    endpoint_register.load()
-    source_register.load()
+def add_new_source_endpoint(resource_entry, source_path, endpoint_path):
+    source_path = Path(source_path)
+    endpoint_path = Path(endpoint_path)
+    endpoint_register = EndpointRegister()
+    source_register = SourceRegister()
+    endpoint_register.load(endpoint_path)
+    source_register.load(source_path)
 
     resource_entry["endpoint"] = hashlib.sha256(
         resource_entry["endpoint-url"].encode("utf-8")
@@ -87,11 +88,13 @@ def add_new_source_endpoint(resource_entry, source_endpoint_dir):
     add_new_endpoint(resource_entry, endpoint_register)
     add_new_source(resource_entry, source_register)
 
-    source_register.save(source_endpoint_dir / "source.csv")
-    endpoint_register.save(source_endpoint_dir / "endpoint.csv")
+    source_register.save(source_path)
+    endpoint_register.save(endpoint_path)
 
 
 def add_new_endpoint(resource_entry, endpoint_register):
+    if "endpoint" not in resource_entry or "organisation" not in resource_entry:
+        raise ValueError("Missing required fields 'endpoint' or 'organisation'")
     endpoint_entries = endpoint_register.entries
     if resource_entry["endpoint"] in endpoint_register.record:
         existing_idx = endpoint_register.record[resource_entry["endpoint"]][0]
@@ -113,8 +116,8 @@ def add_new_endpoint(resource_entry, endpoint_register):
             return
 
     endpoint_entry = {
-        "endpoint": resource_entry.get("endpoint"),
-        "endpoint-url": resource_entry.get("endpoint-url"),
+        "endpoint": resource_entry["endpoint"],
+        "endpoint-url": resource_entry["endpoint-url"],
         "entry-date": date.today().strftime("%Y-%m-%d"),
         "end-date": datetime.strptime(resource_entry["end-date"], "%Y-%m-%d").date()
         if "end-date" in resource_entry
@@ -135,6 +138,8 @@ def add_new_endpoint(resource_entry, endpoint_register):
 
 
 def add_new_source(resource_entry, source_register):
+    if "endpoint" not in resource_entry or "organisation" not in resource_entry:
+        raise ValueError("Missing required fields 'endpoint' or 'organisation'")
     source_entries = source_register.entries
     if resource_entry["endpoint"] in source_register.record:
         for idx in source_register.record[resource_entry["endpoint"]]:
@@ -162,13 +167,15 @@ def add_new_source(resource_entry, source_register):
                     return
 
     source_entry = {
-        "collection": resource_entry.get("pipeline", ""),
-        "pipeline": resource_entry.get("pipeline", ""),
-        "organisation": resource_entry.get("organisation", ""),
-        "endpoint": resource_entry.get("endpoint"),
-        "documentation-url": resource_entry.get("documentation-url", ""),
-        "licence": resource_entry.get("licence", ""),
-        "attribution": resource_entry.get("attribution", ""),
+        "collection": resource_entry["collection"]
+        if "collection" in resource_entry
+        else resource_entry["pipeline"],
+        "pipeline": resource_entry["pipeline"],
+        "organisation": resource_entry["organisation"],
+        "endpoint": resource_entry["endpoint"],
+        "documentation-url": resource_entry["documentation-url"],
+        "licence": resource_entry["licence"],
+        "attribution": resource_entry["attribution"],
         "entry-date": date.today().strftime("%Y-%m-%d"),
         "end-date": datetime.strptime(resource_entry["end-date"], "%Y-%m-%d").date()
         if "end-date" in resource_entry
