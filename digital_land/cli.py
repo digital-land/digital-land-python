@@ -24,7 +24,7 @@ from .resource_organisation import ResourceOrganisation
 from .save import save
 from .specification import Specification
 from .transform import Transformer
-from .update import get_failing_endpoints_from_registers
+from .update import get_failing_endpoints_from_registers, add_new_source_endpoint
 
 
 PIPELINE = None
@@ -64,6 +64,14 @@ def issue_path(f):
         "--issue-path", "-i", type=click.Path(exists=True), default="var/issue/"
     )(f)
 
+
+def source_endpoint_dir(f):
+    return click.option(
+        "--source-endpoint-dir",
+        type=click.Path(exists=True),
+        help="path to directory containing source and endpoint files",
+        default="collection",
+    )(f)
 
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
@@ -291,33 +299,46 @@ def pipeline_cmd(input_path, output_path, issue_path):
 
 # Endpoint commands
 
-
 @cli.command("endpoints-check", short_help="check logs for failing endpoints")
 @click.argument("first-date", type=click.DateTime(formats=["%Y-%m-%d"]))
 @click.option(
-    "--log-path",
+    "--log-dir",
     type=click.Path(exists=True),
     help="path to log files",
     default="collection/log/",
 )
-@click.option(
-    "--endpoints-path",
-    type=click.Path(exists=True),
-    help="path to endpoint file",
-    default="collection/endpoint.csv",
-)
+@source_endpoint_dir
 @click.option(
     "--last-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),
     help="upper bound of date range to consider",
     default=str(date.today()),
 )
-def endpoints_check_cmd(log_path, endpoints_path, first_date, last_date):
+def endpoints_check_cmd(first_date, log_dir, source_endpoint_dir, last_date):
     """find active endpoints that are failing during collection"""
     output = get_failing_endpoints_from_registers(
-        log_path, endpoints_path, first_date.date(), last_date.date()
+        log_dir, source_endpoint_dir, first_date.date(), last_date.date()
     )
     print(canonicaljson.encode_canonical_json(output))
+
+
+@cli.command("add-source-endpoint",
+             short_help="Add a new source/endpoint entry",
+             context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
+@click.pass_context
+@click.argument("endpoint-url", type=click.STRING)
+@click.argument("organisation", type=click.STRING)
+@source_endpoint_dir
+def add_source_endpoint_cmd(ctx, endpoint_url, organisation, source_endpoint_dir):
+    """Add a new source/endpoint entry. Optional parameters are: source, attribution, collection, documentation-url,
+    licence, organisation, pipeline, status, plugin, parameters, start-date, end-date
+
+    Note, if unspecified, start-date is set to current date by default.
+    """
+    entry = {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)}
+    entry["endpoint-url"] = endpoint_url
+    entry["organisation"] = organisation
+    add_new_source_endpoint(entry, source_endpoint_dir)
 
 
 def resource_hash_from(path):

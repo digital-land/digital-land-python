@@ -4,13 +4,12 @@ from datetime import date
 from digital_land.register import Item
 from digital_land.collection import SourceRegister, EndpointRegister, LogItem
 from digital_land.update import (
-    ResourceEntry,
     has_collected_resource,
     get_failing_endpoints,
     get_entries_between_keys,
     add_new_endpoint,
     add_new_source,
-    add_new_resource_entry
+    add_new_source_endpoint
 )
 @pytest.fixture()
 def log_entries():
@@ -168,7 +167,11 @@ def test_add_new_endpoint_order(endpoint_register):
     expected_result = endpoint_register.entries.copy()
     test_key = "BBC"
     test_url = "www.someurl.com"
-    add_new_endpoint(test_key, test_url, endpoint_register)
+    entry = {"endpoint-url": test_url,
+             "endpoint": test_key,
+             "organisation": "DWF",
+             "documentation-url": "www.doc.com"}
+    add_new_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
     assert endpoint_register.entries[-1].item["endpoint"] == test_key
     assert endpoint_register.entries[-1].item["endpoint-url"] == test_url
@@ -176,53 +179,68 @@ def test_add_new_endpoint_order(endpoint_register):
 
 def test_add_new_endpoint_existing_no_op(endpoint_register):
     expected_result = endpoint_register.entries.copy()
-    add_new_endpoint("EEE", "www.eee.com", endpoint_register)
+    entry = {"endpoint-url": "www.eee.com",
+             "endpoint": "EEE",
+             "organisation": "DWF",
+             "documentation-url": "www.doc.com"}
+    add_new_endpoint(entry, endpoint_register)
     assert endpoint_register.entries == expected_result
 
 
 def test_add_new_endpoint_existing_end_date(endpoint_register):
     test_key = "DDD"
     expected_result = endpoint_register.entries.copy()
-    add_new_endpoint(test_key, "www.someurl.com", endpoint_register)
+    entry = {"endpoint-url": "www.someurl.com",
+             "endpoint": test_key,
+             "organisation": "DWF",
+             "documentation-url": "www.doc.com"}
+    add_new_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
     assert endpoint_register.entries[-1].item["endpoint"] == test_key
 
 
 def test_add_new_source(source_register):
     expected_result = source_register.entries.copy()
-    entry = ResourceEntry("www.test.com", "CXJ", documentation_url="www.doc.com")
-    entry.endpoint = "EEE"
+    entry = {"endpoint-url": "www.test.com",
+             "endpoint": "EEE",
+             "organisation": "CXJ",
+             "documentation-url": "www.doc.com",
+             "start-date": ""}
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
-    assert source_register.entries[-1].item["endpoint"] == entry.endpoint
-    assert source_register.entries[-1].item["documentation-url"] == entry.documentation_url
+    assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
+    assert source_register.entries[-1].item["documentation-url"] == entry["documentation-url"]
+    assert source_register.entries[-1].item["start-date"] == entry["start-date"]
+
 
 def test_add_new_source_existing_endpoint(source_register):
     expected_result = source_register.entries.copy()
-    entry = ResourceEntry("www.test.com", "ERT", documentation_url="www.doc.com")
-    entry.endpoint = "BBB"
+    entry = {"endpoint-url": "www.test.com",
+             "endpoint": "BBB",
+             "organisation": "ERT",
+             "documentation-url": "www.doc.com"}
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
-    assert source_register.entries[-1].item["endpoint"] == entry.endpoint
-    assert source_register.entries[-1].item["documentation-url"] == entry.documentation_url
+    assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
+    assert source_register.entries[-1].item["documentation-url"] == entry["documentation-url"]
+
 
 def test_add_new_source_existing_no_op(source_register):
     expected_result = source_register.entries.copy()
-    entry = ResourceEntry("www.test.com", "DWF", documentation_url="www.doc.com")
-    entry.endpoint = "BBB"
+    entry = {"endpoint-url": "www.test.com",
+             "endpoint": "BBB",
+             "organisation": "DWF",
+             "documentation-url": "www.doc.com"}
     add_new_source(entry, source_register)
     assert source_register.entries == expected_result
 
+
 def test_add_new_source_existing_end_date(source_register):
     expected_result = source_register.entries.copy()
-    entry = ResourceEntry("www.test.com", "BYT", documentation_url="www.doc.com")
-    entry.endpoint = "BBB"
+    entry = {"endpoint-url": "www.test.com",
+             "endpoint": "BBB",
+             "organisation": "BYT",
+             "documentation-url": "www.doc.com"}
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
-    assert source_register.entries[-1].item["endpoint"] == entry.endpoint
-
-def test_add_new_entry_temp():
-    entry = ResourceEntry("www.test.com", "BYT", documentation_url="www.doc.com")
-    endpoint_path = "/Users/kishan.patelcommunities.gov.uk/Code/brownfield-land-pipeline/collection"
-    source_path = endpoint_path
-    add_new_resource_entry(entry, endpoint_path, source_path)
+    assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
