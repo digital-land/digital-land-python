@@ -5,6 +5,10 @@ from pathlib import Path
 import hashlib
 
 
+def get_source_endpoint_fieldnames():
+    return set(EndpointRegister.fieldnames + SourceRegister.fieldnames)
+
+
 def get_failing_endpoints_from_registers(
     log_path, endpoints_dir, first_date, last_date=date.today()
 ):

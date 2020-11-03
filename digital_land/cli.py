@@ -24,7 +24,7 @@ from .resource_organisation import ResourceOrganisation
 from .save import save
 from .specification import Specification
 from .transform import Transformer
-from .update import get_failing_endpoints_from_registers, add_new_source_endpoint
+from .update import get_failing_endpoints_from_registers, add_new_source_endpoint, get_source_endpoint_fieldnames
 
 
 PIPELINE = None
@@ -342,6 +342,11 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, source_endpoint_dir
     entry = {
         ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)
     }
+    allowed_options = get_source_endpoint_fieldnames()
+    for key in entry.keys():
+        if key not in allowed_options:
+            logging.error(f"Optional parameter {key} not recognised")
+            sys.exit(2)
     entry["endpoint-url"] = endpoint_url
     entry["organisation"] = organisation
     add_new_source_endpoint(entry, source_endpoint_dir)
