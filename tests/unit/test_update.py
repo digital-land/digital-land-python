@@ -8,7 +8,7 @@ from digital_land.update import (
     get_failing_endpoints,
     get_entries_between_keys,
     add_new_endpoint,
-    add_new_source
+    add_new_source,
 )
 
 

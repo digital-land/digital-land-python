@@ -82,7 +82,10 @@ class Register:
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
         writer = csv.DictWriter(
-            open(path, "w"), fieldnames=self.fieldnames, extrasaction="ignore", lineterminator="\r\n"
+            open(path, "w"),
+            fieldnames=self.fieldnames,
+            extrasaction="ignore",
+            lineterminator="\r\n",
         )
         writer.writeheader()
 
