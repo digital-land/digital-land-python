@@ -24,7 +24,11 @@ from .resource_organisation import ResourceOrganisation
 from .save import save
 from .specification import Specification
 from .transform import Transformer
-from .update import get_failing_endpoints_from_registers, add_new_source_endpoint, get_source_endpoint_fieldnames
+from .update import (
+    get_failing_endpoints_from_registers,
+    add_new_source_endpoint,
+    get_source_endpoint_fieldnames,
+)
 
 
 PIPELINE = None
