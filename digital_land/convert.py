@@ -145,6 +145,9 @@ def convert_features_to_csv(input_path):
             "MULTIPOLYGON",
             "-nln",
             "MERGED",
+            "--config",
+            "OGR_WKT_PRECISION",
+            "5",
             output_path,
             input_path,
         ]
