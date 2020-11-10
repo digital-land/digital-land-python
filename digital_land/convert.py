@@ -146,7 +146,7 @@ def convert_features_to_csv(input_path):
             "-nln",
             "MERGED",
             "-simplify",
-            "1",
+            "0.0002",
             "--config",
             "OGR_WKT_PRECISION",
             "6",
