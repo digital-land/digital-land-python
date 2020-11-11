@@ -1,5 +1,6 @@
 import shapely.wkt
 from shapely.ops import transform
+from shapely.geometry import MultiPolygon
 
 from .datatype import DataType
 from .point import degrees_like, easting_northing_like, osgb_to_wgs84, within_england
@@ -50,4 +51,9 @@ class WktDataType(DataType):
         if transposed_coords:
             geometry = transform(flip, geometry)
 
-        return geometry.wkt
+        geometry = geometry.simplify(0.00002)
+        if not isinstance(geometry, MultiPolygon):
+            # simplify will reduce to simple Polygon if possible
+            geometry = MultiPolygon([geometry])
+
+        return shapely.wkt.dumps(geometry, rounding_precision=6)
