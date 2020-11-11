@@ -92,10 +92,18 @@ class Pipeline:
             self.transform[row["replacement-field"]] = row["field"]
 
     def columns(self, resource=""):
+        general_columns = self.column.get("", {})
         if not resource:
-            return self.column.get("", {})
+            return general_columns
 
-        return {**self.column.get(resource, {}), **self.column.get("", {})}
+        resource_columns = self.column.get(resource, {})
+
+        result = resource_columns
+        for key in general_columns:
+            if key in result:
+                continue
+            result[key] = general_columns[key]
+        return result
 
     def skip_patterns(self, resource=""):
         if not resource:
