@@ -33,7 +33,7 @@ def test_collection():
 
     collection.load_log_items(directory=test_collection_dir)
 
-    resources = collection.resources()
+    resources = collection.resource.records
     assert len(resources) == 2
 
     assert collection.resource_organisation(
