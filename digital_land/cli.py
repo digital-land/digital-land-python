@@ -155,6 +155,11 @@ def pipeline_collection_list_resources_cmd(collection_directory):
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
 @collection_directory
 def pipeline_collection_save_csv_cmd(collection_directory):
+    try:
+        os.remove(Path(collection_directory) / "log.csv")
+        os.remove(Path(collection_directory) / "resource.csv")
+    except OSError:
+        pass
     collection = Collection(collection_directory)
     collection.load()
     collection.save_csv()
