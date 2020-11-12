@@ -55,6 +55,15 @@ def pipeline_path(f):
     )(f)
 
 
+def collection_directory(f):
+    return click.option(
+        "--collection-directory",
+        "-c",
+        type=click.Path(exists=True),
+        default="collection/",
+    )(f)
+
+
 def specification_path(f):
     return click.option(
         "--specification-path",
@@ -122,6 +131,7 @@ def collect_cmd(endpoint_path):
 
 #
 #  collection commands
+#  TBD: make sub commands
 #
 @cli.command(
     "index",
@@ -134,12 +144,20 @@ def index_cmd():
 
 
 @cli.command("collection-list-resources", short_help="list resources for a pipeline")
-def pipeline_resources_cmd():
-    collection = Collection()
-    # can be loaded from a collection directory, or a collection datapackage
+@collection_directory
+def pipeline_collection_list_resources_cmd(collection_directory):
+    collection = Collection(collection_directory)
     collection.load()
-    for resource in collection.resources(pipeline=PIPELINE.name):
-        print(collection.resource_path(resource))
+    for resource in sorted(collection.resource.records):
+        print(resource_path(resource, directory=collection_directory))
+
+
+@cli.command("collection-save-csv", short_help="save collection as CSV package")
+@collection_directory
+def pipeline_collection_save_csv_cmd(collection_directory):
+    collection = Collection(collection_directory)
+    collection.load()
+    collection.save_csv()
 
 
 #
