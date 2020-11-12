@@ -47,7 +47,7 @@ class DictReaderInjectResource(csv.DictReader):
 
 def load_csv_dict(path, inject_resource=False):
     logging.debug(f"reading csv {path}")
-    f = open(path, newline="")
+    f = open(path, newline=None)
     return DictReaderInjectResource(resource_hash_from(path), f)
 
 
@@ -62,7 +62,7 @@ def load_csv(path, encoding="UTF-8"):
 
         logging.debug(f"detected encoding {encoding}")
 
-    f = open(path, encoding=encoding, newline="")
+    f = open(path, encoding=encoding, newline=None)
     content = f.read()
     if content.lower().startswith("<!doctype "):
         logging.debug(f"{path} has <!doctype")
