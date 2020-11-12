@@ -24,19 +24,19 @@ def get_failing_endpoints(
     log_entries, endpoint_entries, first_date, last_date=date.today()
 ):
     active_endpoints = {
-        endpoint.item["endpoint"]
+        endpoint["endpoint"]
         for endpoint in endpoint_entries
-        if not endpoint.item["end-date"]
+        if not endpoint["end-date"]
     }
     start_idx, end_idx = get_entries_between_keys(
         first_date,
         last_date,
         len(log_entries),
-        lambda idx: datetime.fromisoformat(log_entries[idx].item["entry-date"]).date(),
+        lambda idx: datetime.fromisoformat(log_entries[idx]["entry-date"]).date(),
     )
     failing_endpoints = {}
     for idx in range(start_idx, end_idx + 1):
-        log = log_entries[idx].item
+        log = log_entries[idx]
         endpoint = log["endpoint"]
         if endpoint in active_endpoints:
             collection_result, reason = has_collected_resource(log)
