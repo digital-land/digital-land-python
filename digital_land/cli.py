@@ -362,11 +362,8 @@ def endpoints_check_cmd(first_date, log_dir, endpoint_path, last_date):
 @click.pass_context
 @click.argument("endpoint-url", type=click.STRING)
 @click.argument("organisation", type=click.STRING)
-@source_path
-@endpoint_path
-def add_source_endpoint_cmd(
-    ctx, endpoint_url, organisation, source_path, endpoint_path
-):
+@collection_directory
+def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_directory):
     """Add a new source/endpoint entry. Optional parameters are: source, attribution, collection, documentation-url,
     licence, organisation, pipeline, status, plugin, parameters, start-date, end-date
 
@@ -383,7 +380,7 @@ def add_source_endpoint_cmd(
             sys.exit(2)
     entry["endpoint-url"] = endpoint_url
     entry["organisation"] = organisation
-    add_new_source_endpoint(entry, source_path, endpoint_path)
+    add_new_source_endpoint(entry, collection_directory)
 
 
 def resource_hash_from(path):
