@@ -111,7 +111,7 @@ def execute(command):
 
 
 def read_csv(input_path, encoding="utf-8"):
-    return open(input_path, encoding=encoding, newline="")
+    return open(input_path, encoding=encoding, newline=None)
 
 
 def read_excel(path):
