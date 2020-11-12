@@ -10,7 +10,7 @@ import canonicaljson
 
 import click
 
-from .collection import Collection
+from .collection import Collection, resource_path
 from .collect import Collector
 from .convert import Converter
 from .harmonise import Harmoniser
