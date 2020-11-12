@@ -2,7 +2,6 @@ import csv
 import difflib
 import filecmp
 import pathlib
-import platform
 
 import pytest
 import xlsxwriter
@@ -10,43 +9,31 @@ from helpers import execute
 from wasabi import color
 
 
-running_on_macos = platform.system() == "Darwin"
-
-
 @pytest.mark.parametrize(
-    "input_file, fuzzy_macos",
+    "input_file",
     [
-        ("tests/data/resource_examples/csv.resource", False),
-        ("tests/data/resource_examples/xlsx.resource", False),
-        ("tests/data/resource_examples/xlsm.resource", False),
-        ("tests/data/resource_examples/geojson.resource", False),
-        ("tests/data/resource_examples/kml.resource", False),
-        ("tests/data/resource_examples/kml_multilayer.resource", False),
-        ("tests/data/resource_examples/gml.resource", False),
-        ("tests/data/resource_examples/gml_very_long_rows.resource", True),
-        ("tests/data/resource_examples/shapefile_zip.resource", True),
-        ("tests/data/resource_examples/shapefile_zip_not_in_root.resource", True),
-        ("tests/data/resource_examples/geopackage.resource", True),
+        "tests/data/resource_examples/csv.resource",
+        "tests/data/resource_examples/xlsx.resource",
+        "tests/data/resource_examples/xlsm.resource",
+        "tests/data/resource_examples/geojson.resource",
+        "tests/data/resource_examples/kml.resource",
+        "tests/data/resource_examples/kml_multilayer.resource",
+        "tests/data/resource_examples/gml.resource",
+        "tests/data/resource_examples/gml_very_long_rows.resource",
+        "tests/data/resource_examples/shapefile_zip.resource",
+        "tests/data/resource_examples/shapefile_zip_not_in_root.resource",
+        "tests/data/resource_examples/geopackage.resource",
     ],
 )
-def test_convert(input_file, fuzzy_macos, tmp_path):
+def test_convert(input_file, tmp_path):
     input_file = pathlib.Path(input_file)
     output_file = tmp_path / (input_file.stem + ".csv")
     _execute_convert(input_file, output_file)
     golden_master = input_file.with_suffix(".csv")
 
-    # This is due to annoying differences between the output of the ogr2ogr tool
-    # on MacOS vs Linux, due to differences in floating point arithmetic.
-    # If we are on mac, just assert that the files are similar enough, rather
-    # than identical as we do for CI tests.
-    if running_on_macos and fuzzy_macos:
-        print("performing fuzzy match because macos")
-        diff_ratio = diff_macos_fuzzy(output_file, golden_master)
-        assert diff_ratio > 0.99, "macos fuzzy match not strong enough"
-    else:
-        assert filecmp.cmp(output_file, golden_master), print_diffs(
-            output_file, golden_master
-        )
+    assert filecmp.cmp(output_file, golden_master), print_diffs(
+        output_file, golden_master
+    )
 
 
 def diff_macos_fuzzy(fromfile, tofile):

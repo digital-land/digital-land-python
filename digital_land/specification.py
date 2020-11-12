@@ -3,6 +3,7 @@ import csv
 import os
 import re
 
+from .datatype.datatype import DataType
 from .datatype.address import AddressDataType
 from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
@@ -122,6 +123,7 @@ class Specification:
             "url": URIDataType,
             "flag": FlagDataType,
             "wkt": WktDataType,
+            "curie": DataType,  # TODO create proper curie type
         }
 
         if datatype in typemap:

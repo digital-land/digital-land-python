@@ -19,9 +19,6 @@ class Mapper:
         matched = []
         for header in fieldnames:
             fieldname = self.normalise(header)
-            if fieldname in self.normalised_fieldnames:
-                headers[header] = self.normalised_fieldnames[fieldname]
-                continue
 
             for pattern, value in self.column.items():
                 if value in matched:
@@ -30,6 +27,14 @@ class Mapper:
                 if fieldname == pattern:
                     matched.append(value)
                     headers[header] = value
+
+            # stop if we found a match
+            if header in headers:
+                continue
+
+            if fieldname in self.normalised_fieldnames:
+                headers[header] = self.normalised_fieldnames[fieldname]
+                continue
 
         return headers
 
