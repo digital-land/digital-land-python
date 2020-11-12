@@ -8,18 +8,21 @@ from .memory import MemoryStore
 
 
 class CSVStore(MemoryStore):
-    def path(self, directory=""):
-        return Path(directory) / (self.schema.name + ".csv")
+    def csv_path(store, directory=""):
+        return Path(directory) / (store.schema.name + ".csv")
 
-    def load(self, path=None, directory=""):
-        path = path or self.path(directory)
+    def load_csv(self, path=None, directory=""):
+        path = path or self.csv_path(directory)
         logging.debug("loading %s" % (path))
         reader = csv.DictReader(open(path, newline=""))
         for row in reader:
             self.add_entry(row)
 
-    def save(self, path=None, directory="", entries=None):
-        path = path or self.path(directory)
+    def load(self, *args, **kwargs):
+        self.load_csv(*args, **kwargs)
+
+    def save_csv(self, path=None, directory="", entries=None):
+        path = path or self.csv_path(directory)
         fieldnames = self.schema.fieldnames
 
         if entries is None:
@@ -32,3 +35,6 @@ class CSVStore(MemoryStore):
         writer.writeheader()
         for entry in entries:
             writer.writerow(entry)
+
+    def save(self, *args, **kwargs):
+        self.save_csv(*args, **kwargs)

@@ -9,7 +9,6 @@ from .register import hash_value
 from .schema import Schema
 from .store.csv import CSVStore
 from .store.item import ItemStore
-from .store.memory import MemoryStore
 
 collection_directory = "./collection"
 
@@ -65,7 +64,7 @@ class LogStore(ItemStore):
 
 
 # a register of resources constructed from the log register
-class ResourceLogStore(MemoryStore):
+class ResourceLogStore(CSVStore):
     def load(self, log, directory=collection_directory):
         resources = {}
         for entry in log.entries:
@@ -122,14 +121,10 @@ class Collection:
         if not directory:
             directory = self.directory
 
-        self.endpoint.save(directory=directory)
-        self.source.save(directory=directory)
-
-        log = CSVStore(Schema("log"))
-        log.save(directory=directory, entries=self.log.entries)
-
-        resource = CSVStore(Schema("resource"))
-        resource.save(directory=directory, entries=self.resource.entries)
+        self.endpoint.save_csv(directory=directory)
+        self.source.save_csv(directory=directory)
+        self.log.save_csv(directory=directory)
+        self.resource.save_csv(directory=directory)
 
     def load(self, directory=None):
         directory = directory or self.directory
