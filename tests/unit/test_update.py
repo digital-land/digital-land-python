@@ -187,21 +187,6 @@ def test_add_new_endpoint_order(endpoint_register):
     assert endpoint_register.entries[-1]["endpoint-url"] == test_url
 
 
-def test_add_new_endpoint_existing_no_op(endpoint_register):
-    expected_result = endpoint_register.entries.copy()
-    entry = defaultdict(str)
-    entry.update(
-        {
-            "endpoint-url": "www.eee.com",
-            "endpoint": "EEE",
-            "organisation": "DWF",
-            "documentation-url": "www.doc.com",
-        }
-    )
-    add_new_endpoint(entry, endpoint_register)
-    assert endpoint_register.entries == expected_result
-
-
 def test_add_new_endpoint_existing_end_date(endpoint_register):
     test_key = "DDD"
     expected_result = endpoint_register.entries.copy()
@@ -259,21 +244,6 @@ def test_add_new_source_existing_endpoint(source_register):
         source_register.entries[-1]["documentation-url"]
         == entry["documentation-url"]
     )
-
-
-def test_add_new_source_existing_no_op(source_register):
-    expected_result = source_register.entries.copy()
-    entry = defaultdict(str)
-    entry.update(
-        {
-            "endpoint-url": "www.test.com",
-            "endpoint": "BBB",
-            "organisation": "DWF",
-            "documentation-url": "www.doc.com",
-        }
-    )
-    add_new_source(entry, source_register)
-    assert source_register.entries == expected_result
 
 
 def test_add_new_source_existing_end_date(source_register):
