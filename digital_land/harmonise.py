@@ -50,6 +50,7 @@ class Harmoniser:
         resource_organisation={},
         organisation_uri=None,
         patch={},
+        use_patch_callback=False
     ):
         self.specification = specification
         self.pipeline = pipeline
@@ -61,6 +62,7 @@ class Harmoniser:
         self.resource_organisation = resource_organisation
         self.organisation_uri = organisation_uri
         self.patch = patch
+        self.patch_callback = pipeline.get_patch_callback() if use_patch_callback else None
 
         # if "OrganisationURI" in self.fieldnames:
         #    if input_path and resource_organisation_path:
@@ -83,9 +85,11 @@ class Harmoniser:
     def apply_patch(self, fieldname, value):
         patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
         for pattern, replacement in patches.items():
-            match = re.match(pattern, value.lower())
+            match = re.match(pattern.lower(), value.lower())
             if match:
                 return match.expand(replacement)
+            if pattern.lower() == value.lower():
+                return replacement
         return value
 
     def set_default(self, o, fieldname, value):
@@ -149,7 +153,6 @@ class Harmoniser:
 
             if self.issues:
                 self.issues.row_number += 1
-
             if not last_resource or last_resource != resource:
                 if self.pipeline.name == "brownfield-land":
                     self.set_resource_defaults_legacy(resource)
@@ -157,9 +160,10 @@ class Harmoniser:
                     self.set_resource_defaults(resource)
 
             o = {}
-
             for field in row:
                 row[field] = self.apply_patch(field, row[field])
+                if self.patch_callback:
+                    row[field] = self.patch_callback(field, row[field], self.log_issue)
                 o[field] = self.harmonise_field(field, row[field])
 
             # default missing values

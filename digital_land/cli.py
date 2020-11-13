@@ -227,10 +227,16 @@ def map_cmd(input_path, output_path):
 )
 @input_output_path
 @issue_path
+@click.option(
+    "--use-patch-callback",
+    is_flag=True,
+    help="use custom patching function"
+)
 def harmonise_cmd(
     input_path,
     output_path,
     issue_path,
+    use_patch_callback
 ):
     if not output_path:
         output_path = default_output_path_for("harmonised", input_path)
@@ -259,6 +265,7 @@ def harmonise_cmd(
         resource_organisation,
         organisation_uri,
         patch,
+        use_patch_callback
     )
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)
