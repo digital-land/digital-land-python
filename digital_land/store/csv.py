@@ -23,7 +23,6 @@ class CSVStore(MemoryStore):
 
     def save_csv(self, path=None, directory="", entries=None):
         path = path or self.csv_path(directory)
-        fieldnames = self.schema.fieldnames
 
         if entries is None:
             entries = self.entries
@@ -31,7 +30,9 @@ class CSVStore(MemoryStore):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         logging.debug("saving %s" % (path))
         f = open(path, "w", newline="")
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer = csv.DictWriter(
+            f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
+        )
         writer.writeheader()
         for entry in entries:
             writer.writerow(entry)
