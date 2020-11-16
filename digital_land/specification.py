@@ -117,7 +117,7 @@ class Specification:
             "latitude": DecimalDataType,
             "longitude": DecimalDataType,
             "string": StringDataType,
-            "address": AddressDataType,
+            "address-text": AddressDataType,
             "text": StringDataType,  # TODO do we need dedicated type for Text?
             "datetime": DateDataType,
             "url": URIDataType,
