@@ -125,7 +125,7 @@ class Harmoniser:
         if not resource:
             return
         self.default_fieldnames = self.pipeline.default_fieldnames(resource)
-        resource_entry = self.collection.resource[resource][0].serialise()
+        resource_entry = self.collection.resource.records[resource][0]
         self.default_values["entry-date"] = resource_entry["start-date"]
 
         resource_organisations = self.collection.resource_organisation(resource)
