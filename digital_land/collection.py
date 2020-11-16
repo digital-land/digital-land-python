@@ -1,167 +1,148 @@
-import glob
-import logging
 import os
 import re
+import logging
+
+from pathlib import Path
 from datetime import datetime
 
-from .register import Item, Register, hash_value
+from .register import hash_value
+from .schema import Schema
+from .store.csv import CSVStore
+from .store.item import ItemStore
+
+collection_directory = "./collection"
 
 
-class LogItem(Item):
-    def migrate(self):
-        # default entry-date field
-        if "datetime" in self.item:
-            if "entry-date" not in self.item:
-                self.item["entry-date"] = self.item["datetime"]
-            del self.item["datetime"]
+def resource_path(resource, directory=collection_directory):
+    return Path(directory) / "resource" / resource
+
+
+def resource_url(collection, resource):
+    return (
+        "https://raw.githubusercontent.com/digital-land/"
+        + "%s-collection/master/collection/resource/%s" % (collection, resource)
+    )
+
+
+# a store of log files created by the collector
+# collecton/log/YYYY-MM-DD/{endpoint#}.json
+class LogStore(ItemStore):
+    def load_item(self, path):
+        item = super().load_item(path)
+        item = item.copy()
+        # default entry-date field from datetime property
+        if "datetime" in item:
+            if "entry-date" not in item:
+                item["entry-date"] = item["datetime"]
+            del item["datetime"]
 
         # default endpoint value
-        if "endpoint" not in self.item:
-            self.item["endpoint"] = hash_value(self.item["url"])
-
-    def serialise(self):
-        item = self.item
-        del item["endpoint"]
+        if "endpoint" not in item:
+            item["endpoint"] = hash_value(item["url"])
+        self.check_item_path(item, path)
         return item
 
-    def check_path(self, path):
+    def save_item(self, item, path):
+        del item["endpoint"]
+        return super().save_item(item)
+
+    def check_item_path(self, item, path):
         m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
         (date, endpoint) = m.groups()
 
-        if not self.item["entry-date"].startswith(date):
+        if not item.get("entry-date", "").startswith(date):
             logging.warning(
                 "incorrect date in path %s for entry-date %s"
-                % (path, self.item["entry-date"])
+                % (path, item["entry-date"])
             )
 
-        if endpoint != self.item["endpoint"]:
+        # print(item["url"], hash_value(item["url"]))
+        if endpoint != item["endpoint"]:
             logging.warning(
-                "incorrect endpoint in path %s expected %s"
-                % (path, self.item["endpoint"])
+                "incorrect endpoint in path %s expected %s" % (path, item["endpoint"])
             )
 
 
-# fieldnames should come from, or be checked against the specification:
-# https://digital-land.github.io/specification/schema/log/
-class LogRegister(Register):
-    register = "log"
-    key = "endpoint"
-    dirname = "collection/"
-    fieldnames = [
-        "endpoint",
-        "elapsed",
-        "request-headers",
-        "resource",
-        "response-headers",
-        "status",
-        "entry-date",
-        "start-date",
-        "end-date",
-    ]
-    Item = LogItem
-
-    def load_collection(self, log_dir=None):
-        if not log_dir:
-            log_dir = os.path.join((self.dirname), "log")
-        for path in sorted(glob.glob("%s/*/*.json" % (log_dir))):
-            item = self.Item()
-            item.load_json(path)
-            item.check_path(path)
-            self.add(item)
-
-
-# fieldnames should come from, or be checked against the specification:
-# https://digital-land.github.io/specification/schema/source/
-class EndpointRegister(Register):
-    register = "endpoint"
-    dirname = "collection/"
-    fieldnames = [
-        "endpoint",
-        "endpoint-url",
-        "plugin",
-        "parameters",
-        "entry-date",
-        "start-date",
-        "end-date",
-    ]
-
-
-# fieldnames should come from, or be checked against the specification:
-# https://digital-land.github.io/specification/schema/source/
-class SourceRegister(Register):
-    register = "source"
-    dirname = "collection/"
-    key = "endpoint"
-    fieldnames = [
-        "source",
-        "attribution",
-        "collection",
-        "documentation-url",
-        "endpoint",
-        "licence",
-        "organisation",
-        "pipeline",
-        "status",
-        "entry-date",
-        "start-date",
-        "end-date",
-    ]
-
-
-class ResourceRegister(Register):
-    register = "resource"
-    fieldnames = [
-        "resource",
-        "start-date",
-    ]
-
-    def load_from_log(self, log):
+# a register of resources constructed from the log register
+class ResourceLogStore(CSVStore):
+    def load(self, log, directory=collection_directory):
         resources = {}
         for entry in log.entries:
-            if "resource" in entry.item:
-                resource = entry.item["resource"]
+            if "resource" in entry:
+                resource = entry["resource"]
                 if resource in resources:
                     resources[resource]["start-date"] = min(
-                        resources[resource]["start-date"], entry.item["entry-date"]
+                        resources[resource]["start-date"], entry["entry-date"]
                     )
                 else:
-                    resources[resource] = {"start-date": entry.item["entry-date"]}
+                    path = resource_path(resource, directory=directory)
+
+                    try:
+                        size = os.path.getsize(path)
+                    except (FileNotFoundError):
+                        logging.warning("missing %s" % (path))
+                        size = ""
+
+                    resources[resource] = {
+                        "start-date": entry["entry-date"],
+                        "bytes": size,
+                    }
 
         for key, resource in sorted(resources.items()):
-            self.add(
-                Item(
-                    {
-                        "resource": key,
-                        "start-date": datetime.fromisoformat(
-                            resource["start-date"]
-                        ).strftime("%Y-%m-%d"),
-                    }
-                )
+            self.add_entry(
+                {
+                    "resource": key,
+                    "bytes": resource["bytes"],
+                    "start-date": datetime.fromisoformat(
+                        resource["start-date"]
+                    ).strftime("%Y-%m-%d"),
+                }
             )
 
 
-# this is a DataPackage ..
+# expected this will be based on a Datapackage class
 class Collection:
-    dirname = "collection/"
+    def __init__(self, name=None, directory=collection_directory):
+        self.name = name
+        self.directory = directory
 
-    def __init__(self, dirname=None):
-        if dirname:
-            self.dirname = dirname
+    def load_log_items(self, directory=None, log_directory=None):
+        if not log_directory:
+            directory = directory or self.directory
+            log_directory = Path(directory) / "log/*/"
 
-        self.source = SourceRegister(self.dirname)
-        self.endpoint = EndpointRegister(self.dirname)
-        self.log = LogRegister(self.dirname)
-        self.resource = ResourceRegister(self.dirname)
+        self.log = LogStore(Schema("log"))
+        self.log.load(directory=log_directory)
 
-    def load(self):
-        self.log.load_collection()
-        self.endpoint.load()
-        self.source.load()
-        self.resource.load_from_log(self.log)
+        self.resource = ResourceLogStore(Schema("resource"))
+        self.resource.load(log=self.log)
 
-    def resources(self, pipeline=None):
-        # TODO is pipeline param needed?
-        return sorted(self.resource.record)
+    def save_csv(self, directory=None):
+        if not directory:
+            directory = self.directory
+
+        self.endpoint.save_csv(directory=directory)
+        self.source.save_csv(directory=directory)
+        self.log.save_csv(directory=directory)
+        self.resource.save_csv(directory=directory)
+
+    def load(self, directory=None):
+        directory = directory or self.directory
+
+        self.source = CSVStore(Schema("source"))
+        self.source.load(directory=directory)
+
+        self.endpoint = CSVStore(Schema("endpoint"))
+        self.endpoint.load(directory=directory)
+
+        try:
+            self.log = CSVStore(Schema("log"))
+            self.log.load(directory=directory)
+
+            self.resource = CSVStore(Schema("resource"))
+            self.resource.load(directory=directory)
+        except (FileNotFoundError):
+            self.load_log_items()
 
     def resource_organisation(self, resource):
         "return the list of organisations for which a resource was collected"
@@ -170,14 +151,11 @@ class Collection:
 
         # entries which collected the resource
         for entry in self.log.entries:
-            if "resource" in entry.item and entry.item["resource"] == resource:
-                endpoints[entry.item["endpoint"]] = True
+            if "resource" in entry and entry["resource"] == resource:
+                endpoints[entry["endpoint"]] = True
 
         # sources which cite the endpoint
         for endpoint in endpoints:
-            for n in self.source.record[endpoint]:
-                organisations[self.source.entries[n].item["organisation"]] = True
+            for entry in self.source.records[endpoint]:
+                organisations[entry["organisation"]] = True
         return sorted(organisations)
-
-    def resource_path(self, resource):
-        return os.path.join(self.dirname, "resource", resource)

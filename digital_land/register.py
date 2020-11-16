@@ -1,94 +1,38 @@
 # encapsulate the GOV.UK register model, with digital land specification extensions
-# we expect to merge this back into https://pypi.org/project/openregister/
 
-import os
-import os.path
-import logging
 import hashlib
-import csv
 import json
-import canonicaljson
+from canonicaljson import encode_canonical_json
+from collections import UserDict, UserList
 
 
-def hash_value(value):
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+def hash_value(data):
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
-def save(path, data):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    if not os.path.exists(path):
-        logging.info(path)
-        with open(path, "wb") as f:
-            f.write(data)
+class Item(UserDict):
+    def pack(self):
+        return encode_canonical_json(self.data)
+
+    def unpack(self, data):
+        self.data = json.loads(data)
+        return self
+
+    def hash(self):
+        return hash_value(self.pack())
 
 
-class Item:
-    def __init__(self, item={}):
-        self.item = item
+class Entry(Item):
+    "an ordered item in a register"
 
-    def migrate(self):
-        pass
 
-    def serialise(self):
-        return self.item
-
-    def load_json(self, path):
-        self.item = json.load(open(path))
-        self.migrate()
-
-    def save_json(self, path):
-        item = self.serialise()
-        data = canonicaljson.encode_canonical_json(item)
-        save(path, data)
+class Record(UserList):
+    "an ordered list of entries sharing the same key value"
 
 
 class Register:
-    register = "unknown"
-    key = None
-    fieldnames = []
-    dirname = "dataset/"
-    Item = Item
+    def __init__(self, store):
+        self.store = store
 
-    def __init__(self, dirname=None):
-        if dirname:
-            self.dirname = dirname
-        self.entries = []
-        self.record = {}
-        if not self.key:
-            self.key = self.register
-
-    def __getitem__(self, key):
-        if key not in self.record:
-            raise KeyError()
-        idxs = self.record[key]
-        return [self.entries[i] for i in idxs]
-
-    def add(self, item):
-        self.entries.append(item)
-        key = item.item[self.key]
-        self.record.setdefault(key, [])
-        self.record[key].append(len(self.entries) - 1)
-
-    def path(self, path=None):
-        return path or os.path.join(self.dirname, self.register + ".csv")
-
-    def load(self, path=None):
-        path = self.path(path)
-        for row in csv.DictReader(open(path, newline="")):
-            self.add(self.Item(row))
-
-    def save(self, path=None):
-        path = self.path(path)
-
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        writer = csv.DictWriter(
-            open(path, "w"),
-            fieldnames=self.fieldnames,
-            extrasaction="ignore",
-            lineterminator="\r\n",
-        )
-        writer.writeheader()
-
-        path = os.path.join(self.dirname, self.register + ".csv")
-        for entry in self.entries:
-            writer.writerow(entry.item)
+    def __getitem__(self, value):
+        return self.store[value]

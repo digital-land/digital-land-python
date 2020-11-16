@@ -1,0 +1,5 @@
+source,collection,pipeline,organisation,endpoint,documentation-url,licence,attribution,start-date,end-date
+,example-collection,example-pipeline,organisation:1,50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e,,,,,
+,example-collection,example-pipeline,organisation:2,7f72ae4d3152d220bb1786923c134cf286d4c42720c98dd269d067d461e18b70,,,,,
+,example-collection,example-pipeline,organisation:1,06e003905b47e9ec014cde493812a4b122c3b8bb2b91231aae6124f91c37e1db,,,,,
+,another-collection,another-pipeline,organisation:3,e2554ecee15dea0cfde9b975ffb261b677a0c3bca5393f500f25bfa05d2e278d,,,,,

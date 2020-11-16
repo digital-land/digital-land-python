@@ -1,73 +1,41 @@
-import csv
-import hashlib
-import json
-from datetime import datetime
-
-import pytest
-
+from digital_land.register import hash_value
 from digital_land.collection import Collection
 
-RESOURCES = ["aaa111", "bbb222", "ccc333"]
+test_collection_dir = "tests/data/collection"
 
 
-@pytest.fixture()
-def test_collection_dir(tmp_path):
-    today = datetime.today().strftime("%Y-%m-%d")
-    resource_path = tmp_path / "resource"
-    resource_path.mkdir()
-    log_path = tmp_path / "log" / today
-    log_path.mkdir(parents=True)
-    endpoints = []
-    sources = []
-    for resource in RESOURCES:
-        url = f"http://somewhere.org/{resource}"
-        endpoint_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()
-        endpoints.append({"endpoint": endpoint_hash, "endpoint-url": url})
-        sources.append(
-            {"organisation": f"source-{resource}", "endpoint": endpoint_hash}
-        )
-        log = {
-            "resource": resource,
-            "url": url,
-            "entry-date": today,
-        }
-        with open(log_path / f"{endpoint_hash}.json", "w") as f:
-            json.dump(log, f)
-        path = resource_path / resource
-        path.touch()
-    write_endpoint_csv(tmp_path, endpoints)
-    write_source_csv(tmp_path, sources)
-    return tmp_path
+def test_collection():
+    collection = Collection()
+    collection.load(directory=test_collection_dir)
 
+    url = "https://example.com/register/1.csv"
+    endpoint = hash_value(url)
 
-def write_endpoint_csv(tmp_path, endpoints):
-    write_csv(tmp_path / "endpoint.csv", endpoints, ["endpoint", "endpoint-url"])
-
-
-def write_source_csv(tmp_path, sources):
-    write_csv(tmp_path / "source.csv", sources, ["organisation", "endpoint"])
-
-
-def write_csv(path, items, fieldnames):
-    f = open(path, "w", newline="\r\n")
-    writer = csv.DictWriter(
-        f,
-        fieldnames=fieldnames,
+    assert (
+        endpoint == "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e"
     )
-    writer.writeheader()
-    for item in items:
-        writer.writerow(item)
-    f.close()
+    assert endpoint in collection.endpoint.records
+    assert endpoint in collection.source.records
 
+    record = collection.endpoint.records[endpoint]
 
-def test_collection(test_collection_dir):
-    collection = Collection(test_collection_dir)
-    collection.load()
-    resources = collection.resources()
-    assert resources == RESOURCES
+    assert len(record) == 4
 
+    for entry in record:
+        assert entry["endpoint"] == endpoint
+        assert entry["endpoint-url"] == url
 
-def test_collection_resource_organisation(test_collection_dir):
-    collection = Collection(test_collection_dir)
-    collection.load()
-    assert collection.resource_organisation("aaa111") == ["source-aaa111"]
+    assert record[0]["start-date"] == ""
+    assert record[1]["start-date"] == "2020-01-15"
+    assert record[2]["start-date"] == "2020-01-12"
+    assert record[3]["start-date"] == "2020-01-12"
+    assert record[3]["end-date"] == "2020-02-01"
+
+    collection.load_log_items(directory=test_collection_dir)
+
+    resources = collection.resource.records
+    assert len(resources) == 2
+
+    assert collection.resource_organisation(
+        "ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf"
+    ) == ["organisation:2"]

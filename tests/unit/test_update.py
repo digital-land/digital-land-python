@@ -1,8 +1,11 @@
 import pytest
+
 from collections import defaultdict
 from datetime import date
-from digital_land.register import Item
-from digital_land.collection import SourceRegister, EndpointRegister, LogItem
+
+from digital_land.schema import Schema
+from digital_land.store.memory import MemoryStore
+
 from digital_land.update import (
     has_collected_resource,
     get_failing_endpoints,
@@ -15,106 +18,90 @@ from digital_land.update import (
 @pytest.fixture()
 def log_entries():
     return [
-        LogItem(
-            {
-                "endpoint": "AAA",
-                "url": "www.aaa.com",
-                "entry-date": "2018-06-25T13:41:49.222813",
-                "resource": "",
-                "status": "404",
-            }
-        ),
-        LogItem(
-            {
-                "endpoint": "BBB",
-                "url": "www.bbb.com",
-                "entry-date": "2019-05-10T13:41:49.222813",
-                "resource": "12345",
-                "status": "200",
-            }
-        ),
-        LogItem(
-            {
-                "endpoint": "CCC",
-                "url": "www.ccc.com",
-                "entry-date": "2020-04-15T13:41:49.222813",
-                "exception": "something failed",
-            }
-        ),
-        LogItem(
-            {
-                "endpoint": "CCC",
-                "url": "www.ccc.com",
-                "entry-date": "2020-05-20T13:41:49.222813",
-                "exception": "something failed",
-            }
-        ),
-        LogItem(
-            {
-                "endpoint": "DDD",
-                "url": "www.ddd.com",
-                "entry-date": "2020-10-20T13:41:49.222813",
-                "status": "200",
-            }
-        ),
-        LogItem(
-            {
-                "endpoint": "EEE",
-                "url": "www.eee.com",
-                "entry-date": "2020-10-25T13:41:49.222813",
-                "status": "500",
-            }
-        ),
+        {
+            "endpoint": "AAA",
+            "url": "www.aaa.com",
+            "entry-date": "2018-06-25T13:41:49.222813",
+            "resource": "",
+            "status": "404",
+        },
+        {
+            "endpoint": "BBB",
+            "url": "www.bbb.com",
+            "entry-date": "2019-05-10T13:41:49.222813",
+            "resource": "12345",
+            "status": "200",
+        },
+        {
+            "endpoint": "CCC",
+            "url": "www.ccc.com",
+            "entry-date": "2020-04-15T13:41:49.222813",
+            "exception": "something failed",
+        },
+        {
+            "endpoint": "CCC",
+            "url": "www.ccc.com",
+            "entry-date": "2020-05-20T13:41:49.222813",
+            "exception": "something failed",
+        },
+        {
+            "endpoint": "DDD",
+            "url": "www.ddd.com",
+            "entry-date": "2020-10-20T13:41:49.222813",
+            "status": "200",
+        },
+        {
+            "endpoint": "EEE",
+            "url": "www.eee.com",
+            "entry-date": "2020-10-25T13:41:49.222813",
+            "status": "500",
+        },
     ]
 
 
 @pytest.fixture()
 def endpoint_entries():
     return [
-        Item({"endpoint": "AAA", "end-date": ""}),
-        Item({"endpoint": "BBB", "end-date": ""}),
-        Item({"endpoint": "CCC", "end-date": ""}),
-        Item({"endpoint": "DDD", "end-date": "2020-10-21T13:41:49.222813"}),
-        Item({"endpoint": "EEE", "end-date": ""}),
+        {"endpoint": "AAA", "end-date": ""},
+        {"endpoint": "BBB", "end-date": ""},
+        {"endpoint": "CCC", "end-date": ""},
+        {"endpoint": "DDD", "end-date": "2020-10-21T13:41:49.222813"},
+        {"endpoint": "EEE", "end-date": ""},
     ]
 
 
 @pytest.fixture()
 def source_entries():
     return [
-        Item({"organisation": "AZK", "endpoint": "AAA", "end-date": ""}),
-        Item(
-            {
-                "organisation": "BYT",
-                "endpoint": "BBB",
-                "end-date": "2020-10-21T13:41:49.222813",
-            }
-        ),
-        Item({"organisation": "CXJ", "endpoint": "CCC", "end-date": ""}),
-        Item(
-            {
-                "organisation": "CXJ",
-                "endpoint": "DDD",
-                "end-date": "2020-10-21T13:41:49.222813",
-            }
-        ),
-        Item({"organisation": "DWF", "endpoint": "BBB", "end-date": ""}),
+        {"organisation": "AZK", "endpoint": "AAA", "end-date": ""},
+        {
+            "organisation": "BYT",
+            "endpoint": "BBB",
+            "end-date": "2020-10-21T13:41:49.222813",
+        },
+        {"organisation": "CXJ", "endpoint": "CCC", "end-date": ""},
+        {
+            "organisation": "CXJ",
+            "endpoint": "DDD",
+            "end-date": "2020-10-21T13:41:49.222813",
+        },
+        {"organisation": "DWF", "endpoint": "BBB", "end-date": ""},
     ]
 
 
 @pytest.fixture()
 def source_register(source_entries):
-    register = SourceRegister()
+    register = MemoryStore(Schema("source"))
     for entry in source_entries:
-        register.add(entry)
+        register.add_entry(entry)
     return register
 
 
 @pytest.fixture()
 def endpoint_register(endpoint_entries):
-    register = EndpointRegister()
+    register = MemoryStore(Schema("endpoint"))
     for entry in endpoint_entries:
-        register.add(entry)
+        register.add_entry(entry)
     return register
 
 
@@ -138,25 +125,25 @@ def test_get_entries_between_keys():
 
 def test_has_collected_resource_404(log_entries):
     # Return false due to 404
-    result, reason = has_collected_resource(log_entries[0].item)
+    result, reason = has_collected_resource(log_entries[0])
     assert result is False
 
 
 def test_has_collected_resource_exception(log_entries):
     # Return false due to exception
-    result, reason = has_collected_resource(log_entries[3].item)
+    result, reason = has_collected_resource(log_entries[3])
     assert result is False
 
 
 def test_has_collected_resource_no_resource(log_entries):
     # Return false due to missing resource
-    result, reason = has_collected_resource(log_entries[4].item)
+    result, reason = has_collected_resource(log_entries[4])
     assert result is False
 
 
 def test_has_collected_resource(log_entries):
     # Return true
-    result, reason = has_collected_resource(log_entries[1].item)
+    result, reason = has_collected_resource(log_entries[1])
     assert result is True
 
 
@@ -196,23 +183,8 @@ def test_add_new_endpoint_order(endpoint_register):
     )
     add_new_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
-    assert endpoint_register.entries[-1].item["endpoint"] == test_key
-    assert endpoint_register.entries[-1].item["endpoint-url"] == test_url
-
-
-def test_add_new_endpoint_existing_no_op(endpoint_register):
-    expected_result = endpoint_register.entries.copy()
-    entry = defaultdict(str)
-    entry.update(
-        {
-            "endpoint-url": "www.eee.com",
-            "endpoint": "EEE",
-            "organisation": "DWF",
-            "documentation-url": "www.doc.com",
-        }
-    )
-    add_new_endpoint(entry, endpoint_register)
-    assert endpoint_register.entries == expected_result
+    assert endpoint_register.entries[-1]["endpoint"] == test_key
+    assert endpoint_register.entries[-1]["endpoint-url"] == test_url
 
 
 def test_add_new_endpoint_existing_end_date(endpoint_register):
@@ -229,7 +201,7 @@ def test_add_new_endpoint_existing_end_date(endpoint_register):
     )
     add_new_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
-    assert endpoint_register.entries[-1].item["endpoint"] == test_key
+    assert endpoint_register.entries[-1]["endpoint"] == test_key
 
 
 def test_add_new_source(source_register):
@@ -246,12 +218,11 @@ def test_add_new_source(source_register):
     )
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
-    assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
+    assert source_register.entries[-1]["endpoint"] == entry["endpoint"]
     assert (
-        source_register.entries[-1].item["documentation-url"]
-        == entry["documentation-url"]
+        source_register.entries[-1]["documentation-url"] == entry["documentation-url"]
     )
-    assert source_register.entries[-1].item["start-date"] == entry["start-date"]
+    assert source_register.entries[-1]["start-date"] == entry["start-date"]
 
 
 def test_add_new_source_existing_endpoint(source_register):
@@ -267,26 +238,10 @@ def test_add_new_source_existing_endpoint(source_register):
     )
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
-    assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
+    assert source_register.entries[-1]["endpoint"] == entry["endpoint"]
     assert (
-        source_register.entries[-1].item["documentation-url"]
-        == entry["documentation-url"]
+        source_register.entries[-1]["documentation-url"] == entry["documentation-url"]
     )
-
-
-def test_add_new_source_existing_no_op(source_register):
-    expected_result = source_register.entries.copy()
-    entry = defaultdict(str)
-    entry.update(
-        {
-            "endpoint-url": "www.test.com",
-            "endpoint": "BBB",
-            "organisation": "DWF",
-            "documentation-url": "www.doc.com",
-        }
-    )
-    add_new_source(entry, source_register)
-    assert source_register.entries == expected_result
 
 
 def test_add_new_source_existing_end_date(source_register):
@@ -302,4 +257,4 @@ def test_add_new_source_existing_end_date(source_register):
     )
     add_new_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
-    assert source_register.entries[-1].item["endpoint"] == entry["endpoint"]
+    assert source_register.entries[-1]["endpoint"] == entry["endpoint"]

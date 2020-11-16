@@ -3,15 +3,15 @@ import logging
 import os
 import sys
 import tempfile
-from pathlib import Path
-from datetime import date
 from collections import defaultdict
-import canonicaljson
+from datetime import date
+from pathlib import Path
 
+import canonicaljson
 import click
 
-from .collection import Collection
 from .collect import Collector
+from .collection import Collection, resource_path
 from .convert import Converter
 from .harmonise import Harmoniser
 from .index import Indexer
@@ -23,14 +23,10 @@ from .organisation import Organisation
 from .pipeline import Pipeline
 from .resource_organisation import ResourceOrganisation
 from .save import save
+from .schema import Schema
 from .specification import Specification
 from .transform import Transformer
-from .update import (
-    get_failing_endpoints_from_registers,
-    add_new_source_endpoint,
-    get_source_endpoint_fieldnames,
-)
-
+from .update import add_new_source_endpoint, get_failing_endpoints_from_registers
 
 PIPELINE = None
 SPECIFICATION = None
@@ -52,6 +48,15 @@ def pipeline_name(f):
 def pipeline_path(f):
     return click.option(
         "--pipeline-path", "-p", type=click.Path(exists=True), default="pipeline/"
+    )(f)
+
+
+def collection_directory(f):
+    return click.option(
+        "--collection-directory",
+        "-c",
+        type=click.Path(exists=True),
+        default="collection/",
     )(f)
 
 
@@ -122,6 +127,7 @@ def collect_cmd(endpoint_path):
 
 #
 #  collection commands
+#  TBD: make sub commands
 #
 @cli.command(
     "index",
@@ -134,12 +140,25 @@ def index_cmd():
 
 
 @cli.command("collection-list-resources", short_help="list resources for a pipeline")
-def pipeline_resources_cmd():
-    collection = Collection()
-    # can be loaded from a collection directory, or a collection datapackage
+@collection_directory
+def pipeline_collection_list_resources_cmd(collection_directory):
+    collection = Collection(collection_directory)
     collection.load()
-    for resource in collection.resources(pipeline=PIPELINE.name):
-        print(collection.resource_path(resource))
+    for resource in sorted(collection.resource.records):
+        print(resource_path(resource, directory=collection_directory))
+
+
+@cli.command("collection-save-csv", short_help="save collection as CSV package")
+@collection_directory
+def pipeline_collection_save_csv_cmd(collection_directory):
+    try:
+        os.remove(Path(collection_directory) / "log.csv")
+        os.remove(Path(collection_directory) / "resource.csv")
+    except OSError:
+        pass
+    collection = Collection(collection_directory)
+    collection.load()
+    collection.save_csv()
 
 
 #
@@ -344,11 +363,8 @@ def endpoints_check_cmd(first_date, log_dir, endpoint_path, last_date):
 @click.pass_context
 @click.argument("endpoint-url", type=click.STRING)
 @click.argument("organisation", type=click.STRING)
-@source_path
-@endpoint_path
-def add_source_endpoint_cmd(
-    ctx, endpoint_url, organisation, source_path, endpoint_path
-):
+@collection_directory
+def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_directory):
     """Add a new source/endpoint entry. Optional parameters are: source, attribution, collection, documentation-url,
     licence, organisation, pipeline, status, plugin, parameters, start-date, end-date
 
@@ -358,14 +374,14 @@ def add_source_endpoint_cmd(
         str,
         {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},
     )
-    allowed_options = get_source_endpoint_fieldnames()
+    allowed_options = set(Schema("endpoint").fieldnames + Schema("source").fieldnames)
     for key in entry.keys():
         if key not in allowed_options:
             logging.error(f"Optional parameter {key} not recognised")
             sys.exit(2)
     entry["endpoint-url"] = endpoint_url
     entry["organisation"] = organisation
-    add_new_source_endpoint(entry, source_path, endpoint_path)
+    add_new_source_endpoint(entry, collection_directory)
 
 
 def resource_hash_from(path):
