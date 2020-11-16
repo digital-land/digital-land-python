@@ -86,7 +86,7 @@ class Harmoniser:
     def apply_patch(self, fieldname, value):
         patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
         for pattern, replacement in patches.items():
-            match = re.match(pattern.lower(), value.lower())
+            match = re.match(pattern, value.lower())
             if match:
                 return match.expand(replacement)
             if pattern.lower() == value.lower():
