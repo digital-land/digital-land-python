@@ -9,3 +9,4 @@ def test_string_normalise():
     string = StringDataType()
 
     assert string.normalise("Hello folks") == "Hello folks"
+    assert string.normalise("""Hi Everyone""") == "Hi Everyone"
