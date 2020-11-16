@@ -7,4 +7,8 @@ class StringDataType(DataType):
 
     def normalise(self, value, issues=None):
         value = value.strip()
+
+        # remove double-quotes, normalise spaces
+        value = " ".join(value.split()).replace('"', "").replace("”", "")
+
         return value
