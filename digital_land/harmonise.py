@@ -154,7 +154,9 @@ class Harmoniser:
 
             for field in row:
                 row[field] = self.apply_patch(field, row[field])
-                if self.harmonise_callback:
+                if self.harmonise_callback and hasattr(
+                        self.harmonise_callback, "patch"
+                ):
                     row[field] = self.harmonise_callback.patch(
                         field, row[field], self.log_issue
                     )
