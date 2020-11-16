@@ -3,15 +3,15 @@ import logging
 import os
 import sys
 import tempfile
-from pathlib import Path
-from datetime import date
 from collections import defaultdict
-import canonicaljson
+from datetime import date
+from pathlib import Path
 
+import canonicaljson
 import click
 
-from .collection import Collection, resource_path
 from .collect import Collector
+from .collection import Collection, resource_path
 from .convert import Converter
 from .harmonise import Harmoniser
 from .index import Indexer
@@ -23,14 +23,10 @@ from .organisation import Organisation
 from .pipeline import Pipeline
 from .resource_organisation import ResourceOrganisation
 from .save import save
+from .schema import Schema
 from .specification import Specification
 from .transform import Transformer
-from .update import (
-    get_failing_endpoints_from_registers,
-    add_new_source_endpoint,
-    get_source_endpoint_fieldnames,
-)
-
+from .update import add_new_source_endpoint, get_failing_endpoints_from_registers
 
 PIPELINE = None
 SPECIFICATION = None
@@ -378,7 +374,7 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_director
         str,
         {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},
     )
-    allowed_options = get_source_endpoint_fieldnames()
+    allowed_options = set(Schema("endpoint").fieldnames + Schema("source").fieldnames)
     for key in entry.keys():
         if key not in allowed_options:
             logging.error(f"Optional parameter {key} not recognised")

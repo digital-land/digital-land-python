@@ -2,11 +2,6 @@ from datetime import datetime, date
 
 from .register import Item, hash_value
 from .collection import Collection
-from .schema import Schema
-
-
-def get_source_endpoint_fieldnames():
-    return set(Schema("endpoint").fieldnames + Schema("source").fieldnames)
 
 
 def get_failing_endpoints_from_registers(
