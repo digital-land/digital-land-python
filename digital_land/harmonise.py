@@ -47,9 +47,9 @@ class Harmoniser:
         pipeline,
         issues=None,
         collection={},
-        resource_organisation={},
         organisation_uri=None,
         patch={},
+        use_patch_callback=False,
     ):
         self.specification = specification
         self.pipeline = pipeline
@@ -58,9 +58,12 @@ class Harmoniser:
         # self.required_fieldnames = schema.required_fieldnames
         self.issues = issues
         self.collection = collection
-        self.resource_organisation = resource_organisation
         self.organisation_uri = organisation_uri
         self.patch = patch
+        self.harmonise_callback = None
+        if use_patch_callback:
+            self.harmonise_callback = pipeline.get_pipeline_callback().harmonise
+            self.harmonise_callback.init()
 
         # if "OrganisationURI" in self.fieldnames:
         #    if input_path and resource_organisation_path:
@@ -86,9 +89,13 @@ class Harmoniser:
             match = re.match(pattern, value.lower())
             if match:
                 return match.expand(replacement)
+            if pattern.lower() == value.lower():
+                return replacement
         return value
 
     def set_default(self, o, fieldname, value):
+        if fieldname not in o:
+            return o
         if value and not o[fieldname]:
             self.log_issue(fieldname, "default", value)
             o[fieldname] = value
@@ -104,37 +111,27 @@ class Harmoniser:
 
         return o
 
-    def set_resource_defaults_legacy(self, resource):
-        # Used only for brownfield-land
-        self.default_values = {}
-        self.default_fieldnames = self.pipeline.default_fieldnames(resource)
-        if len(self.resource_organisation.get(resource, [])) > 0:
-            resource_defaults = self.resource_organisation[resource]
-            self.default_values["LastUpdatedDate"] = resource_defaults[0]["start-date"]
-            if len(resource_defaults) > 1:
-                # resource has more than one organisation
-                self.default_values["OrganisationURI"] = ""
-                return
-
-            self.default_values["OrganisationURI"] = self.organisation_uri[
-                resource_defaults[0]["organisation"].lower()
-            ]
-
     def set_resource_defaults(self, resource):
         self.default_values = {}
         if not resource:
             return
+
         self.default_fieldnames = self.pipeline.default_fieldnames(resource)
         resource_entry = self.collection.resource.records[resource][0]
-        self.default_values["entry-date"] = resource_entry["start-date"]
-
         resource_organisations = self.collection.resource_organisation(resource)
+
         if len(resource_organisations) > 1:
             # resource has more than one organisation
             self.default_values["organisation"] = ""
             return
 
         self.default_values["organisation"] = resource_organisations[0]
+        self.default_values["entry-date"] = resource_entry["start-date"]
+
+        if self.harmonise_callback and hasattr(
+            self.harmonise_callback, "set_resource_default_values"
+        ):
+            self.harmonise_callback.set_resource_default_values(self.default_values)
 
     def harmonise(self, reader):
 
@@ -151,15 +148,18 @@ class Harmoniser:
                 self.issues.row_number += 1
 
             if not last_resource or last_resource != resource:
-                if self.pipeline.name == "brownfield-land":
-                    self.set_resource_defaults_legacy(resource)
-                else:
-                    self.set_resource_defaults(resource)
+                self.set_resource_defaults(resource)
 
             o = {}
 
             for field in row:
                 row[field] = self.apply_patch(field, row[field])
+                if self.harmonise_callback and hasattr(
+                    self.harmonise_callback, "patch"
+                ):
+                    row[field] = self.harmonise_callback.patch(
+                        field, row[field], self.log_issue
+                    )
                 o[field] = self.harmonise_field(field, row[field])
 
             # default missing values

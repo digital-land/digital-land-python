@@ -227,26 +227,16 @@ def map_cmd(input_path, output_path):
 )
 @input_output_path
 @issue_path
-def harmonise_cmd(
-    input_path,
-    output_path,
-    issue_path,
-):
+@click.option("--use-patch-callback", is_flag=True, help="use custom patching function")
+def harmonise_cmd(input_path, output_path, issue_path, use_patch_callback):
     if not output_path:
         output_path = default_output_path_for("harmonised", input_path)
 
     resource_hash = resource_hash_from(input_path)
     issues = Issues()
 
-    if PIPELINE.name == "brownfield-land":
-        # TODO Remove this temporary hack once LogRegistry can
-        # be loaded in a reasonable time from datapackage
-        resource_organisation = ResourceOrganisation().resource_organisation
-        collection = {}
-    else:
-        resource_organisation = {}
-        collection = Collection()
-        collection.load()
+    collection = Collection()
+    collection.load()
 
     organisation_uri = Organisation().organisation_uri
     patch = PIPELINE.patches(resource_hash)
@@ -256,9 +246,9 @@ def harmonise_cmd(
         PIPELINE,
         issues,
         collection,
-        resource_organisation,
         organisation_uri,
         patch,
+        use_patch_callback,
     )
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)

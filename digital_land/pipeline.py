@@ -1,6 +1,7 @@
 import csv
 import os
 import re
+import importlib.util
 
 csv.field_size_limit(1048576)
 
@@ -166,3 +167,10 @@ class Pipeline:
 
     def normalise(self, name):
         return re.sub(self.normalise_pattern, "", name.lower())
+
+    def get_pipeline_callback(self):
+        file = os.path.join(self.path, "pipeline-callback.py")
+        spec = importlib.util.spec_from_file_location("pipeline-callback.py", file)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.PipelineCallback
