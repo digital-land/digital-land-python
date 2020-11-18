@@ -89,8 +89,7 @@ class Harmoniser:
             match = re.match(pattern, value.lower())
             if match:
                 return match.expand(replacement)
-            if pattern.lower() == value.lower():
-                return replacement
+
         return value
 
     def set_default(self, o, fieldname, value):
