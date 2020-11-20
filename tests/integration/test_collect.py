@@ -1,4 +1,3 @@
-import os
 import shutil
 import csv
 import urllib.request
