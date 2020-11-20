@@ -142,7 +142,8 @@ class Indexer:
         _key = hashlib.sha256(h["endpoint-url"].encode("utf-8")).hexdigest()
         if key != _key:
             logging.warning(
-                "incorrect key for %s expected %s in %s" % (h["endpoint-url"], _key, path)
+                "incorrect key for %s expected %s in %s"
+                % (h["endpoint-url"], _key, path)
             )
             key = _key
 
@@ -162,7 +163,8 @@ class Indexer:
 
         if key not in self.idx:
             logging.error(
-                "no dataset entry for: %s %s cited in %s" % (h["endpoint-url"], key, path)
+                "no dataset entry for: %s %s cited in %s"
+                % (h["endpoint-url"], key, path)
             )
             self.idx.setdefault(key, {"url": h["endpoint-url"], "log": {}})
 
