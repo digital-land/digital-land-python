@@ -135,19 +135,19 @@ class Indexer:
                     ]
 
     def add(self, path, date, key, h):
-        if not h.get("url", ""):
+        if not h.get("endpoint-url", ""):
             logging.error("no url in %s" % (path))
 
         # check key in log filename matches url
-        _key = hashlib.sha256(h["url"].encode("utf-8")).hexdigest()
+        _key = hashlib.sha256(h["endpoint-url"].encode("utf-8")).hexdigest()
         if key != _key:
             logging.warning(
-                "incorrect key for %s expected %s in %s" % (h["url"], _key, path)
+                "incorrect key for %s expected %s in %s" % (h["endpoint-url"], _key, path)
             )
             key = _key
 
         e = {}
-        for field in ["status", "exception", "datetime", "elapsed", "resource"]:
+        for field in ["status", "exception", "entry-date", "elapsed", "resource"]:
             if field in h and h[field]:
                 e[field] = h[field]
 
@@ -162,9 +162,9 @@ class Indexer:
 
         if key not in self.idx:
             logging.error(
-                "no dataset entry for: %s %s cited in %s" % (h["url"], key, path)
+                "no dataset entry for: %s %s cited in %s" % (h["endpoint-url"], key, path)
             )
-            self.idx.setdefault(key, {"url": h["url"], "log": {}})
+            self.idx.setdefault(key, {"url": h["endpoint-url"], "log": {}})
 
         # avoid date collisions with a valid key
         while date in self.idx[key]["log"]:
@@ -180,7 +180,7 @@ class Indexer:
                 ) < datetime.strptime(date, "%Y-%m-%d"):
                     logging.warning(
                         "collection after %s end-date %s for %s: %s"
-                        % (organisation, end_date, h["url"], path)
+                        % (organisation, end_date, h["endpoint-url"], path)
                     )
         self.idx[key]["log"][date] = e
 
@@ -291,7 +291,7 @@ class Indexer:
         self.save_csv(
             "log",
             [
-                "datetime",
+                "entry-date",
                 "link",
                 "status",
                 "elapsed",

@@ -38,7 +38,7 @@ def get_failing_endpoints(
             if not collection_result:
                 if endpoint not in failing_endpoints:
                     failing_endpoints[endpoint] = {
-                        "url": log["url"],
+                        "url": log["endpoint-url"],
                         "reason": reason,
                         "failure_dates": [log["entry-date"]],
                     }

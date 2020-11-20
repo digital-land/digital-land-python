@@ -38,7 +38,7 @@ class LogStore(ItemStore):
 
         # default endpoint value
         if "endpoint" not in item:
-            item["endpoint"] = hash_value(item["url"])
+            item["endpoint"] = hash_value(item["endpoint-url"])
         self.check_item_path(item, path)
         return item
 

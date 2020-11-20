@@ -124,8 +124,8 @@ class Collector:
             return FetchStatus.ALREADY_FETCHED
 
         log = {
-            "url": url,
-            "datetime": log_datetime.isoformat(),
+            "endpoint-url": url,
+            "entry-date": log_datetime.isoformat(),
         }
 
         log, content = self.get(url, log)
