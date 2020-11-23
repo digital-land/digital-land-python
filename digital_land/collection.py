@@ -30,15 +30,21 @@ class LogStore(ItemStore):
     def load_item(self, path):
         item = super().load_item(path)
         item = item.copy()
-        # default entry-date field from datetime property
+        # migrate datetime to entry-date field
         if "datetime" in item:
             if "entry-date" not in item:
                 item["entry-date"] = item["datetime"]
             del item["datetime"]
 
-        # default endpoint value
+        # migrate url to endpoint-url field
+        if "url" in item:
+            if "endpoint-url" not in item:
+                item["endpoint-url"] = item["url"]
+            del item["url"]
+
+        # default the endpoint value
         if "endpoint" not in item:
-            item["endpoint"] = hash_value(item["url"])
+            item["endpoint"] = hash_value(item["endpoint-url"])
         self.check_item_path(item, path)
         return item
 
