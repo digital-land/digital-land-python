@@ -30,6 +30,14 @@ class LogStore(ItemStore):
     def load_item(self, path):
         item = super().load_item(path)
         item = item.copy()
+
+        # migrate content-type and bytes fields
+        h = item.get("response-headers", {})
+        if "content-type" not in item:
+            item["content-type"] = h.get("Content-Type", "")
+        if "bytes" not in item:
+            item["bytes"] = h.get("Content-Length", "")
+
         # migrate datetime to entry-date field
         if "datetime" in item:
             if "entry-date" not in item:
@@ -46,6 +54,7 @@ class LogStore(ItemStore):
         if "endpoint" not in item:
             item["endpoint"] = hash_value(item["endpoint-url"])
         self.check_item_path(item, path)
+
         return item
 
     def save_item(self, item, path):
