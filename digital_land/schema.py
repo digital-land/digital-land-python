@@ -5,11 +5,11 @@ from collections import OrderedDict
 schemas = {
     "log": {
         "fields": [
+            "bytes",
+            "content-type",
             "elapsed",
             "endpoint",
-            "request-headers",
             "resource",
-            "response-headers",
             "status",
             "entry-date",
             "start-date",
