@@ -36,7 +36,9 @@ class Transformer:
             for field in self.fields:
                 if field in row and row[field]:
                     o[field] = row[field]
-                elif field in self.transformations and self.transformations[field] in row:
+                elif (
+                    field in self.transformations and self.transformations[field] in row
+                ):
                     o[field] = row[self.transformations[field]]
 
             yield {
