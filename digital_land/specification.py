@@ -95,11 +95,17 @@ class Specification:
                 "text": row["text"],
             }
 
-    @property
-    def current_fieldnames(self):
+    def current_fieldnames(self, schema=None):
+        if schema:
+            fields = {}
+            for f in self.schema_field[schema]:
+                fields[f] = self.field[f]
+        else:
+            fields = self.field
+
         return [
             field
-            for field, value in self.field.items()
+            for field, value in fields.items()
             if not value["end-date"]
             or value["end-date"] > datetime.now().strftime("%Y-%m-%d")
         ]

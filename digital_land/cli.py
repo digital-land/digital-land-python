@@ -265,10 +265,14 @@ def transform_cmd(input_path, output_path):
         output_path = default_output_path_for("transformed", input_path)
 
     organisation = Organisation()
-    transformer = Transformer(PIPELINE.transformations(), organisation.organisation)
+    transformer = Transformer(
+        SPECIFICATION.schema_field[PIPELINE.name],
+        PIPELINE.transformations(),
+        organisation.organisation,
+    )
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
-    save(stream, output_path, SPECIFICATION.current_fieldnames)
+    save(stream, output_path, SPECIFICATION.current_fieldnames(PIPELINE.name))
 
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
@@ -281,7 +285,7 @@ def pipeline_cmd(input_path, output_path, issue_path):
     organisation = Organisation()
     resource_organisation = ResourceOrganisation().resource_organisation
     issues = Issues()
-    fieldnames = SPECIFICATION.current_fieldnames
+    fieldnames = SPECIFICATION.current_fieldnames()
     patch = PIPELINE.patches(resource_hash)
 
     normaliser = Normaliser()
@@ -379,7 +383,7 @@ def resource_hash_from(path):
 
 
 def intermediary_fieldnames(specification, pipeline):
-    fieldnames = specification.schema_field[pipeline.schema]
+    fieldnames = specification.schema_field[pipeline.name]
     replacement_fields = list(pipeline.transformations().keys())
     for field in replacement_fields:
         if field in fieldnames:

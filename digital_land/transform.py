@@ -8,7 +8,8 @@
 
 
 class Transformer:
-    def __init__(self, fields, organisation={}):
+    def __init__(self, fields, transformations, organisation={}):
+        self.transformations = transformations
         self.fields = fields
 
         # map of OrganisationURI to organisation CURIE
@@ -32,8 +33,11 @@ class Transformer:
                     row["OrganisationURI"], ""
                 )
 
-            for field, source in self.fields.items():
-                o[field] = row[source]
+            for field in self.fields:
+                if field in row and row[field]:
+                    o[field] = row[field]
+                elif field in self.transformations and self.transformations[field] in row:
+                    o[field] = row[self.transformations[field]]
 
             yield {
                 "resource": stream_data["resource"],
