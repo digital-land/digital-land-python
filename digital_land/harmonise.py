@@ -117,7 +117,7 @@ class Harmoniser:
 
         self.default_fieldnames = self.pipeline.default_fieldnames(resource)
         resource_entry = self.collection.resource.records[resource][0]
-        resource_organisations = self.collection.resource_organisation(resource)
+        resource_organisations = self.collection.resource_organisations(resource)
 
         if len(resource_organisations) > 1:
             # resource has more than one organisation
