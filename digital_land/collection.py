@@ -13,6 +13,10 @@ from .store.item import ItemStore
 collection_directory = "./collection"
 
 
+def isodate(s):
+    return datetime.fromisoformat(s).strftime("%Y-%m-%d")
+
+
 def resource_path(resource, directory=collection_directory):
     return Path(directory) / "resource" / resource
 
@@ -80,18 +84,14 @@ class LogStore(ItemStore):
 
 # a register of resources constructed from the log register
 class ResourceLogStore(CSVStore):
-    def load(self, log, directory=collection_directory):
+    def load(self, log, source, directory=collection_directory):
         resources = {}
+
         for entry in log.entries:
             if "resource" in entry:
                 resource = entry["resource"]
-                if resource in resources:
-                    resources[resource]["start-date"] = min(
-                        resources[resource]["start-date"], entry["entry-date"]
-                    )
-                else:
+                if resource not in resources:
                     path = resource_path(resource, directory=directory)
-
                     try:
                         size = os.path.getsize(path)
                     except (FileNotFoundError):
@@ -99,18 +99,34 @@ class ResourceLogStore(CSVStore):
                         size = ""
 
                     resources[resource] = {
-                        "start-date": entry["entry-date"],
                         "bytes": size,
+                        "endpoints": {},
+                        "start-date": entry["entry-date"],
+                        "end-date": entry["entry-date"],
                     }
+                else:
+                    resources[resource]["start-date"] = min(
+                        resources[resource]["start-date"], entry["entry-date"]
+                    )
+                    resources[resource]["end-date"] = max(
+                        resources[resource]["end-date"], entry["entry-date"]
+                    )
+                resources[resource]["endpoints"][entry["endpoint"]] = True
 
         for key, resource in sorted(resources.items()):
+            organisations = {}
+            for endpoint in resource["endpoints"]:
+                for entry in source.records[endpoint]:
+                    organisations[entry["organisation"]] = True
+
             self.add_entry(
                 {
                     "resource": key,
                     "bytes": resource["bytes"],
-                    "start-date": datetime.fromisoformat(
-                        resource["start-date"]
-                    ).strftime("%Y-%m-%d"),
+                    "endpoints": ";".join(sorted(resource["endpoints"])),
+                    "organisations": ";".join(sorted(organisations)),
+                    "start-date": isodate(resource["start-date"]),
+                    "end-date": isodate(resource["end-date"]),
                 }
             )
 
@@ -130,7 +146,7 @@ class Collection:
         self.log.load(directory=log_directory)
 
         self.resource = ResourceLogStore(Schema("resource"))
-        self.resource.load(log=self.log)
+        self.resource.load(log=self.log, source=self.source)
 
     def save_csv(self, directory=None):
         if not directory:
@@ -159,18 +175,10 @@ class Collection:
         except (FileNotFoundError):
             self.load_log_items()
 
-    def resource_organisation(self, resource):
+    def resource_endpoints(self, resource):
+        "return the list of endpoints a resource was collected from"
+        return self.resource.records[resource][-1]["endpoints"].split(";")
+
+    def resource_organisations(self, resource):
         "return the list of organisations for which a resource was collected"
-        endpoints = {}
-        organisations = {}
-
-        # entries which collected the resource
-        for entry in self.log.entries:
-            if "resource" in entry and entry["resource"] == resource:
-                endpoints[entry["endpoint"]] = True
-
-        # sources which cite the endpoint
-        for endpoint in endpoints:
-            for entry in self.source.records[endpoint]:
-                organisations[entry["organisation"]] = True
-        return sorted(organisations)
+        return self.resource.records[resource][-1]["organisations"].split(";")

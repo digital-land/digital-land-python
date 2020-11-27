@@ -44,7 +44,17 @@ schemas = {
         ],
         "key": "endpoint",
     },
-    "resource": {"fields": ["resource", "bytes", "start-date"], "key": "resource"},
+    "resource": {
+        "fields": [
+            "resource",
+            "bytes",
+            "organisations",
+            "endpoints",
+            "start-date",
+            "end-date",
+        ],
+        "key": "resource",
+    },
 }
 
 
