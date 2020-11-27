@@ -36,6 +36,10 @@ def test_collection():
     resources = collection.resource.records
     assert len(resources) == 2
 
-    assert collection.resource_organisation(
+    assert collection.resource_endpoints(
+        "ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf"
+    ) == ["7f72ae4d3152d220bb1786923c134cf286d4c42720c98dd269d067d461e18b70"]
+
+    assert collection.resource_organisations(
         "ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf"
     ) == ["organisation:2"]
