@@ -45,7 +45,7 @@ class DictReaderInjectResource(csv.DictReader):
         }
 
 
-def load_csv_dict(path, inject_resource=False):
+def load_csv_dict(path):
     logging.debug(f"reading csv {path}")
     f = open(path, newline=None)
     return DictReaderInjectResource(resource_hash_from(path), f)
@@ -98,3 +98,24 @@ def reader_with_line(f, resource):
 
 def load(path):
     return load_csv(path, encoding=None) or load_excel(path)
+
+
+class LineConverter:
+    def __init__(self):
+        self.fieldnames = None
+        self.line_stream = None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = next(self.line_stream)
+        return {
+            "resource": line["resource"],
+            "row": dict(zip(self.fieldnames, line["line"])),
+        }
+
+    def convert(self, line_stream):
+        self.fieldnames = next(line_stream)["line"]
+        self.line_stream = line_stream
+        return self
