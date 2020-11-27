@@ -327,21 +327,10 @@ def pipeline_cmd(input_path, output_path, null_path, issue_path, use_patch_callb
         transformer.transform,
     )
 
-    transformed = pipeline(input_path)
-
-    # converted = converter.convert(input_path)
-    # if not converted:
-    #     logging.error(f"Unable to convert {input_path}")
-    #     sys.exit(2)
-    #
-    # normalised = normaliser.normalise(converted)
-    # line_converted = line_converter.convert(normalised)
-    # mapped = mapper.map(line_converted)
-    # harmonised = harmoniser.harmonise(mapped)
-    # transformed = transformer.transform(harmonised)
+    output = pipeline(input_path)
 
     save(
-        transformed,
+        output,
         output_path,
         fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.name),
     )
