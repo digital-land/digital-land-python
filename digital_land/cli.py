@@ -384,7 +384,7 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_director
         str,
         {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},
     )
-    allowed_options = set(Schema("endpoint").fieldnames + Schema("source").fieldnames)
+    allowed_options = set(list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames))
     for key in entry.keys():
         if key not in allowed_options:
             logging.error(f"Optional parameter {key} not recognised")
