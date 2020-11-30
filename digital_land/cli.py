@@ -2,7 +2,6 @@ import functools
 import logging
 import os
 import sys
-import tempfile
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
@@ -16,12 +15,11 @@ from .convert import Converter
 from .harmonise import Harmoniser
 from .index import Indexer
 from .issues import Issues, IssuesFile
-from .load import load, load_csv, load_csv_dict
+from .load import load_csv, load_csv_dict, LineConverter
 from .map import Mapper
 from .normalise import Normaliser
 from .organisation import Organisation
 from .pipeline import Pipeline
-from .resource_organisation import ResourceOrganisation
 from .save import save
 from .schema import Schema
 from .specification import Specification
@@ -277,18 +275,29 @@ def transform_cmd(input_path, output_path):
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
 @input_output_path
-@specification_path
-@pipeline_path
+@click.option(
+    "--null-path",
+    type=click.Path(exists=True),
+    help="patterns for null fields",
+    default=None,
+)
 @issue_path
-def pipeline_cmd(input_path, output_path, issue_path):
+@click.option("--use-patch-callback", is_flag=True, help="use custom patching function")
+def pipeline_cmd(input_path, output_path, null_path, issue_path, use_patch_callback):
     resource_hash = resource_hash_from(input_path)
     organisation = Organisation()
-    resource_organisation = ResourceOrganisation().resource_organisation
     issues = Issues()
-    fieldnames = SPECIFICATION.current_fieldnames()
+
+    fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
     patch = PIPELINE.patches(resource_hash)
 
-    normaliser = Normaliser()
+    collection = Collection()
+    collection.load()
+    line_converter = LineConverter()
+
+    converter = Converter(PIPELINE.conversions())
+
+    normaliser = Normaliser(PIPELINE.skip_patterns(resource_hash), null_path=null_path)
     mapper = Mapper(
         fieldnames,
         PIPELINE.columns(resource_hash),
@@ -298,26 +307,33 @@ def pipeline_cmd(input_path, output_path, issue_path):
         SPECIFICATION,
         PIPELINE,
         issues,
-        resource_organisation,
+        collection,
         Organisation().organisation_uri,
         patch,
+        use_patch_callback,
     )
-    transformer = Transformer(PIPELINE.transformations(), organisation.organisation)
-
-    # pipeline = compose(normaliser.normalise, mapper.map, harmoniser.harmonise, transformer.transform)
-
-    stream = load(input_path)
-    normalised = normaliser.normalise(stream)
-    normalised_tmp = tempfile.NamedTemporaryFile(
-        suffix=f".{resource_hash}.csv"  # Keep the resource hash in the temp filename
+    transformer = Transformer(
+        SPECIFICATION.schema_field[PIPELINE.name],
+        PIPELINE.transformations(),
+        organisation.organisation,
     )
-    save(normalised, normalised_tmp.name)
 
-    stream_dict = load_csv_dict(normalised_tmp.name)
-    mapped = mapper.map(stream_dict)
-    harmonised = harmoniser.harmonise(mapped)
-    transformed = transformer.transform(harmonised)
-    save(transformed, output_path, fieldnames=fieldnames)
+    pipeline = compose(
+        converter.convert,
+        normaliser.normalise,
+        line_converter.convert,
+        mapper.map,
+        harmoniser.harmonise,
+        transformer.transform,
+    )
+
+    output = pipeline(input_path)
+
+    save(
+        output,
+        output_path,
+        fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.name),
+    )
 
     issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
     issues_file.write_issues(issues)
@@ -383,7 +399,7 @@ def resource_hash_from(path):
 
 
 def intermediary_fieldnames(specification, pipeline):
-    fieldnames = specification.schema_field[pipeline.name]
+    fieldnames = specification.schema_field[pipeline.name].copy()
     replacement_fields = list(pipeline.transformations().keys())
     for field in replacement_fields:
         if field in fieldnames:
@@ -393,3 +409,10 @@ def intermediary_fieldnames(specification, pipeline):
 
 def default_output_path_for(command, input_path):
     return f"var/{command}/{resource_hash_from(input_path)}.csv"
+
+
+def compose(*functions):
+    def compose2(f, g):
+        return lambda x: g(f(x))
+
+    return functools.reduce(compose2, functions, lambda x: x)
