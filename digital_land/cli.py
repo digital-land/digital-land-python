@@ -69,7 +69,7 @@ def specification_path(f):
 
 def issue_path(f):
     return click.option(
-        "--issue-path", "-i", type=click.Path(exists=True), default="var/issue/"
+        "--issue-path", "-i", type=click.Path(exists=True), default="issue/"
     )(f)
 
 
