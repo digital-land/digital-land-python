@@ -313,7 +313,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_path, use_patch_callb
         use_patch_callback,
     )
     transformer = Transformer(
-        SPECIFICATION.schema_field[PIPELINE.name],
+        SPECIFICATION.schema_field[PIPELINE.schema],
         PIPELINE.transformations(),
         organisation.organisation,
     )
@@ -332,7 +332,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_path, use_patch_callb
     save(
         output,
         output_path,
-        fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.name),
+        fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.schema),
     )
 
     issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
@@ -384,7 +384,9 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_director
         str,
         {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},
     )
-    allowed_options = set(list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames))
+    allowed_options = set(
+        list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
+    )
     for key in entry.keys():
         if key not in allowed_options:
             logging.error(f"Optional parameter {key} not recognised")
@@ -399,7 +401,7 @@ def resource_hash_from(path):
 
 
 def intermediary_fieldnames(specification, pipeline):
-    fieldnames = specification.schema_field[pipeline.name].copy()
+    fieldnames = specification.schema_field[pipeline.schema].copy()
     replacement_fields = list(pipeline.transformations().keys())
     for field in replacement_fields:
         if field in fieldnames:
