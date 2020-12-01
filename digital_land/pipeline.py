@@ -3,7 +3,7 @@ import os
 import re
 import importlib.util
 
-csv.field_size_limit(1048576)
+csv.field_size_limit(16777216)
 
 
 class Pipeline:
