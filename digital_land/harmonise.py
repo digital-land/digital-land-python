@@ -4,9 +4,10 @@
 #  -- log issues for suggestions for the user to amend
 #
 
+import re
+
 # import .digital_land.types as types
 from digital_land.datatype.point import PointDataType
-import re
 
 """
 # this could apply to any field, really
@@ -49,7 +50,7 @@ class Harmoniser:
         collection={},
         organisation_uri=None,
         patch={},
-        use_patch_callback=False,
+        plugin_manager=None,
     ):
         self.specification = specification
         self.pipeline = pipeline
@@ -60,10 +61,10 @@ class Harmoniser:
         self.collection = collection
         self.organisation_uri = organisation_uri
         self.patch = patch
-        self.harmonise_callback = None
-        if use_patch_callback:
-            self.harmonise_callback = pipeline.get_pipeline_callback().harmonise
-            self.harmonise_callback.init()
+        self.plugin_manager = plugin_manager
+
+        if plugin_manager:
+            plugin_manager.hook.init_harmoniser_plugin(harmoniser=self)
 
         # if "OrganisationURI" in self.fieldnames:
         #    if input_path and resource_organisation_path:
@@ -127,10 +128,8 @@ class Harmoniser:
         self.default_values["organisation"] = resource_organisations[0]
         self.default_values["entry-date"] = resource_entry["start-date"]
 
-        if self.harmonise_callback and hasattr(
-            self.harmonise_callback, "set_resource_default_values"
-        ):
-            self.harmonise_callback.set_resource_default_values(self.default_values)
+        if self.plugin_manager:
+            self.plugin_manager.hook.set_resource_defaults_post(resource=resource)
 
     def harmonise(self, reader):
 
@@ -153,12 +152,13 @@ class Harmoniser:
 
             for field in row:
                 row[field] = self.apply_patch(field, row[field])
-                if self.harmonise_callback and hasattr(
-                    self.harmonise_callback, "patch"
-                ):
-                    row[field] = self.harmonise_callback.patch(
-                        field, row[field], self.log_issue
+                if self.plugin_manager:
+                    plugin_results = self.plugin_manager.hook.apply_patch_post(
+                        fieldname=field, value=row[field]
                     )
+                    if len(plugin_results) == 1:
+                        row[field] = plugin_results[0]
+
                 o[field] = self.harmonise_field(field, row[field])
 
             # default missing values
