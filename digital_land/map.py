@@ -72,6 +72,10 @@ class Mapper:
 
             o = self.concatenate_fields(row, o)
 
+            for header in self.normalised_fieldnames.values():
+                if header not in o:
+                    o[header] = ""
+
             yield {
                 "resource": stream_data["resource"],
                 "row": o,
