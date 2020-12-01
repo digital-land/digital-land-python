@@ -264,13 +264,13 @@ def transform_cmd(input_path, output_path):
 
     organisation = Organisation()
     transformer = Transformer(
-        SPECIFICATION.schema_field[PIPELINE.name],
+        SPECIFICATION.schema_field[PIPELINE.schema],
         PIPELINE.transformations(),
         organisation.organisation,
     )
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
-    save(stream, output_path, SPECIFICATION.current_fieldnames(PIPELINE.name))
+    save(stream, output_path, SPECIFICATION.current_fieldnames(PIPELINE.schema))
 
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
