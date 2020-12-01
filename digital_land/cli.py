@@ -45,7 +45,7 @@ def pipeline_name(f):
 
 def pipeline_path(f):
     return click.option(
-        "--pipeline-path", "-p", type=click.Path(exists=True), default="pipeline/"
+        "--pipeline-path", "-p", type=click.Path(), default="pipeline/"
     )(f)
 
 
