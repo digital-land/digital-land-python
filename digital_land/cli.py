@@ -15,11 +15,12 @@ from .convert import Converter
 from .harmonise import Harmoniser
 from .index import Indexer
 from .issues import Issues, IssuesFile
-from .load import load_csv, load_csv_dict, LineConverter
+from .load import LineConverter, load_csv, load_csv_dict
 from .map import Mapper
 from .normalise import Normaliser
 from .organisation import Organisation
 from .pipeline import Pipeline
+from .plugin import get_plugin_manager
 from .save import save
 from .schema import Schema
 from .specification import Specification
@@ -225,8 +226,7 @@ def map_cmd(input_path, output_path):
 )
 @input_output_path
 @issue_path
-@click.option("--use-patch-callback", is_flag=True, help="use custom patching function")
-def harmonise_cmd(input_path, output_path, issue_path, use_patch_callback):
+def harmonise_cmd(input_path, output_path, issue_path):
     if not output_path:
         output_path = default_output_path_for("harmonised", input_path)
 
@@ -239,6 +239,9 @@ def harmonise_cmd(input_path, output_path, issue_path, use_patch_callback):
     organisation_uri = Organisation().organisation_uri
     patch = PIPELINE.patches(resource_hash)
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
+
+    pm = get_plugin_manager()
+
     harmoniser = Harmoniser(
         SPECIFICATION,
         PIPELINE,
@@ -246,8 +249,9 @@ def harmonise_cmd(input_path, output_path, issue_path, use_patch_callback):
         collection,
         organisation_uri,
         patch,
-        use_patch_callback,
+        pm,
     )
+
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)
     save(stream, output_path, fieldnames=fieldnames)
@@ -282,8 +286,7 @@ def transform_cmd(input_path, output_path):
     default=None,
 )
 @issue_path
-@click.option("--use-patch-callback", is_flag=True, help="use custom patching function")
-def pipeline_cmd(input_path, output_path, null_path, issue_path, use_patch_callback):
+def pipeline_cmd(input_path, output_path, null_path, issue_path):
     resource_hash = resource_hash_from(input_path)
     organisation = Organisation()
     issues = Issues()
@@ -294,6 +297,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_path, use_patch_callb
     collection = Collection()
     collection.load()
     line_converter = LineConverter()
+    pm = get_plugin_manager()
 
     converter = Converter(PIPELINE.conversions())
 
@@ -310,7 +314,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_path, use_patch_callb
         collection,
         Organisation().organisation_uri,
         patch,
-        use_patch_callback,
+        pm,
     )
     transformer = Transformer(
         SPECIFICATION.schema_field[PIPELINE.schema],
