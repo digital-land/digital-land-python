@@ -102,7 +102,7 @@ def execute(command):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
-        outs, errs = proc.communicate(timeout=15)
+        outs, errs = proc.communicate(timeout=600)
     except subprocess.TimeoutExpired:
         proc.kill()
         outs, errs = proc.communicate()
