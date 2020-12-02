@@ -68,7 +68,7 @@ class Mapper:
             o = {}
 
             for header in headers:
-                o[headers[header]] = row[header]
+                o[headers[header]] = row.get(header, "")
 
             o = self.concatenate_fields(row, o)
 
