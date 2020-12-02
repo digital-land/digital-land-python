@@ -380,10 +380,7 @@ def endpoints_check_cmd(first_date, log_dir, endpoint_path, last_date):
 @collection_directory
 def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_directory):
     """Add a new source/endpoint entry. Optional parameters are: source, attribution, collection, documentation-url,
-    licence, organisation, pipeline, status, plugin, parameters, start-date, end-date
-
-    Note, if unspecified, start-date is set to current date by default.
-    """
+    licence, organisation, pipeline, status, plugin, parameters, start-date, end-date"""
     entry = defaultdict(
         str,
         {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},

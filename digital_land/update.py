@@ -80,15 +80,9 @@ def add_new_source_endpoint(entry, collection_directory):
     collection.save_csv()
 
 
-# If empty start-date set by user then no date should be set.
-# Otherwise set user-specified date or use current date
 def start_date(entry):
-    if "start-date" not in entry:
-        return date.today().strftime("%Y-%m-%d")
-
     if entry["start-date"]:
         return datetime.strptime(entry["start-date"], "%Y-%m-%d").date()
-
     return ""
 
 
