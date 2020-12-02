@@ -64,6 +64,7 @@ class Harmoniser:
         self.plugin_manager = plugin_manager
 
         if plugin_manager:
+            plugin_manager.register(self)
             plugin_manager.hook.init_harmoniser_plugin(harmoniser=self)
 
         # if "OrganisationURI" in self.fieldnames:

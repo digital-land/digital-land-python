@@ -252,8 +252,6 @@ def harmonise_cmd(input_path, output_path, issue_path):
         pm,
     )
 
-    pm.register(harmoniser)
-
     stream = load_csv_dict(input_path)
     stream = harmoniser.harmonise(stream)
     save(stream, output_path, fieldnames=fieldnames)
