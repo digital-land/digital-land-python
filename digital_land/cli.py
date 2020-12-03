@@ -45,9 +45,9 @@ def pipeline_name(f):
 
 
 def pipeline_dir(f):
-    return click.option(
-        "--pipeline-dir", "-p", type=click.Path(), default="pipeline/"
-    )(f)
+    return click.option("--pipeline-dir", "-p", type=click.Path(), default="pipeline/")(
+        f
+    )
 
 
 def collection_dir(f):
