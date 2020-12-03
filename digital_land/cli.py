@@ -44,33 +44,33 @@ def pipeline_name(f):
     return click.option("--pipeline-name", "-n", type=click.STRING)(f)
 
 
-def pipeline_path(f):
+def pipeline_dir(f):
     return click.option(
-        "--pipeline-path", "-p", type=click.Path(), default="pipeline/"
+        "--pipeline-dir", "-p", type=click.Path(), default="pipeline/"
     )(f)
 
 
-def collection_directory(f):
+def collection_dir(f):
     return click.option(
-        "--collection-directory",
+        "--collection-dir",
         "-c",
         type=click.Path(exists=True),
         default="collection/",
     )(f)
 
 
-def specification_path(f):
+def specification_dir(f):
     return click.option(
-        "--specification-path",
+        "--specification-dir",
         "-s",
         type=click.Path(exists=True),
         default="specification/",
     )(f)
 
 
-def issue_path(f):
+def issue_dir(f):
     return click.option(
-        "--issue-path", "-i", type=click.Path(exists=True), default="issue/"
+        "--issue-dir", "-i", type=click.Path(exists=True), default="issue/"
     )(f)
 
 
@@ -93,15 +93,15 @@ def source_path(f):
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
 @pipeline_name
-@pipeline_path
-@specification_path
-def cli(debug, pipeline_name, pipeline_path, specification_path):
+@pipeline_dir
+@specification_dir
+def cli(debug, pipeline_name, pipeline_dir, specification_dir):
     level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
     global PIPELINE
     global SPECIFICATION
-    PIPELINE = Pipeline(pipeline_path, pipeline_name)
-    SPECIFICATION = Specification(specification_path)
+    PIPELINE = Pipeline(pipeline_dir, pipeline_name)
+    SPECIFICATION = Specification(specification_dir)
 
 
 @cli.command("fetch")
@@ -139,23 +139,23 @@ def index_cmd():
 
 
 @cli.command("collection-list-resources", short_help="list resources for a pipeline")
-@collection_directory
-def pipeline_collection_list_resources_cmd(collection_directory):
-    collection = Collection(collection_directory)
+@collection_dir
+def pipeline_collection_list_resources_cmd(collection_dir):
+    collection = Collection(collection_dir)
     collection.load()
     for resource in sorted(collection.resource.records):
-        print(resource_path(resource, directory=collection_directory))
+        print(resource_path(resource, directory=collection_dir))
 
 
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
-@collection_directory
-def pipeline_collection_save_csv_cmd(collection_directory):
+@collection_dir
+def pipeline_collection_save_csv_cmd(collection_dir):
     try:
-        os.remove(Path(collection_directory) / "log.csv")
-        os.remove(Path(collection_directory) / "resource.csv")
+        os.remove(Path(collection_dir) / "log.csv")
+        os.remove(Path(collection_dir) / "resource.csv")
     except OSError:
         pass
-    collection = Collection(collection_directory)
+    collection = Collection(collection_dir)
     collection.load()
     collection.save_csv()
 
@@ -225,8 +225,8 @@ def map_cmd(input_path, output_path):
     short_help="strip whitespace and null fields, remove blank rows and columns",
 )
 @input_output_path
-@issue_path
-def harmonise_cmd(input_path, output_path, issue_path):
+@issue_dir
+def harmonise_cmd(input_path, output_path, issue_dir):
     if not output_path:
         output_path = default_output_path_for("harmonised", input_path)
 
@@ -256,7 +256,7 @@ def harmonise_cmd(input_path, output_path, issue_path):
     stream = harmoniser.harmonise(stream)
     save(stream, output_path, fieldnames=fieldnames)
 
-    issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
+    issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
     issues_file.write_issues(issues)
 
 
@@ -285,8 +285,8 @@ def transform_cmd(input_path, output_path):
     help="patterns for null fields",
     default=None,
 )
-@issue_path
-def pipeline_cmd(input_path, output_path, null_path, issue_path):
+@issue_dir
+def pipeline_cmd(input_path, output_path, null_path, issue_dir):
     resource_hash = resource_hash_from(input_path)
     organisation = Organisation()
     issues = Issues()
@@ -339,7 +339,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_path):
         fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.schema),
     )
 
-    issues_file = IssuesFile(path=os.path.join(issue_path, resource_hash + ".csv"))
+    issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
     issues_file.write_issues(issues)
 
 
@@ -377,8 +377,8 @@ def endpoints_check_cmd(first_date, log_dir, endpoint_path, last_date):
 @click.pass_context
 @click.argument("endpoint-url", type=click.STRING)
 @click.argument("organisation", type=click.STRING)
-@collection_directory
-def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_directory):
+@collection_dir
+def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_dir):
     """Add a new source/endpoint entry. Optional parameters are: source, attribution, collection, documentation-url,
     licence, organisation, pipeline, status, plugin, parameters, start-date, end-date"""
     entry = defaultdict(
@@ -394,7 +394,7 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_director
             sys.exit(2)
     entry["endpoint-url"] = endpoint_url
     entry["organisation"] = organisation
-    add_new_source_endpoint(entry, collection_directory)
+    add_new_source_endpoint(entry, collection_dir)
 
 
 def resource_hash_from(path):
