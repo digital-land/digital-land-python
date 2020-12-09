@@ -58,3 +58,4 @@ Push to GitHub:
 Wait for the [continuous integration tests](https://pypi.python.org/pypi/digital-land/) to pass and then upload to [PyPI](https://pypi.python.org/pypi/digital-land/):
 
     make upload
+
