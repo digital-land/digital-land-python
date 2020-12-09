@@ -42,7 +42,8 @@ class Transformer:
                     o[field] = row[self.transformations[field]]
 
             if set(["GeoX", "GeoY"]).issubset(row.keys()) and "point" in self.fields:
-                o["point"] = f"POINT({row['GeoX']} {row['GeoY']})"
+                if row["GeoX"] and row["GeoY"]:
+                    o["point"] = f"POINT({row['GeoX']} {row['GeoY']})"
 
             yield {
                 "resource": stream_data["resource"],
