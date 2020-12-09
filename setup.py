@@ -42,6 +42,7 @@ setup(
         "xlrd==1.2.0",
         "Shapely==1.7.1",
         "pluggy==0.13.1",
+        "digital_land_frontend @ git+https://github.com/digital-land/frontend.git#egg=digital_land_frontend",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
