@@ -266,11 +266,12 @@ def transform_cmd(input_path, output_path):
     if not output_path:
         output_path = default_output_path_for("transformed", input_path)
 
-    organisation = Organisation()
+    collection = Collection()
+    collection.load()
     transformer = Transformer(
         SPECIFICATION.schema_field[PIPELINE.schema],
         PIPELINE.transformations(),
-        organisation.organisation,
+        collection,
     )
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
@@ -288,7 +289,6 @@ def transform_cmd(input_path, output_path):
 @issue_dir
 def pipeline_cmd(input_path, output_path, null_path, issue_dir):
     resource_hash = resource_hash_from(input_path)
-    organisation = Organisation()
     issues = Issues()
 
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
@@ -319,7 +319,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir):
     transformer = Transformer(
         SPECIFICATION.schema_field[PIPELINE.schema],
         PIPELINE.transformations(),
-        organisation.organisation,
+        collection,
     )
 
     pipeline = compose(

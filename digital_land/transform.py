@@ -8,17 +8,10 @@
 
 
 class Transformer:
-    def __init__(self, fields, transformations, organisation={}):
+    def __init__(self, fields, transformations, collection=None):
         self.transformations = transformations
         self.fields = fields
-
-        # map of OrganisationURI to organisation CURIE
-        self.organisation_curie = {}
-        for org in organisation.values():
-            if org.get("opendatacommunities", None):
-                self.organisation_curie[org["opendatacommunities"]] = org[
-                    "organisation"
-                ]
+        self.collection = collection
 
     def transform(self, reader):
 
@@ -27,11 +20,10 @@ class Transformer:
             o = {}
             row["resource"] = stream_data["resource"]
 
-            # translate OrganisationURI into an organisation CURIE
-            if "OrganisationURI" in row:
-                row["OrganisationURI"] = self.organisation_curie.get(
-                    row["OrganisationURI"], ""
-                )
+            if self.collection:
+                orgs = self.collection.resource_organisations(row["resource"])
+                if len(orgs) == 1:
+                    row["OrganisationURI"] = orgs[0]
 
             for field in self.fields:
                 if field in row and row[field]:
