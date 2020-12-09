@@ -8,6 +8,7 @@ from pathlib import Path
 
 import canonicaljson
 import click
+from digital_land_frontend.render import Renderer
 
 from .collect import Collector
 from .collection import Collection, resource_path
@@ -395,6 +396,17 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_dir):
     entry["endpoint-url"] = endpoint_url
     entry["organisation"] = organisation
     add_new_source_endpoint(entry, collection_dir)
+
+
+@cli.command("render")
+@click.option("--dataset-path", required=True, type=click.Path())
+@click.option("--local", is_flag=True)
+def render_cmd(local, dataset_path):
+    url_root = None
+    if local:
+        url_root = "/"
+    renderer = Renderer(PIPELINE.name, dataset_path, url_root)
+    renderer.render_pages()
 
 
 def resource_hash_from(path):
