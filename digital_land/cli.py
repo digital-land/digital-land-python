@@ -27,6 +27,7 @@ from .schema import Schema
 from .specification import Specification
 from .transform import Transformer
 from .update import add_new_source_endpoint, get_failing_endpoints_from_registers
+from .makerules import pipeline_makerules
 
 PIPELINE = None
 SPECIFICATION = None
@@ -148,6 +149,14 @@ def pipeline_collection_list_resources_cmd(collection_dir):
         print(resource_path(resource, directory=collection_dir))
 
 
+@cli.command("collection-pipeline-makerules", short_help="generate pipeline makerules for a collection")
+@collection_dir
+def pipeline_collection_list_resources_cmd(collection_dir):
+    collection = Collection(collection_dir)
+    collection.load()
+    pipeline_makerules(collection)
+
+
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
 @collection_dir
 def pipeline_collection_save_csv_cmd(collection_dir):
@@ -159,6 +168,8 @@ def pipeline_collection_save_csv_cmd(collection_dir):
     collection = Collection(collection_dir)
     collection.load()
     collection.save_csv()
+
+    collection.pipeline_makerules()
 
 
 #
