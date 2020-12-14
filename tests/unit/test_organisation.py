@@ -3,6 +3,7 @@ from digital_land.issues import Issues
 from digital_land.datatype.organisation import OrganisationURIDataType
 
 
+@pytest.mark.skip()
 def test_OrganisationURI_normalise():
     issues = Issues()
 
