@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
-from .collection import Collection, resource_path
 
 
 def transformed_path(resource, pipeline):
@@ -51,7 +50,7 @@ def pipeline_makerules(collection):
         print()
 
         for resource in sorted(pipeline_resource[pipeline]):
-            print("\n%s: %s" % (transformed_path(resource, pipeline), resource_path(resource)))
+            print("\n%s: %s" % (transformed_path(resource, pipeline), collection.resource_path(resource)))
             print("\t$(run-pipeline)")
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))

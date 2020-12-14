@@ -9,6 +9,7 @@ from .register import hash_value
 from .schema import Schema
 from .store.csv import CSVStore
 from .store.item import ItemStore
+from .makerules import pipeline_makerules
 
 collection_directory = "./collection"
 
@@ -182,3 +183,9 @@ class Collection:
     def resource_organisations(self, resource):
         "return the list of organisations for which a resource was collected"
         return self.resource.records[resource][-1]["organisations"].split(";")
+
+    def resource_path(self, resource):
+        return resource_path(resource, self.directory)
+
+    def pipeline_makerules(self):
+        pipeline_makerules(self)
