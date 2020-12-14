@@ -37,7 +37,7 @@ schemas = {
             "endpoint",
             "licence",
             "organisation",
-            "pipeline",
+            "pipelines",
             "entry-date",
             "start-date",
             "end-date",
