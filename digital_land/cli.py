@@ -148,9 +148,12 @@ def pipeline_collection_list_resources_cmd(collection_dir):
         print(resource_path(resource, directory=collection_dir))
 
 
-@cli.command("collection-pipeline-makerules", short_help="generate pipeline makerules for a collection")
+@cli.command(
+    "collection-pipeline-makerules",
+    short_help="generate pipeline makerules for a collection",
+)
 @collection_dir
-def pipeline_collection_list_resources_cmd(collection_dir):
+def pipeline_collection_pipeline_makerules_cmd(collection_dir):
     collection = Collection(collection_dir)
     collection.load()
     collection.pipeline_makerules()

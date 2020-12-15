@@ -37,7 +37,7 @@ def pipeline_makerules(collection):
     sep = ""
     for pipeline in sorted(pipeline_resource):
         print(sep, end="")
-        sep="\n\n"
+        sep = "\n\n"
 
         pipeline_var = pipeline.upper().replace("-", "_")
         dataset_var = pipeline_var + "_DATASET"
@@ -50,7 +50,13 @@ def pipeline_makerules(collection):
         print()
 
         for resource in sorted(pipeline_resource[pipeline]):
-            print("\n%s: %s" % (transformed_path(resource, pipeline), collection.resource_path(resource)))
+            print(
+                "\n%s: %s"
+                % (
+                    transformed_path(resource, pipeline),
+                    collection.resource_path(resource),
+                )
+            )
             print("\t$(run-pipeline)")
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
