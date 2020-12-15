@@ -4,16 +4,13 @@ import logging
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 
-url_prefix = {
-    "https://query.wikidata.org/sparql": "http://www.wikidata.org/entity/"
-}
+url_prefix = {"https://query.wikidata.org/sparql": "http://www.wikidata.org/entity/"}
 
 
 def sparql(endpoint_url, query, prefix=""):
     s = SPARQLWrapper(
         endpoint_url,
-        agent="Mozilla/5.0 (Windows NT 5.1; rv:36.0) "
-        "Gecko/20100101 Firefox/36.0",
+        agent="Mozilla/5.0 (Windows NT 5.1; rv:36.0) " "Gecko/20100101 Firefox/36.0",
     )
 
     s.setQuery(query)
@@ -23,7 +20,7 @@ def sparql(endpoint_url, query, prefix=""):
 
 def remove_prefix(value, prefix):
     if prefix and value.startswith(prefix):
-        return value[len(prefix):]
+        return value[len(prefix) :]
     return value
 
 
