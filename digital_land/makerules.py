@@ -23,7 +23,8 @@ def pipeline_makerules(collection):
 
         endpoint_pipeline.setdefault(entry["endpoint"], set())
         for pipeline in entry["pipelines"].split(";"):
-            endpoint_pipeline[entry["endpoint"]].add(pipeline)
+            if pipeline:
+                endpoint_pipeline[entry["endpoint"]].add(pipeline)
 
     for entry in collection.resource.entries:
         if entry["end-date"] and entry["end-date"] > today:
