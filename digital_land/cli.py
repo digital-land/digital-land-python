@@ -411,18 +411,18 @@ def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_dir):
 
 @cli.command("render")
 @click.option("--dataset-path", required=True, type=click.Path())
-@click.option("--key-columns", type=click.STRING, default=None)
+@click.option("--key-fields", type=click.STRING, default=None)
 @click.option("--local", is_flag=True)
-def render_cmd(local, dataset_path, key_columns):
+def render_cmd(local, dataset_path, key_fields):
     url_root = None
     if local:
         url_root = "/"
 
-    kc = ["organisation", "site"]
-    if key_columns:
-        kc = key_columns.split(",")
+    kf = ["organisation", "site"]
+    if key_fields:
+        kf = key_fields.split(",")
 
-    renderer = Renderer(PIPELINE.name, dataset_path, url_root, key_columns=kc)
+    renderer = Renderer(PIPELINE.name, dataset_path, url_root, key_fields=kf)
     renderer.render_pages()
 
 
