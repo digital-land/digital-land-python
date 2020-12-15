@@ -5,10 +5,8 @@
 #
 import csv
 import hashlib
-import io
 import logging
 import os
-import re
 from datetime import datetime
 from enum import Enum
 from timeit import default_timer as timer
@@ -17,7 +15,8 @@ import canonicaljson
 import requests
 
 from .adapter.file import FileAdapter
-from .load import detect_encoding
+from .plugins.sparql import get as sparql_get
+from .plugins.wfs import get as wfs_get
 
 
 class FetchStatus(Enum):
@@ -62,12 +61,11 @@ class Collector:
             with open(path, "wb") as f:
                 f.write(data)
 
-    def get(self, url, log={}, verify_ssl=True):
-        logging.info("get %s" % url)
+    def get(self, url, log={}, verify_ssl=True, plugin="get"):
+        logging.info("%s %s" % (plugin, url))
         log["ssl-verify"] = verify_ssl
 
         try:
-            start = timer()
             response = self.session.get(
                 url,
                 headers={"User-Agent": self.user_agent},
@@ -88,8 +86,6 @@ class Collector:
             logging.warning(exception)
             log["exception"] = type(exception).__name__
             response = None
-        finally:
-            log["elapsed"] = str(round(timer() - start, 3))
 
         content = None
 
@@ -105,7 +101,14 @@ class Collector:
 
         return log, content
 
-    def fetch(self, url, endpoint=None, log_datetime=datetime.utcnow(), end_date=""):
+    def fetch(
+        self,
+        url,
+        endpoint=None,
+        log_datetime=datetime.utcnow(),
+        end_date="",
+        plugin="",
+    ):
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return FetchStatus.EXPIRED
 
@@ -128,39 +131,42 @@ class Collector:
             "entry-date": log_datetime.isoformat(),
         }
 
-        log, content = self.get(url, log)
+        start = timer()
+
+        # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
+        if plugin == "":
+            log, content = self.get(url, log)
+        elif plugin == "wfs":
+            log, content = wfs_get(self, url, log)
+        elif plugin == "sparql":
+            log, content = sparql_get(self, url, log)
+        else:
+            logging.error("unknown plugin '%s' for endpoint %s" % plugin, endpoint)
+
+        log["elapsed"] = str(round(timer() - start, 3))
 
         if content:
-            if self.pipeline_name == "conservation-area-geography":
-                encoding = detect_encoding(io.BytesIO(content))
-                if encoding:
-                    content = self.strip_variable_content(content)
-            log["resource"] = self.save_content(content)
             status = FetchStatus.OK
+            log["resource"] = self.save_content(content)
         else:
             status = FetchStatus.FAILED
 
         self.save_log(log_path, log)
-
         return status
-
-    strip_exps = [
-        (re.compile(br' ?timeStamp="[^"]*"'), br""),
-        (re.compile(br'(gml:id="[^."]+)[^"]*'), br"\1"),
-    ]
-
-    def strip_variable_content(self, content):
-        for strip_exp, replacement in self.strip_exps:
-            content = strip_exp.sub(replacement, content)
-        return content
 
     def collect(self, endpoint_path):
         for row in csv.DictReader(open(endpoint_path, newline="")):
             endpoint = row["endpoint"]
             url = row["endpoint-url"]
+            plugin = row.get("plugin", "")
 
             # skip manually added files ..
-            if not url or url.startswith("file:"):
+            if not url:
                 continue
 
-            self.fetch(url, endpoint=endpoint, end_date=row.get("end-date", ""))
+            self.fetch(
+                url,
+                endpoint=endpoint,
+                end_date=row.get("end-date", ""),
+                plugin=plugin,
+            )

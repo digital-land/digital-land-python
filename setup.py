@@ -41,6 +41,7 @@ setup(
         "validators",
         "xlrd==1.2.0",
         "Shapely==1.7.1",
+        "SPARQLWrapper==1.8.5",
         "pluggy==0.13.1",
         "digital_land_frontend @ git+https://github.com/digital-land/frontend.git#egg=digital_land_frontend",
     ],
