@@ -5,6 +5,7 @@ from digital_land.load import detect_encoding
 
 strip_exps = [
     (re.compile(br' ?timeStamp="[^"]*"'), br""),
+    (re.compile(br' ?fid="[^"]*"'), br""),
     (re.compile(br'(gml:id="[^."]+)[^"]*'), br"\1"),
 ]
 
