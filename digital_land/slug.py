@@ -28,4 +28,4 @@ class Slugger:
         for stream_data in reader:
             row = stream_data["row"]
             row["slug"] = self._generate_slug(row)
-            yield {"resource": stream_data["resource"], "row": row}
+            yield stream_data
