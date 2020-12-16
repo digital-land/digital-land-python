@@ -9,7 +9,7 @@ class Slugger:
     def _generate_slug(self, row):
         return self.generate_slug(self.prefix, self.key_field, row)
 
-    bad_chars = re.compile(r'[^A-Za-z0-9]')
+    bad_chars = re.compile(r"[^A-Za-z0-9]")
 
     @staticmethod
     def generate_slug(prefix, key_field, row):

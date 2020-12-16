@@ -27,8 +27,7 @@ from .schema import Schema
 from .slug import Slugger
 from .specification import Specification
 from .transform import Transformer
-from .update import (add_new_source_endpoint,
-                     get_failing_endpoints_from_registers)
+from .update import add_new_source_endpoint, get_failing_endpoints_from_registers
 
 PIPELINE = None
 SPECIFICATION = None
