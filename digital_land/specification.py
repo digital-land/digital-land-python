@@ -139,3 +139,21 @@ class Specification:
             return OrganisationURIDataType()
 
         raise ValueError("unknown datatype '%s' for '%s' field" % (datatype, fieldname))
+
+    def field_typology(self, fieldname):
+        field = self.field[fieldname]
+        if not field["parent-field"]:
+            return ""
+        if fieldname == field["parent-field"]:
+            return field["parent-field"]
+        return self.field_typology(self.field[field["parent-field"]])
+
+    def key_field(self, schema):
+        # hard-coded for now ..
+        if schema == "brownfield-land":
+            return "site"
+        elif schema in ["log", "resource", "endpoint"]:
+            return "endpoint"
+        elif schema in self.schema_field[schema]:
+            return schema
+        return ""
