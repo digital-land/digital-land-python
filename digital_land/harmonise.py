@@ -9,35 +9,6 @@ import re
 # import .digital_land.types as types
 from digital_land.datatype.point import PointDataType
 
-"""
-# this could apply to any field, really
-# TBD: collapse with organisation patches
-def load_field_patches():
-    for row in csv.DictReader(open("patch/enum.csv", newline="")):
-        fieldname = row["field"]
-        enum = row["enum"]
-        value = normalise_value(row["value"])
-        if enum not in field_enum[fieldname]:
-            raise ValueError(
-                "invalid '%s' enum '%s' in patch/enum.csv" % (fieldname, enum)
-            )
-
-# deduce default OrganisationURI and LastUpdatedDate default_values from path
-# need to make this not file specific ..
-def resource_organisation(default_values, input_path, resource_organisation_path):
-    organisation = ""
-    for row in csv.DictReader(open(resource_organisation_path), newline=""):
-        if row["resource"] in input_path:
-            default_values["LastUpdatedDate"] = row["start-date"]
-            if not organisation:
-                organisation = row["organisation"]
-            elif organisation != row["organisation"]:
-                # resource has more than one organisation
-                default_values["OrganisationURI"] = ""
-                return
-    default_values["OrganisationURI"] = organisation_uri[organisation.lower()]
-"""
-
 
 class Harmoniser:
     patch = {}
