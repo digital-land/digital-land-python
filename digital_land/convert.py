@@ -25,6 +25,10 @@ class Converter:
         else:
             reader = self._read_binary_file(input_path)
 
+        if not reader:
+            logging.debug("failed to create reader, cannot process ", input_path)
+            reader = iter(())  # Empty iterator, immediately sends StopIteration
+
         return reader_with_line(reader, resource=resource_hash_from(input_path))
 
     def _read_text_file(self, input_path, encoding):
@@ -82,6 +86,8 @@ class Converter:
             logging.debug(f"{input_path} looks like SQLite")
             csv_path = convert_features_to_csv(input_path)
             return read_csv(csv_path)
+
+        return None
 
     def _path_to_shp_files(self, input_file):
         zip_ = zipfile.ZipFile(input_file)

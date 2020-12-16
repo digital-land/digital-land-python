@@ -116,6 +116,13 @@ class LineConverter:
         }
 
     def convert(self, line_stream):
-        self.fieldnames = next(line_stream)["line"]
+        try:
+            stream_data = next(line_stream)
+        except StopIteration:
+            self.fieldnames = []
+            self.line_stream = iter(())
+            return self
+
+        self.fieldnames = stream_data["line"]
         self.line_stream = line_stream
         return self
