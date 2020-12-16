@@ -24,9 +24,11 @@ from .pipeline import Pipeline
 from .plugin import get_plugin_manager
 from .save import save
 from .schema import Schema
+from .slug import Slugger
 from .specification import Specification
 from .transform import Transformer
-from .update import add_new_source_endpoint, get_failing_endpoints_from_registers
+from .update import (add_new_source_endpoint,
+                     get_failing_endpoints_from_registers)
 
 PIPELINE = None
 SPECIFICATION = None
@@ -333,6 +335,8 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir):
         PIPELINE.transformations(),
         organisation.organisation,
     )
+    key_field = "site" if PIPELINE.name == "brownfield-land" else "conservation-area"
+    slugger = Slugger(PIPELINE.name, key_field)
 
     pipeline = compose(
         converter.convert,
@@ -341,6 +345,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir):
         mapper.map,
         harmoniser.harmonise,
         transformer.transform,
+        slugger.slug,
     )
 
     output = pipeline(input_path)
@@ -348,7 +353,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir):
     save(
         output,
         output_path,
-        fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.schema),
+        fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.schema) + ["slug"],
     )
 
     issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
