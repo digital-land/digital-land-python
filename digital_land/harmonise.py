@@ -147,6 +147,12 @@ class Harmoniser:
                     [o["GeoX"], o["GeoY"]], issues=self.issues
                 )
 
+            # ensure typology fields are a CURIE
+            for typology in ["organisation", "geography", "document"]:
+                value = o.get(typology, "")
+                if value and ":" not in value:
+                    o[typology] = "%s:%s" % (self.pipeline.name, value)
+
             last_resource = resource
 
             yield {
