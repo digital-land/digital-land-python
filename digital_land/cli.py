@@ -1,4 +1,5 @@
 import functools
+import itertools
 import logging
 import os
 import sys
@@ -299,7 +300,8 @@ def transform_cmd(input_path, output_path):
     default=None,
 )
 @issue_dir
-def pipeline_cmd(input_path, output_path, null_path, issue_dir):
+@click.option("--save-harmonised", is_flag=True)
+def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised):
     resource_hash = resource_hash_from(input_path)
     organisation = Organisation()
     issues = Issues()
@@ -337,15 +339,37 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir):
     key_field = "site" if PIPELINE.name == "brownfield-land" else "conservation-area"
     slugger = Slugger(PIPELINE.name, key_field)
 
-    pipeline = compose(
+    pipeline_funcs = [
         converter.convert,
         normaliser.normalise,
         line_converter.convert,
         mapper.map,
         harmoniser.harmonise,
+    ]
+
+    if save_harmonised:
+
+        harmonised_path = output_path.replace("transformed", "harmonised")
+        if harmonised_path == output_path:
+            raise ValueError("cannot write harmonised file due to name clash")
+
+        def saver(reader):
+            output_tap, save_tap = itertools.tee(reader)
+            save(
+                save_tap,
+                harmonised_path,
+                fieldnames=intermediary_fieldnames(SPECIFICATION, PIPELINE),
+            )
+            yield from output_tap
+
+        pipeline_funcs.append(saver)
+
+    pipeline_funcs = pipeline_funcs + [
         transformer.transform,
         slugger.slug,
-    )
+    ]
+
+    pipeline = compose(*pipeline_funcs)
 
     output = pipeline(input_path)
 
