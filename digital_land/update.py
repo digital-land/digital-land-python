@@ -67,27 +67,28 @@ def has_collected_resource(log_item):
     return True, failure_reason
 
 
-def add_new_source_endpoint(entry, collection_directory):
+def add_source_endpoint(entry, directory=None, collection=None):
 
-    collection = Collection(collection_directory)
-    collection.load()
+    if not collection:
+        collection = Collection()
+        collection.load()
 
     entry["endpoint"] = hash_value(entry["endpoint-url"])
 
-    add_new_endpoint(entry, collection.endpoint)
-    add_new_source(entry, collection.source)
+    add_endpoint(entry, collection.endpoint)
+    add_source(entry, collection.source)
 
     collection.save_csv()
 
 
 def start_date(entry):
-    if entry["start-date"]:
+    if entry.get("start-date", ""):
         return datetime.strptime(entry["start-date"], "%Y-%m-%d").date()
     return ""
 
 
 def end_date(entry):
-    if "end-date" in entry:
+    if entry.get("end-date", ""):
         return datetime.strptime(entry["end-date"], "%Y-%m-%d").date()
     return ""
 
@@ -97,11 +98,13 @@ def entry_date(entry):
     return entry.get("entry-date", date.today().strftime("%Y-%m-%d"))
 
 
-def add_new_endpoint(entry, endpoint_register):
+def add_endpoint(entry, endpoint_register):
     item = Item(
         {
             "endpoint": entry["endpoint"],
             "endpoint-url": entry["endpoint-url"],
+            "plugin": entry.get("plugin", ""),
+            "parameters": entry.get("parameters", ""),
             "entry-date": date.today().strftime("%Y-%m-%d"),
             "start-date": start_date(entry),
             "end-date": end_date(entry),
@@ -110,16 +113,16 @@ def add_new_endpoint(entry, endpoint_register):
     endpoint_register.add_entry(item)
 
 
-def add_new_source(entry, source_register):
+def add_source(entry, source_register):
     item = Item(
         {
-            "collection": entry.get("collection", entry["pipeline"]),
-            "pipeline": entry["pipeline"],
-            "organisation": entry["organisation"],
+            "collection": entry["collection"],
+            "pipelines": entry.get("pipelines", entry["collection"]),
+            "organisation": entry.get("organisation", ""),
             "endpoint": entry["endpoint"],
-            "documentation-url": entry["documentation-url"],
-            "licence": entry["licence"],
-            "attribution": entry["attribution"],
+            "documentation-url": entry.get("documentation-url", ""),
+            "licence": entry.get("licence", ""),
+            "attribution": entry.get("attribution", ""),
             "entry-date": entry_date(entry),
             "start-date": start_date(entry),
             "end-date": end_date(entry),

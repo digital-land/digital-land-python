@@ -10,8 +10,8 @@ from digital_land.update import (
     has_collected_resource,
     get_failing_endpoints,
     get_entries_between_keys,
-    add_new_endpoint,
-    add_new_source,
+    add_endpoint,
+    add_source,
 )
 
 
@@ -168,7 +168,7 @@ def test_get_failing_endpoints_filter_dates(log_entries, endpoint_entries):
     assert set(failing_endpoints.keys()) == expected_result
 
 
-def test_add_new_endpoint_order(endpoint_register):
+def test_add_endpoint_order(endpoint_register):
     expected_result = endpoint_register.entries.copy()
     test_key = "BBC"
     test_url = "www.someurl.com"
@@ -181,13 +181,13 @@ def test_add_new_endpoint_order(endpoint_register):
             "documentation-url": "www.doc.com",
         }
     )
-    add_new_endpoint(entry, endpoint_register)
+    add_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
     assert endpoint_register.entries[-1]["endpoint"] == test_key
     assert endpoint_register.entries[-1]["endpoint-url"] == test_url
 
 
-def test_add_new_endpoint_existing_end_date(endpoint_register):
+def test_add_endpoint_existing_end_date(endpoint_register):
     test_key = "DDD"
     expected_result = endpoint_register.entries.copy()
     entry = defaultdict(str)
@@ -199,12 +199,12 @@ def test_add_new_endpoint_existing_end_date(endpoint_register):
             "documentation-url": "www.doc.com",
         }
     )
-    add_new_endpoint(entry, endpoint_register)
+    add_endpoint(entry, endpoint_register)
     assert expected_result == endpoint_register.entries[0:-1]
     assert endpoint_register.entries[-1]["endpoint"] == test_key
 
 
-def test_add_new_source(source_register):
+def test_add_source(source_register):
     expected_result = source_register.entries.copy()
     entry = defaultdict(str)
     entry.update(
@@ -216,7 +216,7 @@ def test_add_new_source(source_register):
             "start-date": "",
         }
     )
-    add_new_source(entry, source_register)
+    add_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1]["endpoint"] == entry["endpoint"]
     assert (
@@ -225,7 +225,7 @@ def test_add_new_source(source_register):
     assert source_register.entries[-1]["start-date"] == entry["start-date"]
 
 
-def test_add_new_source_existing_endpoint(source_register):
+def test_add_source_existing_endpoint(source_register):
     expected_result = source_register.entries.copy()
     entry = defaultdict(str)
     entry.update(
@@ -236,7 +236,7 @@ def test_add_new_source_existing_endpoint(source_register):
             "documentation-url": "www.doc.com",
         }
     )
-    add_new_source(entry, source_register)
+    add_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1]["endpoint"] == entry["endpoint"]
     assert (
@@ -244,7 +244,7 @@ def test_add_new_source_existing_endpoint(source_register):
     )
 
 
-def test_add_new_source_existing_end_date(source_register):
+def test_add_source_existing_end_date(source_register):
     expected_result = source_register.entries.copy()
     entry = defaultdict(str)
     entry.update(
@@ -255,6 +255,6 @@ def test_add_new_source_existing_end_date(source_register):
             "documentation-url": "www.doc.com",
         }
     )
-    add_new_source(entry, source_register)
+    add_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1]["endpoint"] == entry["endpoint"]

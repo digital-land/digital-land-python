@@ -28,7 +28,7 @@ from .schema import Schema
 from .slug import Slugger
 from .specification import Specification
 from .transform import Transformer
-from .update import add_new_source_endpoint, get_failing_endpoints_from_registers
+from .update import add_source_endpoint, get_failing_endpoints_from_registers
 
 PIPELINE = None
 SPECIFICATION = None
@@ -385,7 +385,10 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised)
 
 # Endpoint commands
 
-@cli.command("collection-check-endpoints", short_help="check logs for failing endpoints")
+
+@cli.command(
+    "collection-check-endpoints", short_help="check logs for failing endpoints"
+)
 @click.argument("first-date", type=click.DateTime(formats=["%Y-%m-%d"]))
 @click.option(
     "--log-dir",
@@ -442,7 +445,7 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
             logging.error(f"unrecognised argument '{key}'")
             sys.exit(2)
 
-    add_new_source_endpoint(entry, collection_dir)
+    add_source_endpoint(entry, directory=collection_dir)
 
 
 @cli.command("render")
