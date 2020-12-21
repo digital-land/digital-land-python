@@ -18,12 +18,13 @@ class Converter:
         self.conversions = conversions
 
     def convert(self, input_path):
-        encoding = detect_file_encoding(input_path)
-        logging.debug("encoding detected: %s", encoding)
-        if encoding:
-            reader = self._read_text_file(input_path, encoding)
-        else:
-            reader = self._read_binary_file(input_path)
+        reader = self._read_binary_file(input_path)
+
+        if not reader:
+            encoding = detect_file_encoding(input_path)
+            if encoding:
+                logging.debug("encoding detected: %s", encoding)
+                reader = self._read_text_file(input_path, encoding)
 
         if not reader:
             logging.debug("failed to create reader, cannot process ", input_path)
