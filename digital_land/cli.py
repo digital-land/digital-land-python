@@ -385,8 +385,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised)
 
 # Endpoint commands
 
-
-@cli.command("endpoints-check", short_help="check logs for failing endpoints")
+@cli.command("collection-check-endpoints", short_help="check logs for failing endpoints")
 @click.argument("first-date", type=click.DateTime(formats=["%Y-%m-%d"]))
 @click.option(
     "--log-dir",
@@ -401,7 +400,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised)
     help="upper bound of date range to consider",
     default=str(date.today()),
 )
-def endpoints_check_cmd(first_date, log_dir, endpoint_path, last_date):
+def collection_check_endpoints_cmd(first_date, log_dir, endpoint_path, last_date):
     """find active endpoints that are failing during collection"""
     output = get_failing_endpoints_from_registers(
         log_dir, endpoint_path, first_date.date(), last_date.date()
@@ -410,30 +409,39 @@ def endpoints_check_cmd(first_date, log_dir, endpoint_path, last_date):
 
 
 @cli.command(
-    "add-source-endpoint",
-    short_help="Add a new source/endpoint entry",
+    "collection-add-source",
+    short_help="Add a new source to a collection",
     context_settings=dict(ignore_unknown_options=True, allow_extra_args=True),
 )
 @click.pass_context
+@click.argument("collection", type=click.STRING)
 @click.argument("endpoint-url", type=click.STRING)
-@click.argument("organisation", type=click.STRING)
 @collection_dir
-def add_source_endpoint_cmd(ctx, endpoint_url, organisation, collection_dir):
-    """Add a new source/endpoint entry. Optional parameters are: source, attribution, collection, documentation-url,
-    licence, organisation, pipeline, status, plugin, parameters, start-date, end-date"""
+def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
+    """
+    followed by a sequence of optional name and value pairs including the following names:
+    "attribution", "licence", "pipelines", "status", "plugin",
+    "parameters", "start-date", "end-date"
+    """
+    print(ctx.args)
+    if len(ctx.args) % 2:
+        logging.error(f"odd number of name value pair arguments")
+        sys.exit(2)
     entry = defaultdict(
         str,
-        {ctx.args[i].strip("-"): ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},
+        {ctx.args[i]: ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},
     )
-    allowed_options = set(
+    entry["collection"] = collection
+    entry["endpoint-url"] = endpoint_url
+
+    allowed_names = set(
         list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
     )
     for key in entry.keys():
-        if key not in allowed_options:
-            logging.error(f"Optional parameter {key} not recognised")
+        if key not in allowed_names:
+            logging.error(f"unrecognised argument '{key}'")
             sys.exit(2)
-    entry["endpoint-url"] = endpoint_url
-    entry["organisation"] = organisation
+
     add_new_source_endpoint(entry, collection_dir)
 
 
