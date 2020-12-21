@@ -93,6 +93,7 @@ def end_date(entry):
 
 
 def entry_date(entry):
+    # this removes the timestamp - it shouldn't!
     return entry.get("entry-date", date.today().strftime("%Y-%m-%d"))
 
 
