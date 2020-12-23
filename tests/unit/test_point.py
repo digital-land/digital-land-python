@@ -74,3 +74,8 @@ def test_point_normalise_out_of_range():
     assert issue["issue-type"] == "out of range"
     assert issue["value"] == "100000000,10000"
     assert issues.rows == []
+
+
+def test_point_normalise_osm():
+    point = PointDataType(precision=5)
+    assert point.normalise(["-7946.4687", "6701859.138"]) == ["-0.07138", "51.45323"]

@@ -15,6 +15,11 @@ from pyproj import Transformer
 # https://epsg.io/4326
 osgb_to_wgs84 = Transformer.from_crs(27700, 4326)
 
+# convert from OSM to WGS84
+# https://epsg.io/3857
+# https://epsg.io/4326
+osm_to_wgs84 = Transformer.from_crs(3857, 4326)
+
 
 def degrees_like(lon, lat):
     return lat > -60.0 and lat < 60.0 and lon > -60.0 and lon < 60.0
@@ -22,6 +27,10 @@ def degrees_like(lon, lat):
 
 def easting_northing_like(lon, lat):
     return lat > 1000.0 and lat < 1000000.0 and lon > 1000.0 and lon < 1000000.0
+
+
+def osm_like(lon, lat):
+    return lat > 6000000.0 and lat < 10000000.0 and lon > -80000.0 and lon < 260000.0
 
 
 def within_england(lon, lat):
@@ -61,6 +70,14 @@ class PointDataType(DataType):
                 if not within_england(lon, lat):
                     if issues:
                         issues.log("OSGB outside England", value)
+                    return default
+        elif osm_like(lon, lat):
+            lat, lon = osm_to_wgs84.transform(lon, lat)
+            if not within_england(lon, lat):
+                lat, lon = osm_to_wgs84.transform(lat, lon)
+                if not within_england(lon, lat):
+                    if issues:
+                        issues.log("OSM outside England", value)
                     return default
         else:
             if issues:

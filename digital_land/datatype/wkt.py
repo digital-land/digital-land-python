@@ -3,7 +3,14 @@ from shapely.ops import transform
 from shapely.geometry import MultiPolygon
 
 from .datatype import DataType
-from .point import degrees_like, easting_northing_like, osgb_to_wgs84, within_england
+from .point import (
+    degrees_like,
+    easting_northing_like,
+    osm_like,
+    osgb_to_wgs84,
+    osm_to_wgs84,
+    within_england,
+)
 
 
 def flip(x, y, z=None):
@@ -43,6 +50,17 @@ class WktDataType(DataType):
                         issues.log("OSGB outside England", f"{value[0:30]}...")
                     return default
             geometry = transform(osgb_to_wgs84.transform, geometry)
+        elif osm_like(lon, lat):
+            lat, lon = osm_to_wgs84.transform(lon, lat)
+            if within_england(lon, lat):
+                transposed_coords = True
+            else:
+                lat, lon = osm_to_wgs84.transform(lat, lon)
+                if not within_england(lon, lat):
+                    if issues:
+                        issues.log("OSM outside England", f"{value[0:30]}...")
+                    return default
+            geometry = transform(osm_to_wgs84.transform, geometry)
         else:
             if issues:
                 issues.log("out of range", f"{value[0:30]}...")
