@@ -336,7 +336,11 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised)
         PIPELINE.transformations(),
         organisation.organisation,
     )
-    key_field = "site" if PIPELINE.name == "brownfield-land" else "conservation-area"
+    # TBD: use schema!
+    if PIPELINE.name == "brownfield-land":
+        key_field = "site"
+    else:
+        key_field = PIPELINE.schema
     slugger = Slugger(PIPELINE.name, key_field)
 
     pipeline_funcs = [
