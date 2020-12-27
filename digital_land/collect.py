@@ -28,7 +28,7 @@ class FetchStatus(Enum):
 
 
 class Collector:
-    user_agent = "Digital Land data collector"
+    user_agent = "Digital Land"
     resource_dir = "collection/resource/"
     log_dir = "collection/log/"
 
