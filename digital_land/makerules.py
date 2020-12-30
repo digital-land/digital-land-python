@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+from pathlib import Path
 from datetime import datetime
 
 
@@ -51,11 +53,16 @@ def pipeline_makerules(collection):
         print()
 
         for resource in sorted(pipeline_resource[pipeline]):
+
+            fixed_path = Path("fixed") / (resource + ".csv")
+            resource_path = collection.resource_path(resource)
+            resource_path = fixed_path if os.path.isfile(fixed_path) else resource_path
+
             print(
                 "\n%s: %s"
                 % (
                     transformed_path(resource, pipeline),
-                    collection.resource_path(resource),
+                    resource_path,
                 )
             )
             print("\t$(run-pipeline)")
