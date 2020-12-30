@@ -118,6 +118,7 @@ def execute(command):
 
 
 def read_csv(input_path, encoding="utf-8"):
+    logging.debug("encoding", encoding)
     return open(input_path, encoding=encoding, newline=None)
 
 
