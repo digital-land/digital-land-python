@@ -14,3 +14,6 @@ class MemoryStore(Store):
         value = item[self.schema.key]
         self.records.setdefault(value, [])
         self.records[value].append(item)
+
+    def __len__(self):
+        return len(self.records)
