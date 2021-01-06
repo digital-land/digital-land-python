@@ -74,7 +74,8 @@ class Converter:
             os.link(input_path, temp_path)
             zip_path = f"/vsizip/{temp_path}{internal_path}"
             csv_path = convert_features_to_csv(zip_path)
-            return read_csv(csv_path)
+            encoding = detect_file_encoding(csv_path)
+            return read_csv(csv_path, encoding)
 
         # Then try SQLite (GeoPackage)
         try:
@@ -86,7 +87,8 @@ class Converter:
         else:
             logging.debug(f"{input_path} looks like SQLite")
             csv_path = convert_features_to_csv(input_path)
-            return read_csv(csv_path)
+            encoding = detect_file_encoding(csv_path)
+            return read_csv(csv_path, encoding)
 
         return None
 
@@ -118,7 +120,7 @@ def execute(command):
 
 
 def read_csv(input_path, encoding="utf-8"):
-    logging.debug("encoding", encoding)
+    logging.debug("reading %s with encoding %s", input_path, encoding)
     return open(input_path, encoding=encoding, newline=None)
 
 
