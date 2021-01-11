@@ -87,6 +87,7 @@ class LogStore(ItemStore):
 class ResourceLogStore(CSVStore):
     def load(self, log, source, directory=collection_directory):
         resources = {}
+        today = datetime.utcnow().isoformat()[:10]
 
         for entry in log.entries:
             if "resource" in entry:
@@ -120,6 +121,10 @@ class ResourceLogStore(CSVStore):
                 for entry in source.records[endpoint]:
                     organisations[entry["organisation"]] = True
 
+            end_date = isodate(resource["end-date"])
+            if end_date >= today:
+                end_date = ""
+
             self.add_entry(
                 {
                     "resource": key,
@@ -127,7 +132,7 @@ class ResourceLogStore(CSVStore):
                     "endpoints": ";".join(sorted(resource["endpoints"])),
                     "organisations": ";".join(sorted(organisations)),
                     "start-date": isodate(resource["start-date"]),
-                    "end-date": isodate(resource["end-date"]),
+                    "end-date": end_date,
                 }
             )
 
