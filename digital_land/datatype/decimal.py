@@ -12,6 +12,9 @@ class DecimalDataType(DataType):
         return str(round(Decimal(value), self.precision).normalize())
 
     def normalise(self, value, issues=None):
+        # remove commas ..
+        value = value.replace(",", "")
+
         try:
             d = Decimal(value)
         except InvalidOperation:
