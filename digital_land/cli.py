@@ -341,7 +341,11 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised)
         key_field = "site"
     else:
         key_field = PIPELINE.schema
-    slugger = Slugger(PIPELINE.name, key_field)
+    slugger = Slugger(
+        SPECIFICATION.pipeline[PIPELINE.name].get("slug-prefix", None),
+        key_field,
+        SPECIFICATION.pipeline[PIPELINE.name].get("scope-field", None),
+    )
 
     pipeline_funcs = [
         converter.convert,

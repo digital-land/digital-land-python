@@ -28,6 +28,7 @@ class Specification:
         self.datatype_names = []
         self.schema_field = {}
         self.typology = {}
+        self.pipeline = {}
 
         self.load_dataset(path)
         self.load_schema(path)
@@ -36,6 +37,7 @@ class Specification:
         self.load_field(path)
         self.load_schema_field(path)
         self.load_typology(path)
+        self.load_pipeline(path)
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
@@ -94,6 +96,11 @@ class Specification:
                 "name": row["name"],
                 "text": row["text"],
             }
+
+    def load_pipeline(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
+        for row in reader:
+            self.pipeline[row["pipeline"]] = row
 
     def current_fieldnames(self, schema=None):
         if schema:
