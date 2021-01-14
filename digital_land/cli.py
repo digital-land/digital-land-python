@@ -469,6 +469,7 @@ def render_cmd(local, dataset_path, key_fields):
     if key_fields:
         kf = key_fields.split(",")
 
+    # TBD: should be the dataset name / slug-prefix here, not pipeline name ..
     renderer = Renderer(PIPELINE.name, dataset_path, url_root, key_fields=kf)
     renderer.render_pages()
 
