@@ -17,7 +17,7 @@ class Mapper:
     def headers(self, fieldnames):
         headers = {}
         matched = []
-        for header in fieldnames:
+        for header in sorted(fieldnames):
             fieldname = self.normalise(header)
 
             for pattern, value in self.column.items():
@@ -68,6 +68,8 @@ class Mapper:
             o = {}
 
             for header in headers:
+                if headers[header] == "IGNORE":
+                    continue
                 o[headers[header]] = row.get(header, "")
 
             o = self.concatenate_fields(row, o)
