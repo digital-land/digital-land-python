@@ -52,7 +52,7 @@ def test_map_headers_column_clash():
 
     reader = _reader("une,ein\r\n1,2\r\n")
 
-    assert mapper.headers(reader.fieldnames) == {"une": "One"}
+    assert mapper.headers(reader.fieldnames) == {"ein": "One"}
 
 
 def test_map():
