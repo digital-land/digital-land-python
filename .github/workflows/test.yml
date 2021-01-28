@@ -27,6 +27,9 @@ jobs:
         make init
     - name: Test ogr2ogr
       run: |
+        ogr2ogr --version
+    - name: Test ogr2ogr
+      run: |
         ogr2ogr -oo DOWNLOAD_SCHEMA=NO -lco GEOMETRY=AS_WKT -lco LINEFORMAT=CRLF -f CSV -nlt MULTIPOLYGON -nln MERGED --config OGR_WKT_PRECISION 10 temp tests/data/resource_examples/kml.resource    
     - name: Print output
       run: |
