@@ -469,8 +469,24 @@ def render_cmd(local, dataset_path, key_fields):
     if key_fields:
         kf = key_fields.split(",")
 
-    # TBD: should be the dataset name / slug-prefix here, not pipeline name ..
-    renderer = Renderer(PIPELINE.name, dataset_path, url_root, key_fields=kf)
+    # TODO: should probably read group_type from the specification
+    group_type = "organisation"
+    if PIPELINE.name in [
+        "local-authority-district",
+        "neighbourhood-plan-area",
+        "parish",
+    ]:
+        group_type = None
+
+    # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
+    renderer = Renderer(
+        PIPELINE.name,
+        SPECIFICATION.pipeline[PIPELINE.name]["schema"],
+        dataset_path,
+        url_root,
+        key_fields=kf,
+        group_type=group_type,
+    )
     renderer.render_pages()
 
 
