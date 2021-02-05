@@ -475,6 +475,7 @@ def render_cmd(local, dataset_path, key_fields):
         "local-authority-district",
         "neighbourhood-plan-area",
         "parish",
+        "development-plan-type",
     ]:
         group_type = None
 
