@@ -469,26 +469,24 @@ def render_cmd(local, dataset_path, key_fields):
     if key_fields:
         kf = key_fields.split(",")
 
-    # TODO: should probably read group_type from the specification
-    group_type = "organisation"
+    # TODO: should probably read group_field from the specification
+    group_field = "organisation"
     if PIPELINE.name in [
         "local-authority-district",
         "neighbourhood-plan-area",
         "parish",
         "development-plan-type",
     ]:
-        group_type = None
+        group_field = None
 
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
     renderer = Renderer(
         PIPELINE.name,
-        SPECIFICATION.pipeline[PIPELINE.name]["schema"],
-        dataset_path,
         url_root,
         key_fields=kf,
-        group_type=group_type,
+        group_field=group_field,
     )
-    renderer.render_pages()
+    renderer.render_dataset(dataset_path)
 
 
 def resource_hash_from(path):
