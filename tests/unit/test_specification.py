@@ -82,7 +82,12 @@ def test_schema_field():
 
 def test_current_fieldnames():
     specification = Specification("tests/data/specification")
-    assert specification.current_fieldnames() == ["category", "text", "field-string", "field-integer"]
+    assert specification.current_fieldnames() == [
+        "category",
+        "text",
+        "field-string",
+        "field-integer",
+    ]
 
 
 def test_field_type():
