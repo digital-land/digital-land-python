@@ -472,6 +472,7 @@ def render_cmd(local, dataset_path, key_fields):
     # TODO: should probably read group_field from the specification
     group_field = "organisation"
     if PIPELINE.name in [
+        "contribution-funding-status",
         "developer-agreement-type",
         "developer-contribution-purpose",
         "development-plan-type",
