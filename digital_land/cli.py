@@ -480,6 +480,7 @@ def render_cmd(local, dataset_path, key_fields):
         "parish",
         "permitted-development-right",
         "planning-permission-status",
+        "planning-permission-type",
     ]:
         group_field = None
 
