@@ -478,6 +478,7 @@ def render_cmd(local, dataset_path, key_fields):
         "development-plan-type",
         "local-authority-district",
         "neighbourhood-plan-area",
+        "ownership-status",
         "parish",
         "permitted-development-right",
         "planning-permission-status",
