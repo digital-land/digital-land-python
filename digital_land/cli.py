@@ -105,8 +105,6 @@ def cli(debug, pipeline_name, pipeline_dir, specification_dir):
     global SPECIFICATION
     PIPELINE = Pipeline(pipeline_dir, pipeline_name)
     SPECIFICATION = Specification(specification_dir)
-    __import__('pprint').pprint(SPECIFICATION.field_typology("organisations"))
-    sp = SPECIFICATION
 
 
 @cli.command("fetch")
