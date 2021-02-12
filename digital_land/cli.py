@@ -476,6 +476,8 @@ def render_cmd(local, dataset_path, key_fields):
         "neighbourhood-plan-area",
         "parish",
         "development-plan-type",
+        "developer-contribution-purpose",
+        "permitted-development-right",
     ]:
         group_field = None
 
