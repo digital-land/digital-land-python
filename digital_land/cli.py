@@ -105,6 +105,8 @@ def cli(debug, pipeline_name, pipeline_dir, specification_dir):
     global SPECIFICATION
     PIPELINE = Pipeline(pipeline_dir, pipeline_name)
     SPECIFICATION = Specification(specification_dir)
+    __import__('pprint').pprint(SPECIFICATION.field_typology("organisations"))
+    sp = SPECIFICATION
 
 
 @cli.command("fetch")
@@ -477,6 +479,7 @@ def render_cmd(local, dataset_path, key_fields):
         "parish",
         "development-plan-type",
         "developer-contribution-purpose",
+        "developer-agreement-type",
         "permitted-development-right",
     ]:
         group_field = None
