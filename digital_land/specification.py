@@ -152,8 +152,8 @@ class Specification:
         if not field["parent-field"]:
             return ""
         if fieldname == field["parent-field"]:
-            return field["parent-field"]
-        return self.field_typology(self.field[field["parent-field"]])
+            return fieldname
+        return self.field_typology(field["parent-field"])
 
     def key_field(self, schema):
         # hard-coded for now ..

@@ -1,5 +1,9 @@
 field,name,datatype,cardinality,parent-field,replacement-field,description,end-date
-field-string,First field,string,1,text,,
-field-integer,,integer,1,,
+category,Category,curie,1,category,category,,
+text,Text,string,1,text,,,
+field-string,First field,string,1,text,,,
+field-integer,,integer,1,,,,
 field-other-integer,,integer,1,,,,2020-01-01
 field-old,,flag,1,,,,2020-01-01
+field-category,,string,1,category,,,2020-01-01
+field-categories,,string,n,field-category,,,2020-01-01

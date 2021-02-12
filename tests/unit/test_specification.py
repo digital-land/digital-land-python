@@ -59,10 +59,14 @@ def test_datatype():
 def test_field_names():
     specification = Specification("tests/data/specification")
     assert specification.field_names == [
+        "category",
+        "text",
         "field-string",
         "field-integer",
         "field-other-integer",
         "field-old",
+        "field-category",
+        "field-categories",
     ]
 
 
@@ -78,13 +82,20 @@ def test_schema_field():
 
 def test_current_fieldnames():
     specification = Specification("tests/data/specification")
-    assert specification.current_fieldnames() == ["field-string", "field-integer"]
+    assert specification.current_fieldnames() == ["category", "text", "field-string", "field-integer"]
 
 
 def test_field_type():
     specification = Specification("tests/data/specification")
     assert type(specification.field_type("field-string")) is StringDataType
     assert type(specification.field_type("field-integer")) is IntegerDataType
+
+
+def test_field_typology():
+    specification = Specification("tests/data/specification")
+    assert specification.field_typology("field-string") == "text"
+    assert specification.field_typology("field-category") == "category"
+    assert specification.field_typology("field-categories") == "category"
 
 
 def test_typology():
