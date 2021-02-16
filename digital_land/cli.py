@@ -477,6 +477,7 @@ def render_cmd(local, dataset_path, key_fields):
         "developer-agreement-type",
         "developer-contribution-purpose",
         "development-plan-type",
+        "development-policy-category",
         "local-authority-district",
         "neighbourhood-plan-area",
         "ownership-status",
