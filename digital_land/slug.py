@@ -26,13 +26,14 @@ class Slugger:
         scope = None
         if scope_field:
             scope = row[scope_field].replace(":", "/")
-            key = Slugger.bad_chars.sub("-", row[key_field])
-        else:
-            key_parts = row[key_field].split(":")
-            if len(key_parts) != 2:
-                raise ValueError("expected curie, found %s", row[key_field])
-            key_parts[1] = Slugger.bad_chars.sub("-", key_parts[1])
-            key = "/".join(key_parts)
+
+        key_parts = row[key_field].split(":")
+        if len(key_parts) == 2 and scope:
+            # do not include first part of curie if we have scope
+            key_parts.pop(0)
+
+        key_parts[-1] = Slugger.bad_chars.sub("-", key_parts[-1])
+        key = "/".join(key_parts)
 
         return "/" + "/".join(filter(None, [prefix, scope, key]))
 

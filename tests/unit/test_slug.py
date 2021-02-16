@@ -27,11 +27,19 @@ def test_generate_slug_replace_special_char():
     )
 
 
+def test_generate_slug_no_scope():
+    row = {"organisation": "some:org", "identifier": "parish:E1234"}
+    assert Slugger.generate_slug(None, "identifier", row) == "/parish/E1234"
+
+
 def test_slug():
     s = Slugger("conservation-area", "conservation-area", "organisation")
     reader = FakeDictReader(
         [
-            {"organisation": "local-authority-eng:YOR", "conservation-area": "CA01"},
+            {
+                "organisation": "local-authority-eng:YOR",
+                "conservation-area": "conservation-area:CA01",
+            },
         ]
     )
     output = list(s.slug(reader))
