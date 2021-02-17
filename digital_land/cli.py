@@ -436,7 +436,7 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
     """
     print(ctx.args)
     if len(ctx.args) % 2:
-        logging.error(f"odd number of name value pair arguments")
+        logging.error("odd number of name value pair arguments")
         sys.exit(2)
     entry = defaultdict(
         str,
