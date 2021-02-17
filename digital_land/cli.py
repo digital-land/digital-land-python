@@ -436,7 +436,7 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
     """
     print(ctx.args)
     if len(ctx.args) % 2:
-        logging.error(f"odd number of name value pair arguments")
+        logging.error("odd number of name value pair arguments")
         sys.exit(2)
     entry = defaultdict(
         str,
@@ -465,10 +465,6 @@ def render_cmd(local, dataset_path, key_fields):
     if local:
         url_root = "/"
 
-    kf = ["organisation", "site"]
-    if key_fields:
-        kf = key_fields.split(",")
-
     # TODO: should probably read group_field from the specification
     group_field = "organisation"
     if PIPELINE.name in [
@@ -491,8 +487,8 @@ def render_cmd(local, dataset_path, key_fields):
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
     renderer = Renderer(
         PIPELINE.name,
+        SPECIFICATION.key_field(PIPELINE.name),
         url_root,
-        key_fields=kf,
         group_field=group_field,
     )
     renderer.render_dataset(dataset_path)
