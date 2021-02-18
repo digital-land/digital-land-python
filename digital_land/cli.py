@@ -487,7 +487,7 @@ def render_cmd(local, dataset_path, key_fields):
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
     renderer = Renderer(
         PIPELINE.name,
-        SPECIFICATION.key_field(PIPELINE.name),
+        SPECIFICATION.key_field(SPECIFICATION.pipeline[PIPELINE.name]["schema"]),
         url_root,
         group_field=group_field,
     )
