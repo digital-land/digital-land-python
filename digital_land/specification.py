@@ -147,6 +147,12 @@ class Specification:
 
         raise ValueError("unknown datatype '%s' for '%s' field" % (datatype, fieldname))
 
+    def field_parent(self, fieldname):
+        field = self.field[fieldname]
+        if field["parent-field"]:
+            return field["parent-field"]
+        return ""
+
     def field_typology(self, fieldname):
         field = self.field[fieldname]
         if not field["parent-field"]:
