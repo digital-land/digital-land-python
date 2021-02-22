@@ -103,6 +103,11 @@ def test_field_typology():
     assert specification.field_typology("field-categories") == "category"
 
 
+def test_field_parent():
+    specification = Specification("tests/data/specification")
+    assert specification.field_parent("field-string") == "text"
+
+
 def test_typology():
     specification = Specification("tests/data/specification")
     assert specification.typology["category"]["name"] == "Category"
