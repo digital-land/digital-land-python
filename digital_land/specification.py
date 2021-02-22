@@ -149,9 +149,7 @@ class Specification:
 
     def field_parent(self, fieldname):
         field = self.field[fieldname]
-        if field["parent-field"]:
-            return field["parent-field"]
-        return ""
+        return field.get("parent-field", None)
 
     def field_typology(self, fieldname):
         field = self.field[fieldname]
