@@ -9,7 +9,8 @@ class DecimalDataType(DataType):
         self.maximum = maximum
 
     def format(self, value):
-        return str(round(Decimal(value), self.precision).normalize())
+        rounded_value = round(Decimal(value), self.precision).normalize()
+        return str(self.remove_exponent(rounded_value))
 
     def normalise(self, value, issues=None):
         # remove commas ..
@@ -33,3 +34,7 @@ class DecimalDataType(DataType):
             return ""
 
         return self.format(d)
+
+    # taken from FAQs in decimal documentation
+    def remove_exponent(self, d):
+        return d.quantize(Decimal(1)) if d == d.to_integral() else d.normalize()
