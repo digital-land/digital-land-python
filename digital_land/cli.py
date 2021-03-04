@@ -336,11 +336,9 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised)
         PIPELINE.transformations(),
         organisation.organisation,
     )
-    # TBD: use schema!
-    if PIPELINE.name == "brownfield-land":
-        key_field = "site"
-    else:
-        key_field = PIPELINE.schema
+
+    key_field = SPECIFICATION.key_field(SPECIFICATION.pipeline[PIPELINE.name]["schema"])
+
     slugger = Slugger(
         SPECIFICATION.pipeline[PIPELINE.name].get("slug-prefix", None),
         key_field,
