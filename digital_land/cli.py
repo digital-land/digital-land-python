@@ -33,6 +33,7 @@ from .update import add_source_endpoint, get_failing_endpoints_from_registers
 PIPELINE = None
 SPECIFICATION = None
 
+
 # Custom decorators for common command arguments
 def input_output_path(f):
     arguments = [
