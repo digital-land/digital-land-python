@@ -41,6 +41,7 @@ def input_output_path(f):
     ]
     return functools.reduce(lambda x, arg: arg(x), reversed(arguments), f)
 
+
 def pipeline_name(f):
     return click.option("--pipeline-name", "-n", type=click.STRING)(f)
 
