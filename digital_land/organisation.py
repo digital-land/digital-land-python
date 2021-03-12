@@ -15,12 +15,15 @@ def lower_uri(value):
 
 class Organisation:
     organisation_path = "var/cache/organisation.csv"
+    pipeline_path = "pipeline/patch.csv"
     organisation = {}
     organisation_uri = {}
 
-    def __init__(self, organisation_path=None):
+    def __init__(self, organisation_path=None, pipeline_dir=None):
         if organisation_path:
             self.organisation_path = organisation_path
+        if pipeline_dir:
+            self.pipeline_path = pipeline_dir / "patch.csv"
         self.load_organisation()
 
     def load_organisation(self):
@@ -40,6 +43,6 @@ class Organisation:
                     self.organisation_uri[dl_url] = uri
 
         # TODO get the patch details from Pipeline
-        for row in csv.DictReader(open("pipeline/patch.csv")):
+        for row in csv.DictReader(open(self.pipeline_path)):
             if row["field"] == "OrganisationURI":
                 self.organisation_uri[lower_uri(row["pattern"])] = row["value"]
