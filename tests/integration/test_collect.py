@@ -2,14 +2,13 @@ import shutil
 import csv
 import urllib.request
 import json
-import hashlib
 from datetime import datetime
-from helpers import execute
+from tests.utils.helpers import execute, hash_digest
 from pathlib import Path
 
 import pytest
 
-ENDPOINT = "https://www.registers.service.gov.uk/registers/country/download-csv"
+ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/main/tests/data/resource_examples/csv.csv"
 COLLECTION_DIR = "./collection"
 
 
@@ -22,10 +21,6 @@ def endpoint_csv(tmp_path):
         writer.writeheader()
         writer.writerow({"endpoint": hash_digest(ENDPOINT), "endpoint-url": ENDPOINT})
     return p
-
-
-def hash_digest(url):
-    return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
 
 def test_collect(endpoint_csv):

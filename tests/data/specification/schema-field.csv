@@ -1,2 +1,7 @@
 schema,field
 schema-one,name
+schema-three,name
+schema-three,organisation
+schema-three,address
+schema-three,amount
+schema-three,date
