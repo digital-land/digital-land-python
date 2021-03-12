@@ -5,7 +5,7 @@ import os
 import sys
 from collections import defaultdict
 from datetime import date
-from pathlib import Path
+from pathlib import PurePath, Path
 
 import canonicaljson
 import click
@@ -129,9 +129,10 @@ def fetch_cmd(url):
     type=click.Path(exists=True),
     default="collection/endpoint.csv",
 )
-def collect_cmd(endpoint_path):
+@collection_dir
+def collect_cmd(endpoint_path, collection_dir):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
-    collector = Collector(PIPELINE.name)
+    collector = Collector(PIPELINE.name, Path(collection_dir))
     collector.collect(endpoint_path)
 
 
@@ -152,7 +153,7 @@ def index_cmd():
 @cli.command("collection-list-resources", short_help="list resources for a pipeline")
 @collection_dir
 def pipeline_collection_list_resources_cmd(collection_dir):
-    collection = Collection(collection_dir)
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     for resource in sorted(collection.resource.records):
         print(resource_path(resource, directory=collection_dir))
@@ -164,7 +165,7 @@ def pipeline_collection_list_resources_cmd(collection_dir):
 )
 @collection_dir
 def pipeline_collection_pipeline_makerules_cmd(collection_dir):
-    collection = Collection(collection_dir)
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     collection.pipeline_makerules()
 
@@ -177,7 +178,7 @@ def pipeline_collection_save_csv_cmd(collection_dir):
         os.remove(Path(collection_dir) / "resource.csv")
     except OSError:
         pass
-    collection = Collection(collection_dir)
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     collection.save_csv()
 
@@ -321,7 +322,7 @@ def pipeline_cmd(input_path, output_path, collection_dir, null_path, issue_dir, 
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
     patch = PIPELINE.patches(resource_hash)
 
-    collection = Collection(name=None,collection_dir=collection_dir)
+    collection = Collection(name=None,directory=collection_dir)
     collection.load()
     line_converter = LineConverter()
     pm = get_plugin_manager()
@@ -339,7 +340,7 @@ def pipeline_cmd(input_path, output_path, collection_dir, null_path, issue_dir, 
         PIPELINE,
         issues,
         collection,
-        Organisation().organisation_uri,
+        organisation.organisation_uri,
         patch,
         pm,
     )

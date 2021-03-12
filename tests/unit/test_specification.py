@@ -71,7 +71,8 @@ def test_field_names():
         "organisation",
         "address",
         "amount",
-        "date"
+        "date",
+        "schema-three"
     ]
 
 
@@ -96,7 +97,8 @@ def test_current_fieldnames():
         "organisation",
         "address",
         "amount",
-        "date"
+        "date",
+        "schema-three"
     ]
 
 

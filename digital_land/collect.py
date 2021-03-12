@@ -32,8 +32,11 @@ class Collector:
     resource_dir = "collection/resource/"
     log_dir = "collection/log/"
 
-    def __init__(self, pipeline_name=""):
+    def __init__(self, pipeline_name="", collection_dir=None):
         self.pipeline_name = pipeline_name
+        if collection_dir:
+            self.resource_dir = collection_dir / "resource/"
+            self.log_dir = collection_dir / "log/"
         self.session = requests.Session()
         self.session.mount("file:", FileAdapter())
         self.endpoint = {}
