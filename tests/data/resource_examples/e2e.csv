@@ -2,4 +2,4 @@ schema-three,name,organisation,adress,amount,date
 id1,A library,local-authority-eng:AAA,123 avenue,90,11/10/2018
 id2,Leisure centre,,456 road,680,
 id3,,local-authority-eng:AAA,Town Hall London,34,06/09/2014
-,Park,local-authority-eng:AAA,N/A,0.4,01/04/2020
+,Park,local-authority-eng:AAA,not applicable,0.4,01/04/2020
