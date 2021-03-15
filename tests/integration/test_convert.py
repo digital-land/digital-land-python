@@ -5,8 +5,8 @@ import pathlib
 
 import pytest
 import xlsxwriter
-from tests.utils.helpers import execute
-from wasabi import color
+from tests.utils.helpers import execute, print_diffs
+
 
 
 @pytest.mark.parametrize(
@@ -41,33 +41,6 @@ def diff_macos_fuzzy(fromfile, tofile):
     file_b = open(tofile).readlines()
     matcher = difflib.SequenceMatcher(None, " ".join(file_a), " ".join(file_b))
     return matcher.quick_ratio()
-
-
-def print_diffs(fromfile, tofile):
-    # helper function to print detailed diffs between two files
-    file_a = open(fromfile).readlines()
-    file_b = open(tofile).readlines()
-    count = 0
-    message = []
-    for a, b in zip(file_a, file_b):
-        count += 1
-        if a == b:
-            continue
-        message.append(f"line {count} differs: ")
-        matcher = difflib.SequenceMatcher(None, a, b)
-        output = []
-        for opcode, a0, a1, b0, b1 in matcher.get_opcodes():
-            if opcode == "equal":
-                output.append(a[a0:a1])
-            elif opcode == "insert":
-                output.append(color(b[b0:b1], fg=16, bg="green"))
-            elif opcode == "delete":
-                output.append(color(a[a0:a1], fg=16, bg="red"))
-            elif opcode == "replace":
-                output.append(color(b[b0:b1], fg=16, bg="green"))
-                output.append(color(a[a0:a1], fg=16, bg="red"))
-        message.append("".join(output))
-    return "".join(message)
 
 
 @pytest.fixture()

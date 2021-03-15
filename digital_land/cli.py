@@ -94,7 +94,7 @@ def source_path(f):
 
 def organisation_path(f):
     return click.option(
-        "--organisation-path",
+        "--organisation-path", "-o",
         type=click.Path(exists=True),
         default="var/cache/organisation.csv",
     )(f)
