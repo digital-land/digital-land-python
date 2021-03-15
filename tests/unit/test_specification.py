@@ -5,7 +5,11 @@ from digital_land.datatype.integer import IntegerDataType
 
 def test_dataset_names():
     specification = Specification("tests/data/specification")
-    assert specification.dataset_names == ["dataset-one", "dataset-two", "dataset-three"]
+    assert specification.dataset_names == [
+        "dataset-one",
+        "dataset-two",
+        "dataset-three",
+    ]
 
 
 def test_dataset():
@@ -72,7 +76,7 @@ def test_field_names():
         "address",
         "amount",
         "date",
-        "schema-three"
+        "schema-three",
     ]
 
 
@@ -98,7 +102,7 @@ def test_current_fieldnames():
         "address",
         "amount",
         "date",
-        "schema-three"
+        "schema-three",
     ]
 
 

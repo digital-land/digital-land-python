@@ -5,7 +5,7 @@ import os
 import sys
 from collections import defaultdict
 from datetime import date
-from pathlib import PurePath, Path
+from pathlib import Path
 
 import canonicaljson
 import click
@@ -92,13 +92,14 @@ def source_path(f):
         default="collection/source.csv",
     )(f)
 
+
 def organisation_path(f):
     return click.option(
-        "--organisation-path", "-o",
+        "--organisation-path",
+        "-o",
         type=click.Path(exists=True),
         default="var/cache/organisation.csv",
     )(f)
-
 
 
 @click.group()
@@ -260,7 +261,9 @@ def harmonise_cmd(input_path, output_path, issue_dir, organisation_path):
     collection = Collection()
     collection.load()
 
-    organisation_uri = Organisation(organisation_path, Path(PIPELINE.path)).organisation_uri
+    organisation_uri = Organisation(
+        organisation_path, Path(PIPELINE.path)
+    ).organisation_uri
     patch = PIPELINE.patches(resource_hash)
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
 
@@ -314,7 +317,15 @@ def transform_cmd(input_path, output_path, organisation_path):
 @issue_dir
 @organisation_path
 @click.option("--save-harmonised", is_flag=True)
-def pipeline_cmd(input_path, output_path, collection_dir, null_path, issue_dir, organisation_path, save_harmonised):
+def pipeline_cmd(
+    input_path,
+    output_path,
+    collection_dir,
+    null_path,
+    issue_dir,
+    organisation_path,
+    save_harmonised,
+):
     resource_hash = resource_hash_from(input_path)
     organisation = Organisation(organisation_path, Path(PIPELINE.path))
     issues = Issues()
@@ -322,7 +333,7 @@ def pipeline_cmd(input_path, output_path, collection_dir, null_path, issue_dir, 
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
     patch = PIPELINE.patches(resource_hash)
 
-    collection = Collection(name=None,directory=collection_dir)
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     line_converter = LineConverter()
     pm = get_plugin_manager()

@@ -1,10 +1,8 @@
-import shutil
 import csv
 import urllib.request
 import json
 from datetime import datetime
 from tests.utils.helpers import execute, hash_digest
-from pathlib import Path
 
 import pytest
 
@@ -20,6 +18,7 @@ def create_endpoint_csv(tmp_path):
         writer.writeheader()
         writer.writerow({"endpoint": hash_digest(ENDPOINT), "endpoint-url": ENDPOINT})
     return p
+
 
 @pytest.fixture()
 def create_collection_dir(tmp_path):

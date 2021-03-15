@@ -3,6 +3,7 @@ import hashlib
 import difflib
 from wasabi import color
 
+
 def execute(command):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -17,6 +18,7 @@ def execute(command):
 
 def hash_digest(url):
     return hashlib.sha256(url.encode("utf-8")).hexdigest()
+
 
 def print_diffs(fromfile, tofile):
     # helper function to print detailed diffs between two files

@@ -8,7 +8,6 @@ import xlsxwriter
 from tests.utils.helpers import execute, print_diffs
 
 
-
 @pytest.mark.parametrize(
     "input_file",
     [
