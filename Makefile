@@ -9,14 +9,16 @@ LC_COLLATE := C.UTF-8
 
 all:	lint test coverage
 
-test:
-	python -m pytest
-
 test-unit:
 	python -m pytest tests/unit
 
 test-integration:
 	python -m pytest tests/integration
+
+test-end-to-end:
+	python -m pytest tests/e2e
+
+test: test-unit test-integration test-end-to-end
 
 coverage:
 	coverage run --source digital_land -m py.test && coverage report
