@@ -1,12 +1,15 @@
 import csv
-import urllib.request
 import json
+import urllib.request
 from datetime import datetime
-from tests.utils.helpers import execute, hash_digest
 
 import pytest
+from helpers import execute
+
+from tests.utils.helpers import hash_digest
 
 ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/main/tests/data/resource_examples/csv.csv"
+COLLECTION_DIR = "./collection"
 
 
 @pytest.fixture()

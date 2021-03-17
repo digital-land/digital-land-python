@@ -32,23 +32,32 @@ def resource_hash_from(path):
 
 
 class DictReaderInjectResource(csv.DictReader):
-    def __init__(self, resource, *args, **kwargs):
+    def __init__(self, resource, include_line_num, *args, **kwargs):
         self.resource = resource
+        self.include_line_num = include_line_num
+        if include_line_num:
+            self.line_num = 1
         super().__init__(*args, **kwargs)
 
     def __next__(self):
         # Inject the resource into each row
         row = super().__next__()
-        return {
+        result = {
             "resource": self.resource,
             "row": row,
         }
 
+        if self.include_line_num:
+            result["line_num"] = self.line_num
+            self.line_num += 1
 
-def load_csv_dict(path):
+        return result
+
+
+def load_csv_dict(path, include_line_num=False):
     logging.debug(f"reading csv {path}")
     f = open(path, newline=None)
-    return DictReaderInjectResource(resource_hash_from(path), f)
+    return DictReaderInjectResource(resource_hash_from(path), include_line_num, f)
 
 
 def load_csv(path, encoding="UTF-8"):
