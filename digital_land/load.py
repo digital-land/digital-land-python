@@ -36,7 +36,7 @@ class DictReaderInjectResource(csv.DictReader):
         self.resource = resource
         self.include_line_num = include_line_num
         if include_line_num:
-            self.line_num = 1
+            self.current_line_num = 1
         super().__init__(*args, **kwargs)
 
     def __next__(self):
@@ -48,8 +48,8 @@ class DictReaderInjectResource(csv.DictReader):
         }
 
         if self.include_line_num:
-            result["line_num"] = self.line_num
-            self.line_num += 1
+            result["line_num"] = self.current_line_num
+            self.current_line_num += 1
 
         return result
 
