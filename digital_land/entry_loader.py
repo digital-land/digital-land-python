@@ -16,8 +16,13 @@ class EntryLoader:
             )
 
     def load_entry(self, data, resource, line_num):
-        if not data["slug"] or not resource:
-            logger.warning("skipping entry due to missing slug or resource")
+        if not resource or not line_num:
+            raise ValueError("entry missing resource or line_num")
+
+        if not data["slug"]:
+            logger.warning(
+                "skipping entry at %s:%s due to missing slug", resource, line_num
+            )
             return
 
         entry = Entry(data, resource, line_num)
