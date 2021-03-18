@@ -139,7 +139,8 @@ class EntryRepository:
                 start_date,
                 end_date,
                 FOREIGN KEY(entry) REFERENCES entry(id),
-                FOREIGN KEY(fact) REFERENCES fact(id)
+                FOREIGN KEY(fact) REFERENCES fact(id),
+                UNIQUE(entry, fact)
             )"""
         )
 

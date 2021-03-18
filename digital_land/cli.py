@@ -321,7 +321,7 @@ def load_entries_cmd(input_paths, output_path):
     total = len(input_paths)
     for idx, path in enumerate(input_paths, start=1):
         logging.info("loading file %s of %s", idx, total)
-        stream = load_csv_dict(path, line_num=True)
+        stream = load_csv_dict(path, include_line_num=True)
         loader.load(stream)
 
 
