@@ -5,7 +5,7 @@ from pathlib import Path
 
 from tests.utils.helpers import hash_digest, execute, print_diffs
 
-ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/e2e_test/tests/data/resource_examples/e2e.csv"
+ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/main/tests/data/resource_examples/e2e.csv"
 
 
 @pytest.fixture()
