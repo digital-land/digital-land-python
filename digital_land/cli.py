@@ -14,6 +14,7 @@ from digital_land_frontend.render import Renderer
 from .collect import Collector
 from .collection import Collection, resource_path
 from .convert import Converter
+from .entry_loader import EntryLoader
 from .harmonise import Harmoniser
 from .index import Indexer
 from .issues import Issues, IssuesFile
@@ -23,6 +24,7 @@ from .normalise import Normaliser
 from .organisation import Organisation
 from .pipeline import Pipeline
 from .plugin import get_plugin_manager
+from .repository.entry_repository import EntryRepository
 from .save import save
 from .schema import Schema
 from .slug import Slugger
@@ -303,6 +305,24 @@ def transform_cmd(input_path, output_path, organisation_path):
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
     save(stream, output_path, SPECIFICATION.current_fieldnames(PIPELINE.schema))
+
+
+@cli.command("load_entries", short_help="load_entries")
+@click.option("--output-path", type=click.Path(), default=None)
+@click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
+def load_entries_cmd(input_paths, output_path):
+    if not output_path:
+        print("missing output path")
+        sys.exit(2)
+
+    repo = EntryRepository(output_path, create=True)
+    loader = EntryLoader(repo)
+
+    total = len(input_paths)
+    for idx, path in enumerate(input_paths, start=1):
+        logging.info("loading file %s of %s", idx, total)
+        stream = load_csv_dict(path, include_line_num=True)
+        loader.load(stream)
 
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
