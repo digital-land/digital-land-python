@@ -9,17 +9,17 @@ ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/m
 
 
 @pytest.fixture()
-def create_workspace(tmp_path):
+def workspace(tmp_path):
     (tmp_path / "issue").mkdir()
     (tmp_path / "output").mkdir()
     c = tmp_path / "collection"
     c.mkdir()
-    _create_endpoint_csv(ENDPOINT, c)
-    _create_source_csv(ENDPOINT, c)
+    _endpoint_csv(ENDPOINT, c)
+    _source_csv(ENDPOINT, c)
     return tmp_path
 
 
-def _create_endpoint_csv(endpoint_url, collection_dir):
+def _endpoint_csv(endpoint_url, collection_dir):
     e = collection_dir / "endpoint.csv"
     fieldnames = [
         "endpoint",
@@ -43,7 +43,7 @@ def _create_endpoint_csv(endpoint_url, collection_dir):
         )
 
 
-def _create_source_csv(endpoint_url, collection_dir):
+def _source_csv(endpoint_url, collection_dir):
     s = collection_dir / "source.csv"
     fieldnames = [
         "attribution",
@@ -70,8 +70,8 @@ def _create_source_csv(endpoint_url, collection_dir):
         )
 
 
-def test_workflow(create_workspace):
-    tmp_path = create_workspace
+def test_workflow(workspace):
+
     returncode, outs, errs = execute(
         [
             "digital-land",
@@ -81,8 +81,8 @@ def test_workflow(create_workspace):
             "tests/data/specification",
             "collect",
             "-c",
-            str(tmp_path / "collection"),
-            str(tmp_path / "collection" / "endpoint.csv"),
+            str(workspace / "collection"),
+            str(workspace / "collection" / "endpoint.csv"),
         ]
     )
 
@@ -90,7 +90,7 @@ def test_workflow(create_workspace):
     assert "ERROR" not in errs
 
     collected_resources = [
-        x for x in Path(tmp_path / "collection" / "resource").glob("*")
+        x for x in Path(workspace / "collection" / "resource").glob("*")
     ]
     assert len(collected_resources) == 1
     resource = collected_resources[0]
@@ -104,14 +104,14 @@ def test_workflow(create_workspace):
             "tests/data/specification",
             "collection-save-csv",
             "-c",
-            str(tmp_path / "collection"),
+            str(workspace / "collection"),
         ]
     )
 
     assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs
-    assert (tmp_path / "collection" / "log.csv").is_file()
-    assert (tmp_path / "collection" / "resource.csv").is_file()
+    assert (workspace / "collection" / "log.csv").is_file()
+    assert (workspace / "collection" / "resource.csv").is_file()
 
     returncode, outs, errs = execute(
         [
@@ -124,17 +124,17 @@ def test_workflow(create_workspace):
             "pipeline-three",
             "pipeline",
             "-c",
-            str(tmp_path / "collection"),
+            str(workspace / "collection"),
             "-o",
             "tests/data/organisation.csv",
             "-i",
-            str(tmp_path / "issue"),
+            str(workspace / "issue"),
             str(resource),
-            str(tmp_path / "output" / "result.csv"),
+            str(workspace / "output" / "result.csv"),
         ]
     )
 
-    result = tmp_path / "output" / "result.csv"
+    result = workspace / "output" / "result.csv"
 
     assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs

@@ -10,7 +10,7 @@ ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/m
 
 
 @pytest.fixture()
-def create_endpoint_csv(tmp_path):
+def endpoint_csv(tmp_path):
     p = tmp_path / "endpoint.csv"
     fieldnames = ["endpoint", "endpoint-url"]
     with open(p, "w") as f:
@@ -21,14 +21,14 @@ def create_endpoint_csv(tmp_path):
 
 
 @pytest.fixture()
-def create_collection_dir(tmp_path):
+def collection_dir(tmp_path):
     c = tmp_path / "collection"
     c.mkdir()
     return c
 
 
-def test_collect(create_endpoint_csv, create_collection_dir):
-    collection_dir = create_collection_dir
+def test_collect(endpoint_csv, collection_dir):
+    collection_dir = collection_dir
     returncode, outs, errs = execute(
         [
             "digital-land",
@@ -39,7 +39,7 @@ def test_collect(create_endpoint_csv, create_collection_dir):
             "collect",
             "-c",
             collection_dir,
-            create_endpoint_csv,
+            endpoint_csv,
         ]
     )
 
