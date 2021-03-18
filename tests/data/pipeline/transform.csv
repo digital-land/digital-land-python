@@ -1,2 +1,3 @@
 pipeline,field,replacement-field
 pipeline-one,FieldOne,field-one
+pipeline-three,date,entry-date

@@ -93,6 +93,15 @@ def source_path(f):
     )(f)
 
 
+def organisation_path(f):
+    return click.option(
+        "--organisation-path",
+        "-o",
+        type=click.Path(exists=True),
+        default="var/cache/organisation.csv",
+    )(f)
+
+
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
 @pipeline_name
@@ -121,9 +130,10 @@ def fetch_cmd(url):
     type=click.Path(exists=True),
     default="collection/endpoint.csv",
 )
-def collect_cmd(endpoint_path):
+@collection_dir
+def collect_cmd(endpoint_path, collection_dir):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
-    collector = Collector(PIPELINE.name)
+    collector = Collector(PIPELINE.name, Path(collection_dir))
     collector.collect(endpoint_path)
 
 
@@ -144,7 +154,7 @@ def index_cmd():
 @cli.command("collection-list-resources", short_help="list resources for a pipeline")
 @collection_dir
 def pipeline_collection_list_resources_cmd(collection_dir):
-    collection = Collection(collection_dir)
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     for resource in sorted(collection.resource.records):
         print(resource_path(resource, directory=collection_dir))
@@ -156,7 +166,7 @@ def pipeline_collection_list_resources_cmd(collection_dir):
 )
 @collection_dir
 def pipeline_collection_pipeline_makerules_cmd(collection_dir):
-    collection = Collection(collection_dir)
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     collection.pipeline_makerules()
 
@@ -169,7 +179,7 @@ def pipeline_collection_save_csv_cmd(collection_dir):
         os.remove(Path(collection_dir) / "resource.csv")
     except OSError:
         pass
-    collection = Collection(collection_dir)
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     collection.save_csv()
 
@@ -240,7 +250,8 @@ def map_cmd(input_path, output_path):
 )
 @input_output_path
 @issue_dir
-def harmonise_cmd(input_path, output_path, issue_dir):
+@organisation_path
+def harmonise_cmd(input_path, output_path, issue_dir, organisation_path):
     if not output_path:
         output_path = default_output_path_for("harmonised", input_path)
 
@@ -250,7 +261,9 @@ def harmonise_cmd(input_path, output_path, issue_dir):
     collection = Collection()
     collection.load()
 
-    organisation_uri = Organisation().organisation_uri
+    organisation_uri = Organisation(
+        organisation_path, Path(PIPELINE.path)
+    ).organisation_uri
     patch = PIPELINE.patches(resource_hash)
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
 
@@ -276,11 +289,12 @@ def harmonise_cmd(input_path, output_path, issue_dir):
 
 @cli.command("transform", short_help="transform")
 @input_output_path
-def transform_cmd(input_path, output_path):
+@organisation_path
+def transform_cmd(input_path, output_path, organisation_path):
     if not output_path:
         output_path = default_output_path_for("transformed", input_path)
 
-    organisation = Organisation()
+    organisation = Organisation(organisation_path, Path(PIPELINE.path))
     transformer = Transformer(
         SPECIFICATION.schema_field[PIPELINE.schema],
         PIPELINE.transformations(),
@@ -293,6 +307,7 @@ def transform_cmd(input_path, output_path):
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
 @input_output_path
+@collection_dir
 @click.option(
     "--null-path",
     type=click.Path(exists=True),
@@ -300,16 +315,25 @@ def transform_cmd(input_path, output_path):
     default=None,
 )
 @issue_dir
+@organisation_path
 @click.option("--save-harmonised", is_flag=True)
-def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised):
+def pipeline_cmd(
+    input_path,
+    output_path,
+    collection_dir,
+    null_path,
+    issue_dir,
+    organisation_path,
+    save_harmonised,
+):
     resource_hash = resource_hash_from(input_path)
-    organisation = Organisation()
+    organisation = Organisation(organisation_path, Path(PIPELINE.path))
     issues = Issues()
 
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
     patch = PIPELINE.patches(resource_hash)
 
-    collection = Collection()
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     line_converter = LineConverter()
     pm = get_plugin_manager()
@@ -327,7 +351,7 @@ def pipeline_cmd(input_path, output_path, null_path, issue_dir, save_harmonised)
         PIPELINE,
         issues,
         collection,
-        Organisation().organisation_uri,
+        organisation.organisation_uri,
         patch,
         pm,
     )

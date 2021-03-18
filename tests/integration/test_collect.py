@@ -1,20 +1,16 @@
-import shutil
 import csv
 import urllib.request
 import json
-import hashlib
 from datetime import datetime
-from helpers import execute
-from pathlib import Path
+from tests.utils.helpers import execute, hash_digest
 
 import pytest
 
-ENDPOINT = "https://www.registers.service.gov.uk/registers/country/download-csv"
-COLLECTION_DIR = "./collection"
+ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/main/tests/data/resource_examples/csv.csv"
 
 
 @pytest.fixture()
-def endpoint_csv(tmp_path):
+def create_endpoint_csv(tmp_path):
     p = tmp_path / "endpoint.csv"
     fieldnames = ["endpoint", "endpoint-url"]
     with open(p, "w") as f:
@@ -24,11 +20,15 @@ def endpoint_csv(tmp_path):
     return p
 
 
-def hash_digest(url):
-    return hashlib.sha256(url.encode("utf-8")).hexdigest()
+@pytest.fixture()
+def create_collection_dir(tmp_path):
+    c = tmp_path / "collection"
+    c.mkdir()
+    return c
 
 
-def test_collect(endpoint_csv):
+def test_collect(create_endpoint_csv, create_collection_dir):
+    collection_dir = create_collection_dir
     returncode, outs, errs = execute(
         [
             "digital-land",
@@ -37,24 +37,21 @@ def test_collect(endpoint_csv):
             "-s",
             "tests/data/specification",
             "collect",
-            endpoint_csv,
+            "-c",
+            collection_dir,
+            create_endpoint_csv,
         ]
     )
 
     log_date = datetime.utcnow().isoformat()[:10]
-    log_file = f"{COLLECTION_DIR}/log/{log_date}/{hash_digest(ENDPOINT)}.json"
+    log_file = f"{collection_dir}/log/{log_date}/{hash_digest(ENDPOINT)}.json"
 
     assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs
 
     resource = read_log(log_file)
     assert resource
-    assert resource_collected(resource)
-
-
-def teardown_function():
-    if Path(COLLECTION_DIR).is_dir():
-        shutil.rmtree(Path(COLLECTION_DIR))
+    assert resource_collected(collection_dir, resource)
 
 
 def read_log(log_file):
@@ -64,8 +61,8 @@ def read_log(log_file):
     return log["resource"]
 
 
-def resource_collected(resource):
-    saved = open(f"{COLLECTION_DIR}/resource/{resource}").read().rstrip()
+def resource_collected(collection_dir, resource):
+    saved = open(f"{collection_dir}/resource/{resource}").read().rstrip()
     raw = urllib.request.urlopen(ENDPOINT).read().decode("utf-8")
     downloaded = "\n".join(raw.splitlines())  # Convert CRLF to LF
     return saved == downloaded

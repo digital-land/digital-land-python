@@ -7,3 +7,9 @@ field-other-integer,,integer,1,,,,2020-01-01
 field-old,,flag,1,,,,2020-01-01
 field-category,,string,1,category,,,2020-01-01
 field-categories,,string,n,field-category,,,2020-01-01
+name,Name,string,1,text,,,
+organisation,Organisation,curie,1,organisation,,,
+address,Address,string,1,text,,,
+amount,Amount,decimal,1,number,,,
+date,Date,datetime,1,datetime,,,
+schema-three,schema_three,string,1,text,,,
