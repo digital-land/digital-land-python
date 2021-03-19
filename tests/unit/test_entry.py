@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 from digital_land.model.entry import Entry
@@ -5,16 +7,18 @@ from digital_land.model.fact import Fact
 
 
 def test_init():
-    data = {"a": "b", "slug": "/slug/abc"}
     resource = "abc123"
     line_num = 1
+    entry_date = "2021-03-19"
+    data = {"a": "b", "slug": "/abc", "entry-date": entry_date}
 
     entry = Entry(data, resource, line_num)
 
     assert entry.data == data
     assert entry.resource == resource
     assert entry.line_num == line_num
-    assert entry.slug == "/slug/abc"
+    assert entry.entry_date == datetime(2021, 3, 19, 0, 0)
+    assert entry.slug == "/abc"
 
 
 def test_missing_slug_exception():
@@ -27,8 +31,8 @@ def test_missing_slug_exception():
 
 
 def test_to_facts():
-    slug = "/slug/abc"
-    data = {"a": "b", "c": "d", "e": "f", "slug": slug}
+    slug = "/abc"
+    data = {"a": "b", "c": "d", "e": "f", "slug": slug, "entry-date": "2012-03-19"}
     entry = Entry(data, "abc123", 1)
 
     facts = entry.facts
@@ -39,12 +43,12 @@ def test_to_facts():
 
 
 def test_from_facts():
-    slug = "/slug/abc"
+    slug = "/abc"
     resource = "abc123"
     line_num = 1
     facts = set([Fact(slug, "a", "b"), Fact(slug, "c", "d"), Fact(slug, "e", "f")])
 
-    entry = Entry.from_facts(slug, facts, resource, line_num)
+    entry = Entry.from_facts(slug, facts, resource, line_num, "2021-03-19")
 
     assert entry.slug == slug
     assert entry.resource == resource
@@ -53,9 +57,41 @@ def test_from_facts():
 
 
 def test_equality():
-    entry_1 = Entry({"a": "b", "c": "d", "e": "f", "slug": "/slug/abc"}, "abc123", 1)
-    entry_2 = Entry({"c": "d", "e": "f", "a": "b", "slug": "/slug/abc"}, "abc123", 1)
-    entry_3 = Entry({"e": "f", "a": "b", "slug": "/slug/abc"}, "abc123", 1)
+    entry_1 = Entry(
+        {"a": "b", "c": "d", "e": "f", "slug": "/abc", "entry-date": "2012-03-19"},
+        "abc123",
+        1,
+    )
+    entry_2 = Entry(
+        {"c": "d", "e": "f", "a": "b", "slug": "/abc", "entry-date": "2012-03-19"},
+        "abc123",
+        1,
+    )
+    entry_3 = Entry(
+        {"e": "f", "a": "b", "slug": "/abc", "entry-date": "2012-03-19"},
+        "abc123",
+        1,
+    )
 
     assert entry_1 == entry_2  # ordering of the dict items is ignored
     assert entry_1 != entry_3
+
+
+def test_ordering():
+    entry_1 = Entry(
+        {"a": "b", "slug": "/abc", "entry-date": "2012-01-01"},
+        "abc123",
+        1,
+    )
+    entry_2 = Entry(
+        {"c": "d", "slug": "/abc", "entry-date": "2016-06-01"},
+        "def456",
+        20,
+    )
+    entry_3 = Entry(
+        {"e": "f", "slug": "/abc", "entry-date": "2021-12-25"},
+        "xyz",
+        999,
+    )
+
+    assert sorted([entry_2, entry_3, entry_1]) == [entry_1, entry_2, entry_3]

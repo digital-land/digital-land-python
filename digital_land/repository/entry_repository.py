@@ -61,7 +61,8 @@ class EntryRepository:
             SELECT
                 fact.*,
                 entry.resource AS "__RESOURCE__",
-                entry.line_num AS "__LINE_NUM__"
+                entry.line_num AS "__LINE_NUM__",
+                entry.entry_date AS "__ENTRY_DATE__"
             FROM fact
             JOIN provenance ON provenance.fact = fact.id
             JOIN entry ON provenance.entry = entry.id
@@ -80,7 +81,8 @@ class EntryRepository:
             SELECT
                 fact.*,
                 entry.resource AS "__RESOURCE__",
-                entry.line_num AS "__LINE_NUM__"
+                entry.line_num AS "__LINE_NUM__",
+                entry.entry_date AS "__ENTRY_DATE__"
             FROM fact
             JOIN provenance ON provenance.fact = fact.id
             JOIN entry ON provenance.entry = entry.id
@@ -114,6 +116,7 @@ class EntryRepository:
                 resource TEXT,
                 line_num INTEGER,
                 entity NOT NULL,
+                entry_date TEXT NOT NULL,
                 FOREIGN KEY(entity) REFERENCES entity(slug),
                 UNIQUE(resource, line_num)
             )"""
@@ -124,9 +127,6 @@ class EntryRepository:
                 entity TEXT,
                 attribute TEXT,
                 value TEXT,
-                entry_date,
-                start_date,
-                end_date,
                 FOREIGN KEY(entity) REFERENCES entity(slug),
                 UNIQUE(entity, attribute, value)
             )"""
@@ -149,8 +149,8 @@ class EntryRepository:
 
     def _insert_entry(self, cursor, entry):
         cursor.execute(
-            """INSERT OR IGNORE INTO entry(resource, line_num, entity) VALUES(?, ?, ?)""",
-            (entry.resource, entry.line_num, entry.slug),
+            """INSERT OR IGNORE INTO entry(resource, line_num, entity, entry_date) VALUES(?, ?, ?, ?)""",
+            (entry.resource, entry.line_num, entry.slug, entry.entry_date),
         )
         cursor.execute(
             """SELECT rowid FROM entry WHERE resource = ? AND line_num = ? AND entity = ?""",
@@ -188,12 +188,13 @@ class EntryRepository:
             rowdict = dict(row)
             resource = rowdict.pop("__RESOURCE__")
             line_num = rowdict.pop("__LINE_NUM__")
-            entry_fact[(resource, line_num)].add(
+            entry_date = rowdict.pop("__ENTRY_DATE__")
+            entry_fact[(resource, line_num, entry_date)].add(
                 Fact(entity, rowdict["attribute"], rowdict["value"])
             )
 
         result = {
-            Entry.from_facts(entity, facts, key[0], key[1])
+            Entry.from_facts(entity, facts, key[0], key[1], key[2])
             for key, facts in entry_fact.items()
         }
         return result

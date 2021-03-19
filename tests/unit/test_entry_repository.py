@@ -5,7 +5,9 @@ from digital_land.repository.entry_repository import EntryRepository
 
 def test_add():
     repo = EntryRepository(":memory:", create=True)
-    entry = Entry({"a": "b", "slug": "/slug/one"}, "abc123", 1)
+    entry = Entry(
+        {"a": "b", "slug": "/slug/one", "entry-date": "2021-03-19"}, "abc123", 1
+    )
 
     repo.add(entry)
 
@@ -17,9 +19,15 @@ def test_add():
 
 def test_find_by_entity():
     repo = EntryRepository(":memory:", create=True)
-    entry_1 = Entry({"a": "b", "slug": "/slug/one"}, "abc123", 1)
-    entry_2 = Entry({"a": "b", "slug": "/slug/one"}, "abc123", 2)
-    entry_3 = Entry({"c": "d", "slug": "/slug/two"}, "abc123", 3)
+    entry_1 = Entry(
+        {"a": "b", "slug": "/slug/one", "entry-date": "2021-03-19"}, "abc123", 1
+    )
+    entry_2 = Entry(
+        {"a": "b", "slug": "/slug/one", "entry-date": "2021-03-19"}, "abc123", 2
+    )
+    entry_3 = Entry(
+        {"c": "d", "slug": "/slug/two", "entry-date": "2021-03-19"}, "abc123", 3
+    )
     entries = set([entry_1, entry_2, entry_3])
 
     for entry in entries:
@@ -35,9 +43,15 @@ def test_find_by_entity():
 
 def test_find_by_fact():
     repo = EntryRepository(":memory:", create=True)
-    entry_1 = Entry({"a": "b", "slug": "/slug/one"}, "abc123", 1)
-    entry_2 = Entry({"a": "c", "slug": "/slug/one"}, "abc123", 2)
-    entry_3 = Entry({"c": "d", "slug": "/slug/two"}, "abc123", 3)
+    entry_1 = Entry(
+        {"a": "b", "slug": "/slug/one", "entry-date": "2021-03-19"}, "abc123", 1
+    )
+    entry_2 = Entry(
+        {"a": "c", "slug": "/slug/one", "entry-date": "2021-03-19"}, "abc123", 2
+    )
+    entry_3 = Entry(
+        {"c": "d", "slug": "/slug/two", "entry-date": "2021-03-19"}, "abc123", 3
+    )
     entries = set([entry_1, entry_2, entry_3])
 
     for entry in entries:
