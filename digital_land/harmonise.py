@@ -93,7 +93,7 @@ class Harmoniser:
         resource_organisations = self.collection.resource_organisations(resource)
 
         self.default_values["organisation"] = (
-            resource_organisations[0] if len(resource_organisations) > 1 else ""
+            resource_organisations[0] if len(resource_organisations) == 1 else ""
         )
         self.default_values["entry-date"] = resource_entry["start-date"]
 
