@@ -194,7 +194,7 @@ class EntryRepository:
             )
 
         result = {
-            Entry.from_facts(entity, facts, key[0], key[1], key[2])
+            Entry.from_facts(entity, facts, *key)
             for key, facts in entry_fact.items()
         }
         return result
