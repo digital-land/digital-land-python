@@ -92,12 +92,9 @@ class Harmoniser:
         resource_entry = self.collection.resource.records[resource][0]
         resource_organisations = self.collection.resource_organisations(resource)
 
-        if len(resource_organisations) > 1:
-            # resource has more than one organisation
-            self.default_values["organisation"] = ""
-            return
-
-        self.default_values["organisation"] = resource_organisations[0]
+        self.default_values["organisation"] = (
+            resource_organisations[0] if len(resource_organisations) > 1 else ""
+        )
         self.default_values["entry-date"] = resource_entry["start-date"]
 
         if self.plugin_manager:
