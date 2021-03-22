@@ -63,8 +63,12 @@ def test_snapshot_date():
 
 def test_change_history():
     entry_1 = Entry({"a": "b", "slug": "/one", "entry-date": "2019-01-01"}, "abc123", 1)
-    entry_2 = Entry({"a": "b", "slug": "/one", "entry-date": "2020-01-01"}, "def456", 10)
-    entry_3 = Entry({"a": "e", "slug": "/one", "entry-date": "2021-01-01"}, "xzy789", 99)
+    entry_2 = Entry(
+        {"a": "b", "slug": "/one", "entry-date": "2020-01-01"}, "def456", 10
+    )
+    entry_3 = Entry(
+        {"a": "e", "slug": "/one", "entry-date": "2021-01-01"}, "xzy789", 99
+    )
     entries = [entry_1, entry_2, entry_3]
     entity = Entity(entries)
 
