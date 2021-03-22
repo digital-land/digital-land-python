@@ -76,3 +76,20 @@ def test_change_history():
 
     assert len(history) == 2
     assert history == [entry_3, entry_1]
+
+
+def test_all_fields():
+    entry_1 = Entry({"a": "b", "slug": "/one", "entry-date": "2019-01-01"}, "abc123", 1)
+    entry_2 = Entry(
+        {"a": "b", "slug": "/one", "entry-date": "2020-01-01"}, "def456", 10
+    )
+    entry_3 = Entry(
+        {"c": "e", "slug": "/one", "entry-date": "2021-01-01"}, "xzy789", 99
+    )
+    entries = [entry_1, entry_2, entry_3]
+    entity = Entity(entries)
+
+    fields = entity.all_fields()
+
+    assert len(fields) == 2
+    assert fields == {"a", "c"}

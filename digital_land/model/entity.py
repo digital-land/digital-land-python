@@ -1,5 +1,6 @@
 from collections import ChainMap
 from datetime import date
+from itertools import chain
 
 
 class Entity:
@@ -33,3 +34,6 @@ class Entity:
             result.append(entry)
             last_entry = entry
         return result
+
+    def all_fields(self):
+        return set(chain.from_iterable([entry.data.keys() for entry in self.entries]))
