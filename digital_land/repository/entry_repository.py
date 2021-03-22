@@ -52,7 +52,7 @@ class EntryRepository:
                 logger.debug("\t\tfact_id: %s, entry_id: %s", fact_id, entry_id)
                 self._insert_provenance(cursor, entry_id, fact_id)
 
-    def list_entites(self):
+    def list_entities(self):
         "returns a list of all entities with facts in the repo"
 
         cursor = self.conn.cursor()

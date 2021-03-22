@@ -51,7 +51,7 @@ def test_entity_list():
     for entry in entries:
         repo.add(entry)
 
-    result = repo.list_entites()
+    result = repo.list_entities()
 
     assert len(result) == 3
     assert result == ["/a", "/b", "/c"]
