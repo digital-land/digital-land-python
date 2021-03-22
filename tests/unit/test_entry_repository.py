@@ -41,6 +41,22 @@ def test_find_by_entity():
     assert entry_3 not in result
 
 
+def test_entity_list():
+    repo = EntryRepository(":memory:", create=True)
+    entry_1 = Entry({"a": "b", "slug": "/c", "entry-date": "2021-03-19"}, "abc123", 1)
+    entry_2 = Entry({"a": "c", "slug": "/a", "entry-date": "2021-03-19"}, "abc123", 2)
+    entry_3 = Entry({"c": "d", "slug": "/b", "entry-date": "2021-03-19"}, "abc123", 3)
+    entries = set([entry_1, entry_2, entry_3])
+
+    for entry in entries:
+        repo.add(entry)
+
+    result = repo.list_entites()
+
+    assert len(result) == 3
+    assert result == ["/a", "/b", "/c"]
+
+
 def test_find_by_fact():
     repo = EntryRepository(":memory:", create=True)
     entry_1 = Entry(

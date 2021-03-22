@@ -9,7 +9,6 @@ from pathlib import Path
 
 import canonicaljson
 import click
-from digital_land_frontend.render import Renderer
 
 from .collect import Collector
 from .collection import Collection, resource_path
@@ -307,7 +306,7 @@ def transform_cmd(input_path, output_path, organisation_path):
     save(stream, output_path, SPECIFICATION.current_fieldnames(PIPELINE.schema))
 
 
-@cli.command("load_entries", short_help="load_entries")
+@cli.command("load-entries", short_help="load entries")
 @click.option("--output-path", type=click.Path(), default=None)
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 def load_entries_cmd(input_paths, output_path):
@@ -323,6 +322,28 @@ def load_entries_cmd(input_paths, output_path):
         logging.info("loading file %s of %s [%s]", idx, total, resource_hash_from(path))
         stream = load_csv_dict(path, include_line_num=True)
         loader.load(stream)
+
+
+@cli.command("build-dataset", short_help="build dataset")
+@input_output_path
+def build_dataset_cmd(input_path, output_path):
+    repo = EntryRepository(input_path)
+    entities = repo.list_entites()
+    logging.info("building dataset with %s entities", len(entities))
+
+    output = filter(
+        lambda x: x["row"],
+        (
+            {"row": Entity(repo.find_by_entity(entity)).snapshot()}
+            for entity in entities
+        ),
+    )
+
+    save(
+        output,
+        output_path,
+        SPECIFICATION.current_fieldnames(PIPELINE.schema) + ["slug"],
+    )
 
 
 @cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
@@ -503,6 +524,8 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--key-fields", type=click.STRING, default=None)
 @click.option("--local", is_flag=True)
 def render_cmd(local, dataset_path, key_fields):
+    from digital_land_frontend.render import Renderer
+
     url_root = None
     if local:
         url_root = "/"

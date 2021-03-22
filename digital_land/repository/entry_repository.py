@@ -52,6 +52,20 @@ class EntryRepository:
                 logger.debug("\t\tfact_id: %s, entry_id: %s", fact_id, entry_id)
                 self._insert_provenance(cursor, entry_id, fact_id)
 
+    def list_entites(self):
+        "returns a list of all entities with facts in the repo"
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                slug
+            FROM entity
+            ORDER BY 1
+        """,
+        )
+        return [row["slug"] for row in cursor.fetchall()]
+
     def find_by_entity(self, entity: str):
         "returns all Entries associated with the specificed entity ref"
 
@@ -121,6 +135,7 @@ class EntryRepository:
                 UNIQUE(resource, line_num)
             )"""
         )
+        cursor.execute("""CREATE INDEX entry_entity ON entry(entity)""")
         cursor.execute(
             """CREATE TABLE fact (
                 id INTEGER PRIMARY KEY,
@@ -131,6 +146,7 @@ class EntryRepository:
                 UNIQUE(entity, attribute, value)
             )"""
         )
+        cursor.execute("""CREATE INDEX fact_entity ON fact(entity)""")
         cursor.execute(
             """CREATE TABLE provenance (
                 entry INTEGER,
@@ -143,6 +159,8 @@ class EntryRepository:
                 UNIQUE(entry, fact)
             )"""
         )
+        cursor.execute("""CREATE INDEX provenance_fact ON provenance(fact)""")
+        cursor.execute("""CREATE INDEX provenance_entry ON provenance(entry)""")
 
     def _insert_entity(self, cursor, slug):
         cursor.execute("""INSERT OR IGNORE INTO entity VALUES(?)""", (slug,))
