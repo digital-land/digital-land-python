@@ -13,6 +13,7 @@ import click
 from .collect import Collector
 from .collection import Collection, resource_path
 from .convert import Converter
+from .entry import Entry
 from .entry_loader import EntryLoader
 from .harmonise import Harmoniser
 from .index import Indexer
