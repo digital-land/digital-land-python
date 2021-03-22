@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 
 import pytest
 
@@ -17,7 +17,7 @@ def test_init():
     assert entry.data == data
     assert entry.resource == resource
     assert entry.line_num == line_num
-    assert entry.entry_date == datetime(2021, 3, 19, 0, 0)
+    assert entry.entry_date == date(2021, 3, 19)
     assert entry.slug == "/abc"
 
 
@@ -51,9 +51,14 @@ def test_from_facts():
     entry = Entry.from_facts(slug, facts, resource, line_num, "2021-03-19")
 
     assert entry.slug == slug
+    assert entry.entry_date == date(2021, 3, 19)
     assert entry.resource == resource
     assert entry.line_num == line_num
-    assert entry.data == {"a": "b", "c": "d", "e": "f", "slug": slug}
+    assert entry.data == {
+        "a": "b",
+        "c": "d",
+        "e": "f",
+    }
 
 
 def test_equality():
