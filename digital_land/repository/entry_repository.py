@@ -66,6 +66,20 @@ class EntryRepository:
         )
         return [row["slug"] for row in cursor.fetchall()]
 
+    def list_attributes(self):
+        "returns a list of all attributes across all facts in the repo"
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT DISTINCT
+                attribute
+            FROM fact
+            ORDER BY 1
+        """,
+        )
+        return {row["attribute"] for row in cursor.fetchall()}
+
     def find_by_entity(self, entity: str):
         "returns all Entries associated with the specificed entity ref"
 
