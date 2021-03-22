@@ -13,13 +13,13 @@ import click
 from .collect import Collector
 from .collection import Collection, resource_path
 from .convert import Converter
-from .entry import Entry
 from .entry_loader import EntryLoader
 from .harmonise import Harmoniser
 from .index import Indexer
 from .issues import Issues, IssuesFile
 from .load import LineConverter, load_csv, load_csv_dict
 from .map import Mapper
+from .model.entity import Entity
 from .normalise import Normaliser
 from .organisation import Organisation
 from .pipeline import Pipeline
