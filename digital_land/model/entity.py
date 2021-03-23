@@ -4,10 +4,11 @@ from itertools import chain
 
 
 class Entity:
-    def __init__(self, entries):
+    def __init__(self, entries, schema):
         # having the most recent entries at the front of the list means that
         # they take precedance over later items in the ChainMap
         self.entries = sorted(entries, reverse=True)
+        self.schema = schema
 
     def snapshot(self, snapshot_date: date = date.today()):
         return dict(

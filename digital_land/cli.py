@@ -335,7 +335,12 @@ def build_dataset_cmd(input_path, output_path):
     output = filter(
         lambda x: x["row"],
         (
-            {"row": Entity(repo.find_by_entity(entity)).snapshot()}
+            {
+                "row": Entity(
+                    repo.find_by_entity(entity),
+                    SPECIFICATION.pipeline[PIPELINE.name]["schema"],
+                ).snapshot()
+            }
             for entity in entities
         ),
     )
@@ -550,10 +555,13 @@ def render_cmd(local, dataset_path, key_fields):
     ]:
         group_field = None
 
+    schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
+
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
     renderer = Renderer(
         PIPELINE.name,
-        SPECIFICATION.key_field(SPECIFICATION.pipeline[PIPELINE.name]["schema"]),
+        schema,
+        SPECIFICATION.key_field(schema),
         url_root,
         group_field=group_field,
     )

@@ -4,11 +4,16 @@ from digital_land.model.entity import Entity
 from digital_land.model.entry import Entry
 
 
+def test_schema():
+    entity = Entity([], "conservation-area")
+    assert entity.schema == "conservation-area"
+
+
 def test_snapshot_single_entry():
     entries = [
         Entry({"a": "b", "slug": "/one", "entry-date": "2020-01-01"}, "abc123", 1)
     ]
-    entity = Entity(entries)
+    entity = Entity(entries, "conservation-area")
 
     assert entity.snapshot() == {"a": "b", "slug": "/one", "entry-date": "2020-01-01"}
 
@@ -18,7 +23,7 @@ def test_snapshot_multiple_entries_no_overlap():
         Entry({"a": "b", "slug": "/one", "entry-date": "2020-01-01"}, "abc123", 1),
         Entry({"c": "d", "slug": "/one", "entry-date": "2020-01-01"}, "def456", 10),
     ]
-    entity = Entity(entries)
+    entity = Entity(entries, "conservation-area")
 
     assert entity.snapshot() == {
         "a": "b",
@@ -34,7 +39,7 @@ def test_snapshot_multiple_entries_with_overlap():
         Entry({"c": "d", "slug": "/one", "entry-date": "2020-01-01"}, "def456", 10),
         Entry({"a": "e", "slug": "/one", "entry-date": "2021-01-01"}, "xzy789", 99),
     ]
-    entity = Entity(entries)
+    entity = Entity(entries, "conservation-area")
 
     assert entity.snapshot() == {
         "a": "e",
@@ -50,7 +55,7 @@ def test_snapshot_date():
         Entry({"c": "d", "slug": "/one", "entry-date": "2020-01-01"}, "def456", 10),
         Entry({"a": "e", "slug": "/one", "entry-date": "2021-01-01"}, "xzy789", 99),
     ]
-    entity = Entity(entries)
+    entity = Entity(entries, "conservation-area")
     snapshot_date = date.fromisoformat("2020-06-01")
 
     assert entity.snapshot(snapshot_date) == {
@@ -70,7 +75,7 @@ def test_change_history():
         {"a": "e", "slug": "/one", "entry-date": "2021-01-01"}, "xzy789", 99
     )
     entries = [entry_1, entry_2, entry_3]
-    entity = Entity(entries)
+    entity = Entity(entries, "conservation-area")
 
     history = entity.change_history()
 
@@ -87,7 +92,7 @@ def test_all_fields():
         {"c": "e", "slug": "/one", "entry-date": "2021-01-01"}, "xzy789", 99
     )
     entries = [entry_1, entry_2, entry_3]
-    entity = Entity(entries)
+    entity = Entity(entries, "conservation-area")
 
     fields = entity.all_fields()
 
