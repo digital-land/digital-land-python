@@ -1,4 +1,4 @@
-from datetime import date
+import datetime
 
 import pytest
 
@@ -17,7 +17,7 @@ def test_init():
     assert entry.data == data
     assert entry.resource == resource
     assert entry.line_num == line_num
-    assert entry.entry_date == date(2021, 3, 19)
+    assert entry.entry_date == datetime.date(2021, 3, 19)
     assert entry.slug == "/abc"
 
 
@@ -27,6 +27,16 @@ def test_missing_slug_exception():
     line_num = 1
 
     with pytest.raises(ValueError, match="^Entry missing slug field$"):
+        Entry(data, resource, line_num)
+
+
+def test_entry_in_future_exception():
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+    data = {"a": "b", "slug": "/abc", "entry-date": tomorrow.isoformat()}
+    resource = "abc123"
+    line_num = 1
+
+    with pytest.raises(ValueError, match="^entry-date cannot be in the future$"):
         Entry(data, resource, line_num)
 
 
@@ -51,7 +61,7 @@ def test_from_facts():
     entry = Entry.from_facts(slug, facts, resource, line_num, "2021-03-19")
 
     assert entry.slug == slug
-    assert entry.entry_date == date(2021, 3, 19)
+    assert entry.entry_date == datetime.date(2021, 3, 19)
     assert entry.resource == resource
     assert entry.line_num == line_num
     assert entry.data == {
@@ -94,7 +104,7 @@ def test_ordering():
         20,
     )
     entry_3 = Entry(
-        {"e": "f", "slug": "/abc", "entry-date": "2021-12-25"},
+        {"e": "f", "slug": "/abc", "entry-date": "2021-03-25"},
         "xyz",
         999,
     )
