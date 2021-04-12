@@ -10,14 +10,12 @@ class Pipeline:
     def __init__(self, path, name):
         self.name = name
         self.path = path
-        self.schema = []
         self.column = {}
         self.skip_pattern = {}
         self.patch = {}
         self.default = {}
         self.concat = {}
         self.transform = {}
-        self.load_pipeline()
         self.load_column()
         self.load_skip_patterns()
         self.load_patch()
@@ -38,10 +36,9 @@ class Pipeline:
                 continue
             yield row
 
-    def load_pipeline(self):
-        reader = self._row_reader("pipeline.csv")
-        for row in reader:
-            self.schema = row["schema"]
+    @property
+    def schema(self):
+        raise NotImplementedError()
 
     def load_column(self):
         reader = self._row_reader("column.csv")

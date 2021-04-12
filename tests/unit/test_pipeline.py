@@ -1,11 +1,6 @@
 from digital_land.pipeline import Pipeline
 
 
-def test_pipeline():
-    p = Pipeline("tests/data/pipeline/", "pipeline-one")
-    assert p.schema == "schema-one"
-
-
 def test_columns():
     p = Pipeline("tests/data/pipeline/", "pipeline-one")
     column = p.columns()

@@ -22,6 +22,8 @@ class Entry(Item):
             raise ValueError("Entry missing entry-date")
 
         self.entry_date = date.fromisoformat(data.pop("entry-date"))
+        if self.entry_date > date.today():
+            raise ValueError("entry-date cannot be in the future")
 
     def __hash__(self):
         return hash((self.resource, self.line_num, frozenset(self.data.items())))
@@ -53,7 +55,7 @@ class Entry(Item):
         }
 
     def __repr__(self):
-        return f"resource: {self.resource}, line: {self.line_num}, data: {self.data}"
+        return f"resource: {self.resource}, line: {self.line_num}, entry_date: {self.entry_date}, data: {self.data}"
 
     def __gt__(self, other):
         return self.entry_date > other.entry_date

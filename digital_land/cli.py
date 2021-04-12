@@ -297,14 +297,15 @@ def transform_cmd(input_path, output_path, organisation_path):
         output_path = default_output_path_for("transformed", input_path)
 
     organisation = Organisation(organisation_path, Path(PIPELINE.path))
+    schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
     transformer = Transformer(
-        SPECIFICATION.schema_field[PIPELINE.schema],
+        schema,
         PIPELINE.transformations(),
         organisation.organisation,
     )
     stream = load_csv_dict(input_path)
     stream = transformer.transform(stream)
-    save(stream, output_path, SPECIFICATION.current_fieldnames(PIPELINE.schema))
+    save(stream, output_path, SPECIFICATION.current_fieldnames(schema))
 
 
 @cli.command("load-entries", short_help="load entries")
@@ -331,6 +332,7 @@ def build_dataset_cmd(input_path, output_path):
     repo = EntryRepository(input_path)
     entities = repo.list_entities()
     logging.info("building dataset with %s entities", len(entities))
+    schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
 
     output = filter(
         lambda x: x["row"],
@@ -338,7 +340,7 @@ def build_dataset_cmd(input_path, output_path):
             {
                 "row": Entity(
                     repo.find_by_entity(entity),
-                    SPECIFICATION.pipeline[PIPELINE.name]["schema"],
+                    schema,
                 ).snapshot()
             }
             for entity in entities
@@ -348,7 +350,7 @@ def build_dataset_cmd(input_path, output_path):
     save(
         output,
         output_path,
-        SPECIFICATION.current_fieldnames(PIPELINE.schema) + ["slug"],
+        SPECIFICATION.current_fieldnames(schema) + ["slug"],
     )
 
 
@@ -377,6 +379,7 @@ def pipeline_cmd(
     organisation = Organisation(organisation_path, Path(PIPELINE.path))
     issues = Issues()
 
+    schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
     fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
     patch = PIPELINE.patches(resource_hash)
 
@@ -403,12 +406,12 @@ def pipeline_cmd(
         pm,
     )
     transformer = Transformer(
-        SPECIFICATION.schema_field[PIPELINE.schema],
+        SPECIFICATION.schema_field[schema],
         PIPELINE.transformations(),
         organisation.organisation,
     )
 
-    key_field = SPECIFICATION.key_field(SPECIFICATION.pipeline[PIPELINE.name]["schema"])
+    key_field = SPECIFICATION.key_field(schema)
 
     slugger = Slugger(
         SPECIFICATION.pipeline[PIPELINE.name].get("slug-prefix", None),
@@ -453,7 +456,7 @@ def pipeline_cmd(
     save(
         output,
         output_path,
-        fieldnames=SPECIFICATION.current_fieldnames(PIPELINE.schema) + ["slug"],
+        fieldnames=SPECIFICATION.current_fieldnames(schema) + ["slug"],
     )
 
     issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
@@ -556,7 +559,6 @@ def render_cmd(local, dataset_path, key_fields):
         group_field = None
 
     schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
-
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
     renderer = Renderer(
         PIPELINE.name,
@@ -573,7 +575,8 @@ def resource_hash_from(path):
 
 
 def intermediary_fieldnames(specification, pipeline):
-    fieldnames = specification.schema_field[pipeline.schema].copy()
+    schema = specification.pipeline[pipeline.name]["schema"]
+    fieldnames = specification.schema_field[schema].copy()
     replacement_fields = list(pipeline.transformations().keys())
     for field in replacement_fields:
         if field in fieldnames:
