@@ -26,7 +26,12 @@ class WktDataType(DataType):
             return default
 
         geometry = shapely.wkt.loads(value)
-        first_point = geometry.geoms[0].exterior.coords[0]
+
+        if geometry.geom_type == "Point":
+            first_point = geometry.coords[0]
+        else:
+            first_point = geometry.geoms[0].exterior.coords[0]
+
         lon, lat = first_point
         transposed_coords = False
 
@@ -69,9 +74,10 @@ class WktDataType(DataType):
         if transposed_coords:
             geometry = transform(flip, geometry)
 
-        geometry = geometry.simplify(0.00002)
-        if not isinstance(geometry, MultiPolygon):
-            # simplify will reduce to simple Polygon if possible
-            geometry = MultiPolygon([geometry])
+        if geometry.geom_type != "Point":
+            geometry = geometry.simplify(0.00002)
+            if not isinstance(geometry, MultiPolygon):
+                # simplify will reduce to simple Polygon if possible
+                geometry = MultiPolygon([geometry])
 
         return shapely.wkt.dumps(geometry, rounding_precision=6).replace(", ", ",")
