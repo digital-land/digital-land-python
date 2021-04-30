@@ -560,10 +560,12 @@ def render_cmd(local, dataset_path, key_fields):
         group_field = None
 
     schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
+    typology = SPECIFICATION.field_typology(PIPELINE.name)
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
     renderer = Renderer(
         PIPELINE.name,
         schema,
+        typology,
         SPECIFICATION.key_field(schema),
         url_root,
         group_field=group_field,

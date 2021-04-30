@@ -1,17 +1,17 @@
-from datetime import datetime
 import csv
 import os
 import re
+from datetime import datetime
 
-from .datatype.datatype import DataType
 from .datatype.address import AddressDataType
+from .datatype.datatype import DataType
 from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
+from .datatype.flag import FlagDataType
 from .datatype.integer import IntegerDataType
 from .datatype.organisation import OrganisationURIDataType
 from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
-from .datatype.flag import FlagDataType
 from .datatype.wkt import WktDataType
 
 
@@ -38,6 +38,9 @@ class Specification:
         self.load_schema_field(path)
         self.load_typology(path)
         self.load_pipeline(path)
+
+        self.index_field()
+        self.index_schema()
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
@@ -102,6 +105,27 @@ class Specification:
         for row in reader:
             self.pipeline[row["pipeline"]] = row
 
+    def index_schema(self):
+        self.schema_dataset = {}
+        for dataset, d in self.dataset_schema.items():
+            for schema in d:
+                self.schema_dataset.setdefault(schema, [])
+                self.schema_dataset[schema].append(dataset)
+
+        self.schema_to = {}
+        self.schema_from = {}
+        for schema, s in self.schema_field.items():
+            for name in s:
+                field = self.base_field(name)
+                if field != schema and field in self.schema:
+                    self.schema_to.setdefault(schema, [])
+                    if field not in self.schema_to[schema]:
+                        self.schema_to[schema].append(field)
+
+                    self.schema_from.setdefault(field, [])
+                    if schema not in self.schema_from[field]:
+                        self.schema_from[field].append(schema)
+
     def current_fieldnames(self, schema=None):
         if schema:
             fields = {}
@@ -156,6 +180,19 @@ class Specification:
         if fieldname == field["parent-field"]:
             return fieldname
         return self.field_typology(field["parent-field"])
+
+    def index_field(self):
+        self.field_schema = {}
+        for schema, s in self.schema_field.items():
+            for field in s:
+                self.field_schema.setdefault(field, [])
+                self.field_schema[field].append(schema)
+
+    def base_field(self, field):
+        f = self.field[field]
+        if f["cardinality"] == "1":
+            return field
+        return f["parent-field"]
 
     def key_field(self, schema):
         # hard-coded for now ..
