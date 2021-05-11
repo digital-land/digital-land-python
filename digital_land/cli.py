@@ -532,7 +532,8 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--dataset-path", required=True, type=click.Path())
 @click.option("--key-fields", type=click.STRING, default=None)
 @click.option("--local", is_flag=True)
-def render_cmd(local, dataset_path, key_fields):
+@click.option("--limit", type=int, default=None)
+def render_cmd(local, dataset_path, key_fields, limit):
     from digital_land_frontend.render import Renderer
 
     url_root = None
@@ -569,6 +570,7 @@ def render_cmd(local, dataset_path, key_fields):
         SPECIFICATION.key_field(schema),
         url_root,
         group_field=group_field,
+        limit=limit,
     )
     renderer.render_dataset(dataset_path)
 
