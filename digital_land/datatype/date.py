@@ -34,6 +34,7 @@ class DateDataType(DataType):
             "%b %d, %Y",
             "%b %d, %y",
             "%b-%y",
+            "%B %Y",
             "%m/%d/%Y",  # risky!
         ]:
             try:
