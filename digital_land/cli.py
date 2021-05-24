@@ -550,6 +550,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "development-plan-type",
         "development-policy-category",
         "document-type",
+        "heritage-coast",
         "local-authority-district",
         "neighbourhood-plan-area",
         "ownership-status",
