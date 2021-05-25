@@ -1,9 +1,17 @@
+import sys
 import csv
 import os
 import re
 import importlib.util
 
-csv.field_size_limit(16777216)
+field_size_limit = sys.maxsize
+
+while True:
+    try:
+        csv.field_size_limit(field_size_limit)
+        break
+    except OverflowError:
+        field_size_limit = int(field_size_limit / 10)
 
 
 class Pipeline:
