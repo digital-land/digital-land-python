@@ -543,6 +543,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
     # TODO: should probably read group_field from the specification
     group_field = "organisation"
     if PIPELINE.name in [
+        "area-of-outstanding-natural-beauty",
         "contribution-funding-status",
         "contribution-purpose",
         "developer-agreement-type",
