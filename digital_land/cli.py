@@ -558,6 +558,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "local-authority-district",
         "neighbourhood-plan-area",
         "ownership-status",
+        "park-and-garden",
         "parish",
         "permitted-development-right",
         "planning-permission-status",
