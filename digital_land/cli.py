@@ -564,6 +564,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "planning-permission-status",
         "planning-permission-type",
         "site-category",
+        "world-heritage-site",
     ]:
         group_field = None
 
