@@ -546,6 +546,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "ancient-woodland",
         "area-of-outstanding-natural-beauty",
         "battlefield",
+        "building-preservation-notice",
         "contribution-funding-status",
         "contribution-purpose",
         "developer-agreement-type",
