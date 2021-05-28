@@ -547,6 +547,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "area-of-outstanding-natural-beauty",
         "battlefield",
         "building-preservation-notice",
+        "certificate-of-immunity",
         "contribution-funding-status",
         "contribution-purpose",
         "developer-agreement-type",
