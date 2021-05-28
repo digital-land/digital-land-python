@@ -557,6 +557,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "document-type",
         "heritage-at-risk",
         "heritage-coast",
+        "listed-building",
         "local-authority-district",
         "neighbourhood-plan-area",
         "ownership-status",
