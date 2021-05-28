@@ -94,8 +94,7 @@ def end_date(entry):
 
 
 def entry_date(entry):
-    # this removes the timestamp - it shouldn't!
-    return entry.get("entry-date", date.today().strftime("%Y-%m-%d"))
+    return entry.get("entry-date", datetime.utcnow().strftime("%Y-%m-%dT%H:%H:%M:%SZ"))
 
 
 def add_endpoint(entry, endpoint_register):
@@ -105,7 +104,7 @@ def add_endpoint(entry, endpoint_register):
             "endpoint-url": entry["endpoint-url"],
             "plugin": entry.get("plugin", ""),
             "parameters": entry.get("parameters", ""),
-            "entry-date": date.today().strftime("%Y-%m-%d"),
+            "entry-date": entry_date(entry),
             "start-date": start_date(entry),
             "end-date": end_date(entry),
         }
