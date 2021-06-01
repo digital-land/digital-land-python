@@ -571,6 +571,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "scheduled-monument",
         "site-category",
         "site-of-special-scientific-interest",
+        "special-area-of-conservation",
         "world-heritage-site",
     ]:
         group_field = None
