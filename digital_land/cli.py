@@ -556,6 +556,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         "development-policy-category",
         "document-type",
         "green-belt",
+        "green-belt-category",
         "heritage-at-risk",
         "heritage-coast",
         "listed-building",
