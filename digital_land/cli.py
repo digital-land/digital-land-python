@@ -533,7 +533,8 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--key-fields", type=click.STRING, default=None)
 @click.option("--local", is_flag=True)
 @click.option("--limit", type=int, default=None)
-def render_cmd(local, dataset_path, key_fields, limit):
+@click.option("--cross-reference", is_flag=True)
+def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
     from digital_land_frontend.render import Renderer
 
     url_root = None
@@ -590,6 +591,7 @@ def render_cmd(local, dataset_path, key_fields, limit):
         url_root,
         group_field=group_field,
         limit=limit,
+        enable_x_ref=cross_reference
     )
     renderer.render_dataset(dataset_path)
 
