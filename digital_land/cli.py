@@ -591,7 +591,7 @@ def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
         url_root,
         group_field=group_field,
         limit=limit,
-        enable_x_ref=cross_reference
+        enable_x_ref=cross_reference,
     )
     renderer.render_dataset(dataset_path)
 
