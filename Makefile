@@ -51,6 +51,7 @@ UNAME := $(shell uname)
 
 # install dependencies
 init:
+	pip install --upgrade pip
 	pip install -e .[test]
 ifndef GDAL
 ifeq ($(UNAME),Darwin)
