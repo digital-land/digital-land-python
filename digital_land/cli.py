@@ -572,6 +572,7 @@ def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
         "planning-permission-status",
         "planning-permission-type",
         "protected-wreck-site",
+        "ramsar",
         "scheduled-monument",
         "site-category",
         "site-of-special-scientific-interest",
