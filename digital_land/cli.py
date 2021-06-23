@@ -556,6 +556,7 @@ def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
         "development-plan-type",
         "development-policy-category",
         "document-type",
+        "employment-allocation",
         "green-belt",
         "green-belt-category",
         "heritage-at-risk",
