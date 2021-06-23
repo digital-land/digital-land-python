@@ -561,6 +561,7 @@ def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
         "green-belt-category",
         "heritage-at-risk",
         "heritage-coast",
+        "housing-allocation",
         "listed-building",
         "listed-building-grade",
         "local-authority-district",
