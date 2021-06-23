@@ -567,6 +567,7 @@ def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
         "local-authority-district",
         "neighbourhood-plan-area",
         "ownership-status",
+        "open-space",
         "park-and-garden",
         "park-and-garden-grade",
         "parish",
