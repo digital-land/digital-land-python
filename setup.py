@@ -1,6 +1,8 @@
-from setuptools import setup, find_packages
 import os
 import sys
+
+from setuptools import find_packages, setup
+
 from version import get_version
 
 
@@ -44,6 +46,9 @@ setup(
         "SPARQLWrapper",
         "pluggy",
         "digital_land_frontend @ git+https://github.com/digital-land/frontend.git#egg=digital_land_frontend",
+        "datasette_builder @ git+https://github.com/digital-land/datasette-builder.git#egg=datastte_builder",
+        "view_builder @ git+https://github.com/digital-land/view-builder.git#egg=view_builder",
+        "sqlalchemy",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],

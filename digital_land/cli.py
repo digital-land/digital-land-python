@@ -31,6 +31,7 @@ from .slug import Slugger
 from .specification import Specification
 from .transform import Transformer
 from .update import add_source_endpoint, get_failing_endpoints_from_registers
+from .view_model import ViewModelLocalQuery
 
 PIPELINE = None
 SPECIFICATION = None
@@ -534,7 +535,14 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--local", is_flag=True)
 @click.option("--limit", type=int, default=None)
 @click.option("--cross-reference", is_flag=True)
-def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
+@click.option(
+    "--view-model-path",
+    type=click.Path(exists=True),
+    default="dataset/view_model.sqlite3",
+)
+def render_cmd(
+    local, dataset_path, key_fields, limit, cross_reference, view_model_path
+):
     from digital_land_frontend.render import Renderer
 
     url_root = None
@@ -584,6 +592,11 @@ def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
     ]:
         group_field = None
 
+    if cross_reference:
+        view_model = ViewModelLocalQuery(view_model_path)
+    else:
+        view_model = None
+
     schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
     typology = SPECIFICATION.field_typology(PIPELINE.name)
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
@@ -592,10 +605,10 @@ def render_cmd(local, dataset_path, key_fields, limit, cross_reference):
         schema,
         typology,
         SPECIFICATION.key_field(schema),
+        view_model,
         url_root,
         group_field=group_field,
         limit=limit,
-        enable_x_ref=cross_reference,
     )
     renderer.render_dataset(dataset_path)
 
