@@ -14,6 +14,7 @@ from .collect import Collector
 from .collection import Collection, resource_path
 from .convert import Converter
 from .entry_loader import EntryLoader
+from .filter import Filterer
 from .harmonise import Harmoniser
 from .index import Indexer
 from .issues import Issues, IssuesFile
@@ -247,6 +248,20 @@ def map_cmd(input_path, output_path):
     save(stream, output_path, fieldnames=fieldnames)
 
 
+@cli.command("filter", short_help="filter out rows by field values")
+@input_output_path
+def filter_cmd(input_path, output_path):
+    if not output_path:
+        output_path = default_output_path_for("filtered", input_path)
+
+    resource_hash = resource_hash_from(input_path)
+    fieldnames = intermediary_fieldnames(SPECIFICATION, PIPELINE)
+    filterer = Filterer(PIPELINE.filters(resource_hash))
+    stream = load_csv_dict(input_path)
+    stream = filterer.filter(stream)
+    save(stream, output_path, fieldnames=fieldnames)
+
+
 @cli.command(
     "harmonise",
     short_help="strip whitespace and null fields, remove blank rows and columns",
@@ -397,6 +412,7 @@ def pipeline_cmd(
         PIPELINE.columns(resource_hash),
         PIPELINE.concatenations(resource_hash),
     )
+    filterer = Filterer(PIPELINE.filters(resource_hash))
     harmoniser = Harmoniser(
         SPECIFICATION,
         PIPELINE,
@@ -425,6 +441,7 @@ def pipeline_cmd(
         normaliser.normalise,
         line_converter.convert,
         mapper.map,
+        filterer.filter,
         harmoniser.harmonise,
     ]
 

@@ -19,6 +19,7 @@ class Pipeline:
         self.name = name
         self.path = path
         self.column = {}
+        self.filter = {}
         self.skip_pattern = {}
         self.patch = {}
         self.default = {}
@@ -30,6 +31,7 @@ class Pipeline:
         self.load_default()
         self.load_concat()
         self.load_transform()
+        self.load_filter()
 
     def _row_reader(self, filename):
         # read a file from the pipeline path, ignore if missing
@@ -53,6 +55,12 @@ class Pipeline:
         for row in reader:
             column = self.column.setdefault(row["resource"], {})
             column[self.normalise(row["pattern"])] = row["value"]
+
+    def load_filter(self):
+        reader = self._row_reader("filter.csv")
+        for row in reader:
+            filter = self.filter.setdefault(row["resource"], {})
+            filter[row["field"]] = row["pattern"]
 
     def load_skip_patterns(self):
         reader = self._row_reader("skip.csv")
@@ -96,6 +104,18 @@ class Pipeline:
                 )
 
             self.transform[row["replacement-field"]] = row["field"]
+
+    def filters(self, resource=""):
+        general_filters = self.filter.get("", {})
+        if not resource:
+            return general_filters
+
+        resource_filters = self.filter.get(resource, {})
+        result = {}
+        result.update(general_filters)
+        result.update(resource_filters)
+
+        return result
 
     def columns(self, resource=""):
         general_columns = self.column.get("", {})
