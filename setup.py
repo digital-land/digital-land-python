@@ -42,6 +42,7 @@ setup(
         "requests",
         "validators",
         "xlrd==1.2.0",
+        "openpyxl",
         "Shapely",
         "SPARQLWrapper",
         "pluggy",
