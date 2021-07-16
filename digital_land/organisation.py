@@ -1,5 +1,6 @@
 import re
 import csv
+from pathlib import Path
 
 
 uri_basename_re = re.compile(r".*/")
@@ -43,6 +44,7 @@ class Organisation:
                     self.organisation_uri[dl_url] = uri
 
         # TODO get the patch details from Pipeline
-        for row in csv.DictReader(open(self.pipeline_patch_path)):
-            if row["field"] == "OrganisationURI":
-                self.organisation_uri[lower_uri(row["pattern"])] = row["value"]
+        if Path(self.pipeline_patch_path).exists():
+            for row in csv.DictReader(open(self.pipeline_patch_path)):
+                if row["field"] == "OrganisationURI":
+                    self.organisation_uri[lower_uri(row["pattern"])] = row["value"]

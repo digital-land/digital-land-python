@@ -1,15 +1,15 @@
+import logging
 import os
 import re
-import logging
-
-from pathlib import Path
+from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
+from .makerules import pipeline_makerules
 from .register import hash_value
 from .schema import Schema
 from .store.csv import CSVStore
 from .store.item import ItemStore
-from .makerules import pipeline_makerules
 
 collection_directory = "./collection"
 
