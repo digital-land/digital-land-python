@@ -36,6 +36,15 @@ class Mapper:
                 headers[header] = self.normalised_fieldnames[fieldname]
                 continue
 
+        # bit of a hack to ensure we take a coherent set of coordinates
+        if {"GeoX", "Easting"} <= headers.keys():
+            item = headers.pop("GeoX")
+            headers["GeoX"] = item
+
+        if {"GeoY", "Northing"} <= headers.keys():
+            item = headers.pop("GeoY")
+            headers["GeoY"] = item
+
         return headers
 
     def concatenate_fields(self, row, o):
