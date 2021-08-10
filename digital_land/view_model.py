@@ -2,6 +2,7 @@ import json
 import logging
 import sqlite3
 import time
+from abc import ABC, abstractmethod
 
 import requests
 from datasette_builder import canned_query
@@ -9,7 +10,21 @@ from datasette_builder import canned_query
 logger = logging.getLogger(__name__)
 
 
-class ViewModelLocalQuery:
+class ViewModel:
+    @abstractmethod
+    def get_references_by_id(self, table, id):
+        pass
+
+    @abstractmethod
+    def get_entity_by_id(self, table, id):
+        pass
+
+    @abstractmethod
+    def get_id_by_slug(self, slug):
+        pass
+
+
+class ViewModelLocalQuery(ViewModel):
     valid_tables = {"category", "geography"}
 
     def __init__(self, path="dataset/view_model.sqlite3"):
@@ -34,9 +49,33 @@ class ViewModelLocalQuery:
         return self.dicts_from(cur)
 
 
-class ViewModelJsonQuery:
+class ViewModelJsonQuery(ViewModel):
     def __init__(self, url_base="https://datasette-demo.digital-land.info/view_model/"):
         self.url_base = url_base
+
+    def get_id_by_slug(self, value):
+        url = f"{self.url_base}slug.json"
+        params = [
+            "_shape=objects",
+            f"slug={requests.utils.quote(value)}",
+        ]
+
+        url = f"{url}?{'&'.join(params)}"
+        results = self.paginate_simple(url)
+        assert len(results) == 1
+        return results[0]["id"]
+
+    def get_entity_by_id(self, table, value):
+        url = f"{self.url_base}{table}.json"
+        params = [
+            "_shape=objects",
+            f"slug_id={requests.utils.quote(str(value))}",
+        ]
+
+        url = f"{url}?{'&'.join(params)}"
+        results = self.paginate_simple(url)
+        assert len(results) == 1
+        return results[0]
 
     def get_id(self, table, value):
         url = f"{self.url_base}get_{table}_id.json"
@@ -83,6 +122,19 @@ class ViewModelJsonQuery:
         except ConnectionRefusedError:
             raise ConnectionError("failed to connect to view model api at %s" % url)
         return response
+
+    def paginate_simple(self, url):
+        items = []
+        while url:
+            start_time = time.time()
+            response = self.get(url)
+            logger.info("request time: %.2fs, %s", time.time() - start_time, url)
+            try:
+                url = response.links.get("next").get("url")
+            except AttributeError:
+                url = None
+            items.extend(response.json()["rows"])
+        return items
 
     def paginate(self, url):
         limit = -1
