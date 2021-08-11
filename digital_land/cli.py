@@ -623,6 +623,7 @@ def render_cmd(
         typology,
         SPECIFICATION.key_field(schema),
         view_model,
+        SPECIFICATION,
         url_root,
         group_field=group_field,
         limit=limit,

@@ -48,6 +48,12 @@ class ViewModelLocalQuery(ViewModel):
         cur.execute(qry, (id,))
         return self.dicts_from(cur)
 
+    def get_entity_by_id(self, table, id):
+        raise NotImplementedError()
+
+    def get_id_by_slug(self, slug):
+        raise NotADirectoryError()
+
 
 class ViewModelJsonQuery(ViewModel):
     def __init__(self, url_base="https://datasette-demo.digital-land.info/view_model/"):
