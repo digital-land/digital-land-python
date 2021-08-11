@@ -10,7 +10,7 @@ from datasette_builder import canned_query
 logger = logging.getLogger(__name__)
 
 
-class ViewModel:
+class ViewModel(ABC):
     @abstractmethod
     def get_references_by_id(self, table, id):
         pass
