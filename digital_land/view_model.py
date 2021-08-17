@@ -23,6 +23,10 @@ class ViewModel(ABC):
     def get_id_by_slug(self, slug):
         pass
 
+    @abstractmethod
+    def get_typology_entity_by_slug(self, typology, slug):
+        pass
+
 
 class ViewModelLocalQuery(ViewModel):
     valid_tables = {"category", "geography"}
@@ -52,7 +56,10 @@ class ViewModelLocalQuery(ViewModel):
         raise NotImplementedError()
 
     def get_id_by_slug(self, slug):
-        raise NotADirectoryError()
+        raise NotImplementedError()
+
+    def get_typology_entity_by_slug(self, typology, slug):
+        raise NotImplementedError()
 
 
 class ViewModelJsonQuery(ViewModel):
@@ -99,6 +106,18 @@ class ViewModelJsonQuery(ViewModel):
 
         url = f"{url}?{'&'.join(params)}"
         return self.paginate(url)
+
+    def get_typology_entity_by_slug(self, typology, slug):
+        if typology not in ["geography", "category", "document", "policy"]:
+            raise NotImplementedError(f"not implemented for typology {typology}")
+
+        url = f"{self.url_base}typology_{typology}_by_slug.json"
+        params = ["_shape=objects", f"slug={requests.utils.quote(slug)}"]
+
+        url = f"{url}?{'&'.join(params)}"
+        results = self.paginate_simple(url)
+        assert len(results) == 1
+        return results[0]
 
     def select(self, table, exact={}, joins=[], label=None, sort=None):
         url = f"{self.url_base}{table}.json"
