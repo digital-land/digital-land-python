@@ -1,6 +1,7 @@
 import csv
 import logging
 import os
+import os.path
 import pathlib
 import sqlite3
 import subprocess
@@ -27,7 +28,7 @@ class Converter:
                 reader = self._read_text_file(input_path, encoding)
 
         if not reader:
-            logging.debug("failed to create reader, cannot process ", input_path)
+            logging.debug("failed to create reader, cannot process %s", input_path)
             reader = iter(())  # Empty iterator, immediately sends StopIteration
 
         return reader_with_line(reader, resource=resource_hash_from(input_path))
@@ -39,16 +40,20 @@ class Converter:
         converted_csv_file = None
 
         if content.lower().startswith("<!doctype "):
-            logging.warn(f"{input_path} has <!doctype, IGNORING!")
+            logging.warn("%s has <!doctype, IGNORING!", input_path)
             f.close()
             return None
 
         elif content.lower().startswith(("<?xml ", "<wfs:")):
-            logging.debug(f"{input_path} looks like xml")
+            logging.debug("%s looks like xml", input_path)
             converted_csv_file = convert_features_to_csv(input_path)
+            if not converted_csv_file:
+                f.close()
+                logging.warning("conversion from XML to CSV failed")
+                return None
 
         elif content.lower().startswith("{"):
-            logging.debug(f"{input_path} looks like json")
+            logging.debug("%s looks like json", input_path)
             converted_csv_file = convert_features_to_csv(input_path)
 
         if converted_csv_file:
@@ -162,6 +167,9 @@ def convert_features_to_csv(input_path):
             input_path,
         ]
     )
+    if not os.path.isfile(output_path):
+        return None
+
     return output_path
 
 
