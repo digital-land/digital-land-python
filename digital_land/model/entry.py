@@ -4,7 +4,7 @@ from typing import Set
 from ..register import Item
 from .fact import Fact
 
-SKIP_FACT_ATTRIBUTES = ["slug", "entry-date"]
+SKIP_FACT_ATTRIBUTES = ["entity", "slug", "entry-date"]
 
 
 class Entry(Item):
@@ -12,6 +12,9 @@ class Entry(Item):
         self.data = data
         self.resource = resource
         self.line_num = line_num
+
+        # This should be handled like slug below. Temporarily allowing 'none' entities for migration
+        self.entity = data.pop("entity", None)
 
         if not data.get("slug", None):
             raise ValueError("Entry missing slug field")
@@ -31,7 +34,8 @@ class Entry(Item):
     @classmethod
     def from_facts(
         cls,
-        entity: str,
+        entity: int,
+        slug: str,
         facts: Set[Fact],
         resource: str,
         line_num: int,
@@ -40,7 +44,8 @@ class Entry(Item):
         "construct an Entry from a set of Facts"
 
         data = {fact.attribute: fact.value for fact in facts}
-        data["slug"] = entity
+        data["entity"] = entity
+        data["slug"] = slug
         data["entry-date"] = entry_date
         return Entry(data, resource, line_num)
 
@@ -49,7 +54,7 @@ class Entry(Item):
         "returns a set of Fact objects representing this entry"
 
         return {
-            Fact(self.slug, attribute, value)
+            Fact(self.entity, self.slug, attribute, value)
             for attribute, value in self.data.items()
             if attribute not in SKIP_FACT_ATTRIBUTES
         }

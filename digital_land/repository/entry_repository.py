@@ -9,7 +9,7 @@ from ..model.fact import Fact
 logger = logging.getLogger(__name__)
 
 
-SKIP_FACT_FIELDS = ["slug", "resource"]
+SKIP_FACT_FIELDS = ["entity", "slug", "resource"]
 
 
 # TODO: reverse logic of select/insert or ignore stmts
@@ -37,7 +37,11 @@ class EntryRepository:
             cursor = conn.cursor()
             cursor.execute("BEGIN")
 
-            self._insert_entity(cursor, entry.slug)
+            # Temporary if statement for migration. All entries should have an entity.
+            if entry.entity:
+                self._insert_entity(cursor, entry.entity)
+
+            self._insert_slug(cursor, entry.slug, entry.entity)
             entry_id = self._insert_entry(cursor, entry)
 
             for fact in entry.facts:
@@ -59,8 +63,22 @@ class EntryRepository:
         cursor.execute(
             """
             SELECT
-                slug
+                entity
             FROM entity
+            ORDER BY 1
+        """,
+        )
+        return [row["entity"] for row in cursor.fetchall()]
+
+    def list_slugs(self):
+        "returns a list of all entities with facts in the repo"
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                slug
+            FROM slug
             ORDER BY 1
         """,
         )
@@ -80,14 +98,37 @@ class EntryRepository:
         )
         return {row["attribute"] for row in cursor.fetchall()}
 
-    def find_by_entity(self, entity: str):
-        "returns all Entries associated with the specificed entity ref"
+    def find_by_slug(self, slug: str):
+        "returns all Entries associated with the specified slug"
 
         cursor = self.conn.cursor()
         cursor.execute(
             """
             SELECT
                 fact.*,
+                entry.entity AS "__ENTITY__",
+                entry.resource AS "__RESOURCE__",
+                entry.line_num AS "__LINE_NUM__",
+                entry.entry_date AS "__ENTRY_DATE__"
+            FROM fact
+            JOIN provenance ON provenance.fact = fact.id
+            JOIN entry ON provenance.entry = entry.id
+            WHERE entry.slug = ?
+        """,
+            (slug,),
+        )
+        return self._entries_from_rows(slug, cursor.fetchall())
+
+    def find_by_entity(self, entity: int):
+        "returns all Entries associated with the specified entity ref"
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                fact.*,
+                entry.slug AS "__SLUG__",
+                entry.entity AS "__ENTITY__",
                 entry.resource AS "__RESOURCE__",
                 entry.line_num AS "__LINE_NUM__",
                 entry.entry_date AS "__ENTRY_DATE__"
@@ -98,7 +139,16 @@ class EntryRepository:
         """,
             (entity,),
         )
-        return self._entries_from_rows(entity, cursor.fetchall())
+
+        slug_rows = defaultdict(list)
+        for row in cursor.fetchall():
+            slug_rows[row["__SLUG__"]].append(row)
+
+        result = set()
+        for slug, rows in slug_rows.items():
+            result.update(self._entries_from_rows(slug, rows))
+
+        return result
 
     def find_by_fact(self, fact):
         "returns all Entries that state the given fact"
@@ -108,20 +158,21 @@ class EntryRepository:
             """
             SELECT
                 fact.*,
+                entry.entity AS "__ENTITY__",
                 entry.resource AS "__RESOURCE__",
                 entry.line_num AS "__LINE_NUM__",
                 entry.entry_date AS "__ENTRY_DATE__"
             FROM fact
             JOIN provenance ON provenance.fact = fact.id
             JOIN entry ON provenance.entry = entry.id
-            WHERE fact.entity = ?
+            WHERE fact.slug = ?
             AND fact.attribute = ?
             AND fact.value = ?
         """,
-            (fact.entity, fact.attribute, fact.value),
+            (fact.slug, fact.attribute, fact.value),
         )
 
-        result = self._entries_from_rows(fact.entity, cursor.fetchall())
+        result = self._entries_from_rows(fact.slug, cursor.fetchall())
         return result
 
     def _create_schema(self):
@@ -136,31 +187,46 @@ class EntryRepository:
 
         logger.warning("creating tables")
         cursor.execute(
-            """CREATE TABLE entity (slug TEXT PRIMARY KEY NOT NULL CHECK(LENGTH(slug) > 0))"""
+            """CREATE TABLE entity (
+                entity INTEGER PRIMARY KEY NOT NULL
+            )"""
         )
+
+        cursor.execute(
+            """CREATE TABLE slug (
+                slug TEXT PRIMARY KEY NOT NULL CHECK(LENGTH(slug) > 0),
+                entity INTEGER,
+                FOREIGN KEY(entity) REFERENCES entity(entity)
+            )"""
+        )
+
         cursor.execute(
             """CREATE TABLE entry (
                 id INTEGER PRIMARY KEY,
                 resource TEXT,
                 line_num INTEGER,
-                entity NOT NULL,
+                entity INTEGER,
+                slug TEXT NOT NULL,
                 entry_date TEXT NOT NULL,
-                FOREIGN KEY(entity) REFERENCES entity(slug),
+                FOREIGN KEY(slug) REFERENCES slug(slug),
+                FOREIGN KEY(entity) REFERENCES entity(entity),
                 UNIQUE(resource, line_num)
             )"""
         )
-        cursor.execute("""CREATE INDEX entry_entity ON entry(entity)""")
+        cursor.execute("""CREATE INDEX entry_slug ON entry(slug)""")
         cursor.execute(
             """CREATE TABLE fact (
                 id INTEGER PRIMARY KEY,
-                entity TEXT,
+                entity INTEGER,
+                slug TEXT NOT NULL,
                 attribute TEXT,
                 value TEXT,
-                FOREIGN KEY(entity) REFERENCES entity(slug),
-                UNIQUE(entity, attribute, value)
+                FOREIGN KEY(slug) REFERENCES slug(slug),
+                FOREIGN KEY(entity) REFERENCES entity(entity),
+                UNIQUE(slug, attribute, value)
             )"""
         )
-        cursor.execute("""CREATE INDEX fact_entity ON fact(entity)""")
+        cursor.execute("""CREATE INDEX fact_slug ON fact(slug)""")
         cursor.execute(
             """CREATE TABLE provenance (
                 entry INTEGER,
@@ -176,32 +242,48 @@ class EntryRepository:
         cursor.execute("""CREATE INDEX provenance_fact ON provenance(fact)""")
         cursor.execute("""CREATE INDEX provenance_entry ON provenance(entry)""")
 
-    def _insert_entity(self, cursor, slug):
-        cursor.execute("""INSERT OR IGNORE INTO entity VALUES(?)""", (slug,))
+    def _insert_entity(self, cursor, entity):
+        cursor.execute("""INSERT OR IGNORE INTO entity VALUES(?)""", (entity,))
+
+    def _insert_slug(self, cursor, slug, entity):
+        cursor.execute(
+            """INSERT OR IGNORE INTO slug VALUES(?, ?)""",
+            (
+                slug,
+                entity,
+            ),
+        )
 
     def _insert_entry(self, cursor, entry):
         cursor.execute(
-            """INSERT OR IGNORE INTO entry(resource, line_num, entity, entry_date) VALUES(?, ?, ?, ?)""",
-            (entry.resource, entry.line_num, entry.slug, entry.entry_date),
+            """INSERT OR IGNORE INTO entry(resource, line_num, entity, slug, entry_date) VALUES(?, ?, ?, ?, ?)""",
+            (
+                entry.resource,
+                entry.line_num,
+                entry.entity,
+                entry.slug,
+                entry.entry_date,
+            ),
         )
         cursor.execute(
-            """SELECT rowid FROM entry WHERE resource = ? AND line_num = ? AND entity = ?""",
+            """SELECT rowid FROM entry WHERE resource = ? AND line_num = ? AND slug = ?""",
             (entry.resource, entry.line_num, entry.slug),
         )
         return cursor.fetchone()[0]
 
     def _insert_fact(self, cursor, fact):
         cursor.execute(
-            """INSERT OR IGNORE INTO fact(entity, attribute, value) VALUES(?,?,?)""",
+            """INSERT OR IGNORE INTO fact(entity, slug, attribute, value) VALUES(?,?,?,?)""",
             (
                 fact.entity,
+                fact.slug,
                 fact.attribute,
                 fact.value,
             ),
         )
         cursor.execute(
-            """SELECT rowid FROM fact WHERE entity = ? AND attribute = ? AND value = ?""",
-            (fact.entity, fact.attribute, fact.value),
+            """SELECT rowid FROM fact WHERE slug = ? AND attribute = ? AND value = ?""",
+            (fact.slug, fact.attribute, fact.value),
         )
         return cursor.fetchone()[0]
 
@@ -214,18 +296,20 @@ class EntryRepository:
             ),
         )
 
-    def _entries_from_rows(self, entity, rows):
+    def _entries_from_rows(self, slug, rows):
         entry_fact = defaultdict(set)
         for row in rows:
             rowdict = dict(row)
+            entity = rowdict.pop("__ENTITY__")
             resource = rowdict.pop("__RESOURCE__")
             line_num = rowdict.pop("__LINE_NUM__")
             entry_date = rowdict.pop("__ENTRY_DATE__")
             entry_fact[(resource, line_num, entry_date)].add(
-                Fact(entity, rowdict["attribute"], rowdict["value"])
+                Fact(entity, slug, rowdict["attribute"], rowdict["value"])
             )
 
         result = {
-            Entry.from_facts(entity, facts, *key) for key, facts in entry_fact.items()
+            Entry.from_facts(entity, slug, facts, *key)
+            for key, facts in entry_fact.items()
         }
         return result
