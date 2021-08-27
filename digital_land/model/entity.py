@@ -17,6 +17,7 @@ class Entity:
                     {
                         **entry.data,
                         "slug": entry.slug,
+                        "entity": entry.entity,
                         "entry-date": entry.entry_date.isoformat(),
                     }
                     for entry in self.entries

@@ -1,6 +1,9 @@
-import re
-import requests
 import logging
+import re
+import time
+
+import requests
+from tenacity import retry, stop_after_attempt
 
 
 class Slugger:
@@ -40,7 +43,12 @@ class Slugger:
         return "/" + "/".join(filter(None, [prefix, scope, key]))
 
     @staticmethod
+    @retry(stop=stop_after_attempt(5))
     def get_entity_from_slug(slug):
+        if not slug:
+            return None
+
+        start_time = time.time()
         base_url = "https://www.digital-land.info/entity?alias={}"
         try:
             response = requests.get(
@@ -48,10 +56,23 @@ class Slugger:
                 headers={"User-Agent": "Digital Land"},
                 timeout=120,
             )
+            if response.status_code == 404:
+                logging.warning(
+                    "failed to lookup entity for %s [%s]", slug, response.status_code
+                )
+                return None
+
             entity_number = int(response.text)
         except Exception as e:
+            logging.warning(
+                "%s: failed to lookup entity for %s", type(e).__name__, slug
+            )
             logging.warning(e)
-            entity_number = None
+            raise
+
+        logging.debug(
+            "entity lookup completed in %.3fsseconds", time.time() - start_time
+        )
 
         return entity_number
 
