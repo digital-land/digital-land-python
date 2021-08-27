@@ -1,4 +1,6 @@
 import re
+import requests
+import logging
 
 
 class Slugger:
@@ -37,8 +39,25 @@ class Slugger:
 
         return "/" + "/".join(filter(None, [prefix, scope, key]))
 
+    @staticmethod
+    def get_entity_from_slug(slug):
+        base_url = "https://www.digital-land.info/entity?alias={}"
+        try:
+            response = requests.get(
+                base_url.format(slug),
+                headers={"User-Agent": "Digital Land"},
+                timeout=120,
+            )
+            entity_number = int(response.text)
+        except Exception as e:
+            logging.warning(e)
+            entity_number = None
+
+        return entity_number
+
     def slug(self, reader):
         for stream_data in reader:
             row = stream_data["row"]
             row["slug"] = self._generate_slug(row)
+            row["entity"] = self.get_entity_from_slug(row["slug"])
             yield stream_data
