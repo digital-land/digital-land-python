@@ -132,9 +132,15 @@ def test_entity_list():
 
 def test_attribute_list():
     repo = EntryRepository(":memory:", create=True)
-    entry_1 = Entry({"a": "b", "slug": "/c", "entry-date": "2021-03-19"}, "abc123", 1)
-    entry_2 = Entry({"a": "c", "slug": "/a", "entry-date": "2021-03-19"}, "abc123", 2)
-    entry_3 = Entry({"c": "d", "slug": "/b", "entry-date": "2021-03-19"}, "abc123", 3)
+    entry_1 = Entry(
+        {"a": "b", "entity": 1, "slug": "/c", "entry-date": "2021-03-19"}, "abc123", 1
+    )
+    entry_2 = Entry(
+        {"a": "c", "entity": 2, "slug": "/a", "entry-date": "2021-03-19"}, "abc123", 2
+    )
+    entry_3 = Entry(
+        {"c": "d", "entity": 3, "slug": "/b", "entry-date": "2021-03-19"}, "abc123", 3
+    )
     entries = set([entry_1, entry_2, entry_3])
 
     for entry in entries:

@@ -10,7 +10,7 @@ def test_init():
     resource = "abc123"
     line_num = 1
     entry_date = "2021-03-19"
-    data = {"a": "b", "slug": "/abc", "entry-date": entry_date}
+    data = {"a": "b", "entity": 1, "slug": "/abc", "entry-date": entry_date}
 
     entry = Entry(data, resource, line_num)
 
@@ -19,6 +19,7 @@ def test_init():
     assert entry.line_num == line_num
     assert entry.entry_date == datetime.date(2021, 3, 19)
     assert entry.slug == "/abc"
+    assert entry.entity == 1
 
 
 def test_missing_slug_exception():
@@ -42,25 +43,45 @@ def test_entry_in_future_exception():
 
 def test_to_facts():
     slug = "/abc"
-    data = {"a": "b", "c": "d", "e": "f", "slug": slug, "entry-date": "2012-03-19"}
+    entity = 1
+    data = {
+        "a": "b",
+        "c": "d",
+        "e": "f",
+        "slug": slug,
+        "entity": entity,
+        "entry-date": "2012-03-19",
+    }
     entry = Entry(data, "abc123", 1)
 
     facts = entry.facts
 
     assert facts == set(
-        [Fact(slug, "a", "b"), Fact(slug, "c", "d"), Fact(slug, "e", "f")]
+        [
+            Fact(entity, slug, "a", "b"),
+            Fact(entity, slug, "c", "d"),
+            Fact(entity, slug, "e", "f"),
+        ]
     )
 
 
 def test_from_facts():
     slug = "/abc"
+    entity = 1
     resource = "abc123"
     line_num = 1
-    facts = set([Fact(slug, "a", "b"), Fact(slug, "c", "d"), Fact(slug, "e", "f")])
+    facts = set(
+        [
+            Fact(entity, slug, "a", "b"),
+            Fact(entity, slug, "c", "d"),
+            Fact(entity, slug, "e", "f"),
+        ]
+    )
 
-    entry = Entry.from_facts(slug, facts, resource, line_num, "2021-03-19")
+    entry = Entry.from_facts(entity, slug, facts, resource, line_num, "2021-03-19")
 
     assert entry.slug == slug
+    assert entry.entity == entity
     assert entry.entry_date == datetime.date(2021, 3, 19)
     assert entry.resource == resource
     assert entry.line_num == line_num
