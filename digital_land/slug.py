@@ -49,7 +49,7 @@ class Slugger:
             return None
 
         start_time = time.time()
-        base_url = "https://www.digital-land.info/entity?alias={}"
+        base_url = "https://www.digital-land.info/search?slug={}"
         try:
             response = requests.get(
                 base_url.format(slug),
