@@ -346,8 +346,8 @@ def load_entries_cmd(input_paths, output_path):
 @input_output_path
 def build_dataset_cmd(input_path, output_path):
     repo = EntryRepository(input_path)
-    entities = repo.list_entities()
-    logging.info("building dataset with %s entities", len(entities))
+    slugs = repo.list_slugs()
+    logging.info("building dataset with %s slugs", len(slugs))
     schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
 
     output = filter(
@@ -355,11 +355,11 @@ def build_dataset_cmd(input_path, output_path):
         (
             {
                 "row": Entity(
-                    repo.find_by_entity(entity),
+                    repo.find_by_slug(slug),
                     schema,
                 ).snapshot()
             }
-            for entity in entities
+            for slug in slugs
         ),
     )
 

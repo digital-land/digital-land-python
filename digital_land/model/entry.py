@@ -15,6 +15,8 @@ class Entry(Item):
 
         # This should be handled like slug below. Temporarily allowing 'none' entities for migration
         self.entity = data.pop("entity", None)
+        if self.entity == "":
+            self.entity = None
 
         if not data.get("slug", None):
             raise ValueError("Entry missing slug field")

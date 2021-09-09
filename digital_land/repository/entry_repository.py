@@ -29,9 +29,6 @@ class EntryRepository:
     def add(self, entry: Entry):
         "adds an Entry to the repository or updates it's entries if the fact already exists"
 
-        if not entry.entity:
-            raise ValueError("cannot add entry due to missing entity")
-
         if not entry.slug:
             raise ValueError("cannot add entry due to missing slug")
 
@@ -40,7 +37,8 @@ class EntryRepository:
             cursor = conn.cursor()
             cursor.execute("BEGIN")
 
-            self._insert_entity(cursor, entry.entity)
+            if entry.entity:
+                self._insert_entity(cursor, entry.entity)
             self._insert_slug(cursor, entry.slug, entry.entity)
             entry_id = self._insert_entry(cursor, entry)
 
