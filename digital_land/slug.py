@@ -1,6 +1,7 @@
 import logging
 import re
 import time
+import datetime
 
 import requests
 from tenacity import retry, stop_after_attempt
@@ -43,6 +44,19 @@ class Slugger:
         return "/" + "/".join(filter(None, [prefix, scope, key]))
 
     @staticmethod
+    def send_to_cloud_log(slug, statement, etime):
+        requests.post(
+            "https://wpjddrq339.execute-api.eu-west-2.amazonaws.com/log",
+            json={
+                "slug": slug,
+                "log": statement,
+                "date": datetime.datetime.utcfromtimestamp(etime).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+            },
+        )
+
+    @staticmethod
     @retry(stop=stop_after_attempt(5))
     def get_entity_from_slug(slug):
         if not slug:
@@ -60,6 +74,7 @@ class Slugger:
                 logging.warning(
                     "failed to lookup entity for %s [%s]", slug, response.status_code
                 )
+                Slugger.send_to_cloud_log(slug, "404 entity not found", start_time)
                 return None
 
             entity_number = int(response.text)
@@ -68,6 +83,7 @@ class Slugger:
                 "%s: failed to lookup entity for %s", type(e).__name__, slug
             )
             logging.warning(e)
+            Slugger.send_to_cloud_log(slug, "entity exception : " + str(e), start_time)
             raise
 
         logging.debug(
