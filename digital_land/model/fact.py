@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Fact:
-    entity: str
+    entity: int
+    slug: str
     attribute: str
     value: str

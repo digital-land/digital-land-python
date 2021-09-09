@@ -50,6 +50,7 @@ setup(
         "datasette_builder @ git+https://github.com/digital-land/datasette-builder.git#egg=datastte_builder",
         "view_builder @ git+https://github.com/digital-land/view-builder.git#egg=view_builder",
         "sqlalchemy",
+        "tenacity",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
