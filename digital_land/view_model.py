@@ -1,10 +1,12 @@
-import json
 import logging
 import sqlite3
 import time
+import urllib.parse
 from abc import ABC, abstractmethod
+from typing import List, Optional
 
 import requests
+import requests.utils
 from datasette_builder import canned_query
 
 logger = logging.getLogger(__name__)
@@ -12,19 +14,15 @@ logger = logging.getLogger(__name__)
 
 class ViewModel(ABC):
     @abstractmethod
-    def get_references_by_id(self, table, id):
+    def get_entity_metadata(self, entity: int) -> Optional[dict]:
         pass
 
     @abstractmethod
-    def get_entity_by_id(self, table, id):
+    def get_entity(self, typology: str, entity: int) -> Optional[dict]:
         pass
 
     @abstractmethod
-    def get_id_by_slug(self, slug):
-        pass
-
-    @abstractmethod
-    def get_typology_entity_by_slug(self, typology, slug):
+    def get_references(self, typology: str, entity: int) -> List[dict]:
         pass
 
 
@@ -66,102 +64,71 @@ class ViewModelJsonQuery(ViewModel):
     def __init__(self, url_base="https://datasette-demo.digital-land.info/view_model/"):
         self.url_base = url_base
 
-    def get_id_by_slug(self, value):
-        url = f"{self.url_base}slug.json"
-        params = [
-            "_shape=objects",
-            f"slug={requests.utils.quote(value)}",
-        ]
+    def get_entity_metadata(self, entity: int) -> Optional[dict]:
+        url = self.make_url(f"{self.url_base}entity.json", {"entity": entity})
+        return self.single_result_from(url)
 
-        url = f"{url}?{'&'.join(params)}"
-        results = self.paginate_simple(url)
-        assert len(results) == 1
-        return results[0]["id"]
-
-    def get_entity_by_id(self, table, value):
-        url = f"{self.url_base}{table}.json"
-        params = [
-            "_shape=objects",
-            f"slug_id={requests.utils.quote(str(value))}",
-        ]
-
-        url = f"{url}?{'&'.join(params)}"
-        results = self.paginate_simple(url)
-        assert len(results) == 1
-        return results[0]
-
-    def get_id(self, table, value):
-        url = f"{self.url_base}get_{table}_id.json"
-        params = [
-            "_shape=objects",
-            f"{requests.utils.quote(table)}={requests.utils.quote(value)}",
-        ]
-
-        url = f"{url}?{'&'.join(params)}"
-        return self.paginate(url)
-
-    def get_references_by_id(self, table, id):
-        url = f"{self.url_base}get_{table}_references.json"
-        params = ["_shape=objects", f"{requests.utils.quote(table)}={id}"]
-
-        url = f"{url}?{'&'.join(params)}"
-        return self.paginate(url)
-
-    def get_typology_entity_by_slug(self, typology, slug):
+    def get_entity(self, typology: str, entity: int) -> Optional[dict]:
         if typology not in ["geography", "category", "document", "policy"]:
             raise NotImplementedError(f"not implemented for typology {typology}")
 
-        url = f"{self.url_base}typology_{typology}_by_slug.json"
-        params = ["_shape=objects", f"slug={requests.utils.quote(slug)}"]
+        url = self.make_url(
+            f"{self.url_base}typology_{typology}_by_entity.json", {"entity": entity}
+        )
+        return self.single_result_from(url)
 
-        url = f"{url}?{'&'.join(params)}"
-        results = self.paginate_simple(url)
-        assert len(results) == 1
-        return results[0]
-
-    def select(self, table, exact={}, joins=[], label=None, sort=None):
-        url = f"{self.url_base}{table}.json"
-        params = ["_shape=objects"]
-
-        if label:
-            params.append(f"_label={label}")
-
-        if sort:
-            params.append(f"_sort={sort}")
-
-        for column, value in exact.items():
-            params.append(f"{column}__exact={requests.utils.quote(value)}")
-
-        for clause in joins:
-            params.append(f"_through={requests.utils.quote(json.dumps(clause))}")
-
-        param_string = "&".join(params)
-        if param_string:
-            url = f"{url}?{param_string}"
-
+    def get_references(self, typology: str, entity: int) -> List[dict]:
+        url = self.make_url(
+            f"{self.url_base}get_{typology}_references.json", {typology: entity}
+        )
         return self.paginate(url)
 
-    def get(self, url):
+    def get_references_by_id(self, table, id):
+        url = self.make_url(f"{self.url_base}get_{table}_references.json", {table: id})
+        return self.paginate(url)
+
+    def make_url(self, url: str, params: dict) -> str:
+        _params = ["_shape=objects"]
+        for k, v in params.items():
+            k = urllib.parse.quote(k)
+            if isinstance(v, str):
+                v = urllib.parse.quote(v)
+            _params.append(f"{k}={v}")
+        url = f"{url}?{'&'.join(_params)}"
+        return url
+
+    def single_result_from(self, url: str) -> Optional[dict]:
+        results = self.paginate_simple(url)
+        if len(results) == 1:
+            return results[0]
+
+        if len(results) > 1:
+            raise ValueError(f"expected 1 result, got {len(results)}")
+
+        return None
+
+    def get(self, url: str) -> requests.Response:
         try:
             response = requests.get(url)
         except ConnectionRefusedError:
             raise ConnectionError("failed to connect to view model api at %s" % url)
         return response
 
-    def paginate_simple(self, url):
+    def paginate_simple(self, url: str) -> List[dict]:
         items = []
-        while url:
+        _url = url
+        while _url:
             start_time = time.time()
-            response = self.get(url)
-            logger.info("request time: %.2fs, %s", time.time() - start_time, url)
+            response = self.get(_url)
+            logger.info("request time: %.2fs, %s", time.time() - start_time, _url)
             try:
-                url = response.links.get("next").get("url")
+                _url = response.links.get("next").get("url")
             except AttributeError:
-                url = None
+                _url = None
             items.extend(response.json()["rows"])
         return items
 
-    def paginate(self, url):
+    def paginate(self, url: str) -> List[dict]:
         limit = -1
         more = True
         while more:
