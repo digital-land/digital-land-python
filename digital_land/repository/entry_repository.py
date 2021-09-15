@@ -182,6 +182,7 @@ class EntryRepository:
         cursor.execute("""DROP TABLE IF EXISTS fact""")
         cursor.execute("""DROP TABLE IF EXISTS entry""")
         cursor.execute("""DROP TABLE IF EXISTS entity""")
+        cursor.execute("""DROP TABLE IF EXISTS slug""")
 
         logger.warning("creating tables")
         cursor.execute(
@@ -212,6 +213,8 @@ class EntryRepository:
             )"""
         )
         cursor.execute("""CREATE INDEX entry_slug ON entry(slug)""")
+        cursor.execute("""CREATE INDEX entry_entity ON entry(entity)""")
+        cursor.execute("""CREATE INDEX entry_id ON entry(id)""")
         cursor.execute(
             """CREATE TABLE fact (
                 id INTEGER PRIMARY KEY,
@@ -225,6 +228,8 @@ class EntryRepository:
             )"""
         )
         cursor.execute("""CREATE INDEX fact_slug ON fact(slug)""")
+        cursor.execute("""CREATE INDEX fact_entity ON fact(entity)""")
+        cursor.execute("""CREATE INDEX fact_id ON fact(id)""")
         cursor.execute(
             """CREATE TABLE provenance (
                 entry INTEGER,
