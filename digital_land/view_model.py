@@ -69,7 +69,13 @@ class ViewModelJsonQuery(ViewModel):
         return self.single_result_from(url)
 
     def get_entity(self, typology: str, entity: int) -> Optional[dict]:
-        if typology not in ["geography", "category", "document", "policy"]:
+        if typology not in [
+            "geography",
+            "category",
+            "document",
+            "policy",
+            "organisation",
+        ]:
             raise NotImplementedError(f"not implemented for typology {typology}")
 
         url = self.make_url(
