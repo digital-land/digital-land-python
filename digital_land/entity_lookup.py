@@ -17,6 +17,6 @@ def lookup_by_slug(slug: str) -> int:
 
     entity = resp.json()
     if not isinstance(entity, int):
-        raise ValueError(f"error looking up slug, expected int")
+        raise ValueError("error looking up slug, expected int")
 
     return entity
