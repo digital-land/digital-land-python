@@ -181,8 +181,8 @@ class EntryRepository:
         cursor.execute("""DROP TABLE IF EXISTS provenance""")
         cursor.execute("""DROP TABLE IF EXISTS fact""")
         cursor.execute("""DROP TABLE IF EXISTS entry""")
-        cursor.execute("""DROP TABLE IF EXISTS entity""")
         cursor.execute("""DROP TABLE IF EXISTS slug""")
+        cursor.execute("""DROP TABLE IF EXISTS entity""")
 
         logger.warning("creating tables")
         cursor.execute(
