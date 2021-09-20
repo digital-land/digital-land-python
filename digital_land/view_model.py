@@ -25,6 +25,10 @@ class ViewModel(ABC):
     def get_references(self, typology: str, entity: int) -> List[dict]:
         pass
 
+    @abstractmethod
+    def list_entities(self, typology: str, dataset: str) -> List[dict]:
+        pass
+
 
 class ViewModelLocalQuery(ViewModel):
     valid_tables = {"category", "geography"}
@@ -34,6 +38,34 @@ class ViewModelLocalQuery(ViewModel):
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = sqlite3.Row
         self.queries = canned_query.generate_model_canned_queries(pagination=False)
+
+    def get_entity_metadata(self, entity: int) -> Optional[dict]:
+        qry = "SELECT * FROM entity WHERE entity = ?"
+        cur = self.conn.cursor()
+        cur.execute(qry, (entity,))
+        result = cur.fetchall()
+        assert len(result) == 1, f"expected 1 row got {cur.rowcount}"
+        return dict(result[0])
+
+    def get_entity(self, typology: str, entity: int) -> Optional[dict]:
+        if typology not in [
+            "geography",
+            "category",
+            "document",
+            "policy",
+            "organisation",
+        ]:
+            raise NotImplementedError(f"not implemented for typology {typology}")
+
+        qry = f"SELECT * FROM {typology} WHERE entity = ?"
+        cur = self.conn.cursor()
+        cur.execute(qry, (entity,))
+        result = cur.fetchall()
+        assert len(result) == 1, f"expected 1 row got {cur.rowcount}"
+        return dict(result[0])
+
+    def get_references(self, typology: str, entity: int) -> List[dict]:
+        raise NotImplementedError()
 
     def dicts_from(self, cursor):
         return [dict(row) for row in cursor.fetchall()]
@@ -92,6 +124,17 @@ class ViewModelJsonQuery(ViewModel):
     def get_references_by_id(self, table, id):
         url = self.make_url(f"{self.url_base}get_{table}_references.json", {table: id})
         return self.paginate(url)
+
+    def list_entities(self, typology: str, dataset: str) -> List[dict]:
+        url = self.make_url(
+            f"{self.url_base}{typology}.json",
+            {
+                "_through": '{"table":"entity","column":"dataset","value":"%s"}'
+                % dataset,
+                "_size": 1000,
+            },
+        )
+        return self.paginate_simple(url)
 
     def make_url(self, url: str, params: dict) -> str:
         _params = ["_shape=objects"]
