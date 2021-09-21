@@ -174,7 +174,7 @@ class ViewModelJsonQuery(ViewModel):
                 _url = response.links.get("next").get("url")
             except AttributeError:
                 _url = None
-            items.extend(response.json()["rows"])
+            items.extend(response.json().get("rows", []))
         return items
 
     def paginate(self, url: str) -> List[dict]:
