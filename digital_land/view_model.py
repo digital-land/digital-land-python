@@ -11,8 +11,8 @@ from datasette_builder import canned_query
 
 logger = logging.getLogger(__name__)
 
-class JSONQueryHelper():
 
+class JSONQueryHelper:
     @staticmethod
     def paginate_simple(url: str) -> List[dict]:
         items = []
@@ -112,7 +112,6 @@ class JSONQueryHelper():
         return response
 
 
-
 class ViewModel(ABC):
     @abstractmethod
     def get_entity_metadata(self, entity: int) -> Optional[dict]:
@@ -198,7 +197,9 @@ class ViewModelJsonQuery(ViewModel):
         self.url_base = url_base
 
     def get_entity_metadata(self, entity: int) -> Optional[dict]:
-        url = JSONQueryHelper.make_url(f"{self.url_base}entity.json", {"entity": entity})
+        url = JSONQueryHelper.make_url(
+            f"{self.url_base}entity.json", {"entity": entity}
+        )
         return JSONQueryHelper.single_result_from(url)
 
     def get_entity(self, typology: str, entity: int) -> Optional[dict]:
@@ -223,7 +224,9 @@ class ViewModelJsonQuery(ViewModel):
         return JSONQueryHelper.paginate(url)
 
     def get_references_by_id(self, table, id):
-        url = JSONQueryHelper.make_url(f"{self.url_base}get_{table}_references.json", {table: id})
+        url = JSONQueryHelper.make_url(
+            f"{self.url_base}get_{table}_references.json", {table: id}
+        )
         return JSONQueryHelper.paginate(url)
 
     def list_entities(self, typology: str, dataset: str) -> List[dict]:
@@ -238,11 +241,12 @@ class ViewModelJsonQuery(ViewModel):
         return JSONQueryHelper.paginate_simple(url)
 
 
-class DigitalLandModelJsonQuery():
+class DigitalLandModelJsonQuery:
     def __init__(self, url_base="https://datasette.digital-land.info/digital-land/"):
         self.url_base = url_base
 
     def fetch_resource_info(self, resource_hash):
-        url = JSONQueryHelper.make_url(f"{self.url_base}resource_view_data.json", {"resource": resource_hash})
+        url = JSONQueryHelper.make_url(
+            f"{self.url_base}resource_view_data.json", {"resource": resource_hash}
+        )
         return JSONQueryHelper.get(url).json()
-
