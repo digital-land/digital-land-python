@@ -1,9 +1,8 @@
 import pytest
-from digital_land.view_model import ViewModelJsonQuery
+from digital_land.view_model import JSONQueryHelper
 
 
 def test_expand_columns():
-    view_model = ViewModelJsonQuery()
 
     data = {}
     data["rows"] = [
@@ -31,7 +30,7 @@ def test_expand_columns():
 
     data["columns"] = ["id", "slug_id"]
 
-    reader = view_model.expand_columns(data)
+    reader = JSONQueryHelper.expand_columns(data)
 
     assert list(reader) == [
         {
@@ -48,8 +47,6 @@ def test_expand_columns():
 
 
 def test_expand_columns_name_clash():
-    view_model = ViewModelJsonQuery()
-
     data = {}
     data["rows"] = [
         {
@@ -71,4 +68,4 @@ def test_expand_columns_name_clash():
     data["columns"] = ["id", "slug_id", "slug"]
 
     with pytest.raises(ValueError, match="^name clash trying to expand slug label$"):
-        list(view_model.expand_columns(data))
+        list(JSONQueryHelper.expand_columns(data))
