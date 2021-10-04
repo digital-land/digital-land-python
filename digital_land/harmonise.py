@@ -5,6 +5,7 @@
 #
 
 import re
+from datetime import datetime
 
 # import .digital_land.types as types
 from digital_land.datatype.point import PointDataType
@@ -129,6 +130,16 @@ class Harmoniser:
                         row[field] = plugin_results[0]
 
                 o[field] = self.harmonise_field(field, row[field])
+
+            if (
+                "entry-date" in o and o["entry-date"]
+                and datetime.strptime(o["entry-date"], "%Y-%m-%d").date()
+                > datetime.today().date()
+            ):
+                if self.issues:
+                    self.issues.log("future entry-date", row["entry-date"])
+
+                o["entry-date"] = ""
 
             # default missing values
             o = self.default(o)
