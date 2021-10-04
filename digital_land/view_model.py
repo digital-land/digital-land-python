@@ -2,6 +2,7 @@ import logging
 import sqlite3
 import time
 import urllib.parse
+import re
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
@@ -13,6 +14,30 @@ logger = logging.getLogger(__name__)
 
 
 class JSONQueryHelper:
+
+    paging_query = """
+        SELECT
+        e.{key}, e.rownum
+        FROM 
+        (
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY {table}.{key}) rownum,
+            {key}
+        FROM
+        {table}
+        ORDER BY
+        {table}.{key}
+        ) e
+        WHERE
+        e.rownum % {page_size} = 0 AND e.{key} < (SELECT MAX({table}.{key}) from {table})
+    """
+
+    @staticmethod
+    def get_paging_query(key, table, page_size=100):
+        return JSONQueryHelper.paging_query.format(
+            key=key, table=table, page_size=page_size
+        )
+
     @staticmethod
     def paginate_simple(url: str) -> List[dict]:
         items = []
@@ -221,7 +246,7 @@ class ViewModelJsonQuery(ViewModel):
         url = JSONQueryHelper.make_url(
             f"{self.url_base}get_{typology}_references.json", {typology: entity}
         )
-        return JSONQueryHelper.paginate(url)
+        return JSONQueryHelper.paginate_simple(url)
 
     def get_references_by_id(self, table, id):
         url = JSONQueryHelper.make_url(
@@ -242,11 +267,47 @@ class ViewModelJsonQuery(ViewModel):
 
 
 class DigitalLandModelJsonQuery:
-    def __init__(self, url_base="https://datasette.digital-land.info/digital-land/"):
+    def __init__(self, url_base="https://datasette.digital-land.info/digital-land"):
         self.url_base = url_base
+
+    def get_paging(self, key, table, page_size=100):
+        query = JSONQueryHelper.get_paging_query(key, table, page_size)
+        url = JSONQueryHelper.make_url(f"{self.url_base}.json", params={"sql": query})
+        return JSONQueryHelper.get(url).json()
+
+    def get_resources(self, last_resource=None, limit=100):
+
+        where_clause = ""
+        if last_resource:
+            # Should be resource hash so only allow alphanumeric
+            last_resource = re.sub(r"[^A-Za-z0-9 ]+", "", last_resource)
+            where_clause = "WHERE resource.resource > " + '"' + last_resource + '"'
+
+        query = f"""
+            SELECT
+            resource.resource,
+            replace(GROUP_CONCAT(DISTINCT endpoint.endpoint_url),',',';') AS endpoints,
+            replace(GROUP_CONCAT(DISTINCT source.organisation),',',';') AS organisations,
+            MAX(log.entry_date) AS start_date,
+            MIN(log.entry_date) AS end_date
+            FROM
+            resource
+            JOIN resource_endpoint on resource_endpoint.resource = resource.resource
+            JOIN endpoint ON endpoint.endpoint = resource_endpoint.endpoint
+            JOIN source ON source.endpoint = resource_endpoint.endpoint
+            JOIN log ON log.endpoint = resource_endpoint.endpoint
+            {where_clause}
+            GROUP BY
+            resource.resource
+            LIMIT {limit}
+        """
+        resource_url = JSONQueryHelper.make_url(
+            f"{self.url_base}.json", params={"sql": query}
+        )
+        return JSONQueryHelper.get(resource_url).json()
 
     def fetch_resource_info(self, resource_hash):
         url = JSONQueryHelper.make_url(
-            f"{self.url_base}resource_view_data.json", {"resource": resource_hash}
+            f"{self.url_base}/resource_view_data.json", {"resource": resource_hash}
         )
         return JSONQueryHelper.get(url).json()
