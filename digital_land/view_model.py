@@ -18,7 +18,7 @@ class JSONQueryHelper:
     paging_query = """
         SELECT
         e.{key}, e.rownum
-        FROM 
+        FROM
         (
         SELECT
             ROW_NUMBER() OVER (ORDER BY {table}.{key}) rownum,
