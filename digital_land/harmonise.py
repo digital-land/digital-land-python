@@ -132,7 +132,8 @@ class Harmoniser:
                 o[field] = self.harmonise_field(field, row[field])
 
             if (
-                "entry-date" in o and o["entry-date"]
+                "entry-date" in o
+                and o["entry-date"]
                 and datetime.strptime(o["entry-date"], "%Y-%m-%d").date()
                 > datetime.today().date()
             ):
