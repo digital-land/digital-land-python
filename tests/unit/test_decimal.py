@@ -26,6 +26,10 @@ def test_decimal_normalise():
 
     assert decimal.normalise("foo", issues=issues) == ""
 
+    assert decimal.normalise("1200.00") == "1200"
+    assert decimal.normalise("1,200.00") == "1200"
+    assert decimal.normalise("£1,200.00") == "1200"
+
     issue = issues.rows.pop()
     assert issue["issue-type"] == "decimal"
     assert issue["value"] == "foo"
