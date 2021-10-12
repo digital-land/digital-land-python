@@ -62,7 +62,10 @@ class Harmoniser:
         for pattern, replacement in patches.items():
             match = re.match(pattern, value, flags=re.IGNORECASE)
             if match:
-                return match.expand(replacement)
+                newvalue = match.expand(replacement)
+                if newvalue != value:
+                    self.log_issue(fieldname, "patch", value)
+                return newvalue
 
         return value
 

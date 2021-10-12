@@ -3,6 +3,7 @@ import pytest
 from digital_land.harmonise import Harmoniser
 from digital_land.pipeline import Pipeline
 from digital_land.specification import Specification
+from digital_land.issues import Issues
 
 from .conftest import FakeDictReader
 
@@ -14,6 +15,26 @@ def test_harmonise_field():
 
     assert h.harmonise_field("field-string", None) == ""
     assert h.harmonise_field("field-string", "value") == "value"
+
+
+def test_harmonise_apply_patch():
+    specification = Specification("tests/data/specification")
+    pipeline = Pipeline("tests/data/pipeline", "pipeline-one")
+    issues = Issues()
+
+    patch = {"field-string": {"WRONG": "right", "same": "same"}}
+
+    h = Harmoniser(specification, pipeline, patch=patch, issues=issues)
+
+    assert h.apply_patch("field-string", "right") == "right"
+    assert h.apply_patch("field-string", "WRONG") == "right"
+    assert h.apply_patch("field-string", "same") == "same"
+
+    issue = issues.rows.pop()
+    assert issue["field"] == "field-string"
+    assert issue["issue-type"] == "patch"
+    assert issue["value"] == "WRONG"
+    assert issues.rows == []
 
 
 def test_harmonise():
