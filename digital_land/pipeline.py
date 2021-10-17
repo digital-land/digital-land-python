@@ -42,7 +42,7 @@ class Pipeline:
             return []
         reader = csv.DictReader(open(file))
         for row in reader:
-            if row["pipeline"] != self.name:
+            if row["pipeline"] and row["pipeline"] != self.name:
                 continue
             yield row
 
