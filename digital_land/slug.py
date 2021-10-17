@@ -95,6 +95,11 @@ class Slugger:
     def slug(self, reader):
         for stream_data in reader:
             row = stream_data["row"]
-            row["slug"] = self._generate_slug(row)
-            row["entity"] = self.get_entity_from_slug(row["slug"])
+
+            if not row.get("slug", ""):
+                row["slug"] = self._generate_slug(row)
+
+            if not row.get("entity", ""):
+                row["entity"] = self.get_entity_from_slug(row["slug"])
+
             yield stream_data

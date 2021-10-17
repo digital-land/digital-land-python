@@ -25,12 +25,14 @@ class Pipeline:
         self.default = {}
         self.concat = {}
         self.transform = {}
+        self.lookup = {}
         self.load_column()
         self.load_skip_patterns()
         self.load_patch()
         self.load_default()
         self.load_concat()
         self.load_transform()
+        self.load_lookup()
         self.load_filter()
 
     def _row_reader(self, filename):
@@ -104,6 +106,12 @@ class Pipeline:
                 )
 
             self.transform[row["replacement-field"]] = row["field"]
+
+    def load_lookup(self):
+        reader = self._row_reader("lookup.csv")
+        for row in reader:
+            lookup = self.lookup.setdefault(row["resource"], {})
+            lookup[row["organisation"] + self.normalise(row["value"])] = row["entity"]
 
     def filters(self, resource=""):
         general_filters = self.filter.get("", {})
@@ -188,6 +196,11 @@ class Pipeline:
     def conversions(self):
         return {}  # TODO
 
+    def lookups(self, resource=None):
+        # TBD: handle resource specific lookups ..
+        return self.lookup.get("", {})
+
+    # TBD: reduce number of copies of this method
     normalise_pattern = re.compile(r"[^a-z0-9-]")
 
     def normalise(self, name):

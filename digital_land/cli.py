@@ -28,6 +28,7 @@ from .plugin import get_plugin_manager
 from .repository.entry_repository import EntryRepository
 from .save import save
 from .schema import Schema
+from .lookup import Lookup
 from .slug import Slugger
 from .specification import Specification
 from .transform import Transformer
@@ -430,6 +431,11 @@ def pipeline_cmd(
 
     key_field = SPECIFICATION.key_field(schema)
 
+    lookup = Lookup(
+        lookups=PIPELINE.lookups(resource_hash),
+        key_field=key_field,
+    )
+
     slugger = Slugger(
         SPECIFICATION.pipeline[PIPELINE.name].get("slug-prefix", None),
         key_field,
@@ -446,7 +452,6 @@ def pipeline_cmd(
     ]
 
     if save_harmonised:
-
         harmonised_path = output_path.replace("transformed", "harmonised")
         if harmonised_path == output_path:
             raise ValueError("cannot write harmonised file due to name clash")
@@ -464,6 +469,7 @@ def pipeline_cmd(
 
     pipeline_funcs = pipeline_funcs + [
         transformer.transform,
+        lookup.lookup,
         slugger.slug,
     ]
 
