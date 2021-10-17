@@ -195,6 +195,7 @@ class Specification:
         return f["parent-field"]
 
     def key_field(self, schema):
+        # TBD: should come from schema key-field
         # hard-coded for now ..
         if schema == "brownfield-land":
             return "site"
