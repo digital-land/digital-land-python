@@ -566,7 +566,8 @@ def render_cmd(
     if local:
         url_root = "/"
 
-    # TODO: should probably read group_field from the specification
+    # This hard-coded list should come from the pipeline.csv scope-field column
+    # TODO: remove this when removing slugs and the rendering code
     group_field = "organisation"
     if PIPELINE.name in [
         "ancient-woodland",
