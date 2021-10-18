@@ -2,6 +2,7 @@ import re
 
 # Lookup entities
 
+
 class Lookup:
     def __init__(self, lookups={}, key_field=""):
         self.lookups = lookups
