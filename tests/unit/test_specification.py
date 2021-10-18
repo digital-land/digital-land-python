@@ -93,6 +93,7 @@ def test_schema_field():
 def test_current_fieldnames():
     specification = Specification("tests/data/specification")
     assert specification.current_fieldnames() == [
+        "entity",
         "category",
         "text",
         "field-string",
@@ -103,6 +104,7 @@ def test_current_fieldnames():
         "amount",
         "date",
         "schema-three",
+        "slug",
     ]
 
 
