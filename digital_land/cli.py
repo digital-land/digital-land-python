@@ -367,7 +367,7 @@ def build_dataset_cmd(input_path, output_path):
     save(
         output,
         output_path,
-        SPECIFICATION.current_fieldnames(schema) + ["slug", "entity"],
+        SPECIFICATION.current_fieldnames(schema),
     )
 
 
@@ -480,7 +480,7 @@ def pipeline_cmd(
     save(
         output,
         output_path,
-        fieldnames=["entity"] + SPECIFICATION.current_fieldnames(schema) + ["slug"],
+        fieldnames=SPECIFICATION.current_fieldnames(schema),
     )
 
     issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))

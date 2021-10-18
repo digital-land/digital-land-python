@@ -134,12 +134,21 @@ class Specification:
         else:
             fields = self.field
 
-        return [
+        fields = [
             field
             for field, value in fields.items()
             if not value["end-date"]
             or value["end-date"] > datetime.now().strftime("%Y-%m-%d")
         ]
+
+        # TBD: remove these hacks
+        if "entity" not in fields:
+            fields = ["entity"] + fields
+
+        if "slug" not in fields:
+            fields = fields + ["slug"]
+
+        return fields
 
     normalise_re = re.compile(r"[^a-z0-9]")
 
