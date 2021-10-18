@@ -19,9 +19,9 @@ class EntryLoader:
         if not resource or not line_num:
             raise ValueError("entry missing resource or line_num")
 
-        if not data["slug"]:
+        if not data["entity"]:
             logger.warning(
-                "skipping entry at %s:%s due to missing slug", resource, line_num
+                "skipping entry at %s:%s due to missing entity", resource, line_num
             )
             return
 
