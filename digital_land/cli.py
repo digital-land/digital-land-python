@@ -530,7 +530,6 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
     "attribution", "licence", "pipelines", "status", "plugin",
     "parameters", "start-date", "end-date"
     """
-    print(ctx.args)
     if len(ctx.args) % 2:
         logging.error("odd number of name value pair arguments")
         sys.exit(2)
