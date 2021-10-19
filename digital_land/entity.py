@@ -107,14 +107,15 @@ class EntityLookup:
         for stream_data in reader:
             row = stream_data["row"]
             start_time = time.time()
-            entity_number = None
-            try:
-                entity_number = self.connector.get_entity_from_slug(row["slug"])
-            except Exception as e:
-                logging.warning(
-                    "%s: failed to lookup entity for %s", type(e).__name__, row["slug"]
-                )
-                logging.warning(e)
-            row["entity"] = entity_number
-            print(time.time() - start_time)
+            if "slug" in row:
+                entity_number = None
+                try:
+                    entity_number = self.connector.get_entity_from_slug(row["slug"])
+                except Exception as e:
+                    logging.warning(
+                        "%s: failed to lookup entity for %s", type(e).__name__, row["slug"]
+                    )
+                    logging.warning(e)
+                row["entity"] = entity_number
+                print(time.time() - start_time)
             yield stream_data
