@@ -106,7 +106,6 @@ class EntityLookup:
     def lookup(self, reader):
         for stream_data in reader:
             row = stream_data["row"]
-            start_time = time.time()
             if "slug" in row:
                 entity_number = None
                 try:
@@ -119,5 +118,4 @@ class EntityLookup:
                     )
                     logging.warning(e)
                 row["entity"] = entity_number
-                print(time.time() - start_time)
             yield stream_data
