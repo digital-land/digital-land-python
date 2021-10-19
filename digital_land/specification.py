@@ -52,10 +52,7 @@ class Specification:
         reader = csv.DictReader(open(os.path.join(path, "schema.csv")))
         for row in reader:
             self.schema_names.append(row["schema"])
-            self.schema[row["schema"]] = {
-                "name": row["name"],
-                "description": row["description"],
-            }
+            self.schema[row["schema"]] = row
 
     def load_dataset_schema(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset-schema.csv")))
@@ -204,12 +201,10 @@ class Specification:
         return f["parent-field"]
 
     def key_field(self, schema):
-        # TBD: should come from schema key-field
-        # hard-coded for now ..
-        if schema == "brownfield-land":
-            return "site"
-        elif schema in ["log", "resource", "endpoint"]:
-            return "endpoint"
-        elif schema in self.schema_field[schema]:
+        if schema not in self.schema:
+            return ""
+        if self.schema[schema].get("key-field", ""):
+            return self.schema[schema]["key-field"]
+        if schema in self.schema_field[schema]:
             return schema
         return ""
