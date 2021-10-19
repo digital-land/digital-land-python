@@ -16,7 +16,8 @@ from .datatype.wkt import WktDataType
 
 
 class Specification:
-    def __init__(self, path):
+    def __init__(self, path="specification"):
+        self.dataset = {}
         self.dataset = {}
         self.dataset_names = []
         self.schema = {}
