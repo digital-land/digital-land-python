@@ -11,9 +11,8 @@ from abc import ABC, abstractmethod
 
 
 class EntityConnector(ABC):
-
     def __init__(self):
-        self.log_url = os.environ.get('ENTITY_LOOKUP_LOG_URL')
+        self.log_url = os.environ.get("ENTITY_LOOKUP_LOG_URL")
 
     @abstractmethod
     def get_entity_from_slug(self, slug):
@@ -34,7 +33,7 @@ class EntityConnector(ABC):
                     ),
                 },
             )
-            
+
 
 class APIEntityConnector(EntityConnector):
     def __init__(self):
@@ -57,21 +56,19 @@ class APIEntityConnector(EntityConnector):
         return entity_number
 
 
-
 class DatabaseEntityConnector(EntityConnector):
     def __init__(self):
         self.config = {
-            "host": os.environ['ENTITY_LOOKUP_DB_HOST'],
+            "host": os.environ["ENTITY_LOOKUP_DB_HOST"],
             "port": 3306,
-            "user": os.environ['ENTITY_LOOKUP_DB_USER'],
+            "user": os.environ["ENTITY_LOOKUP_DB_USER"],
             "database": "test",
-            "password": os.environ['ENTITY_LOOKUP_DB_PASSWORD'],
-            "ssl_ca": str(Path(__file__).parent.parent.resolve() /  "ssl.pem") ,
+            "password": os.environ["ENTITY_LOOKUP_DB_PASSWORD"],
+            "ssl_ca": str(Path(__file__).parent.parent.resolve() / "ssl.pem"),
         }
 
         self.db_conn = mysql.connector.connect(**self.config)
         self.db_cursor = self.db_conn.cursor(dictionary=True)
-
 
     def close(self):
         self.db_cursor.close()
@@ -94,9 +91,14 @@ class DatabaseEntityConnector(EntityConnector):
 
         return result["entity"] if "entity" in result else None
 
+
 class EntityLookup:
     def __init__(self):
-        self.connector = DatabaseEntityConnector() if os.environ.get('ENTITY_LOOKUP_DB_HOST') else APIEntityConnector()
+        self.connector = (
+            DatabaseEntityConnector()
+            if os.environ.get("ENTITY_LOOKUP_DB_HOST")
+            else APIEntityConnector()
+        )
 
     def close(self):
         self.connector.close()
@@ -116,4 +118,3 @@ class EntityLookup:
             row["entity"] = entity_number
             print(time.time() - start_time)
             yield stream_data
-

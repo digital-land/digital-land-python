@@ -490,7 +490,6 @@ def pipeline_cmd(
     entity_lookup.close()
     issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
     issues_file.write_issues(issues)
-    
 
 
 # Endpoint commands

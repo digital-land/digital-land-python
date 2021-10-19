@@ -1,6 +1,5 @@
 import re
 
-from tenacity import retry, stop_after_attempt
 
 class Slugger:
     def __init__(self, prefix, key_field, scope_field=None):
