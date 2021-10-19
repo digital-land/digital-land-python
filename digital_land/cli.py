@@ -34,6 +34,7 @@ from .specification import Specification
 from .transform import Transformer
 from .update import add_source_endpoint, get_failing_endpoints_from_registers
 from .view_model import ViewModelLocalQuery
+from .entity import EntityLookup
 
 PIPELINE = None
 SPECIFICATION = None
@@ -442,6 +443,8 @@ def pipeline_cmd(
         SPECIFICATION.pipeline[PIPELINE.name].get("scope-field", None),
     )
 
+    entity_lookup = EntityLookup()
+
     pipeline_funcs = [
         converter.convert,
         normaliser.normalise,
@@ -471,6 +474,7 @@ def pipeline_cmd(
         transformer.transform,
         lookup.lookup,
         slugger.slug,
+        entity_lookup.lookup,
     ]
 
     pipeline = compose(*pipeline_funcs)
@@ -483,8 +487,10 @@ def pipeline_cmd(
         fieldnames=SPECIFICATION.current_fieldnames(schema),
     )
 
+    entity_lookup.close()
     issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
     issues_file.write_issues(issues)
+    
 
 
 # Endpoint commands
