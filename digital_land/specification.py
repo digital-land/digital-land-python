@@ -46,7 +46,7 @@ class Specification:
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
         for row in reader:
             self.dataset_names.append(row["dataset"])
-            self.dataset[row["dataset"]] = {"name": row["name"], "text": row["text"]}
+            self.dataset[row["dataset"]] = row
 
     def load_schema(self, path):
         reader = csv.DictReader(open(os.path.join(path, "schema.csv")))
@@ -64,24 +64,13 @@ class Specification:
         reader = csv.DictReader(open(os.path.join(path, "datatype.csv")))
         for row in reader:
             self.datatype_names.append(row["datatype"])
-            self.datatype[row["datatype"]] = {
-                "name": row["name"],
-                "text": row["text"],
-            }
+            self.datatype[row["datatype"]] = row
 
     def load_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "field.csv")))
         for row in reader:
             self.field_names.append(row["field"])
-            self.field[row["field"]] = {
-                "name": row["name"],
-                "datatype": row["datatype"],
-                "cardinality": row["cardinality"],
-                "parent-field": row["parent-field"],
-                "replacement-field": row["replacement-field"],
-                "description": row["description"],
-                "end-date": row["end-date"],
-            }
+            self.field[row["field"]] = row
 
     def load_schema_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "schema-field.csv")))
@@ -92,10 +81,7 @@ class Specification:
     def load_typology(self, path):
         reader = csv.DictReader(open(os.path.join(path, "typology.csv")))
         for row in reader:
-            self.typology[row["typology"]] = {
-                "name": row["name"],
-                "text": row["text"],
-            }
+            self.typology[row["typology"]] = row
 
     def load_pipeline(self, path):
         reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
