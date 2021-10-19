@@ -16,4 +16,5 @@ demodata/
 .venv
 var/cache
 collection
+specification
 ssl.pem
