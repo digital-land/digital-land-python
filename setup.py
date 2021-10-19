@@ -51,7 +51,6 @@ setup(
         "view_builder @ git+https://github.com/digital-land/view-builder.git#egg=view_builder",
         "sqlalchemy",
         "tenacity",
-        "mysql",
         "mysql-connector-python",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
