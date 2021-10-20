@@ -111,7 +111,7 @@ class EntityLookup:
     def lookup(self, reader):
         for stream_data in reader:
             row = stream_data["row"]
-            if "slug" in row:
+            if "slug" in row and row["slug"]:
                 entity_number = None
                 try:
                     entity_number = self.connector.get_entity_from_slug(row["slug"])
