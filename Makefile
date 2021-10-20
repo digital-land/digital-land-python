@@ -8,7 +8,6 @@ UNAME := $(shell uname)
 
 # install dependencies
 init::
-	curl -qfsL 'https://truststore.pki.rds.amazonaws.com/eu-west-2/eu-west-2-bundle.pem' > ssl.pem
 ifndef GDAL
 ifeq ($(UNAME),Darwin)
 $(error GDAL tools not found in PATH)

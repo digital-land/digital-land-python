@@ -64,7 +64,9 @@ class DatabaseEntityConnector(EntityConnector):
             "user": os.environ["ENTITY_LOOKUP_DB_USER"],
             "database": "test",
             "password": os.environ["ENTITY_LOOKUP_DB_PASSWORD"],
-            "ssl_ca": str(Path(__file__).parent.parent.resolve() / "ssl.pem"),
+            "ssl_ca": str(
+                Path(__file__).parent.parent.resolve() / ".cert/entity_db_ssl.pem"
+            ),
         }
 
         self.db_conn = mysql.connector.connect(**self.config)
