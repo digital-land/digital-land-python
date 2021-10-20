@@ -1,3 +1,5 @@
+PIP_INSTALL_PACKAGE=[test]
+
 all:: lint test coverage
 
 lint:: black-check flake8

@@ -52,7 +52,7 @@ ifneq (,$(wildcard requirements.txt))
 	pip3 install --upgrade -r requirements.txt
 endif
 ifneq (,$(wildcard setup.py))
-	pip install -e .
+	pip install -e .$(PIP_INSTALL_PACKAGE)
 endif
 
 submodules::
