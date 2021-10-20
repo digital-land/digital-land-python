@@ -77,7 +77,10 @@ class DatabaseEntityConnector(EntityConnector):
         self.db_conn.close()
 
     def get_entity_from_slug(self, slug):
-        self.db_cursor.execute("SELECT entity FROM slug WHERE slug.slug=%s", (slug,))
+        stmt = """SELECT entity 
+        FROM slug 
+        WHERE slug=%(slug)s"""
+        self.db_cursor.execute(stmt, {"slug": slug})
         result = self.db_cursor.fetchall()
 
         if len(result) > 1:
