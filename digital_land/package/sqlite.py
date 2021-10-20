@@ -1,4 +1,5 @@
 import os
+import sys
 import csv
 import sqlite3
 import logging
@@ -21,9 +22,28 @@ def coltype(datatype):
 
 
 class SqlitePackage(Package):
+    spatialite = None
+
+    def spatialite(self, path=None):
+        if not path:
+            try:
+                path = os.environ["SPATIALITE_EXTENSION"]
+            except KeyError:
+                if sys.platform == "darwin":
+                    path = "/usr/local/lib/mod_spatialite.dylib"
+                else:
+                    path = "/usr/lib/x86_64-linux-gnu/mod_spatialite.so"
+        self.spatialite = path
+        return self.spatialite
+
     def connect(self, path):
         self.path = path
         self.connection = sqlite3.connect(path)
+
+        if self.spatialite:
+            self.connection.enable_load_extension(True)
+            self.connection.load_extension(self.spatialite)
+            self.connection.execute("select InitSpatialMetadata(1)")
 
     def disconnect(self):
         self.connection.close()
@@ -92,7 +112,7 @@ class SqlitePackage(Package):
         )
 
     def load_csv(self, path, table, fields):
-        print("loading %s from %s" % (table, path))
+        logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for field in row:
                 if row.get(field, None) is None:
@@ -100,7 +120,7 @@ class SqlitePackage(Package):
             self.insert(table, fields, row)
 
     def load_join(self, path, table, fields, split_field=None, field=None):
-        print("loading %s from %s" % (table, path))
+        logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for value in row[split_field].split(";"):
                 row[field] = value
@@ -109,7 +129,7 @@ class SqlitePackage(Package):
     def index(self, table, fields, name=None):
         if not name:
             name = table + "_index"
-        print("creating index %s" % (name))
+        logging.info("creating index %s" % (name))
         cols = [colname(field) for field in fields]
         self.execute(
             "CREATE INDEX IF NOT EXISTS %s on %s (%s);" % (name, table, ", ".join(cols))
