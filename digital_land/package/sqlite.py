@@ -65,6 +65,7 @@ class SqlitePackage(Package):
                             (" PRIMARY KEY" if field == key_field else ""),
                         )
                         for field in fields
+                        if not field.endswith("-geom")
                     ]
                 ),
                 "\n".join(
@@ -83,6 +84,18 @@ class SqlitePackage(Package):
             )
         )
 
+        if self._spatialite:
+            if "geometry-geom" in fields:
+                self.execute(
+                    "SELECT AddGeometryColumn('%s', 'geometry_geom', 4326, 'MULTIPOLYGON', 2);"
+                    % (table)
+                )
+            if "point-geom" in fields:
+                self.execute(
+                    "SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);"
+                    % (table)
+                )
+
     def create_cursor(self):
         self.cursor = self.connection.cursor()
         self.cursor.execute("PRAGMA synchronous = OFF")
@@ -98,6 +111,7 @@ class SqlitePackage(Package):
         self.cursor.execute(cmd)
 
     def insert(self, table, fields, row):
+        fields = [field for field in fields if not field.endswith("-geom")]
         self.execute(
             """
             INSERT OR REPLACE INTO %s(%s)
@@ -131,10 +145,21 @@ class SqlitePackage(Package):
         if not name:
             name = table + "_index"
         logging.info("creating index %s" % (name))
-        cols = [colname(field) for field in fields]
+        cols = [colname(field) for field in fields if not field.endswith("-geom")]
         self.execute(
             "CREATE INDEX IF NOT EXISTS %s on %s (%s);" % (name, table, ", ".join(cols))
         )
+
+        if self._spatialite:
+            logging.info("creating spatial indexes %s" % (name))
+            for col in [colname(field) for field in fields if field.endswith("-geom")]:
+                self.execute("SELECT CreateSpatialIndex('%s', '%s');" % (table, col))
+                self.create_cursor()
+                self.execute(
+                    "UPDATE %s SET %s = GeomFromText(%s, 4326);"
+                    % (table, col, col[: -len("-geom")])
+                )
+                self.commit()
 
     def create(self, path=None):
         if not path:
