@@ -42,7 +42,7 @@ class SqlitePackage(Package):
 
         if self.spatialite:
             self.connection.enable_load_extension(True)
-            self.connection.load_extension(self.spatialite)
+            self.connection.load_extension(self.spatialite())
             self.connection.execute("select InitSpatialMetadata(1)")
 
     def disconnect(self):
