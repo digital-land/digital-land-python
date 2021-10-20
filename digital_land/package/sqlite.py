@@ -22,7 +22,7 @@ def coltype(datatype):
 
 
 class SqlitePackage(Package):
-    spatialite = None
+    _spatialite = None
 
     def spatialite(self, path=None):
         if not path:
@@ -33,16 +33,15 @@ class SqlitePackage(Package):
                     path = "/usr/local/lib/mod_spatialite.dylib"
                 else:
                     path = "/usr/lib/x86_64-linux-gnu/mod_spatialite.so"
-        self.spatialite = path
-        return self.spatialite
+        self._spatialite = path
 
     def connect(self, path):
         self.path = path
         self.connection = sqlite3.connect(path)
 
-        if self.spatialite:
+        if self._spatialite:
             self.connection.enable_load_extension(True)
-            self.connection.load_extension(self.spatialite())
+            self.connection.load_extension(self._spatialite)
             self.connection.execute("select InitSpatialMetadata(1)")
 
     def disconnect(self):
