@@ -17,6 +17,8 @@ def colname(field):
 def coltype(datatype):
     if datatype == "integer":
         return "INTEGER"
+    elif datatype == "json":
+        return "JSON"
     else:
         return "TEXT"
 
