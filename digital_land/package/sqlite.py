@@ -175,7 +175,7 @@ class SqlitePackage(Package):
             fields = self.specification.schema[table]["fields"]
             key_field = self.specification.schema[table]["key-field"] or table
             field_datatype = {
-                field: self.specification.field["datatype"] for field in fields
+                field: self.specification.field[field]["datatype"] for field in fields
             }
 
             # make a many-to-many table for each list
