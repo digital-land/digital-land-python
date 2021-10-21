@@ -4,6 +4,7 @@ import csv
 import sqlite3
 import logging
 from .package import Package
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,25 @@ class SqlitePackage(Package):
 
     def execute(self, cmd):
         logger.debug(cmd)
-        self.cursor.execute(cmd)
+        try:
+            self.cursor.execute(cmd)
+        except sqlite3.Error as error:
+            logging.error("Exception: %s" % (error.__class__))
+            logging.error("Sqlite3 error: %s" % (" ".join(error.args)))
+            logging.info("Sqlite3 cmd: %s" % (cmd))
+            sys.exit(3)
+
+    def colvalue(self, row, field):
+        value = row.get(field, "")
+        t = coltype(self.specification.field[field]["datatype"])
+        if t == "INTEGER":
+            if value == "":
+                return "NULL"
+            return "%d" % Decimal(value)
+        if t == "JSON":
+            if value == "{}":
+                return "NULL"
+        return "'%s'" % value.replace("'", "''")
 
     def insert(self, table, fields, row):
         fields = [field for field in fields if not field.endswith("-geom")]
@@ -120,9 +139,7 @@ class SqlitePackage(Package):
             % (
                 colname(table),
                 ",".join([colname(field) for field in fields]),
-                ",".join(
-                    ['"%s"' % row.get(field, "").replace('"', '""') for field in fields]
-                ),
+                ",".join(["%s" % self.colvalue(row, field) for field in fields]),
             )
         )
 
