@@ -160,21 +160,24 @@ class SqlitePackage(Package):
 
     def index(self, table, fields, name=None):
         if not name:
-            name = table + "_index"
+            name = colname(table) + "_index"
         logging.info("creating index %s" % (name))
         cols = [colname(field) for field in fields if not field.endswith("-geom")]
         self.execute(
-            "CREATE INDEX IF NOT EXISTS %s on %s (%s);" % (name, table, ", ".join(cols))
+            "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
+            % (name, colname(table), ", ".join(cols))
         )
 
         if self._spatialite:
             logging.info("creating spatial indexes %s" % (name))
             for col in [colname(field) for field in fields if field.endswith("-geom")]:
-                self.execute("SELECT CreateSpatialIndex('%s', '%s');" % (table, col))
+                self.execute(
+                    "SELECT CreateSpatialIndex('%s', '%s');" % (colname(table), col)
+                )
                 self.create_cursor()
                 self.execute(
                     "UPDATE %s SET %s = GeomFromText(%s, 4326);"
-                    % (table, col, col[: -len("-geom")])
+                    % (colname(table), col, col[: -len("-geom")])
                 )
                 self.commit()
 
