@@ -113,19 +113,17 @@ class EntityLookup:
             row = stream_data["row"]
 
             # only lookup missing entities
-            if row.get("entity", ""):
-                return
-
-            if "slug" in row and row["slug"]:
-                entity_number = None
-                try:
-                    entity_number = self.connector.get_entity_from_slug(row["slug"])
-                except Exception as e:
-                    logging.warning(
-                        "%s: failed to lookup entity for %s",
-                        type(e).__name__,
-                        row["slug"],
-                    )
-                    logging.warning(e)
-                row["entity"] = entity_number
+            if not row.get("entity", ""):
+                if "slug" in row and row["slug"]:
+                    entity_number = None
+                    try:
+                        entity_number = self.connector.get_entity_from_slug(row["slug"])
+                    except Exception as e:
+                        logging.warning(
+                            "%s: failed to lookup entity for %s",
+                            type(e).__name__,
+                            row["slug"],
+                        )
+                        logging.warning(e)
+                    row["entity"] = entity_number
             yield stream_data
