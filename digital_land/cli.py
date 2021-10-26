@@ -593,7 +593,6 @@ def render_cmd(
         "development-policy-category",
         "document-type",
         "employment-allocation",
-        "green-belt",
         "green-belt-category",
         "heritage-at-risk",
         "heritage-coast",
