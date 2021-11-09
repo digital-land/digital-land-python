@@ -35,6 +35,7 @@ from .transform import Transformer
 from .update import add_source_endpoint, get_failing_endpoints_from_registers
 from .view_model import ViewModelLocalQuery
 from .entity import EntityLookup
+from .datasette.docker import build_container
 
 PIPELINE = None
 SPECIFICATION = None
@@ -641,6 +642,23 @@ def render_cmd(
     )
     renderer.render_dataset(dataset_path)
 
+@cli.command("build-datasette", short_help="build docker image for datasette")
+@click.option("--tag", "-t", default="data")
+@click.option("--data-dir", default="./var/cache")
+@click.option("--ext", default="sqlite3")
+@click.option("--options", default=None)
+def build_datasette(tag, data_dir, ext, options):
+    datasets = [f"{d}" for d in Path(data_dir).rglob(f"*.{ext}")]
+    for dataset in datasets:
+        if not Path(dataset).exists():
+            print(f"{dataset} not found")
+            sys.exit(1)
+
+    container_id, name = build_container(datasets, tag, options)
+    click.echo("%s dataset successfully packaged" % len(datasets))
+    click.echo(f"container_id: {container_id}")
+    if name:
+        click.echo(f"name: {name}")
 
 def resource_hash_from(path):
     return Path(path).stem
