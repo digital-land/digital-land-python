@@ -642,6 +642,7 @@ def render_cmd(
     )
     renderer.render_dataset(dataset_path)
 
+
 @cli.command("build-datasette", short_help="build docker image for datasette")
 @click.option("--tag", "-t", default="data")
 @click.option("--data-dir", default="./var/cache")
@@ -659,6 +660,7 @@ def build_datasette(tag, data_dir, ext, options):
     click.echo(f"container_id: {container_id}")
     if name:
         click.echo(f"name: {name}")
+
 
 def resource_hash_from(path):
     return Path(path).stem
