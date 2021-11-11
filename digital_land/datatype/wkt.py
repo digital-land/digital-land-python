@@ -32,7 +32,7 @@ class WktDataType(DataType):
         else:
             first_point = geometry.geoms[0].exterior.coords[0]
 
-        lon, lat = first_point
+        lon, lat = first_point[:2]
         transposed_coords = False
 
         if degrees_like(lon, lat):
