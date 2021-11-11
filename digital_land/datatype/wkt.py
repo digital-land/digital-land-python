@@ -80,4 +80,4 @@ class WktDataType(DataType):
                 # simplify will reduce to simple Polygon if possible
                 geometry = MultiPolygon([geometry])
 
-        return shapely.wkt.dumps(geometry, rounding_precision=6).replace(", ", ",")
+        return shapely.wkt.dumps(geometry, rounding_precision=6, output_dimension=2).replace(", ", ",")

@@ -113,7 +113,7 @@ class EntityLookup:
             row = stream_data["row"]
 
             # only lookup missing entities
-            if not row.get("entity", ""):
+            if False and not row.get("entity", ""):
                 if "slug" in row and row["slug"]:
                     entity_number = None
                     try:
