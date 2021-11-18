@@ -46,7 +46,6 @@ setup(
         "Shapely",
         "SPARQLWrapper",
         "pluggy",
-        "digital_land_frontend @ git+https://github.com/digital-land/frontend.git#egg=digital_land_frontend",
         "sqlalchemy",
         "tenacity",
         "mysql-connector-python",
