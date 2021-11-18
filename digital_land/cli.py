@@ -33,7 +33,6 @@ from .slug import Slugger
 from .specification import Specification
 from .transform import Transformer
 from .update import add_source_endpoint, get_failing_endpoints_from_registers
-from .view_model import ViewModelLocalQuery
 from .entity import EntityLookup
 from .datasette.docker import build_container
 
@@ -621,11 +620,6 @@ def render_cmd(
     ]:
         group_field = None
 
-    if cross_reference:
-        view_model = ViewModelLocalQuery(view_model_path)
-    else:
-        view_model = None
-
     schema = SPECIFICATION.pipeline[PIPELINE.name]["schema"]
     typology = SPECIFICATION.field_typology(PIPELINE.name)
     # TODO: should be the dataset name / slug-prefix here, not pipeline name ..
@@ -634,7 +628,7 @@ def render_cmd(
         schema,
         typology,
         SPECIFICATION.key_field(schema),
-        view_model,
+        None,
         SPECIFICATION,
         url_root,
         group_field=group_field,

@@ -47,8 +47,6 @@ setup(
         "SPARQLWrapper",
         "pluggy",
         "digital_land_frontend @ git+https://github.com/digital-land/frontend.git#egg=digital_land_frontend",
-        "datasette_builder @ git+https://github.com/digital-land/datasette-builder.git#egg=datastte_builder",
-        "view_builder @ git+https://github.com/digital-land/view-builder.git#egg=view_builder",
         "sqlalchemy",
         "tenacity",
         "mysql-connector-python",
