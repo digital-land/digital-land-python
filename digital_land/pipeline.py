@@ -187,8 +187,17 @@ class Pipeline:
         return {}  # TODO
 
     def lookups(self, resource=None):
-        # TBD: handle resource specific lookups ..
-        return self.lookup.get("", {})
+        general_lookup = self.lookup.get("", {})
+
+        if not resource:
+            return general_lookup
+
+        resource_lookup = self.lookup.get(resource, {})
+
+        result = {}
+        result.update(general_lookup)
+        result.update(resource_lookup)
+        return result
 
     # TBD: reduce number of copies of this method
     normalise_pattern = re.compile(r"[^a-z0-9-]")
