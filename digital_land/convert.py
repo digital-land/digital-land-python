@@ -2,7 +2,6 @@ import csv
 import logging
 import os
 import os.path
-import pathlib
 import sqlite3
 import subprocess
 import tempfile
@@ -74,13 +73,17 @@ class Converter:
         # Then try zip
         if zipfile.is_zipfile(input_path):
             logging.debug(f"{input_path} looks like zip")
-            internal_path = self._path_to_shp_files(input_path)
-            temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
-            os.link(input_path, temp_path)
-            zip_path = f"/vsizip/{temp_path}{internal_path}"
-            csv_path = convert_features_to_csv(zip_path)
-            encoding = detect_file_encoding(csv_path)
-            return read_csv(csv_path, encoding)
+            internal_path = self._find_zip_file(
+                input_path, ".shp"
+            ) or self._find_zip_file(input_path, ".gml")
+            if internal_path:
+                temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
+                os.link(input_path, temp_path)
+                zip_path = f"/vsizip/{temp_path}{internal_path}"
+                logging.debug("zip_path: %s" % zip_path)
+                csv_path = convert_features_to_csv(zip_path)
+                encoding = detect_file_encoding(csv_path)
+                return read_csv(csv_path, encoding)
 
         # Then try SQLite (GeoPackage)
         try:
@@ -97,19 +100,15 @@ class Converter:
 
         return None
 
-    def _path_to_shp_files(self, input_file):
+    def _find_zip_file(self, input_file, suffix=".gml"):
         zip_ = zipfile.ZipFile(input_file)
         files = zip_.namelist()
-        shp_files = filter(lambda s: s.endswith(".shp"), files)
-        shp_dirs = set([pathlib.Path(file).parent for file in shp_files])
-        if len(shp_dirs) != 1:
-            raise ValueError(
-                "Expected exactly one directory containing shp files, but none found"
-            )
-        shp_dir = shp_dirs.pop()
-        if shp_dir.name:
-            return f"/{shp_dir}"
-        return ""
+        files = list(set(filter(lambda s: s.endswith(suffix), files)))
+        if not files or not len(files):
+            return None
+        if len(files) > 1:
+            raise ValueError("Zipfile contains more than one %s file" % suffix)
+        return "/" + files[0]
 
 
 def execute(command):
