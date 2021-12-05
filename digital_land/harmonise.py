@@ -146,7 +146,7 @@ class Harmoniser:
                 ):
                     if self.issues:
                         self.issues.log("future %s" % field, row[field])
-                    o[field] = ""
+                    o[field] = self.default_values["entry-date"]
 
             # fix point geometry
             # TBD: generalise as a co-constraint
