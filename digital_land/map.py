@@ -87,7 +87,5 @@ class Mapper:
                 if header not in o:
                     o[header] = ""
 
-            yield {
-                "resource": stream_data["resource"],
-                "row": o,
-            }
+            stream_data["row"] = o
+            yield stream_data

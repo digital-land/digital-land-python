@@ -167,7 +167,5 @@ class Harmoniser:
 
             last_resource = resource
 
-            yield {
-                "resource": resource,
-                "row": o,
-            }
+            stream_data["row"] = o
+            yield stream_data

@@ -34,23 +34,20 @@ def resource_hash_from(path):
 class DictReaderInjectResource(csv.DictReader):
     def __init__(self, resource, include_line_num, *args, **kwargs):
         self.resource = resource
-        self.include_line_num = include_line_num
-        if include_line_num:
-            self.current_line_num = 1
+        self.current_line_num = 0
         super().__init__(*args, **kwargs)
 
     def __next__(self):
         # Inject the resource into each row
         row = super().__next__()
+        self.current_line_num += 1
         result = {
             "resource": self.resource,
             "row": row,
+            "row-number": self.current_line_num,
+            # TBD: remove this ..
+            "line_num": self.current_line_num,
         }
-
-        if self.include_line_num:
-            result["line_num"] = self.current_line_num
-            self.current_line_num += 1
-
         return result
 
 
@@ -98,10 +95,13 @@ def load_excel(path):
 
 
 def reader_with_line(f, resource):
+    row_number = 0
     for line in csv.reader(f):
+        row_number = row_number + 1
         yield {
             "resource": resource,
             "line": line,
+            "row-number": row_number,
         }
 
 
@@ -113,16 +113,20 @@ class LineConverter:
     def __init__(self):
         self.fieldnames = None
         self.line_stream = None
+        self.row_number = 0
 
     def __iter__(self):
         return self
 
     def __next__(self):
         line = next(self.line_stream)
-        return {
+        self.row_number += 1
+        data = {
             "resource": line["resource"],
             "row": dict(zip(self.fieldnames, line["line"])),
+            "row-number": self.row_number,
         }
+        return data
 
     def convert(self, line_stream):
         try:

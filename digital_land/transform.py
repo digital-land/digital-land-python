@@ -21,7 +21,6 @@ class Transformer:
                 ]
 
     def transform(self, reader):
-
         for stream_data in reader:
             row = stream_data["row"]
             o = {}
@@ -45,7 +44,5 @@ class Transformer:
                 if row["GeoX"] and row["GeoY"]:
                     o["point"] = f"POINT({row['GeoX']} {row['GeoY']})"
 
-            yield {
-                "resource": stream_data["resource"],
-                "row": o,
-            }
+            stream_data["row"] = o
+            yield stream_data

@@ -28,7 +28,4 @@ class Filterer:
             if skip:
                 continue
 
-            yield {
-                "resource": stream_data["resource"],
-                "row": row,
-            }
+            yield stream_data

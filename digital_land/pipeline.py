@@ -101,7 +101,15 @@ class Pipeline:
         reader = self._row_reader("lookup.csv")
         for row in reader:
             lookup = self.lookup.setdefault(row["resource"], {})
-            lookup[row["organisation"] + self.normalise(row["value"])] = row["entity"]
+            lookup[
+                ",".join(
+                    [
+                        row.get("row-number", ""),
+                        row["organisation"],
+                        self.normalise(row["value"]),
+                    ]
+                )
+            ] = row["entity"]
 
     def filters(self, resource=""):
         general_filters = self.filter.get("", {})
