@@ -1,0 +1,40 @@
+import os
+import shutil
+
+import sqlite3
+
+from digital_land.package.sqlite import SqlitePackage
+
+
+def test_sqlite_package(tmpdir):
+    """
+    Simple test to check that we can create & populate a trivial database
+
+    Database should contain data from digital_land/tests/data/test_entity_dataset/
+    """
+    # Setup
+    database_path = tmpdir / 'tempdataset.sqlite3'
+    expected_result = [('', '', 110042408, '2021-12-01', '', 'WILK WOOD', '', '', '', '', '')]
+    tables = {
+        "entity": "dataset",
+    }
+
+    indexes = {
+        "entity": ["entity", "typology", "dataset", "reference", "organisation-entity", "json"],
+    }
+    shutil.copytree(
+        os.path.join(os.path.dirname(__file__), '../data/test_entity_dataset'),
+        tmpdir, dirs_exist_ok=True
+    )
+    # Relative paths used within function
+    # TODO move this into a fixture to revert even on failure
+    cwd = os.getcwd()
+    os.chdir(tmpdir)
+    # Call
+    package = SqlitePackage("entity", tables=tables, indexes=indexes)
+    package.spatialite()
+    package.create(database_path)
+    # Assert
+    conn = sqlite3.connect(database_path)
+    assert list(conn.execute('select * from entity')) == expected_result
+    os.chdir(cwd)

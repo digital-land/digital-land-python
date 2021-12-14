@@ -1,0 +1,7 @@
+schema,name,description,key-field
+ancient-woodland-status,Ancient woodland status,,
+ancient-woodland,Ancient woodland,,
+entity,Entity,An item of data,
+field,Field,,
+geometry,Geometry,Geometry index,entity
+dataset,Dataset,A collection of entities of the same type,
