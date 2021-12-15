@@ -10,23 +10,13 @@ jobs:
   build:
 
     runs-on: ubuntu-18.04
-    strategy:
-      matrix:
-        python-version: [3.7, 3.8]
-
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
     - name: Make Init
       run: |
-        make init
-      runs:
-        using: 'docker'
-        image: 'Dockerfile'
+        make docker-build
     - name: Lint, Test, Coverage
       run: |
-        make
-      runs:
-        using: 'docker'
-        image: 'Dockerfile'
+        make docker-test
