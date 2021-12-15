@@ -1,7 +1,9 @@
 import csv
 import difflib
 import filecmp
+import os
 import pathlib
+import shutil
 
 import pytest
 import xlsxwriter
@@ -25,10 +27,19 @@ from tests.utils.helpers import execute, print_diffs
     ],
 )
 def test_convert(input_file, tmp_path):
-    input_file = pathlib.Path(input_file)
+    # Copy input file to work around cross-device symlink issues with tmp_path in docker
+    copy_destination = tmp_path / input_file
+    os.makedirs(os.path.dirname(copy_destination))
+    shutil.copy(input_file, copy_destination)
+    golden_master = pathlib.PosixPath(input_file).with_suffix(".csv")
+    golden_master_destination = copy_destination.with_suffix(".csv")
+    shutil.copy(golden_master, golden_master_destination)
+    golden_master = golden_master_destination
+
+    input_file = copy_destination
     output_file = tmp_path / (input_file.stem + ".csv")
+
     _execute_convert(input_file, output_file)
-    golden_master = input_file.with_suffix(".csv")
 
     assert filecmp.cmp(output_file, golden_master), print_diffs(
         output_file, golden_master
