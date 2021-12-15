@@ -1,12 +1,24 @@
 import os
 import shutil
 
+import pytest
 import sqlite3
 
 from digital_land.package.sqlite import SqlitePackage
 
 
-def test_sqlite_package(mocker, tmpdir):
+@pytest.fixture
+def setup_cwd_for_pipeline_ingest(tmpdir):
+    # Relative paths used within function
+    cwd = os.getcwd()
+    os.chdir(tmpdir)
+
+    yield
+
+    os.chdir(cwd)
+
+
+def test_sqlite_package(mocker, tmpdir, setup_cwd_for_pipeline_ingest):
     """
     Simple test to check that we can create & populate a trivial database
 
@@ -28,10 +40,6 @@ def test_sqlite_package(mocker, tmpdir):
         os.path.join(os.path.dirname(__file__), '../data/test_entity_dataset'),
         tmpdir, dirs_exist_ok=True
     )
-    # Relative paths used within function
-    # TODO move this into a fixture to revert even on failure
-    cwd = os.getcwd()
-    os.chdir(tmpdir)
     # Call
     package = SqlitePackage("entity", tables=tables, indexes=indexes)
     package.spatialite()
@@ -40,4 +48,3 @@ def test_sqlite_package(mocker, tmpdir):
     conn = sqlite3.connect(database_path)
     assert list(conn.execute('select * from entity')) == expected_entity_result
     assert list(conn.execute('select * from metadata')) == [(1, expected_metadata_last_modified_result),]
-    os.chdir(cwd)

@@ -252,11 +252,11 @@ class SqlitePackage(Package):
         for table, columns in self.indexes.items():
             self.index(table, columns)
 
-        self.upsert_metadata()
+        self.insert_metadata()
 
         self.disconnect()
 
-    def upsert_metadata(self):
+    def insert_metadata(self):
         self.create_cursor()
         self.create_table(
             'metadata',
