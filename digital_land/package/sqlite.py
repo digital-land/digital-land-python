@@ -259,12 +259,14 @@ class SqlitePackage(Package):
     def insert_metadata(self):
         self.create_cursor()
         self.create_table(
-            'metadata',
-            ['id', 'end-date'],
-            'id',
-            {'id': 'integer', 'end-date': 'TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP'}
+            "metadata",
+            ["id", "end-date"],
+            "id",
+            {"id": "integer", "end-date": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"},
         )
-        self.insert('metadata', ('end-date',), {'end-date': self._get_current_datetime()})
+        self.insert(
+            "metadata", ("end-date",), {"end-date": self._get_current_datetime()}
+        )
         self.commit()
 
     @staticmethod
