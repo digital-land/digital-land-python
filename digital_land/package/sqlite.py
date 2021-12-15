@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import sys
 import csv
@@ -24,6 +25,7 @@ def coltype(datatype):
         return "TEXT"
 
 
+# TODO instrument this functionality in SQLAlchemy
 class SqlitePackage(Package):
     _spatialite = None
 
@@ -250,4 +252,21 @@ class SqlitePackage(Package):
         for table, columns in self.indexes.items():
             self.index(table, columns)
 
+        self.upsert_metadata()
+
         self.disconnect()
+
+    def upsert_metadata(self):
+        self.create_cursor()
+        self.create_table(
+            'metadata',
+            ['id', 'end-date'],
+            'id',
+            {'id': 'integer', 'end-date': 'TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP'}
+        )
+        self.insert('metadata', ('end-date',), {'end-date': self._get_current_datetime()})
+        self.commit()
+
+    @staticmethod
+    def _get_current_datetime():
+        return datetime.now().isoformat()

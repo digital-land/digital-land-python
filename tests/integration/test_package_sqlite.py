@@ -6,7 +6,7 @@ import sqlite3
 from digital_land.package.sqlite import SqlitePackage
 
 
-def test_sqlite_package(tmpdir):
+def test_sqlite_package(mocker, tmpdir):
     """
     Simple test to check that we can create & populate a trivial database
 
@@ -14,7 +14,9 @@ def test_sqlite_package(tmpdir):
     """
     # Setup
     database_path = tmpdir / 'tempdataset.sqlite3'
-    expected_result = [('', '', 110042408, '2021-12-01', '', 'WILK WOOD', '', '', '', '', '')]
+    expected_entity_result = [('', '', 110042408, '2021-12-01', '', 'WILK WOOD', '', '', '', '', '')]
+    expected_metadata_last_modified_result = '2021-12-14T14:57:07.714295'
+    mocker.patch.object(SqlitePackage, '_get_current_datetime', return_value=expected_metadata_last_modified_result)
     tables = {
         "entity": "dataset",
     }
@@ -36,5 +38,6 @@ def test_sqlite_package(tmpdir):
     package.create(database_path)
     # Assert
     conn = sqlite3.connect(database_path)
-    assert list(conn.execute('select * from entity')) == expected_result
+    assert list(conn.execute('select * from entity')) == expected_entity_result
+    assert list(conn.execute('select * from metadata')) == [(1, expected_metadata_last_modified_result),]
     os.chdir(cwd)

@@ -57,6 +57,7 @@ setup(
             "coverage",
             "flake8",
             "pytest",
+            "pytest-mock",
             "coveralls",
             "twine",
             "responses",
