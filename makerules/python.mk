@@ -1,4 +1,6 @@
 PIP_INSTALL_PACKAGE=[test]
+# This currently isn't pushed to a remote repo, just built locally
+BUILD_TAG_DL_PYTHON := digital_land_python
 
 all:: lint test coverage
 
@@ -41,3 +43,14 @@ upload::	dist
 
 makerules::
 	curl -qfsL '$(SOURCE_URL)/makerules/main/python.mk' > makerules/python.mk
+
+docker-test:: docker-check docker-build
+	docker run -v $(PWD):/src $(BUILD_TAG_DL_PYTHON) pytest /src/tests
+
+docker-build::
+	docker build -t $(BUILD_TAG_DL_PYTHON) .
+
+docker-check::
+ifeq (, $(shell which docker))
+	$(error "No docker in $(PATH), consider doing apt-get install docker OR brew install --cask docker")
+endif

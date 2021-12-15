@@ -12,5 +12,3 @@ RUN set -xe && \
 WORKDIR /src
 COPY . /src
 RUN make init
-
-ENTRYPOINT ["digital-land"]
