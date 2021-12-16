@@ -28,3 +28,4 @@ jobs:
     - name: Lint, Test, Coverage
       run: |
         make
+        make docker-test

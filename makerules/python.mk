@@ -21,16 +21,16 @@ test-unit:
 	[ -d tests/unit ] && python -m pytest tests/unit
 
 test-integration:
-	[ -d tests/integration ] && python -m pytest tests/integration
+	[ -d tests/integration ] && python -m pytest tests/integration -m "not needs_sqlite"
 
 test-e2e:
 	[ -d tests/e2e ] && python -m pytest tests/e2e
 
 coverage:
-	coverage run --source $(PACKAGE) -m py.test && coverage report
+	coverage run --source $(PACKAGE) -m py.test -m "not needs_sqlite" && coverage report
 
 coveralls:
-	py.test --cov $(PACKAGE) tests/ --cov-report=term --cov-report=html
+	py.test --cov $(PACKAGE) tests/ --cov-report=term --cov-report=html -m "not needs_sqlite"
 
 bump::
 	git tag $(shell python version.py)
@@ -45,7 +45,7 @@ makerules::
 	curl -qfsL '$(SOURCE_URL)/makerules/main/python.mk' > makerules/python.mk
 
 docker-test:: docker-check docker-build
-	docker run -v $(PWD):/src $(BUILD_TAG_DL_PYTHON) pytest /src/tests -m needs_docker
+	docker run -v $(PWD):/src $(BUILD_TAG_DL_PYTHON) pytest /src/tests -m needs_sqlite
 
 docker-build::
 	docker build -t $(BUILD_TAG_DL_PYTHON) .

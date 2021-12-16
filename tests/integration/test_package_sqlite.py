@@ -18,7 +18,7 @@ def setup_cwd_for_pipeline_ingest(tmpdir):
     os.chdir(cwd)
 
 
-@pytest.mark.needs_docker
+@pytest.mark.needs_sqlite
 def test_sqlite_package(mocker, tmpdir, setup_cwd_for_pipeline_ingest):
     """
     Simple test to check that we can create & populate a trivial database
