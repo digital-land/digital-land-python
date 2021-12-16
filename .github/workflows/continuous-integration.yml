@@ -10,13 +10,21 @@ jobs:
   build:
 
     runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
     - name: Make Init
       run: |
-        make docker-build
+        make init
     - name: Lint, Test, Coverage
       run: |
-        make docker-test
+        make

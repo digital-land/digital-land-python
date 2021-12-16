@@ -45,7 +45,7 @@ makerules::
 	curl -qfsL '$(SOURCE_URL)/makerules/main/python.mk' > makerules/python.mk
 
 docker-test:: docker-check docker-build
-	docker run -v $(PWD):/src $(BUILD_TAG_DL_PYTHON) pytest /src/tests
+	docker run -v $(PWD):/src $(BUILD_TAG_DL_PYTHON) pytest /src/tests -m needs_docker
 
 docker-build::
 	docker build -t $(BUILD_TAG_DL_PYTHON) .
