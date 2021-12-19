@@ -1,3 +1,5 @@
+#!/usr/bin/env py.test
+
 from io import StringIO
 import csv
 
@@ -52,7 +54,7 @@ def test_map_headers_column_clash():
 
     reader = _reader("une,ein\r\n1,2\r\n")
 
-    assert mapper.headers(reader.fieldnames) == {"ein": "One"}
+    assert mapper.headers(reader.fieldnames) == {"ein": "One", "une": "One"}
 
 
 def test_map():

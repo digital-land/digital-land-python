@@ -21,9 +21,6 @@ class Mapper:
             fieldname = self.normalise(header)
 
             for pattern, value in self.column.items():
-                if value in matched:
-                    # avoid clashing with previously mapped column
-                    continue
                 if fieldname == pattern:
                     matched.append(value)
                     headers[header] = value
