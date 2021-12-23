@@ -13,15 +13,12 @@ class Entry(Item):
         self.resource = resource
         self.line_num = line_num
 
-        # This should be handled like slug below. Temporarily allowing 'none' entities for migration
-        self.entity = data.pop("entity", None)
-        if self.entity == "":
-            self.entity = None
+        self.entity = data.pop("entity", "")
 
-        if not data.get("slug", None):
-            raise ValueError("Entry missing slug field")
-
-        self.slug = data.pop("slug")
+        if data.get("slug", None):
+            self.slug = data.pop("slug")
+        else:
+            self.slug = "/" + self.entity
 
         if not data.get("entry-date", None):
             raise ValueError("Entry missing entry-date")

@@ -22,15 +22,6 @@ def test_init():
     assert entry.entity == 1
 
 
-def test_missing_slug_exception():
-    data = {"a": "b"}
-    resource = "abc123"
-    line_num = 1
-
-    with pytest.raises(ValueError, match="^Entry missing slug field$"):
-        Entry(data, resource, line_num)
-
-
 def test_entry_in_future_exception():
     tomorrow = datetime.date.today() + datetime.timedelta(days=1)
     data = {"a": "b", "slug": "/abc", "entry-date": tomorrow.isoformat()}
