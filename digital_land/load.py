@@ -94,9 +94,14 @@ def load_excel(path):
     return reader_with_line(f, resource_hash_from(path))
 
 
+def csvstream(f):
+    for block in f:
+        yield block.replace("\0", "")
+
+
 def reader_with_line(f, resource):
     row_number = 0
-    for line in csv.reader(f):
+    for line in csv.reader(csvstream(f)):
         row_number = row_number + 1
         yield {
             "resource": resource,
