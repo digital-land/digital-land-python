@@ -41,6 +41,12 @@ Development requires Python 3.6.2 or later, we recommend using a [virtual enviro
     make
     python -m digital-land --help
 
+There is also a docker image available on public ECR
+
+```
+  docker run -it public.ecr.aws/l6z6v3j6/digital-land-python:latest digital-land
+```
+
 ## Release procedure
 
 Update the tagged version number:

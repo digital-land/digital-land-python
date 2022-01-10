@@ -19,3 +19,7 @@ collection
 specification
 ssl.pem
 var
+
+.envrc
+.direnv
+pyrightconfig.json
