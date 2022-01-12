@@ -3,6 +3,7 @@ FROM python:3.8 as digital-land-python
 RUN set -xe && \
     apt-get update && \
     apt-get install -y \
+        gosu \
         make \
         git \
         gdal-bin \
@@ -35,5 +36,11 @@ RUN set -ex; \
 # make specification -f makerules-main/makerules.mk
 
 FROM digital-land-specification as digital-land-pipeline
+
+# Approach borrowed from https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
+COPY docker_entrypoint.sh /usr/local/bin/docker_entrypoint.sh
+RUN chmod +x /usr/local/bin/docker_entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/docker_entrypoint.sh"]
 
 WORKDIR /pipeline
