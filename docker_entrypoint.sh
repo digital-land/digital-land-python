@@ -2,9 +2,16 @@
 
 # Add local user
 # Either use the LOCAL_USER_ID if passed in at runtime or
-# fallback
+# fallback to $UID
 
-USER_ID=${LOCAL_USER_ID:-9001}
+USER_ID=${LOCAL_USER_ID:-$UID}
+
+echo "Starting with UID : $USER_ID"
+useradd --shell /bin/bash -u $USER_ID -o -c "" -m user
+export HOME=/home/user
+
+# Docker will create any new local folders on host specified in bind mounts as being owned by root. Fix this
+chown -R $USER_ID /pipeline
 
 # Install packages from the collection repository
 [[ -f /pipeline/requirements.txt ]] && /opt/venv/bin/pip install --upgrade -r requirements.txt
@@ -13,10 +20,6 @@ USER_ID=${LOCAL_USER_ID:-9001}
 # make init -f /collection/makerules-main/makerules.mk
 # # TODO switch branch when merged
 # # make init -f /collection/makerules-run-pipeline-commands-locally/makerules.mk
-
-echo "Starting with UID : $USER_ID"
-useradd --shell /bin/bash -u $USER_ID -o -c "" -m user
-export HOME=/home/user
 
 exec gosu user "$@"
 
