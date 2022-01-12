@@ -3,6 +3,7 @@ FROM python:3.8 as digital-land-python
 RUN set -xe && \
     apt-get update && \
     apt-get install -y \
+        awscli \
         gosu \
         make \
         git \
