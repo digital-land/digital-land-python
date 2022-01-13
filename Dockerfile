@@ -29,19 +29,13 @@ FROM digital-land-python as digital-land-specification
 RUN mkdir -p /collection
 WORKDIR /collection
 RUN set -ex; \
-    wget https://github.com/digital-land/makerules/archive/refs/heads/run-pipeline-commands-locally.zip -O makerules.zip; \
+    wget https://github.com/digital-land/makerules/archive/refs/heads/run-all-pipeline-commands-locally-take-2.zip -O makerules.zip; \
     unzip makerules.zip; \
-    make specification -f makerules-run-pipeline-commands-locally/makerules.mk
+    make specification -f makerules-run-all-pipeline-commands-locally-take-2/makerules.mk
 # TODO switch branch when merged
 # wget https://github.com/digital-land/makerules/archive/refs/heads/main.zip -O makerules.zip; \
 # make specification -f makerules-main/makerules.mk
 
 FROM digital-land-specification as digital-land-pipeline
-
-# Approach borrowed from https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
-COPY docker_entrypoint.sh /usr/local/bin/docker_entrypoint.sh
-RUN chmod +x /usr/local/bin/docker_entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/docker_entrypoint.sh"]
 
 WORKDIR /pipeline

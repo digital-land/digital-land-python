@@ -44,15 +44,15 @@ makerules::
 	curl -qfsL '$(SOURCE_URL)/makerules/main/python.mk' > makerules/python.mk
 
 docker-build: docker-check
-	docker build . -t $(ECR_REPO)digital-land-python
+	docker build . -t $(ECR_REPO)digital-land-python:digital-land-python
 
-docker-push: docker-check login-docker
-	docker push $(ECR_REPO)digital-land-python
+docker-push: docker-check docker-ecr-login
+	docker push $(ECR_REPO)digital-land-python:digital-land-python
 
 docker-check:
 ifeq (, $(shell which docker))
 	$(error "No docker in $(PATH), consider doing apt-get install docker OR brew install --cask docker")
 endif
 
-login-docker:
+docker-ecr-login:
 	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
