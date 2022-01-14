@@ -1,6 +1,10 @@
 PIP_INSTALL_PACKAGE=[test]
 ECR_REPO=public.ecr.aws/l6z6v3j6/
 
+LAYER_NAME=digital-land-python
+REPO_NAME=digital-land-python
+ECR_PATH=$(ECR_REPO)$(REPO_NAME):$(LAYER_NAME)
+
 all:: lint test coverage
 
 lint:: black-check flake8
@@ -44,10 +48,16 @@ makerules::
 	curl -qfsL '$(SOURCE_URL)/makerules/main/python.mk' > makerules/python.mk
 
 docker-build: docker-check
-	docker build . -t $(ECR_REPO)digital-land-python:digital-land-python
+	docker build . -t $(ECR_PATH) --target $(LAYER_NAME)
 
 docker-push: docker-check docker-ecr-login
-	docker push $(ECR_REPO)digital-land-python:digital-land-python
+	docker push $(ECR_PATH)
+
+docker-pull: docker-check docker-ecr-login
+	docker pull $(ECR_PATH)
+
+docker-shell: docker-check docker-ecr-login
+	docker run -it $(ECR_PATH) bash
 
 docker-check:
 ifeq (, $(shell which docker))
