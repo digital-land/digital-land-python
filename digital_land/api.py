@@ -50,7 +50,6 @@ class DigitalLandApi(object):
                 "specification_dir": self.specification_dir,
             }
         )
-
     def __init__(self, debug, pipeline_name, pipeline_dir, specification_dir):
         # Save init vars for easy serialization/deserialization
         self.debug = debug
