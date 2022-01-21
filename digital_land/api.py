@@ -1,5 +1,6 @@
 import functools
 import itertools
+import json
 import logging
 import os
 import sys
@@ -37,7 +38,23 @@ class DigitalLandApi(object):
     pipeline: Pipeline
     specification: Specification
 
+    def __str__(self):
+        return json.dumps(
+            {
+                "debug": self.debug,
+                "pipeline_name": self.pipeline_name,
+                "pipeline_dir": self.pipeline_dir,
+                "specification_dir": self.specification_dir,
+            }
+        )
+
     def __init__(self, debug, pipeline_name, pipeline_dir, specification_dir):
+        # Save init vars for easy serialization/deserialization
+        self.debug = debug
+        self.pipeline_name = pipeline_name
+        self.pipeline_dir = pipeline_dir
+        self.specification_dir = specification_dir
+
         level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
         self.pipeline = Pipeline(pipeline_dir, pipeline_name)
