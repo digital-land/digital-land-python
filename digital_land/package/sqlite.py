@@ -143,7 +143,7 @@ class SqlitePackage(Package):
             )
         )
 
-    def load_csv(self, path, table, fields):
+    def load_table(self, path, table, fields):
         logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for field in row:
@@ -221,7 +221,7 @@ class SqlitePackage(Package):
             self.commit()
 
             self.create_cursor()
-            self.load_csv(path, table, fields)
+            self.load_table(path, table, fields)
             self.commit()
 
             for split_field, field in joins.items():
