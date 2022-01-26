@@ -15,6 +15,11 @@ from .datatype.uri import URIDataType
 from .datatype.wkt import WktDataType
 
 
+specification_path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "specification"
+)
+
+
 class Specification:
     def __init__(self, path="specification"):
         self.dataset = {}
