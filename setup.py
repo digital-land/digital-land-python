@@ -49,7 +49,7 @@ setup(
         "sqlalchemy",
         "tenacity",
         "mysql-connector-python",
-        "specification@git+https://github.com/digital-land/specification@domain-driven-design-refactoring-setup.py",
+        "specification@git+https://github.com/digital-land/specification",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
