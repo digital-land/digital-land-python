@@ -38,7 +38,10 @@ class DigitalLandApi(object):
     pipeline: Pipeline
     specification: Specification
 
-    def __str__(self):
+    def to_json(self):
+        """
+        Returns a JSON-encoded string containing the constructor arguments
+        """
         return json.dumps(
             {
                 "debug": self.debug,
