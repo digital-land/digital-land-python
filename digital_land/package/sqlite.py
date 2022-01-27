@@ -158,38 +158,10 @@ class SqlitePackage(Package):
                 row[field] = value
                 self.insert(table, fields, row)
 
-    def index(self, table, fields, name=None):
-        if not name:
-            name = colname(table) + "_index"
-        logging.info("creating index %s" % (name))
-        cols = [colname(field) for field in fields if not field.endswith("-geom")]
-        self.execute(
-            "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
-            % (name, colname(table), ", ".join(cols))
-        )
+    def load(self):
+        pass
 
-        if self._spatialite:
-            logging.info("creating spatial indexes %s" % (name))
-            for col in [colname(field) for field in fields if field.endswith("-geom")]:
-                self.execute(
-                    "SELECT CreateSpatialIndex('%s', '%s');" % (colname(table), col)
-                )
-                self.create_cursor()
-                self.execute(
-                    "UPDATE %s SET %s = GeomFromText(%s, 4326);"
-                    % (colname(table), col, col[: -len("-geom")])
-                )
-                self.commit()
-
-    def create(self, path=None):
-        if not path:
-            path = self.datapackage + ".sqlite3"
-
-        if os.path.exists(path):
-            os.remove(path)
-
-        self.connect(path)
-
+    def create_tables(self):
         for table in self.tables:
             path = "%s/%s.csv" % (self.tables[table], table)
             fields = self.specification.schema[table]["fields"]
@@ -247,7 +219,49 @@ class SqlitePackage(Package):
                 )
                 self.commit()
 
-        for table, columns in self.indexes.items():
-            self.index(table, columns)
+    def create_joins(self):
+        pass
 
+    def create_index(self, table, fields, name=None):
+        if not name:
+            name = colname(table) + "_index"
+        logging.info("creating index %s" % (name))
+        cols = [colname(field) for field in fields if not field.endswith("-geom")]
+        self.execute(
+            "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
+            % (name, colname(table), ", ".join(cols))
+        )
+
+        if self._spatialite:
+            logging.info("creating spatial indexes %s" % (name))
+            for col in [colname(field) for field in fields if field.endswith("-geom")]:
+                self.execute(
+                    "SELECT CreateSpatialIndex('%s', '%s');" % (colname(table), col)
+                )
+                self.create_cursor()
+                self.execute(
+                    "UPDATE %s SET %s = GeomFromText(%s, 4326);"
+                    % (colname(table), col, col[: -len("-geom")])
+                )
+                self.commit()
+
+    def create_indexes(self):
+        for table, fields in self.indexes.items():
+            self.create_index(table, fields)
+
+    def create_database(self, path):
+        if not path:
+            path = self.path or self.datapackage + ".sqlite3"
+
+        if os.path.exists(path):
+            os.remove(path)
+
+        self.connect(path)
+        self.create_tables()
+        self.create_joins()
+
+    def create(self, path=None):
+        self.create_database(path)
+        self.load()
+        self.create_indexes()
         self.disconnect()
