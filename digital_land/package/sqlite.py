@@ -27,6 +27,9 @@ def coltype(datatype):
 class SqlitePackage(Package):
     _spatialite = None
 
+    def field_coltype(self, field):
+        return coltype(self.specification.field[field]["datatype"])
+
     def spatialite(self, path=None):
         if not path:
             try:
@@ -50,9 +53,7 @@ class SqlitePackage(Package):
     def disconnect(self):
         self.connection.close()
 
-    def create_table(
-        self, table, fields, key_field=None, field_datatype={}, unique=None
-    ):
+    def create_table(self, table, fields, key_field=None, unique=None):
         self.execute(
             "CREATE TABLE %s (%s%s%s)"
             % (
@@ -62,7 +63,7 @@ class SqlitePackage(Package):
                         "%s %s%s"
                         % (
                             colname(field),
-                            coltype(field_datatype[field]),
+                            self.field_coltype(field),
                             (" PRIMARY KEY" if field == key_field else ""),
                         )
                         for field in fields
@@ -119,7 +120,7 @@ class SqlitePackage(Package):
 
     def colvalue(self, row, field):
         value = row.get(field, "")
-        t = coltype(self.specification.field[field]["datatype"])
+        t = self.field_coltype(field)
         if t == "INTEGER":
             if value == "":
                 return "NULL"
@@ -166,9 +167,6 @@ class SqlitePackage(Package):
             path = "%s/%s.csv" % (self.tables[table], table)
             fields = self.specification.schema[table]["fields"]
             key_field = self.specification.schema[table]["key-field"] or table
-            field_datatype = {
-                field: self.specification.field[field]["datatype"] for field in fields
-            }
 
             # make a many-to-many table for each list
             joins = {}
@@ -183,13 +181,10 @@ class SqlitePackage(Package):
                 ]:
                     parent_field = self.specification.field[field]["parent-field"]
                     joins[field] = parent_field
-                    field_datatype[parent_field] = self.specification.field[
-                        parent_field
-                    ]["datatype"]
                     fields.remove(field)
 
             self.create_cursor()
-            self.create_table(table, fields, key_field, field_datatype)
+            self.create_table(table, fields, key_field)
             self.commit()
 
             self.create_cursor()
@@ -204,7 +199,6 @@ class SqlitePackage(Package):
                     join_table,
                     [table, field],
                     None,
-                    field_datatype,
                     unique=[table, field],
                 )
                 self.commit()
