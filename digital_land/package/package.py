@@ -27,6 +27,7 @@ class Package:
             specification = Specification()
             specification.load()
         self.specification = specification
+        self.join_tables = {}
 
     def create(self, path=None):
         pass

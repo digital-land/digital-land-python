@@ -144,7 +144,7 @@ class SqlitePackage(Package):
             )
         )
 
-    def load_table(self, path, table, fields):
+    def load_table(self, table, fields, path=None):
         logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for field in row:
@@ -152,7 +152,7 @@ class SqlitePackage(Package):
                     row[field] = ""
             self.insert(table, fields, row)
 
-    def load_join(self, path, table, fields, split_field=None, field=None):
+    def load_join_table(self, table, fields, split_field=None, field=None, path=None):
         logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for value in row[split_field].split(";"):
@@ -160,16 +160,34 @@ class SqlitePackage(Package):
                 self.insert(table, fields, row)
 
     def load(self):
-        pass
+        for table in self.tables:
+            fields = self.specification.schema[table]["fields"]
+            path = "%s/%s.csv" % (self.tables[table], table)
+            self.create_cursor()
+            self.load_table(table, fields, path=path)
+            self.commit()
+
+        for join_table, join in self.join_tables.items():
+            table = join["table"]
+            field = join["field"]
+            fields = [table, field]
+            path = "%s/%s.csv" % (self.tables[table], table)
+            self.create_cursor()
+            self.load_join_table(
+                join_table,
+                fields=fields,
+                split_field=join["split-field"],
+                field=field,
+                path=path,
+            )
+            self.commit()
 
     def create_tables(self):
         for table in self.tables:
-            path = "%s/%s.csv" % (self.tables[table], table)
             fields = self.specification.schema[table]["fields"]
             key_field = self.specification.schema[table]["key-field"] or table
 
-            # make a many-to-many table for each list
-            joins = {}
+            # a join table for each list field
             for field in fields:
                 if self.specification.field[field]["cardinality"] == "n" and "%s|%s" % (
                     table,
@@ -180,41 +198,23 @@ class SqlitePackage(Package):
                     "endpoint|parameters",
                 ]:
                     parent_field = self.specification.field[field]["parent-field"]
-                    joins[field] = parent_field
+                    join_table = "%s_%s" % (table, parent_field)
+                    self.join_tables[join_table] = {
+                        "table": table,
+                        "field": parent_field,
+                        "split-field": field,
+                    }
                     fields.remove(field)
 
             self.create_cursor()
             self.create_table(table, fields, key_field)
             self.commit()
 
+        for join_table, join in self.join_tables.items():
+            fields = [join["table"], join["field"]]
             self.create_cursor()
-            self.load_table(path, table, fields)
+            self.create_table(join_table, fields, unique=fields)
             self.commit()
-
-            for split_field, field in joins.items():
-                join_table = "%s_%s" % (table, field)
-
-                self.create_cursor()
-                self.create_table(
-                    join_table,
-                    [table, field],
-                    None,
-                    unique=[table, field],
-                )
-                self.commit()
-
-                self.create_cursor()
-                self.load_join(
-                    path,
-                    join_table,
-                    [table, field],
-                    split_field=split_field,
-                    field=field,
-                )
-                self.commit()
-
-    def create_joins(self):
-        pass
 
     def create_index(self, table, fields, name=None):
         if not name:
@@ -252,7 +252,6 @@ class SqlitePackage(Package):
 
         self.connect(path)
         self.create_tables()
-        self.create_joins()
 
     def create(self, path=None):
         self.create_database(path)
