@@ -1,17 +1,16 @@
 #
-#  normalise values by type defined in the schema
-#  -- output is valid according to the 2019 guidance
-#  -- log issues for suggestions for the user to amend
+#  harmonise values to the datatype for each field
+#  -- record an issue where the process changes the value
 #
 
 import re
 from datetime import datetime
 
-# import .digital_land.types as types
+from .phase import Phase
 from digital_land.datatype.point import PointDataType
 
 
-class Harmoniser:
+class HarmonisePhase(Phase):
     patch = {}
 
     def __init__(
@@ -28,7 +27,6 @@ class Harmoniser:
         self.pipeline = pipeline
         self.default_values = {}
         self.default_fieldnames = {}
-        # self.required_fieldnames = schema.required_fieldnames
         self.issues = issues
         self.collection = collection
         self.organisation_uri = organisation_uri
@@ -38,10 +36,6 @@ class Harmoniser:
         if plugin_manager:
             plugin_manager.register(self)
             plugin_manager.hook.init_harmoniser_plugin(harmoniser=self)
-
-        # if "OrganisationURI" in self.fieldnames:
-        #    if input_path and resource_organisation_path:
-        #        resource_organisation(self.default_values, input_path, resource_organisation_path)
 
     def log_issue(self, field, issue, value):
         if self.issues:
@@ -104,8 +98,7 @@ class Harmoniser:
         if self.plugin_manager:
             self.plugin_manager.hook.set_resource_defaults_post(resource=resource)
 
-    def harmonise(self, reader):
-
+    def process(self, reader):
         if self.issues:
             self.issues.row_number = 0
 

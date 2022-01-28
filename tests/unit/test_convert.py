@@ -1,5 +1,6 @@
+#!/usr/bin/env py.test
 import os
-from digital_land import load
+from digital_land.phase import load
 
 
 def test_load_xlsm():

@@ -1,9 +1,13 @@
 import re
 
-# Lookup entities
+from .phase import Phase
 
 
-class Lookup:
+class LookupPhase(Phase):
+    """
+    lookup and provide missing entity numbers
+    """
+
     def __init__(self, lookups={}, key_field=""):
         self.lookups = lookups
         self.key_field = key_field
@@ -23,7 +27,7 @@ class Lookup:
             or self.lookups.get(",".join(["", "", value]), "")
         )
 
-    def lookup(self, reader):
+    def process(self, reader):
         for stream_data in reader:
             row = stream_data["row"]
 

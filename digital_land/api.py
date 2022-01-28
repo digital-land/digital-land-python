@@ -8,28 +8,29 @@ from pathlib import Path
 
 import canonicaljson
 
-from .collect import Collector
 from .collection import Collection, resource_path
-from .convert import Converter
+from .collect import Collector
 from .entry_loader import EntryLoader
-from .filter import Filterer
-from .harmonise import Harmoniser
 from .index import Indexer
 from .issues import Issues, IssuesFile
-from .load import LineConverter, load_csv, load_csv_dict
-from .map import Mapper
 from .model.entity import Entity
-from .normalise import Normaliser
 from .organisation import Organisation
+from .phase.load import load_csv, load_csv_dict
+from .phase.convert import ConvertPhase
+from .phase.filter import FilterPhase
+from .phase.harmonise import HarmonisePhase
+from .phase.lookup import LookupPhase
+from .phase.map import MapPhase
+from .phase.normalise import NormalisePhase
+from .phase.parse import ParsePhase
+from .phase.save import save
+from .phase.slug import SlugPhase
+from .phase.transform import TransformPhase
 from .pipeline import Pipeline
 from .plugin import get_plugin_manager
 from .repository.entry_repository import EntryRepository
-from .save import save
 from .schema import Schema
-from .lookup import Lookup
-from .slug import Slugger
 from .specification import Specification
-from .transform import Transformer
 from .update import add_source_endpoint, get_failing_endpoints_from_registers
 from .datasette.docker import build_container
 
@@ -110,8 +111,8 @@ class DigitalLandApi(object):
     def convert_cmd(self, input_path, output_path):
         if not output_path:
             output_path = self.default_output_path_for("converted", input_path)
-        converter = Converter(self.pipeline.conversions())
-        reader = converter.convert(input_path)
+        convert_phase = ConvertPhase(self.pipeline.conversions())
+        reader = convert_phase.process(input_path)
         if not reader:
             logging.error(f"Unable to convert {input_path}")
             sys.exit(2)
@@ -122,10 +123,10 @@ class DigitalLandApi(object):
             output_path = self.default_output_path_for("normalised", input_path)
         resource_hash = self.resource_hash_from(input_path)
         stream = load_csv(input_path)
-        normaliser = Normaliser(
+        normalise_phase = NormalisePhase(
             self.pipeline.skip_patterns(resource_hash), null_path=null_path
         )
-        stream = normaliser.normalise(stream)
+        stream = normalise_phase.process(stream)
         save(stream, output_path)
 
     def map_cmd(self, input_path, output_path):
@@ -133,13 +134,13 @@ class DigitalLandApi(object):
             output_path = self.default_output_path_for("mapped", input_path)
         resource_hash = self.resource_hash_from(input_path)
         fieldnames = self.intermediary_fieldnames(self.specification, self.pipeline)
-        mapper = Mapper(
+        map_phase = MapPhase(
             fieldnames,
             self.pipeline.columns(resource_hash),
             self.pipeline.concatenations(resource_hash),
         )
         stream = load_csv_dict(input_path)
-        stream = mapper.map(stream)
+        stream = map_phase.map(stream)
         save(stream, output_path, fieldnames=fieldnames)
 
     def filter_cmd(self, input_path, output_path):
@@ -147,9 +148,9 @@ class DigitalLandApi(object):
             output_path = self.default_output_path_for("filtered", input_path)
         resource_hash = self.resource_hash_from(input_path)
         fieldnames = self.intermediary_fieldnames(self.specification, self.pipeline)
-        filterer = Filterer(self.pipeline.filters(resource_hash))
+        filter_phase = FilterPhase(self.pipeline.filters(resource_hash))
         stream = load_csv_dict(input_path)
-        stream = filterer.filter(stream)
+        stream = filter_phase.process(stream)
         save(stream, output_path, fieldnames=fieldnames)
 
     def harmonise_cmd(self, input_path, output_path, issue_dir, organisation_path):
@@ -165,7 +166,7 @@ class DigitalLandApi(object):
         patch = self.pipeline.patches(resource_hash)
         fieldnames = self.intermediary_fieldnames(self.specification, self.pipeline)
         pm = get_plugin_manager()
-        harmoniser = Harmoniser(
+        harmonise_phase = HarmonisePhase(
             self.specification,
             self.pipeline,
             issues,
@@ -175,7 +176,7 @@ class DigitalLandApi(object):
             pm,
         )
         stream = load_csv_dict(input_path)
-        stream = harmoniser.harmonise(stream)
+        stream = harmonise_phase.process(stream)
         save(stream, output_path, fieldnames=fieldnames)
         issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
         issues_file.write_issues(issues)
@@ -185,13 +186,13 @@ class DigitalLandApi(object):
             output_path = self.default_output_path_for("transformed", input_path)
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
         schema = self.specification.pipeline[self.pipeline.name]["schema"]
-        transformer = Transformer(
+        transform_phase = TransformPhase(
             schema,
             self.pipeline.transformations(),
             organisation.organisation,
         )
         stream = load_csv_dict(input_path)
-        stream = transformer.transform(stream)
+        stream = transform_phase.process(stream)
         save(stream, output_path, self.specification.current_fieldnames(schema))
 
     @staticmethod
@@ -248,19 +249,19 @@ class DigitalLandApi(object):
         patch = self.pipeline.patches(resource_hash)
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
-        line_converter = LineConverter()
+        parse_phase = ParsePhase()
         pm = get_plugin_manager()
-        converter = Converter(self.pipeline.conversions())
-        normaliser = Normaliser(
+        convert_phase = ConvertPhase(self.pipeline.conversions())
+        normalise_phase = NormalisePhase(
             self.pipeline.skip_patterns(resource_hash), null_path=null_path
         )
-        mapper = Mapper(
+        map_phase = MapPhase(
             fieldnames,
             self.pipeline.columns(resource_hash),
             self.pipeline.concatenations(resource_hash),
         )
-        filterer = Filterer(self.pipeline.filters(resource_hash))
-        harmoniser = Harmoniser(
+        filter_phase = FilterPhase(self.pipeline.filters(resource_hash))
+        harmonise_phase = HarmonisePhase(
             self.specification,
             self.pipeline,
             issues,
@@ -269,35 +270,35 @@ class DigitalLandApi(object):
             patch,
             pm,
         )
-        transformer = Transformer(
+        transform_phase = TransformPhase(
             self.specification.schema_field[schema],
             self.pipeline.transformations(),
             organisation.organisation,
         )
         key_field = self.specification.key_field(schema)
-        lookup = Lookup(
+        lookup_phase = LookupPhase(
             lookups=self.pipeline.lookups(resource_hash),
             key_field=key_field,
         )
-        slugger = Slugger(
+        slug_phase = SlugPhase(
             self.specification.pipeline[self.pipeline.name].get("slug-prefix", None),
             key_field,
             self.specification.pipeline[self.pipeline.name].get("scope-field", None),
         )
-        pipeline_funcs = [
-            converter.convert,
-            normaliser.normalise,
-            line_converter.convert,
-            mapper.map,
-            filterer.filter,
-            harmoniser.harmonise,
+        phases = [
+            convert_phase.process,
+            normalise_phase.process,
+            parse_phase.process,
+            map_phase.process,
+            filter_phase.process,
+            harmonise_phase.process,
         ]
         if save_harmonised:
             harmonised_path = output_path.replace("transformed", "harmonised")
             if harmonised_path == output_path:
                 raise ValueError("cannot write harmonised file due to name clash")
 
-            def saver(reader):
+            def save_harmonised(reader):
                 output_tap, save_tap = itertools.tee(reader)
                 save(
                     save_tap,
@@ -308,16 +309,15 @@ class DigitalLandApi(object):
                 )
                 yield from output_tap
 
-            pipeline_funcs.append(saver)
-        pipeline_funcs = pipeline_funcs + [
-            transformer.transform,
-            lookup.lookup,
-            slugger.slug,
+            phases.append(save_harmonised)
+        phases = phases + [
+            transform_phase.process,
+            lookup_phase.process,
+            slug_phase.process,
         ]
-        pipeline = self.compose(*pipeline_funcs)
-        output = pipeline(input_path)
+        pipeline = self.compose(*phases)
         save(
-            output,
+            pipeline(input_path),
             output_path,
             fieldnames=self.specification.current_fieldnames(schema),
         )
