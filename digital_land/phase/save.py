@@ -16,6 +16,6 @@ def fsave(reader, f, fieldnames=None):
 
 
 def save(reader, path, fieldnames=None):
-    logging.debug(f"saving {path}")
+    logging.debug(f"saving {path} {fieldnames}")
     with open(path, "w", newline="") as f:
         fsave(reader, f, fieldnames=fieldnames)
