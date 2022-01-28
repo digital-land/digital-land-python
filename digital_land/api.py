@@ -11,7 +11,6 @@ import canonicaljson
 from .collection import Collection, resource_path
 from .collect import Collector
 from .entry_loader import EntryLoader
-from .index import Indexer
 from .issues import Issues, IssuesFile
 from .model.entity import Entity
 from .organisation import Organisation
@@ -78,12 +77,6 @@ class DigitalLandApi(object):
     #  collection commands
     #  TBD: make sub commands
     #
-    @staticmethod
-    def index_cmd():
-        # TBD: replace with Collection()
-        indexer = Indexer()
-        indexer.index()
-
     def pipeline_collection_list_resources_cmd(self, collection_dir):
         collection = Collection(name=None, directory=collection_dir)
         collection.load()

@@ -113,15 +113,6 @@ def collect_cmd(endpoint_path, collection_dir):
 #  collection commands
 #  TBD: make sub commands
 #
-@cli.command(
-    "index",
-    short_help="create collection indices",
-)
-def index_cmd():
-    # TBD: replace with Collection()
-    return API.index_cmd()
-
-
 @cli.command("collection-list-resources", short_help="list resources for a pipeline")
 @collection_dir
 def pipeline_collection_list_resources_cmd(collection_dir):
