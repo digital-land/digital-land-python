@@ -5,6 +5,10 @@ from pathlib import Path
 
 from .pipeline_resource import get_pipeline_resource_mapping_for_collection
 
+#
+#  create the dependencies between collected resources and a dataset
+#  saved as collection/pipeline.mk
+#
 
 def transformed_path(resource, pipeline):
     return "$(TRANSFORMED_DIR)" + pipeline + "/" + resource + ".csv"
