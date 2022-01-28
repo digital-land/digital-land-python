@@ -1,8 +1,6 @@
 # Digital Land Pipeline
 
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/digital-land.svg)](https://pypi.python.org/pypi/digital-land/)
 [![Build](https://github.com/digital-land/pipeline/workflows/Continuous%20Integration/badge.svg)](https://github.com/digital-land/pipeline/actions?query=workflow%3A%22Continuous+Integration%22)
-[![Coverage](https://coveralls.io/repos/github/digital-land/digital-land-python/badge.svg?branch=main)](https://coveralls.io/github/digital-land/digital-land-python?branch=main)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/digital-land/digital-land-python/blob/main/LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://black.readthedocs.io/en/stable/)
 
@@ -19,17 +17,33 @@
 
     Usage: digital-land [OPTIONS] COMMAND [ARGS]...
 
-    Commands:
-      collect     collect CSV and other resources into a digital-land collection
-      convert     convert a file from XLS to UTF-8 encoded CSV
-      normalise:  strip whitespace and null fields, remove blank rows and columns
-      map:        map misspelt field names to those in a schema
-      harmonise:  harmonise field values to the schema types
-      transform:  map field names to another data model
-
     Options:
-      --version  Show the version and exit.
-      --help     Show this message and exit.
+      -d, --debug / --no-debug
+      -n, --pipeline-name TEXT
+      -p, --pipeline-dir PATH
+      -s, --specification-dir PATH
+      --help                        Show this message and exit.
+
+    Commands:
+      build-datasette                build docker image for datasette
+      collect                        fetch resources from collection endpoints
+      collection-add-source          Add a new source and endpoint to a collection
+      collection-check-endpoints     check logs for failing endpoints
+      collection-list-resources      list resources for a pipeline
+      collection-pipeline-makerules  generate pipeline makerules for a collection
+      collection-save-csv            save collection as CSV package
+      convert                        convert a resource to CSV
+      dataset-create                 create a dataset from processed resources
+      dataset-entries                create entries from dataset facts
+      fetch                          fetch resource from a single endpoint
+      filter                         remove unnecessary rows
+      harmonise                      harmonise field values according to its
+                                     datatype
+      map                            map column names to dataset fields
+      normalise                      remove whitespace and empty rows
+      pipeline                       process a resource
+      transform                      migrate field names to the latest
+                                     specification
 
 ## Development environment
 

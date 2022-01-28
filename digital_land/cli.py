@@ -93,7 +93,7 @@ def cli(debug, pipeline_name, pipeline_dir, specification_dir):
 @cli.command("fetch")
 @click.argument("url")
 def fetch_cmd(url):
-    """fetch a single source endpoint URL, and add it to the collection"""
+    """fetch resource from a single endpoint"""
     return API.fetch_cmd(url)
 
 
@@ -105,7 +105,7 @@ def fetch_cmd(url):
 )
 @collection_dir
 def collect_cmd(endpoint_path, collection_dir):
-    """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
+    """fetch resources from collection endpoints"""
     return API.collect_cmd(endpoint_path, collection_dir)
 
 
@@ -137,13 +137,13 @@ def pipeline_collection_save_csv_cmd(collection_dir):
 #
 #  pipeline commands
 #
-@cli.command("convert", short_help="convert to a well-formed, UTF-8 encoded CSV file")
+@cli.command("convert", short_help="convert a resource to CSV")
 @input_output_path
 def convert_cmd(input_path, output_path):
     return API.convert_cmd(input_path, output_path)
 
 
-@cli.command("normalise", short_help="removed padding, drop empty rows")
+@cli.command("normalise", short_help="remove whitespace and empty rows")
 @input_output_path
 @click.option(
     "--null-path",
@@ -161,13 +161,13 @@ def normalise_cmd(input_path, output_path, null_path, skip_path):
     return API.normalise_cmd(input_path, output_path, null_path, skip_path)
 
 
-@cli.command("map", short_help="map misspelt column names to those in a pipeline")
+@cli.command("map", short_help="map column names to dataset fields")
 @input_output_path
 def map_cmd(input_path, output_path):
     return API.map_cmd(input_path, output_path)
 
 
-@cli.command("filter", short_help="filter out rows by field values")
+@cli.command("filter", short_help="remove unnecessary rows")
 @input_output_path
 def filter_cmd(input_path, output_path):
     return API.filter_cmd(input_path, output_path)
@@ -175,7 +175,7 @@ def filter_cmd(input_path, output_path):
 
 @cli.command(
     "harmonise",
-    short_help="strip whitespace and null fields, remove blank rows and columns",
+    short_help="harmonise field values according to its datatype",
 )
 @input_output_path
 @issue_dir
@@ -184,27 +184,27 @@ def harmonise_cmd(input_path, output_path, issue_dir, organisation_path):
     return API.harmonise_cmd(input_path, output_path, issue_dir, organisation_path)
 
 
-@cli.command("transform", short_help="transform")
+@cli.command("transform", short_help="migrate field names to the latest specification")
 @input_output_path
 @organisation_path
 def transform_cmd(input_path, output_path, organisation_path):
     return API.transform_cmd(input_path, output_path, organisation_path)
 
 
-@cli.command("load-entries", short_help="load entries")
-@click.option("--output-path", type=click.Path(), default=None)
+@cli.command("dataset-create", short_help="create a dataset from processed resources")
+@click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 def load_entries_cmd(input_paths, output_path):
     return API.load_entries_cmd(input_paths, output_path)
 
 
-@cli.command("build-dataset", short_help="build dataset")
+@cli.command("dataset-entries", short_help="create entries from dataset facts")
 @input_output_path
 def build_dataset_cmd(input_path, output_path):
     return API.build_dataset_cmd(input_path, output_path)
 
 
-@cli.command("pipeline", short_help="convert, normalise, map, harmonise, transform")
+@cli.command("pipeline", short_help="process a resource")
 @input_output_path
 @collection_dir
 @click.option(
@@ -265,7 +265,7 @@ def collection_check_endpoints_cmd(first_date, log_dir, endpoint_path, last_date
 
 @cli.command(
     "collection-add-source",
-    short_help="Add a new source to a collection",
+    short_help="Add a new source and endpoint to a collection",
     context_settings=dict(ignore_unknown_options=True, allow_extra_args=True),
 )
 @click.pass_context

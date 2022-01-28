@@ -3,7 +3,7 @@ from .phase import Phase
 
 class TransformPhase(Phase):
     """
-    change deprecated field names to the latest specification
+    change field names to match the latest specification
     """
 
     def __init__(self, fields, transformations, organisation={}):
