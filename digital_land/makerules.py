@@ -4,6 +4,10 @@ import os
 from pathlib import Path
 from datetime import datetime
 
+#
+#  create the dependencies between collected resources and a dataset
+#  saved as collection/pipeline.mk
+#
 
 def transformed_path(resource, pipeline):
     return "$(TRANSFORMED_DIR)" + pipeline + "/" + resource + ".csv"
