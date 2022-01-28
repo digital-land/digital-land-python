@@ -3,8 +3,8 @@
 from io import StringIO
 import csv
 
-from digital_land.save import fsave
-from digital_land.map import Mapper
+from digital_land.phase.save import fsave
+from digital_land.phase.map import MapPhase
 
 
 class CustomReader(csv.DictReader):
@@ -18,7 +18,7 @@ def _reader(s):
 
 
 def test_map_headers():
-    mapper = Mapper(["One", "Two"])
+    mapper = MapPhase(["One", "Two"])
 
     reader = _reader("one,Two\r\n1,2\r\n")
 
@@ -27,7 +27,7 @@ def test_map_headers():
 
 
 def test_map_headers_normalisation():
-    mapper = Mapper(["One", "Two", "RequiresNormalisation"])
+    mapper = MapPhase(["One", "Two", "RequiresNormalisation"])
 
     reader = _reader("one,Two,requires normalisation\r\n1,2\r\n")
 
@@ -41,7 +41,7 @@ def test_map_headers_normalisation():
 
 def test_map_headers_patch():
     column = {"oen": "One"}
-    mapper = Mapper(["One"], column)
+    mapper = MapPhase(["One"], column)
 
     reader = _reader("oen,two\r\n1,2\r\n")
 
@@ -50,7 +50,7 @@ def test_map_headers_patch():
 
 def test_map_headers_column_clash():
     column = {"une": "One", "ein": "One"}
-    mapper = Mapper(["One"], column)
+    mapper = MapPhase(["One"], column)
 
     reader = _reader("une,ein\r\n1,2\r\n")
 
@@ -62,10 +62,10 @@ def test_map():
     column = {
         "one": "One",
     }
-    mapper = Mapper(fieldnames, column)
+    mapper = MapPhase(fieldnames, column)
 
     stream = _reader("one,Two,Three\r\n1,2,3\r\n")
-    stream = mapper.map(stream)
+    stream = mapper.process(stream)
 
     output = StringIO()
     fsave(stream, output, fieldnames=fieldnames)
@@ -75,10 +75,10 @@ def test_map():
 def test_map_concat():
     fieldnames = ["CombinedField"]
     concat = {"CombinedField": {"fields": ["part1", "part2"], "separator": "."}}
-    mapper = Mapper(fieldnames, concat=concat)
+    mapper = MapPhase(fieldnames, concat=concat)
 
     stream = _reader("part1,part2\r\nfirst,second\r\n")
-    stream = mapper.map(stream)
+    stream = mapper.process(stream)
 
     output = StringIO()
     fsave(stream, output, fieldnames=fieldnames)

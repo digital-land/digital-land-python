@@ -1,6 +1,6 @@
 import pytest
 
-from digital_land.harmonise import Harmoniser
+from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.pipeline import Pipeline
 from digital_land.specification import Specification
 from digital_land.issues import Issues
@@ -11,7 +11,7 @@ from .conftest import FakeDictReader
 def test_harmonise_field():
     specification = Specification("tests/data/specification")
     pipeline = Pipeline("tests/data/pipeline", "pipeline-one")
-    h = Harmoniser(specification, pipeline)
+    h = HarmonisePhase(specification, pipeline)
 
     assert h.harmonise_field("field-string", None) == ""
     assert h.harmonise_field("field-string", "value") == "value"
@@ -24,7 +24,7 @@ def test_harmonise_apply_patch():
 
     patch = {"field-string": {"WRONG": "right", "same": "same"}}
 
-    h = Harmoniser(specification, pipeline, patch=patch, issues=issues)
+    h = HarmonisePhase(specification, pipeline, patch=patch, issues=issues)
 
     assert h.apply_patch("field-string", "right") == "right"
     assert h.apply_patch("field-string", "WRONG") == "right"
@@ -40,7 +40,7 @@ def test_harmonise_apply_patch():
 def test_harmonise():
     specification = Specification("tests/data/specification")
     pipeline = Pipeline("tests/data/pipeline", "pipeline-one")
-    h = Harmoniser(specification, pipeline)
+    h = HarmonisePhase(specification, pipeline)
     reader = FakeDictReader(
         [
             {"field-integer": "123"},
@@ -48,7 +48,7 @@ def test_harmonise():
             {"field-integer": "hello"},
         ]
     )
-    output = list(h.harmonise(reader))
+    output = list(h.process(reader))
     assert len(output) == 3
     assert output[0]["row"] == {"field-integer": "123"}, "pass through valid data"
     assert output[1]["row"] == {"field-integer": "321"}, "whitespace trimmed"
@@ -60,9 +60,9 @@ def test_harmonise():
 def test_harmonise_passes_resource():
     specification = Specification("tests/data/specification")
     pipeline = Pipeline("tests/data/pipeline", "pipeline-one")
-    h = Harmoniser(specification, pipeline)
+    h = HarmonisePhase(specification, pipeline)
     reader = FakeDictReader([{"field-integer": "123"}], "some-resource")
-    output = h.harmonise(reader)
+    output = h.process(reader)
     assert next(output)["resource"] == "some-resource"
 
 
@@ -71,7 +71,7 @@ def test_harmonise_passes_resource():
 def test_default():
     specification = Specification("tests/data/specification")
     pipeline = Pipeline("tests/data/pipeline", "pipeline-one")
-    h = Harmoniser(specification, pipeline)
+    h = HarmonisePhase(specification, pipeline)
     reader = FakeDictReader(
         [
             {"field-integer": "", "field-other-integer": "123"},
@@ -79,6 +79,6 @@ def test_default():
         ],
         "resource-one",
     )
-    output = list(h.harmonise(reader))
+    output = list(h.process(reader))
     assert output[0]["row"]["field-integer"] == "123", "value is taken from default"
     assert output[1]["row"]["field-integer"] == "321", "value is not overridden"

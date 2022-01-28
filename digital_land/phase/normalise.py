@@ -4,12 +4,12 @@
 import os
 import re
 import csv
+from .phase import Phase
+
+patch_dir = os.path.join(os.path.dirname(__file__), "../patch")
 
 
-patch_dir = os.path.join(os.path.dirname(__file__), "patch")
-
-
-class Normaliser:
+class NormalisePhase(Phase):
     spaces = " \n\r\t\f"
     null_patterns = []
     skip_patterns = []
@@ -44,7 +44,7 @@ class Normaliser:
                 return True
         return False
 
-    def normalise(self, reader):
+    def process(self, reader):
         for stream_data in reader:
             line = stream_data["line"]
             line = self.normalise_whitespace(line)

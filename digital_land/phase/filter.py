@@ -1,7 +1,8 @@
 import re
+from .phase import Phase
 
 
-class Filterer:
+class FilterPhase(Phase):
     """
     filter out rows based on field values
     """
@@ -13,7 +14,7 @@ class Filterer:
         for field, pattern in filter_patterns.items():
             self.filter_patterns[field] = re.compile(pattern)
 
-    def filter(self, reader):
+    def process(self, reader):
         for stream_data in reader:
             skip = False
             row = stream_data["row"]

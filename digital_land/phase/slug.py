@@ -1,7 +1,8 @@
 import re
+from .phase import Phase
 
 
-class Slugger:
+class SlugPhase(Phase):
     def __init__(self, prefix, key_field, scope_field=None):
         self.prefix = prefix
         self.key_field = key_field
@@ -32,12 +33,12 @@ class Slugger:
             # do not include first part of curie if we have scope
             key_parts.pop(0)
 
-        key_parts[-1] = Slugger.bad_chars.sub("-", key_parts[-1])
+        key_parts[-1] = SlugPhase.bad_chars.sub("-", key_parts[-1])
         key = "/".join(key_parts)
 
         return "/" + "/".join(filter(None, [prefix, scope, key]))
 
-    def slug(self, reader):
+    def process(self, reader):
         for stream_data in reader:
             row = stream_data["row"]
             if not row.get("slug", ""):

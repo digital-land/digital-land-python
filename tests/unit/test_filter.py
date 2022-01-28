@@ -1,7 +1,7 @@
 from io import StringIO
 import csv
 
-from digital_land.filter import Filterer
+from digital_land.phase.filter import FilterPhase
 
 
 class CustomReader(csv.DictReader):
@@ -17,11 +17,11 @@ def _reader(s):
 def test_filter():
     test_filter_patterns = {"three-column": "^[SE]"}
 
-    filterer = Filterer(filter_patterns=test_filter_patterns)
+    filterer = FilterPhase(filter_patterns=test_filter_patterns)
     stream = _reader(
         "one-column,two-column,three-column\r\nOne,Two,Three\r\nFour,Five,Six\r\nSeven,Eight,Nine"
     )
-    result = list(filterer.filter(stream))
+    result = list(filterer.process(stream))
     expected_result = [
         {
             "resource": "dummy_resource",

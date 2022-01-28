@@ -10,14 +10,15 @@ from io import StringIO
 
 import pandas as pd
 
+from .phase import Phase
 from .load import detect_file_encoding, reader_with_line, resource_hash_from
 
 
-class Converter:
+class ConvertPhase(Phase):
     def __init__(self, conversions={}):
         self.conversions = conversions
 
-    def convert(self, input_path):
+    def process(self, input_path):
         reader = self._read_binary_file(input_path)
 
         if not reader:

@@ -1,19 +1,19 @@
 import re
-from digital_land.normalise import Normaliser
+from digital_land.phase.normalise import NormalisePhase
 
 
 def test_init():
-    n = Normaliser()
+    n = NormalisePhase()
     assert n.null_path.endswith("patch/null.csv")
     assert n.skip_patterns == []
 
-    n = Normaliser([r"^,*[^,]*,*$"], null_path="tests/data/null.csv")
+    n = NormalisePhase([r"^,*[^,]*,*$"], null_path="tests/data/null.csv")
     assert n.null_path == "tests/data/null.csv"
     assert n.skip_patterns == [re.compile("^,*[^,]*,*$")]
 
 
 def test_normalise_whitespace():
-    n = Normaliser()
+    n = NormalisePhase()
     assert n.normalise_whitespace(["a"]) == ["a"]
     assert n.normalise_whitespace(["a", "b"]) == ["a", "b"]
     assert n.normalise_whitespace(["a "]) == ["a"]
@@ -23,7 +23,7 @@ def test_normalise_whitespace():
 
 
 def test_strip_nulls():
-    n = Normaliser(null_path="tests/data/null.csv")
+    n = NormalisePhase(null_path="tests/data/null.csv")
     assert n.strip_nulls(["a", "b"]) == ["a", "b"]
     assert n.strip_nulls(["a", "????"]) == ["a", ""]
     assert n.strip_nulls(["a", "----"]) == ["a", ""]
@@ -32,13 +32,13 @@ def test_strip_nulls():
 
 
 def test_skip():
-    n = Normaliser(["^Unnamed: 0,"])
+    n = NormalisePhase(["^Unnamed: 0,"])
     assert n.skip(["Unnamed: 0, "])
     assert not n.skip({"a": "b", "c": "d"})
 
 
 def test_skip_blank_rows():
-    n = Normaliser()
+    n = NormalisePhase()
     assert list(
-        n.normalise([{"line": ["1", "2"]}, {"line": ["", ""]}, {"line": ["3", "4"]}])
+        n.process([{"line": ["1", "2"]}, {"line": ["", ""]}, {"line": ["3", "4"]}])
     ) == [{"line": ["1", "2"]}, {"line": ["3", "4"]}]

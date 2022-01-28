@@ -1,8 +1,10 @@
 import re
 import itertools
 
+from .phase import Phase
 
-class Mapper:
+
+class MapPhase(Phase):
 
     """
     fix field names using the provided column map
@@ -66,7 +68,7 @@ class Mapper:
     def normalise(self, name):
         return re.sub(self.normalise_pattern, "", name.lower())
 
-    def map(self, reader):
+    def process(self, reader):
         headers = self.headers(reader.fieldnames)
 
         for stream_data in reader:
