@@ -104,7 +104,6 @@ def test_current_fieldnames():
         "amount",
         "date",
         "schema-three",
-        "slug",
     ]
 
 
