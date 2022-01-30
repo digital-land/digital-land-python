@@ -1,5 +1,3 @@
-import functools
-import itertools
 import json
 import logging
 import os
@@ -22,7 +20,7 @@ from .phase.lookup import LookupPhase
 from .phase.map import MapPhase
 from .phase.normalise import NormalisePhase
 from .phase.parse import ParsePhase
-from .phase.save import save
+from .phase.save import save, SavePhase
 from .phase.slug import SlugPhase
 from .phase.transform import TransformPhase
 from .pipeline import Pipeline
@@ -109,7 +107,7 @@ class DigitalLandApi(object):
     def convert_cmd(self, input_path, output_path):
         if not output_path:
             output_path = self.default_output_path_for("converted", input_path)
-        convert_phase = ConvertPhase(self.pipeline.conversions())
+        convert_phase = ConvertPhase()
         reader = convert_phase.process(input_path)
         if not reader:
             logging.error(f"Unable to convert {input_path}")
@@ -131,7 +129,7 @@ class DigitalLandApi(object):
         if not output_path:
             output_path = self.default_output_path_for("mapped", input_path)
         resource_hash = self.resource_hash_from(input_path)
-        fieldnames = self.intermediary_fieldnames(self.specification, self.pipeline)
+        fieldnames = self.specification.intermediate_fieldnames(self.pipeline)
         map_phase = MapPhase(
             fieldnames,
             self.pipeline.columns(resource_hash),
@@ -145,7 +143,7 @@ class DigitalLandApi(object):
         if not output_path:
             output_path = self.default_output_path_for("filtered", input_path)
         resource_hash = self.resource_hash_from(input_path)
-        fieldnames = self.intermediary_fieldnames(self.specification, self.pipeline)
+        fieldnames = self.specification.intermediate_fieldnames(self.pipeline)
         filter_phase = FilterPhase(self.pipeline.filters(resource_hash))
         stream = load_csv_dict(input_path)
         stream = filter_phase.process(stream)
@@ -162,7 +160,7 @@ class DigitalLandApi(object):
             organisation_path, Path(self.pipeline.path)
         ).organisation_uri
         patch = self.pipeline.patches(resource_hash)
-        fieldnames = self.intermediary_fieldnames(self.specification, self.pipeline)
+        fieldnames = self.specification.intermediate_fieldnames(self.pipeline)
         pm = get_plugin_manager()
         harmonise_phase = HarmonisePhase(
             self.specification,
@@ -240,89 +238,76 @@ class DigitalLandApi(object):
         save_harmonised,
     ):
         resource_hash = self.resource_hash_from(input_path)
-        organisation = Organisation(organisation_path, Path(self.pipeline.path))
-        issues = Issues()
         schema = self.specification.pipeline[self.pipeline.name]["schema"]
-        fieldnames = self.intermediary_fieldnames(self.specification, self.pipeline)
+        intermediate_fieldnames = self.specification.intermediate_fieldnames(
+            self.pipeline
+        )
+        key_field = self.specification.key_field(schema)
         patch = self.pipeline.patches(resource_hash)
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
-        parse_phase = ParsePhase()
+        organisation = Organisation(organisation_path, Path(self.pipeline.path))
         pm = get_plugin_manager()
-        convert_phase = ConvertPhase(self.pipeline.conversions())
-        normalise_phase = NormalisePhase(
-            self.pipeline.skip_patterns(resource_hash), null_path=null_path
-        )
-        map_phase = MapPhase(
-            fieldnames,
-            self.pipeline.columns(resource_hash),
-            self.pipeline.concatenations(resource_hash),
-        )
-        filter_phase = FilterPhase(self.pipeline.filters(resource_hash))
-        harmonise_phase = HarmonisePhase(
-            self.specification,
-            self.pipeline,
-            issues,
-            collection,
-            organisation.organisation_uri,
-            patch,
-            pm,
-        )
-        transform_phase = TransformPhase(
-            self.specification.schema_field[schema],
-            self.pipeline.transformations(),
-            organisation.organisation,
-        )
-        key_field = self.specification.key_field(schema)
-        lookup_phase = LookupPhase(
-            lookups=self.pipeline.lookups(resource_hash),
-            key_field=key_field,
-        )
-        slug_phase = SlugPhase(
-            self.specification.pipeline[self.pipeline.name].get("slug-prefix", None),
-            key_field,
-            self.specification.pipeline[self.pipeline.name].get("scope-field", None),
-        )
-        phases = [
-            convert_phase.process,
-            normalise_phase.process,
-            parse_phase.process,
-            map_phase.process,
-            filter_phase.process,
-            harmonise_phase.process,
-        ]
-        if save_harmonised:
-            harmonised_path = output_path.replace("transformed", "harmonised")
-            if harmonised_path == output_path:
-                raise ValueError("cannot write harmonised file due to name clash")
+        issues = Issues()
 
-            def save_harmonised(reader):
-                output_tap, save_tap = itertools.tee(reader)
-                save(
-                    save_tap,
-                    harmonised_path,
-                    fieldnames=self.intermediary_fieldnames(
-                        self.specification, self.pipeline
+        self.pipeline.run(
+            input_path,
+            phases=[
+                ConvertPhase(),
+                NormalisePhase(
+                    self.pipeline.skip_patterns(resource_hash), null_path=null_path
+                ),
+                ParsePhase(),
+                MapPhase(
+                    intermediate_fieldnames,
+                    self.pipeline.columns(resource_hash),
+                    self.pipeline.concatenations(resource_hash),
+                ),
+                FilterPhase(self.pipeline.filters(resource_hash)),
+                HarmonisePhase(
+                    self.specification,
+                    self.pipeline,
+                    issues,
+                    collection,
+                    organisation.organisation_uri,
+                    patch,
+                    pm,
+                ),
+                SavePhase(
+                    self.default_output_path_for("harmonised", input_path),
+                    intermediate_fieldnames,
+                    enabled=save_harmonised,
+                ),
+                TransformPhase(
+                    self.specification.schema_field[schema],
+                    self.pipeline.transformations(),
+                    organisation.organisation,
+                ),
+                LookupPhase(
+                    lookups=self.pipeline.lookups(resource_hash),
+                    key_field=key_field,
+                ),
+                SlugPhase(
+                    self.specification.pipeline[self.pipeline.name].get(
+                        "slug-prefix", None
                     ),
-                )
-                yield from output_tap
-
-            phases.append(save_harmonised)
-        phases = phases + [
-            transform_phase.process,
-            lookup_phase.process,
-            slug_phase.process,
-        ]
-        pipeline = self.compose(*phases)
-        save(
-            pipeline(input_path),
-            output_path,
-            fieldnames=self.specification.current_fieldnames(schema),
+                    key_field,
+                    self.specification.pipeline[self.pipeline.name].get(
+                        "scope-field", None
+                    ),
+                ),
+                SavePhase(
+                    output_path,
+                    fieldnames=self.specification.current_fieldnames(schema),
+                ),
+            ],
         )
         issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
         issues_file.write_issues(issues)
 
-    # Endpoint commands
+    #
+    #  configuration commands
+    #
     @staticmethod
     def collection_check_endpoints_cmd(first_date, log_dir, endpoint_path, last_date):
         """find active endpoints that are failing during collection"""
@@ -349,6 +334,9 @@ class DigitalLandApi(object):
                 sys.exit(2)
         add_source_endpoint(entry, directory=collection_dir)
 
+    #
+    #  dataset commands
+    #
     @staticmethod
     def build_datasette(tag, data_dir, ext, options):
         datasets = [f"{d}" for d in Path(data_dir).rglob(f"*.{ext}")]
@@ -366,22 +354,5 @@ class DigitalLandApi(object):
     def resource_hash_from(path):
         return Path(path).stem
 
-    @staticmethod
-    def intermediary_fieldnames(specification, pipeline):
-        schema = specification.pipeline[pipeline.name]["schema"]
-        fieldnames = specification.schema_field[schema].copy()
-        replacement_fields = list(pipeline.transformations().keys())
-        for field in replacement_fields:
-            if field in fieldnames:
-                fieldnames.remove(field)
-        return fieldnames
-
     def default_output_path_for(self, command, input_path):
         return f"var/{command}/{self.resource_hash_from(input_path)}.csv"
-
-    @staticmethod
-    def compose(*functions):
-        def compose2(f, g):
-            return lambda x: g(f(x))
-
-        return functools.reduce(compose2, functions, lambda x: x)

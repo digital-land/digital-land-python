@@ -1,7 +1,9 @@
-import csv
 import os
 import re
+import csv
+import functools
 import importlib.util
+import logging
 
 
 class Pipeline:
@@ -219,3 +221,16 @@ class Pipeline:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module.PipelineCallback
+
+    @staticmethod
+    def compose(phases):
+        def add(f, g):
+            return lambda x: g.process(f(x))
+
+        return functools.reduce(add, phases, lambda phase: phase)
+
+    def run(self, input_path, phases):
+        logging.debug(f"running {input_path} through {phases}")
+        chain = self.compose(phases)
+        for row in chain(input_path):
+            pass

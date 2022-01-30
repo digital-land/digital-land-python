@@ -139,6 +139,15 @@ class Specification:
 
         return fields
 
+    def intermediate_fieldnames(self, pipeline):
+        schema = self.pipeline[pipeline.name]["schema"]
+        fieldnames = self.schema_field[schema].copy()
+        replacement_fields = list(pipeline.transformations().keys())
+        for field in replacement_fields:
+            if field in fieldnames:
+                fieldnames.remove(field)
+        return fieldnames
+
     normalise_re = re.compile(r"[^a-z0-9]")
 
     def normalise(self, name):
