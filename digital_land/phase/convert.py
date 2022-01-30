@@ -15,9 +15,6 @@ from .load import detect_file_encoding, reader_with_line, resource_hash_from
 
 
 class ConvertPhase(Phase):
-    def __init__(self, conversions={}):
-        self.conversions = conversions
-
     def process(self, input_path):
         reader = self._read_binary_file(input_path)
 
