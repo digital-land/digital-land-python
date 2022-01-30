@@ -9,6 +9,7 @@ from datetime import datetime
 #  saved as collection/pipeline.mk
 #
 
+
 def transformed_path(resource, pipeline):
     return "$(TRANSFORMED_DIR)" + pipeline + "/" + resource + ".csv"
 
