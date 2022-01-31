@@ -44,7 +44,7 @@ class SavePhase(Phase):
             save(
                 save_stream,
                 self.path,
-                self.fieldnames,
+                sorted(self.fieldnames),
             )
 
         yield from reader

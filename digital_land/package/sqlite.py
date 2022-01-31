@@ -26,6 +26,7 @@ def coltype(datatype):
 
 class SqlitePackage(Package):
     def __init__(self, *args, **kwargs):
+        self.suffix = ".sqlite3"
         self._spatialite = None
         self.join_tables = {}
         super().__init__(*args, **kwargs)
@@ -44,9 +45,9 @@ class SqlitePackage(Package):
                     path = "/usr/lib/x86_64-linux-gnu/mod_spatialite.so"
         self._spatialite = path
 
-    def connect(self, path):
-        self.path = path
-        self.connection = sqlite3.connect(path)
+    def connect(self):
+        logging.debug(f"sqlite3 connect {self.path}")
+        self.connection = sqlite3.connect(self.path)
 
         if self._spatialite:
             self.connection.enable_load_extension(True)
@@ -54,6 +55,7 @@ class SqlitePackage(Package):
             self.connection.execute("select InitSpatialMetadata(1)")
 
     def disconnect(self):
+        logging.debug("sqlite3 disconnect")
         self.connection.close()
 
     def create_table(self, table, fields, key_field=None, unique=None):
@@ -247,19 +249,15 @@ class SqlitePackage(Package):
         for table, fields in self.indexes.items():
             self.create_index(table, fields)
 
-    def create_database(self, path):
-        if not path:
-            path = self.path or self.datapackage + ".sqlite3"
+    def create_database(self):
+        if os.path.exists(self.path):
+            os.remove(self.path)
 
-        if os.path.exists(path):
-            os.remove(path)
-
-        self.connect(path)
+        self.connect()
         self.create_tables()
 
     def create(self, path=None):
-        path = path or self.path
-        self.create_database(path)
+        self.create_database()
         self.load()
         self.create_indexes()
         self.disconnect()

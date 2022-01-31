@@ -1,5 +1,29 @@
-entity,schema-three,name,organisation,address,amount,date,slug
-,id1,A library,local-authority-eng:AAA,123 avenue,90,2018-10-11,/schema-three/local-authority-eng/AAA/id1
-,id2,Leisure centre,,456 road,680,,
-,id3,Town Hall London,local-authority-eng:AAA,Town Hall London,34,2014-09-06,/schema-three/local-authority-eng/AAA/id3
-,,Park,local-authority-eng:AAA,none,0.4,2020-04-01,
+end-date,entity,entry-date,fact,field,reference-entity,resource,row-number,start-date,value
+,,2018-10-11,,address,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,123 avenue
+,,2018-10-11,,amount,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,90
+,,2018-10-11,,date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,2018-10-11
+,,2018-10-11,,entry-date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,2018-10-11
+,,2018-10-11,,name,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,A library
+,,2018-10-11,,organisation,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,local-authority-eng:AAA
+,,2018-10-11,,schema-three,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,id1
+,,,,address,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,2,,456 road
+,,,,amount,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,2,,680
+,,,,date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,2,,
+,,,,entry-date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,2,,
+,,,,name,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,2,,Leisure centre
+,,,,organisation,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,2,,
+,,,,schema-three,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,2,,id2
+,,2014-09-06,,address,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,3,,Town Hall London
+,,2014-09-06,,amount,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,3,,34
+,,2014-09-06,,date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,3,,2014-09-06
+,,2014-09-06,,entry-date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,3,,2014-09-06
+,,2014-09-06,,name,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,3,,Town Hall London
+,,2014-09-06,,organisation,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,3,,local-authority-eng:AAA
+,,2014-09-06,,schema-three,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,3,,id3
+,,2020-04-01,,address,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,4,,none
+,,2020-04-01,,amount,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,4,,0.4
+,,2020-04-01,,date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,4,,2020-04-01
+,,2020-04-01,,entry-date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,4,,2020-04-01
+,,2020-04-01,,name,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,4,,Park
+,,2020-04-01,,organisation,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,4,,local-authority-eng:AAA
+,,2020-04-01,,schema-three,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,4,,

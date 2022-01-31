@@ -19,7 +19,9 @@ class Specification:
 
 
 class Package:
-    def __init__(self, datapackage, tables=[], indexes={}, specification=None):
+    def __init__(
+        self, datapackage, path=None, tables=[], indexes={}, specification=None
+    ):
         self.datapackage = datapackage
         self.tables = tables
         self.indexes = indexes
@@ -27,6 +29,9 @@ class Package:
             specification = Specification()
             specification.load()
         self.specification = specification
+        if not path:
+            path = f"dataset/{self.datapackage}{self.suffix}"
+        self.path = path
 
     def create(self, path=None):
         pass

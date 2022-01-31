@@ -9,7 +9,7 @@ class PivotPhase(Phase):
     def process(self, reader):
         for stream_data in reader:
             row = stream_data["row"]
-            for field, value in row.items():
+            for field, value in sorted(row.items()):
 
                 if field in ["entity"]:
                     continue
@@ -20,7 +20,6 @@ class PivotPhase(Phase):
                     "entity": row.get("entity", ""),
                     "field": field,
                     "value": value,
-
                     # entry
                     "resource": stream_data["resource"],
                     "row-number": stream_data["row-number"],

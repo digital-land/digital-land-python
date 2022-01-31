@@ -136,6 +136,10 @@ def test_workflow(workspace):
 
     result = workspace / "output" / "result.csv"
 
+    import os
+
+    os.system(f"cp {result} /tmp/result")
+
     assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs
     assert result.is_file()

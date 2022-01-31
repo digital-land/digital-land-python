@@ -8,24 +8,24 @@ import canonicaljson
 
 from .collection import Collection, resource_path
 from .collect import Collector
-from .entry_loader import EntryLoader
 from .issues import Issues, IssuesFile
-from .model.entity import Entity
 from .organisation import Organisation
+from .package.dataset import DatasetPackage
 from .phase.load import load_csv, load_csv_dict
 from .phase.convert import ConvertPhase
+from .phase.factor import FactorPhase
 from .phase.filter import FilterPhase
 from .phase.harmonise import HarmonisePhase
 from .phase.lookup import LookupPhase
 from .phase.map import MapPhase
 from .phase.normalise import NormalisePhase
 from .phase.parse import ParsePhase
+from .phase.pivot import PivotPhase
+from .phase.reduce import ReducePhase
 from .phase.save import save, SavePhase
-from .phase.slug import SlugPhase
 from .phase.transform import TransformPhase
 from .pipeline import Pipeline
 from .plugin import get_plugin_manager
-from .repository.entry_repository import EntryRepository
 from .schema import Schema
 from .specification import Specification
 from .update import add_source_endpoint, get_failing_endpoints_from_registers
@@ -52,7 +52,7 @@ class DigitalLandApi(object):
     def __init__(self, debug, pipeline_name, pipeline_dir, specification_dir):
         # Save init vars for easy serialization/deserialization
         self.debug = debug
-        self.pipeline_name = pipeline_name
+        self.dataset = self.pipeline_name = pipeline_name
         self.pipeline_dir = pipeline_dir
         self.specification_dir = specification_dir
 
@@ -98,6 +98,7 @@ class DigitalLandApi(object):
 
     #
     #  pipeline commands
+    #  TBD: remove separate commands, make pipeline steps selectable
     #
     def convert_cmd(self, input_path, output_path):
         if not output_path:
@@ -186,42 +187,6 @@ class DigitalLandApi(object):
         stream = transform_phase.process(stream)
         save(stream, output_path, self.specification.current_fieldnames(schema))
 
-    @staticmethod
-    def load_entries_cmd(input_paths, output_path):
-        if not output_path:
-            print("missing output path")
-            sys.exit(2)
-        repo = EntryRepository(output_path, create=True)
-        loader = EntryLoader(repo)
-        total = len(input_paths)
-        for idx, path in enumerate(input_paths, start=1):
-            logging.info("loading %s [%s/%s]", path, idx, total)
-            stream = load_csv_dict(path, include_line_num=True)
-            loader.load(stream)
-
-    def build_dataset_cmd(self, input_path, output_path):
-        repo = EntryRepository(input_path)
-        slugs = repo.list_slugs()
-        logging.info("building dataset with %s slugs", len(slugs))
-        schema = self.specification.pipeline[self.pipeline.name]["schema"]
-        output = filter(
-            lambda x: x["row"],
-            (
-                {
-                    "row": Entity(
-                        repo.find_by_slug(slug),
-                        schema,
-                    ).snapshot()
-                }
-                for slug in slugs
-            ),
-        )
-        save(
-            output,
-            output_path,
-            self.specification.current_fieldnames(schema),
-        )
-
     def pipeline_cmd(
         self,
         input_path,
@@ -278,27 +243,40 @@ class DigitalLandApi(object):
                     self.pipeline.transformations(),
                     organisation.organisation,
                 ),
+                ReducePhase(self.specification.current_fieldnames(schema)),
+                # TBD: work on pivoted data
                 LookupPhase(
                     lookups=self.pipeline.lookups(resource_hash),
                     key_field=key_field,
                 ),
-                SlugPhase(
-                    self.specification.pipeline[self.pipeline.name].get(
-                        "slug-prefix", None
-                    ),
-                    key_field,
-                    self.specification.pipeline[self.pipeline.name].get(
-                        "scope-field", None
-                    ),
-                ),
+                PivotPhase(),
+                FactorPhase(),
                 SavePhase(
                     output_path,
-                    fieldnames=self.specification.current_fieldnames(schema),
+                    fieldnames=self.specification.factor_fieldnames(),
                 ),
             ],
         )
+
+        # TBD: move issues to the stream, make saving them a Phase
         issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
         issues_file.write_issues(issues)
+
+    #
+    #  build dataset from processed resources
+    #
+    def dataset_create_cmd(self, input_paths, output_path):
+        if not output_path:
+            print("missing output path")
+            sys.exit(2)
+        package = DatasetPackage(self.dataset)
+        package.create(output_path)
+        for path in input_paths:
+            package.load_transformed(path)
+
+    def dataset_dump_cmd(self, input_path, output_path):
+        # dump entry table as CSV
+        pass
 
     #
     #  configuration commands
@@ -330,7 +308,7 @@ class DigitalLandApi(object):
         add_source_endpoint(entry, directory=collection_dir)
 
     #
-    #  dataset commands
+    #  datasette commands
     #
     @staticmethod
     def build_datasette(tag, data_dir, ext, options):
@@ -350,4 +328,5 @@ class DigitalLandApi(object):
         return Path(path).stem
 
     def default_output_path_for(self, command, input_path):
-        return f"var/{command}/{self.resource_hash_from(input_path)}.csv"
+        directory = "" if command in ["harmonised", "transformed"] else "var/"
+        return f"{directory}{command}/{self.resource_hash_from(input_path)}.csv"

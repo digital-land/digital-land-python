@@ -191,17 +191,23 @@ def transform_cmd(input_path, output_path, organisation_path):
     return API.transform_cmd(input_path, output_path, organisation_path)
 
 
+@cli.command("factor", short_help="split entries into a series of facts")
+@input_output_path
+def factor_cmd(input_path, output_path):
+    return API.factor_cmd(input_path, output_path)
+
+
 @cli.command("dataset-create", short_help="create a dataset from processed resources")
 @click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
-def load_entries_cmd(input_paths, output_path):
-    return API.load_entries_cmd(input_paths, output_path)
+def dataset_create_cmd(input_paths, output_path):
+    return API.dataset_create_cmd(input_paths, output_path)
 
 
-@cli.command("dataset-entries", short_help="create entries from dataset facts")
+@cli.command("dataset-entries", short_help="dump dataset entries as csv")
 @input_output_path
-def build_dataset_cmd(input_path, output_path):
-    return API.build_dataset_cmd(input_path, output_path)
+def dataset_dump_cmd(input_path, output_path):
+    return API.dataset_dump_cmd(input_path, output_path)
 
 
 @cli.command("pipeline", short_help="process a resource")
