@@ -4,9 +4,9 @@ from digital_land.phase.load import detect_encoding
 
 
 strip_exps = [
-    (re.compile(br' ?timeStamp="[^"]*"'), br""),
-    (re.compile(br' ?fid="[^"]*"'), br""),
-    (re.compile(br'(gml:id="[^."]+)[^"]*'), br"\1"),
+    (re.compile(rb' ?timeStamp="[^"]*"'), rb""),
+    (re.compile(rb' ?fid="[^"]*"'), rb""),
+    (re.compile(rb'(gml:id="[^."]+)[^"]*'), rb"\1"),
 ]
 
 
