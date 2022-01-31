@@ -25,7 +25,10 @@ def coltype(datatype):
 
 
 class SqlitePackage(Package):
-    _spatialite = None
+    def __init__(self, *args, **kwargs):
+        self._spatialite = None
+        self.join_tables = {}
+        super().__init__(*args, **kwargs)
 
     def field_coltype(self, field):
         return coltype(self.specification.field[field]["datatype"])
@@ -130,17 +133,18 @@ class SqlitePackage(Package):
                 return "NULL"
         return "'%s'" % value.replace("'", "''")
 
-    def insert(self, table, fields, row):
+    def insert(self, table, fields, row, upsert=False):
         fields = [field for field in fields if not field.endswith("-geom")]
         self.execute(
             """
             INSERT OR REPLACE INTO %s(%s)
-            VALUES (%s);
+            VALUES (%s)%s;
             """
             % (
                 colname(table),
                 ",".join([colname(field) for field in fields]),
                 ",".join(["%s" % self.colvalue(row, field) for field in fields]),
+                " ON CONFLICT DO NOTHING " if upsert else "",
             )
         )
 
@@ -254,6 +258,7 @@ class SqlitePackage(Package):
         self.create_tables()
 
     def create(self, path=None):
+        path = path or self.path
         self.create_database(path)
         self.load()
         self.create_indexes()
