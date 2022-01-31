@@ -134,10 +134,7 @@ class Specification:
         if "entity" not in fields:
             fields = ["entity"] + fields
 
-        if "slug" not in fields:
-            fields = fields + ["slug"]
-
-        return fields
+        return sorted(fields)
 
     def intermediate_fieldnames(self, pipeline):
         schema = self.pipeline[pipeline.name]["schema"]
@@ -146,7 +143,12 @@ class Specification:
         for field in replacement_fields:
             if field in fieldnames:
                 fieldnames.remove(field)
-        return fieldnames
+        return sorted(fieldnames)
+
+    def factor_fieldnames(self):
+        return set(self.current_fieldnames("fact")).union(
+            self.current_fieldnames("fact-resource")
+        )
 
     normalise_re = re.compile(r"[^a-z0-9]")
 
