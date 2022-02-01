@@ -49,11 +49,6 @@ class SqlitePackage(Package):
         logging.debug(f"sqlite3 connect {self.path}")
         self.connection = sqlite3.connect(self.path)
 
-        if self._spatialite:
-            self.connection.enable_load_extension(True)
-            self.connection.load_extension(self._spatialite)
-            self.connection.execute("select InitSpatialMetadata(1)")
-
     def disconnect(self):
         logging.debug("sqlite3 disconnect")
         self.connection.close()
@@ -254,6 +249,12 @@ class SqlitePackage(Package):
             os.remove(self.path)
 
         self.connect()
+
+        if self._spatialite:
+            self.connection.enable_load_extension(True)
+            self.connection.load_extension(self._spatialite)
+            self.connection.execute("select InitSpatialMetadata(1)")
+
         self.create_tables()
 
     def create(self):
