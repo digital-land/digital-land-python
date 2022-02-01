@@ -1,3 +1,4 @@
+import re
 import csv
 import logging
 from .sqlite import SqlitePackage
@@ -39,7 +40,27 @@ class DatasetPackage(SqlitePackage):
             self.insert("fact", fact_fields, row, upsert=True)
             self.insert("fact-resource", fact_resource_fields, row, upsert=True)
 
+    def load_issues(self, path, resource):
+        fields = self.specification.schema["issue"]["fields"]
+
+        logging.info(f"loading issues from {path}")
+
+        for row in csv.DictReader(open(path, newline="")):
+            row["resource"] = resource
+            row["pipeline"] = self.dataset
+            self.insert("issue", fields, row)
+
+    def load_transformed(self, path):
+        m = re.search(r"/([a-f0-9]+).csv$", path)
+        resource = m.group(1)
+
+        self.connect()
+
+        self.create_cursor()
+        self.load_facts(path)
+        self.load_issues(path.replace("transformed/", "issue/"), resource)
         self.commit()
+
         self.disconnect()
 
     def load(self):
