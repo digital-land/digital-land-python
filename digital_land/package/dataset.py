@@ -20,16 +20,17 @@ indexes = {
     "old-entity": ["entity", "old-entity", "status"],
     "fact": ["entity"],
     "fact-resource": ["resource", "fact"],
+    "issue": ["resource", "dataset", "line-number", "entry-number", "field", "issue-type"],
 }
 
 
 class DatasetPackage(SqlitePackage):
     def __init__(self, dataset, **kwargs):
+        self.dataset = dataset
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
 
-    def load_transformed(self, path):
-        self.connect()
-        self.create_cursor()
+    def load_facts(self, path):
+        logging.info(f"loading facts from {path}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]

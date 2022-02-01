@@ -1,7 +1,7 @@
-import json
-import logging
 import os
 import sys
+import json
+import logging
 from pathlib import Path
 
 import canonicaljson
@@ -98,7 +98,6 @@ class DigitalLandApi(object):
 
     #
     #  pipeline commands
-    #  TBD: remove separate commands, make pipeline steps selectable
     #
     def convert_cmd(self, input_path, output_path):
         if not output_path:
@@ -244,7 +243,6 @@ class DigitalLandApi(object):
                     organisation.organisation,
                 ),
                 ReducePhase(self.specification.current_fieldnames(schema)),
-                # TBD: work on pivoted data
                 LookupPhase(
                     lookups=self.pipeline.lookups(resource_hash),
                     key_field=key_field,
@@ -270,7 +268,7 @@ class DigitalLandApi(object):
             print("missing output path")
             sys.exit(2)
         package = DatasetPackage(self.dataset)
-        package.create(output_path)
+        package.create()
         for path in input_paths:
             package.load_transformed(path)
 

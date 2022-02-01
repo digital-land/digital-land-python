@@ -256,7 +256,7 @@ class SqlitePackage(Package):
         self.connect()
         self.create_tables()
 
-    def create(self, path=None):
+    def create(self):
         self.create_database()
         self.load()
         self.create_indexes()
