@@ -7,8 +7,9 @@ import logging
 
 
 class Pipeline:
-    def __init__(self, path, name):
-        self.name = name
+    def __init__(self, path, dataset):
+        self.dataset = dataset
+        self.name = dataset
         self.path = path
         self.column = {}
         self.filter = {}

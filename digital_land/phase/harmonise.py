@@ -25,6 +25,7 @@ class HarmonisePhase(Phase):
     ):
         self.specification = specification
         self.pipeline = pipeline
+        self.dataset = pipeline.dataset
         self.default_values = {}
         self.default_fieldnames = {}
         self.issues = issues
@@ -99,9 +100,6 @@ class HarmonisePhase(Phase):
             self.plugin_manager.hook.set_resource_defaults_post(resource=resource)
 
     def process(self, reader):
-        if self.issues:
-            self.issues.row_number = 0
-
         last_resource = None
 
         for stream_data in reader:
@@ -109,7 +107,9 @@ class HarmonisePhase(Phase):
             resource = stream_data["resource"]
 
             if self.issues:
-                self.issues.row_number += 1
+                self.issues.dataset = self.dataset
+                self.issues.resource = resource
+                self.issues.row_number = stream_data["row-number"]
 
             if not last_resource or last_resource != resource:
                 self.set_resource_defaults(resource)
@@ -138,7 +138,7 @@ class HarmonisePhase(Phase):
                     > datetime.today().date()
                 ):
                     if self.issues:
-                        self.issues.log("future %s" % field, row[field])
+                        self.issues.log_issue(field, "future entry-date", row[field])
                     o[field] = self.default_values["entry-date"]
 
             # fix point geometry

@@ -1,12 +1,15 @@
 import csv
 
-fieldnames = ["row-number", "field", "issue-type", "value"]
+fieldnames = ["dataset", "resource", "row-number", "field", "issue-type", "value"]
 
 
 class Issues:
-    row_number = 0
-    fieldname = "unknown"
-    rows = []
+    def __init__(self, dataset="", resource=""):
+        self.dataset = dataset
+        self.resource = resource
+        self.rows = []
+        self.fieldname = "unknown"
+        self.row_number = 0
 
     def write(self, row):
         self.rows.append(row)
@@ -17,6 +20,8 @@ class Issues:
     def log_issue(self, fieldname, issue_type, value):
         self.write(
             {
+                "dataset": self.dataset,
+                "resource": self.resource,
                 "field": fieldname,
                 "issue-type": issue_type,
                 "value": value,
