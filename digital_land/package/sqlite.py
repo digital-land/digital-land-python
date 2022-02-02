@@ -49,6 +49,10 @@ class SqlitePackage(Package):
         logging.debug(f"sqlite3 connect {self.path}")
         self.connection = sqlite3.connect(self.path)
 
+        if self._spatialite:
+            self.connection.enable_load_extension(True)
+            self.connection.load_extension(self._spatialite)
+
     def disconnect(self):
         logging.debug("sqlite3 disconnect")
         self.connection.close()
@@ -119,7 +123,7 @@ class SqlitePackage(Package):
             sys.exit(3)
 
     def colvalue(self, row, field):
-        value = row.get(field, "")
+        value = str(row.get(field, ""))
         t = self.field_coltype(field)
         if t == "INTEGER":
             if value == "":
@@ -251,8 +255,6 @@ class SqlitePackage(Package):
         self.connect()
 
         if self._spatialite:
-            self.connection.enable_load_extension(True)
-            self.connection.load_extension(self._spatialite)
             self.connection.execute("select InitSpatialMetadata(1)")
 
         self.create_tables()

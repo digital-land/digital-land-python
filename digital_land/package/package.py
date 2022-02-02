@@ -13,6 +13,10 @@ class Specification:
         for row in csv.DictReader(open("specification/schema.csv", newline="")):
             self.schema[row["schema"]] = row
             self.schema[row["schema"]].setdefault("fields", [])
+            self.schema[row["schema"]]["key-field"] = row["key-field"] or row["schema"]
+
+        for row in csv.DictReader(open("specification/dataset.csv", newline="")):
+            self.schema[row["dataset"]]["prefix"] = row["prefix"]
 
         for row in csv.DictReader(open("specification/schema-field.csv", newline="")):
             self.schema[row["schema"]]["fields"].append(row["field"])

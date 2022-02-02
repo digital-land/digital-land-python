@@ -271,10 +271,12 @@ class DigitalLandApi(object):
         package.create()
         for path in input_paths:
             package.load_transformed(path)
+        package.load_entities()
 
     def dataset_dump_cmd(self, input_path, output_path):
-        # dump entry table as CSV
-        pass
+        cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
+        logging.info(cmd)
+        os.system(cmd)
 
     #
     #  configuration commands
