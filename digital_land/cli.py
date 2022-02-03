@@ -143,60 +143,6 @@ def convert_cmd(input_path, output_path):
     return API.convert_cmd(input_path, output_path)
 
 
-@cli.command("normalise", short_help="remove whitespace and empty rows")
-@input_output_path
-@click.option(
-    "--null-path",
-    type=click.Path(exists=True),
-    help="patterns for null fields",
-    default=None,
-)
-@click.option(
-    "--skip-path",
-    type=click.Path(exists=True),
-    help="patterns for skipped lines",
-    default=None,
-)
-def normalise_cmd(input_path, output_path, null_path, skip_path):
-    return API.normalise_cmd(input_path, output_path, null_path, skip_path)
-
-
-@cli.command("map", short_help="map column names to dataset fields")
-@input_output_path
-def map_cmd(input_path, output_path):
-    return API.map_cmd(input_path, output_path)
-
-
-@cli.command("filter", short_help="remove unnecessary rows")
-@input_output_path
-def filter_cmd(input_path, output_path):
-    return API.filter_cmd(input_path, output_path)
-
-
-@cli.command(
-    "harmonise",
-    short_help="harmonise field values according to its datatype",
-)
-@input_output_path
-@issue_dir
-@organisation_path
-def harmonise_cmd(input_path, output_path, issue_dir, organisation_path):
-    return API.harmonise_cmd(input_path, output_path, issue_dir, organisation_path)
-
-
-@cli.command("transform", short_help="migrate field names to the latest specification")
-@input_output_path
-@organisation_path
-def transform_cmd(input_path, output_path, organisation_path):
-    return API.transform_cmd(input_path, output_path, organisation_path)
-
-
-@cli.command("factor", short_help="split entries into a series of facts")
-@input_output_path
-def factor_cmd(input_path, output_path):
-    return API.factor_cmd(input_path, output_path)
-
-
 @cli.command("dataset-create", short_help="create a dataset from processed resources")
 @click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
