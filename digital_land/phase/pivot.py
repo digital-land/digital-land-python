@@ -22,7 +22,7 @@ class PivotPhase(Phase):
                     "value": value,
                     # entry
                     "resource": stream_data["resource"],
-                    "row-number": stream_data["row-number"],
+                    "line-number": stream_data["line-number"],
                     "entry-date": row["entry-date"],
                 }
 

@@ -34,21 +34,18 @@ def resource_hash_from(path):
 class DictReaderInjectResource(csv.DictReader):
     def __init__(self, resource, include_line_num, *args, **kwargs):
         self.resource = resource
-        self.current_line_num = 0
+        self.line_number = 0
         super().__init__(*args, **kwargs)
 
     def __next__(self):
         # Inject the resource into each row
         row = super().__next__()
         self.current_line_num += 1
-        result = {
+        return {
             "resource": self.resource,
+            "line-number": self.line_number,
             "row": row,
-            "row-number": self.current_line_num,
-            # TBD: remove this ..
-            "line_num": self.current_line_num,
         }
-        return result
 
 
 def load_csv_dict(path, include_line_num=False):
@@ -100,13 +97,13 @@ def csvstream(f):
 
 
 def reader_with_line(f, resource):
-    row_number = 0
+    line_number = 0
     for line in csv.reader(csvstream(f)):
-        row_number = row_number + 1
+        line_number = line_number + 1
         yield {
             "resource": resource,
             "line": line,
-            "row-number": row_number,
+            "line-number": line_number,
         }
 
 

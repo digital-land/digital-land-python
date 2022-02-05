@@ -1,4 +1,4 @@
-end-date,entity,entry-date,fact,field,reference-entity,resource,row-number,start-date,value
+end-date,entity,entry-date,fact,field,reference-entity,resource,line-number,start-date,value
 ,,2018-10-11,,address,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,123 avenue
 ,,2018-10-11,,amount,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,90
 ,,2018-10-11,,date,,5bcb9e912eb9adcedc8ba7959d7cd75edd41abf772a8b8778d6361d6192fdc01,1,,2018-10-11

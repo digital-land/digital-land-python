@@ -1,6 +1,6 @@
 import csv
 
-fieldnames = ["dataset", "resource", "row-number", "field", "issue-type", "value"]
+fieldnames = ["dataset", "resource", "line-number", "field", "issue-type", "value"]
 
 
 class Issues:
@@ -9,7 +9,7 @@ class Issues:
         self.resource = resource
         self.rows = []
         self.fieldname = "unknown"
-        self.row_number = 0
+        self.line_number = 0
 
     def write(self, row):
         self.rows.append(row)
@@ -17,7 +17,7 @@ class Issues:
     def log(self, issue_type, value):
         self.log_issue(self.fieldname, issue_type, value)
 
-    def log_issue(self, fieldname, issue_type, value):
+    def log_issue(self, fieldname, issue_type, value, line_number=0):
         self.write(
             {
                 "dataset": self.dataset,
@@ -25,7 +25,7 @@ class Issues:
                 "field": fieldname,
                 "issue-type": issue_type,
                 "value": value,
-                "row-number": self.row_number,
+                "line-number": line_number or self.line_number,
             }
         )
 

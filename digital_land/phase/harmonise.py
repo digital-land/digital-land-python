@@ -109,7 +109,7 @@ class HarmonisePhase(Phase):
             if self.issues:
                 self.issues.dataset = self.dataset
                 self.issues.resource = resource
-                self.issues.row_number = stream_data["row-number"]
+                self.issues.line_number = stream_data["line-number"]
 
             if not last_resource or last_resource != resource:
                 self.set_resource_defaults(resource)
@@ -157,6 +157,13 @@ class HarmonisePhase(Phase):
                 value = o.get(typology, "")
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (self.pipeline.name, value)
+
+            # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
+            if row.get("wikipedia", "").startswith("http"):
+                self.issues.log_issue("wikipedia", "removed prefix", row["wikipedia"])
+                o["wikipedia"] = row["wikipedia"].replace(
+                    "https://en.wikipedia.org/wiki/", ""
+                )
 
             last_resource = resource
 

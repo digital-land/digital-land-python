@@ -211,3 +211,9 @@ class Specification:
         if schema in self.schema_field[schema]:
             return schema
         return ""
+
+    def dataset_prefix(self, dataset):
+        return self.dataset[dataset].get("prefix", "") or dataset
+
+    def field_prefix(self, field):
+        return self.field[field].get("prefix", "") or field

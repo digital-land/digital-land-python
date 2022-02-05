@@ -4,6 +4,7 @@ import csv
 import functools
 import importlib.util
 import logging
+from .phase.lookup import key as lookup_key
 
 
 class Pipeline:
@@ -28,14 +29,17 @@ class Pipeline:
         self.load_lookup()
         self.load_filter()
 
-    def _row_reader(self, filename):
+    def _reader(self, filename):
         # read a file from the pipeline path, ignore if missing
-        # and filter out rows not relevant to this pipeline
-
         file = os.path.join(self.path, filename)
         if not os.path.isfile(file):
             return []
-        reader = csv.DictReader(open(file))
+        return csv.DictReader(open(file))
+
+    def _row_reader(self, filename):
+        reader = self._reader(filename)
+
+        # filter out rows not relevant to this pipeline
         for row in reader:
             if row["pipeline"] and row["pipeline"] != self.name:
                 continue
@@ -101,16 +105,25 @@ class Pipeline:
             self.transform[row["replacement-field"]] = row["field"]
 
     def load_lookup(self):
-        reader = self._row_reader("lookup.csv")
+        reader = self._reader("lookup.csv")
         for row in reader:
-            lookup = self.lookup.setdefault(row["resource"], {})
-            lookup[
-                ",".join(
-                    [
-                        row.get("row-number", ""),
-                        row["organisation"],
-                        self.normalise(row["value"]),
-                    ]
+
+            resource_lookup = self.lookup.setdefault(row["resource"], {})
+
+            # migrate old lookup.csv files
+            dataset = row.get("dataset", "") or row.get("pipeline", "")
+            prefix = row.get("prefix", "") or dataset
+            reference = row.get("reference", "") or row.get("value", "")
+            line_number = row.get("line-number", "") or row.get("row-number", "")
+            organisation = row.get("organisation", "")
+
+            # composite key, ordered by specificity
+            resource_lookup[
+                lookup_key(
+                    line_number=line_number,
+                    organisation=organisation,
+                    prefix=prefix,
+                    reference=reference,
                 )
             ] = row["entity"]
 

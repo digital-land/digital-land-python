@@ -84,7 +84,7 @@ def test_field_names():
             "date",
             "schema-three",
             "entity",
-            "row-number",
+            "line-number",
             "value",
             "start-date",
             "end-date",
@@ -128,7 +128,7 @@ def test_current_fieldnames():
             "fact",
             "field",
             "reference-entity",
-            "row-number",
+            "line-number",
             "resource",
             "value",
         ]

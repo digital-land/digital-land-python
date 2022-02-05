@@ -11,17 +11,18 @@ from .collect import Collector
 from .issues import Issues, IssuesFile
 from .organisation import Organisation
 from .package.dataset import DatasetPackage
-from .phase.load import load_csv, load_csv_dict
 from .phase.convert import ConvertPhase
 from .phase.factor import FactorPhase
 from .phase.filter import FilterPhase
 from .phase.harmonise import HarmonisePhase
-from .phase.lookup import LookupPhase
+from .phase.lookup import EntityLookupPhase, FactLookupPhase
 from .phase.map import MapPhase
 from .phase.normalise import NormalisePhase
 from .phase.parse import ParsePhase
 from .phase.pivot import PivotPhase
+from .phase.prune import EntityPrunePhase, FactPrunePhase
 from .phase.reduce import ReducePhase
+from .phase.reference import EntityReferencePhase, FactReferencePhase
 from .phase.save import save, SavePhase
 from .phase.transform import TransformPhase
 from .pipeline import Pipeline
@@ -120,17 +121,17 @@ class DigitalLandApi(object):
         save_harmonised,
     ):
         resource_hash = self.resource_hash_from(input_path)
-        schema = self.specification.pipeline[self.pipeline.name]["schema"]
+        dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
         intermediate_fieldnames = self.specification.intermediate_fieldnames(
             self.pipeline
         )
-        key_field = self.specification.key_field(schema)
         patch = self.pipeline.patches(resource_hash)
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
         pm = get_plugin_manager()
         issues = Issues()
+        lookups = self.pipeline.lookups(resource_hash)
 
         self.pipeline.run(
             input_path,
@@ -139,7 +140,7 @@ class DigitalLandApi(object):
                 NormalisePhase(
                     self.pipeline.skip_patterns(resource_hash), null_path=null_path
                 ),
-                ParsePhase(),
+                ParsePhase(dataset),
                 MapPhase(
                     intermediate_fieldnames,
                     self.pipeline.columns(resource_hash),
@@ -166,12 +167,14 @@ class DigitalLandApi(object):
                     organisation.organisation,
                 ),
                 ReducePhase(self.specification.current_fieldnames(schema)),
-                LookupPhase(
-                    lookups=self.pipeline.lookups(resource_hash),
-                    key_field=key_field,
-                ),
+                EntityReferencePhase(self.specification),
+                EntityLookupPhase(lookups),
+                EntityPrunePhase(issues),
                 PivotPhase(),
                 FactorPhase(),
+                FactReferencePhase(self.specification),
+                FactLookupPhase(lookups, issues),
+                FactPrunePhase(),
                 SavePhase(
                     output_path,
                     fieldnames=self.specification.factor_fieldnames(),
@@ -197,7 +200,9 @@ class DigitalLandApi(object):
         package.load_entities()
 
     def dataset_dump_cmd(self, input_path, output_path):
-        cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
+        cmd = (
+            f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
+        )
         logging.info(cmd)
         os.system(cmd)
 

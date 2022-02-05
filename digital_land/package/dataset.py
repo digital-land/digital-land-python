@@ -1,7 +1,6 @@
 import csv
 import json
 import re
-import geojson
 import shapely.wkt
 from decimal import Decimal
 import logging
@@ -36,13 +35,6 @@ indexes = {
 }
 
 
-def curie(value):
-    s = value.split(":", 2)
-    if len(s) == 2:
-        return s
-    return ["", value]
-
-
 class DatasetPackage(SqlitePackage):
     def __init__(self, dataset, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
@@ -52,51 +44,20 @@ class DatasetPackage(SqlitePackage):
 
     def migrate_entity(self, row):
         dataset = self.dataset
+        entity = row.get("entity", "")
+
+        if not entity:
+            logging.error(f"{dataset} entity with a missing entity number")
+            exit(1)
+
         row["dataset"] = dataset
-        entity = row["entity"]
-        key_field = self.specification.schema[dataset]["key-field"]
-        key_value = row.get(key_field, "")
+        row["typology"] = self.specification.schema[dataset]["typology"]
+        row["name"] = row.get("name", "")
 
-        if not row.get("typology", ""):
-            typology = self.specification.field[key_field]["typology"]
-            row["typology"] = typology
+        if not row.get("reference", ""):
+            logging.error(f"entity {entity}: missing reference")
 
-        if not row.get("name", ""):
-            row["name"] = ""
-
-        # default the CURIE
-        prefix = row.get("prefix", "")
-        reference = row.get("reference", "")
-        typology_value = row.get(typology, "")
-
-        reference_prefix, reference_reference = curie(reference)
-        typology_prefix, typology_reference = curie(typology_value)
-        key_prefix, key_reference = curie(key_value)
-        spec_prefix = self.specification.schema[dataset].get("prefix", "")
-
-        row["prefix"] = (
-            prefix
-            or reference_prefix
-            or typology_prefix
-            or key_prefix
-            or spec_prefix
-            or dataset
-        )
-        row["reference"] = reference_reference or typology_reference or key_reference
-
-        if not row["reference"]:
-            logging.error(f"{dataset} entity {entity}: missing reference")
-
-        if not row.get("name", ""):
-            row["name"] = ""
-
-        # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
-        if row.get("wikipedia", ""):
-            row["wikipedia"] = row["wikipedia"].replace(
-                "https://en.wikipedia.org/wiki/", ""
-            )
-
-        # add other fields as JSON properties
+        # extended fields as JSON properties
         if not row.get("json", ""):
             properties = {
                 field: row[field]
@@ -107,8 +68,8 @@ class DatasetPackage(SqlitePackage):
                     "geography",
                     "geometry",
                     "organisation",
-                    typology,
-                    dataset,
+                    "reference",
+                    "prefix",
                     "point",
                     "slug",
                 ]
@@ -148,7 +109,8 @@ class DatasetPackage(SqlitePackage):
     def insert_entity(self, facts):
         row = self.entity_row(facts)
         row = self.migrate_entity(row)
-        self.insert("entity", self.entity_fields, row)
+        if row:
+            self.insert("entity", self.entity_fields, row)
 
     def load_entities(self):
         """load the entity table from the fact table"""

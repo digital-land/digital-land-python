@@ -17,6 +17,7 @@ class Specification:
 
         for row in csv.DictReader(open("specification/dataset.csv", newline="")):
             self.schema[row["dataset"]]["prefix"] = row["prefix"]
+            self.schema[row["dataset"]]["typology"] = row["typology"]
 
         for row in csv.DictReader(open("specification/schema-field.csv", newline="")):
             self.schema[row["schema"]]["fields"].append(row["field"])
