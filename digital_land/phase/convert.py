@@ -9,8 +9,8 @@ import tempfile
 import zipfile
 from io import StringIO
 import pandas as pd
+from ..stream import Stream
 from .phase import Phase
-from pathlib import Path
 
 
 def detect_file_encoding(path):
@@ -27,10 +27,6 @@ def detect_encoding(f):
             break
     detector.close()
     return detector.result["encoding"]
-
-
-def resource_hash_from(path):
-    return Path(path).stem
 
 
 def load_csv(path, encoding="UTF-8"):
@@ -52,23 +48,7 @@ def load_csv(path, encoding="UTF-8"):
 
     f.seek(0)
 
-    return reader_with_line(f, resource_hash_from(path))
-
-
-def csvstream(f):
-    for block in f:
-        yield block.replace("\0", "")
-
-
-def reader_with_line(f, resource):
-    line_number = 0
-    for line in csv.reader(csvstream(f)):
-        line_number = line_number + 1
-        yield {
-            "resource": resource,
-            "line": line,
-            "line-number": line_number,
-        }
+    return Stream(path, f=f)
 
 
 def execute(command):
@@ -103,7 +83,7 @@ def read_excel(path):
 
 
 def convert_features_to_csv(input_path):
-    output_path = temp_file_for(input_path)
+    output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     execute(
         [
             "ogr2ogr",
@@ -132,12 +112,6 @@ def convert_features_to_csv(input_path):
     return output_path
 
 
-def temp_file_for(input_path):
-    return tempfile.NamedTemporaryFile(
-        suffix=f"_{resource_hash_from(input_path)}.csv",
-    ).name
-
-
 class ConvertPhase(Phase):
     def process(self, input_path):
         reader = self._read_binary_file(input_path)
@@ -150,9 +124,11 @@ class ConvertPhase(Phase):
 
         if not reader:
             logging.debug("failed to create reader, cannot process %s", input_path)
-            reader = iter(())  # Empty iterator, immediately sends StopIteration
 
-        return reader_with_line(reader, resource=resource_hash_from(input_path))
+            # raise StopIteration()
+            reader = iter(())
+
+        return Stream(input_path, f=reader)
 
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
