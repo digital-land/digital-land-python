@@ -1,12 +1,12 @@
-from digital_land.phase.transform import TransformPhase
+from digital_land.phase.migrate import MigratePhase
 
 from .conftest import FakeDictReader
 
 
-def test_transform_passthrough():
+def test_migrate_passthrough():
     fields = ["field-one"]
-    transformations = {"field-one": "FieldOne"}
-    t = TransformPhase(fields, transformations)
+    migrateations = {"field-one": "FieldOne"}
+    t = MigratePhase(fields, migrateations)
     reader = FakeDictReader([{"field-one": "123"}], "some-resource")
 
     output = list(t.process(reader))
@@ -14,10 +14,10 @@ def test_transform_passthrough():
     assert output == [{"resource": "some-resource", "row": {"field-one": "123"}}]
 
 
-def test_transform_transformation():
+def test_migrate_migrateation():
     fields = ["field-one"]
-    transformations = {"field-one": "FieldOne"}
-    t = TransformPhase(fields, transformations)
+    migrateations = {"field-one": "FieldOne"}
+    t = MigratePhase(fields, migrateations)
     reader = FakeDictReader([{"FieldOne": "123"}], "some-resource")
 
     output = list(t.process(reader))
@@ -25,9 +25,9 @@ def test_transform_transformation():
     assert output == [{"resource": "some-resource", "row": {"field-one": "123"}}]
 
 
-def test_transform_point():
+def test_migrate_point():
     fields = ["point"]
-    t = TransformPhase(fields, {})
+    t = MigratePhase(fields, {})
     reader = FakeDictReader(
         [{"GeoX": "-2.218153", "GeoY": "50.747808"}], "some-resource"
     )

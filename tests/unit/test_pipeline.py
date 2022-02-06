@@ -87,7 +87,7 @@ def test_resource_specific_concatenations():
     }
 
 
-def test_transform():
+def test_migrate():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
-    transform = p.transformations()
-    assert transform == {"field-one": "FieldOne"}
+    migrations = p.migrations()
+    assert migrations == {"field-one": "FieldOne"}

@@ -139,7 +139,7 @@ class Specification:
     def intermediate_fieldnames(self, pipeline):
         schema = self.pipeline[pipeline.name]["schema"]
         fieldnames = self.schema_field[schema].copy()
-        replacement_fields = list(pipeline.transformations().keys())
+        replacement_fields = list(pipeline.migrations().keys())
         for field in replacement_fields:
             if field in fieldnames:
                 fieldnames.remove(field)

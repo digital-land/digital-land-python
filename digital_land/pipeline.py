@@ -18,14 +18,14 @@ class Pipeline:
         self.patch = {}
         self.default = {}
         self.concat = {}
-        self.transform = {}
+        self.migrate = {}
         self.lookup = {}
         self.load_column()
         self.load_skip_patterns()
         self.load_patch()
         self.load_default()
         self.load_concat()
-        self.load_transform()
+        self.load_migrate()
         self.load_lookup()
         self.load_filter()
 
@@ -90,19 +90,19 @@ class Pipeline:
                 "separator": row["separator"],
             }
 
-    def load_transform(self):
+    def load_migrate(self):
         reader = self._row_reader("transform.csv")
         for row in reader:
             if row["replacement-field"] == "":
                 continue
 
-            if row["replacement-field"] in self.transform:
+            if row["replacement-field"] in self.migrate:
                 raise ValueError(
-                    "replacement-field %s has more than one transform entry"
+                    "replacement-field %s has more than one entry"
                     % row["replacement-field"]
                 )
 
-            self.transform[row["replacement-field"]] = row["field"]
+            self.migrate[row["replacement-field"]] = row["field"]
 
     def load_lookup(self):
         reader = self._reader("lookup.csv")
@@ -204,8 +204,8 @@ class Pipeline:
         result.update(resource_concat)
         return result
 
-    def transformations(self):
-        return self.transform
+    def migrations(self):
+        return self.migrate
 
     def conversions(self):
         return {}  # TODO

@@ -24,7 +24,7 @@ from .phase.prune import EntityPrunePhase, FactPrunePhase
 from .phase.reduce import ReducePhase
 from .phase.reference import EntityReferencePhase, FactReferencePhase
 from .phase.save import save, SavePhase
-from .phase.transform import TransformPhase
+from .phase.migrate import MigratePhase
 from .pipeline import Pipeline
 from .plugin import get_plugin_manager
 from .schema import Schema
@@ -161,10 +161,9 @@ class DigitalLandApi(object):
                     intermediate_fieldnames,
                     enabled=save_harmonised,
                 ),
-                TransformPhase(
+                MigratePhase(
                     self.specification.schema_field[schema],
-                    self.pipeline.transformations(),
-                    organisation.organisation,
+                    self.pipeline.migrations(),
                 ),
                 ReducePhase(self.specification.current_fieldnames(schema)),
                 EntityReferencePhase(self.specification),
@@ -182,7 +181,7 @@ class DigitalLandApi(object):
             ],
         )
 
-        # TBD: move issues to the stream, make saving them a Phase
+        # TBD: move issues onto the stream, and make a SaveIssuesPhase
         issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
         issues_file.write_issues(issues)
 

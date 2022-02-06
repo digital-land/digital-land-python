@@ -1,13 +1,13 @@
 from .phase import Phase
 
 
-class TransformPhase(Phase):
+class MigratePhase(Phase):
     """
     change field names to match the latest specification
     """
 
-    def __init__(self, fields, transformations, organisation={}):
-        self.transformations = transformations
+    def __init__(self, fields, migrations, organisation={}):
+        self.migrations = migrations
         self.fields = fields
 
         # map of OrganisationURI to organisation CURIE
@@ -33,10 +33,8 @@ class TransformPhase(Phase):
             for field in self.fields:
                 if field in row and row[field]:
                     o[field] = row[field]
-                elif (
-                    field in self.transformations and self.transformations[field] in row
-                ):
-                    o[field] = row[self.transformations[field]]
+                elif field in self.migrations and self.migrations[field] in row:
+                    o[field] = row[self.migrations[field]]
 
             if set(["GeoX", "GeoY"]).issubset(row.keys()) and "point" in self.fields:
                 if row["GeoX"] and row["GeoY"]:
