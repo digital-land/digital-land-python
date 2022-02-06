@@ -1,6 +1,6 @@
 import io
 import re
-from digital_land.phase.load import detect_encoding
+from digital_land.phase.convert import detect_encoding
 
 
 strip_exps = [

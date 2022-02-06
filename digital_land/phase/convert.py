@@ -1,4 +1,5 @@
 import csv
+from cchardet import UniversalDetector
 import logging
 import os
 import os.path
@@ -7,11 +8,134 @@ import subprocess
 import tempfile
 import zipfile
 from io import StringIO
-
 import pandas as pd
-
 from .phase import Phase
-from .load import detect_file_encoding, reader_with_line, resource_hash_from
+from pathlib import Path
+
+
+def detect_file_encoding(path):
+    with open(path, "rb") as f:
+        return detect_encoding(f)
+
+
+def detect_encoding(f):
+    detector = UniversalDetector()
+    detector.reset()
+    for line in f:
+        detector.feed(line)
+        if detector.done:
+            break
+    detector.close()
+    return detector.result["encoding"]
+
+
+def resource_hash_from(path):
+    return Path(path).stem
+
+
+def load_csv(path, encoding="UTF-8"):
+    logging.debug(f"trying csv {path}")
+
+    if not encoding:
+        encoding = detect_file_encoding(path)
+
+        if not encoding:
+            return None
+
+        logging.debug(f"detected encoding {encoding}")
+
+    f = open(path, encoding=encoding, newline=None)
+    content = f.read()
+    if content.lower().startswith("<!doctype "):
+        logging.debug(f"{path} has <!doctype")
+        return None
+
+    f.seek(0)
+
+    return reader_with_line(f, resource_hash_from(path))
+
+
+def csvstream(f):
+    for block in f:
+        yield block.replace("\0", "")
+
+
+def reader_with_line(f, resource):
+    line_number = 0
+    for line in csv.reader(csvstream(f)):
+        line_number = line_number + 1
+        yield {
+            "resource": resource,
+            "line": line,
+            "line-number": line_number,
+        }
+
+
+def execute(command):
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        outs, errs = proc.communicate(timeout=600)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        outs, errs = proc.communicate()
+
+    return proc.returncode, outs.decode("utf-8"), errs.decode("utf-8")
+
+
+def read_csv(input_path, encoding="utf-8"):
+    logging.debug("reading %s with encoding %s", input_path, encoding)
+    return open(input_path, encoding=encoding, newline=None)
+
+
+def read_excel(path):
+    try:
+        excel = pd.read_excel(path)
+    except:  # noqa: E722
+        return None
+
+    string = excel.to_csv(
+        index=None, header=True, encoding="utf-8", quoting=csv.QUOTE_ALL
+    )
+    f = StringIO(string)
+
+    return f
+
+
+def convert_features_to_csv(input_path):
+    output_path = temp_file_for(input_path)
+    execute(
+        [
+            "ogr2ogr",
+            "-oo",
+            "DOWNLOAD_SCHEMA=NO",
+            "-lco",
+            "GEOMETRY=AS_WKT",
+            "-lco",
+            "LINEFORMAT=CRLF",
+            "-f",
+            "CSV",
+            "-nlt",
+            "MULTIPOLYGON",
+            "-nln",
+            "MERGED",
+            "--config",
+            "OGR_WKT_PRECISION",
+            "10",
+            output_path,
+            input_path,
+        ]
+    )
+    if not os.path.isfile(output_path):
+        return None
+
+    return output_path
+
+
+def temp_file_for(input_path):
+    return tempfile.NamedTemporaryFile(
+        suffix=f"_{resource_hash_from(input_path)}.csv",
+    ).name
 
 
 class ConvertPhase(Phase):
@@ -107,70 +231,3 @@ class ConvertPhase(Phase):
         if len(files) > 1:
             raise ValueError("Zipfile contains more than one %s file" % suffix)
         return "/" + files[0]
-
-
-def execute(command):
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    try:
-        outs, errs = proc.communicate(timeout=600)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        outs, errs = proc.communicate()
-
-    return proc.returncode, outs.decode("utf-8"), errs.decode("utf-8")
-
-
-def read_csv(input_path, encoding="utf-8"):
-    logging.debug("reading %s with encoding %s", input_path, encoding)
-    return open(input_path, encoding=encoding, newline=None)
-
-
-def read_excel(path):
-    try:
-        excel = pd.read_excel(path)
-    except:  # noqa: E722
-        return None
-
-    string = excel.to_csv(
-        index=None, header=True, encoding="utf-8", quoting=csv.QUOTE_ALL
-    )
-    f = StringIO(string)
-
-    return f
-
-
-def convert_features_to_csv(input_path):
-    output_path = temp_file_for(input_path)
-    execute(
-        [
-            "ogr2ogr",
-            "-oo",
-            "DOWNLOAD_SCHEMA=NO",
-            "-lco",
-            "GEOMETRY=AS_WKT",
-            "-lco",
-            "LINEFORMAT=CRLF",
-            "-f",
-            "CSV",
-            "-nlt",
-            "MULTIPOLYGON",
-            "-nln",
-            "MERGED",
-            "--config",
-            "OGR_WKT_PRECISION",
-            "10",
-            output_path,
-            input_path,
-        ]
-    )
-    if not os.path.isfile(output_path):
-        return None
-
-    return output_path
-
-
-def temp_file_for(input_path):
-    return tempfile.NamedTemporaryFile(
-        suffix=f"_{resource_hash_from(input_path)}.csv",
-    ).name
