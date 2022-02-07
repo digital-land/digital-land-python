@@ -5,7 +5,8 @@ all:: lint test coverage
 lint:: black-check flake8
 
 black-check:
-	black --check --verbose .
+	black --diff .
+	black --check .
 
 black:
 	black .
