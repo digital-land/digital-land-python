@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .makerules import pipeline_makerules
+from .pipeline_resource import get_pipeline_resource_mapping_for_collection
 from .register import hash_value
 from .schema import Schema
 from .store.csv import CSVStore
@@ -193,3 +194,6 @@ class Collection:
 
     def pipeline_makerules(self):
         pipeline_makerules(self)
+
+    def pipeline_resource_mapping(self):
+        return get_pipeline_resource_mapping_for_collection(self)
