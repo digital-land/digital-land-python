@@ -88,6 +88,11 @@ class DigitalLandApi(object):
         collection.load()
         collection.pipeline_makerules()
 
+    def pipeline_resource_mapping_for_collection(self, collection_dir):
+        collection = Collection(name=None, directory=collection_dir)
+        collection.load()
+        return collection.pipeline_resource_mapping()
+
     def pipeline_collection_save_csv_cmd(self, collection_dir):
         try:
             os.remove(Path(collection_dir) / "log.csv")
