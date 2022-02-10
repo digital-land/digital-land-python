@@ -29,10 +29,10 @@ class LookupPhase(Phase):
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
-            line_number = stream_data["line-number"]
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
+            line_number = block["line-number"]
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
             organisation = row.get("organisation", "")
@@ -49,7 +49,7 @@ class LookupPhase(Phase):
                         or self.lookup(prefix=prefix, reference=reference)
                     )
 
-            yield stream_data
+            yield block
 
 
 class EntityLookupPhase(LookupPhase):
