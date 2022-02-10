@@ -1,5 +1,5 @@
 from decimal import Decimal
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 from digital_land.datatype.decimal import DecimalDataType
 
 
@@ -17,7 +17,7 @@ def test_decimal_format():
 
 
 def test_decimal_normalise():
-    issues = Issues()
+    issues = IssueLog()
     decimal = DecimalDataType()
 
     assert decimal.normalise("00034.33520000") == "34.3352"

@@ -15,12 +15,12 @@ class HarmonisePhase(Phase):
 
     def __init__(
         self,
-        specification,
-        pipeline,
+        specification=None,
+        pipeline=None,
         issues=None,
         collection={},
         organisation_uri=None,
-        patch={},
+        patches={},
         plugin_manager=None,
     ):
         self.specification = specification
@@ -31,7 +31,7 @@ class HarmonisePhase(Phase):
         self.issues = issues
         self.collection = collection
         self.organisation_uri = organisation_uri
-        self.patch = patch
+        self.patch = patches
         self.plugin_manager = plugin_manager
 
         if plugin_manager:

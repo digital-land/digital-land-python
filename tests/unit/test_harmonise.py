@@ -3,7 +3,7 @@ import pytest
 from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.pipeline import Pipeline
 from digital_land.specification import Specification
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 
 from .conftest import FakeDictReader
 
@@ -20,11 +20,11 @@ def test_harmonise_field():
 def test_harmonise_apply_patch():
     specification = Specification("tests/data/specification")
     pipeline = Pipeline("tests/data/pipeline", "pipeline-one")
-    issues = Issues()
+    issues = IssueLog()
 
-    patch = {"field-string": {"WRONG": "right", "same": "same"}}
+    patches = {"field-string": {"WRONG": "right", "same": "same"}}
 
-    h = HarmonisePhase(specification, pipeline, patch=patch, issues=issues)
+    h = HarmonisePhase(specification, pipeline, patches=patches, issues=issues)
 
     assert h.apply_patch("field-string", "right") == "right"
     assert h.apply_patch("field-string", "WRONG") == "right"

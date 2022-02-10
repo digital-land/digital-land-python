@@ -1,9 +1,9 @@
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 from digital_land.datatype.point import PointDataType
 
 
 def test_point_normalise_wgs84():
-    issues = Issues()
+    issues = IssueLog()
     point = PointDataType()
 
     # Nelson's column
@@ -43,7 +43,7 @@ def test_point_normalise_wgs84():
 
 
 def test_point_normalise_northings_eastings():
-    issues = Issues()
+    issues = IssueLog()
     point = PointDataType(precision=5)
 
     # Nelson's column TQ 30015 80415
@@ -65,7 +65,7 @@ def test_point_normalise_northings_eastings():
 
 
 def test_point_normalise_out_of_range():
-    issues = Issues()
+    issues = IssueLog()
     point = PointDataType(precision=5)
 
     assert point.normalise(["1000", "100000000"]) == ["", ""]

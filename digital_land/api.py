@@ -8,9 +8,10 @@ import canonicaljson
 
 from .collection import Collection, resource_path
 from .collect import Collector
-from .issues import Issues, IssuesFile
+from .log import IssueLog, ColumnFieldLog
 from .organisation import Organisation
 from .package.dataset import DatasetPackage
+from .phase.concat import ConcatFieldPhase
 from .phase.convert import ConvertPhase
 from .phase.factor import FactorPhase
 from .phase.filter import FilterPhase
@@ -23,9 +24,9 @@ from .phase.pivot import PivotPhase
 from .phase.prune import EntityPrunePhase, FactPrunePhase
 from .phase.reduce import ReducePhase
 from .phase.reference import EntityReferencePhase, FactReferencePhase
-from .phase.save import save, SavePhase
+from .phase.save import SavePhase
 from .phase.migrate import MigratePhase
-from .pipeline import Pipeline
+from .pipeline import Pipeline, run_pipeline
 from .plugin import get_plugin_manager
 from .schema import Schema
 from .specification import Specification
@@ -102,13 +103,8 @@ class DigitalLandApi(object):
     #
     def convert_cmd(self, input_path, output_path):
         if not output_path:
-            output_path = self.default_output_path_for("converted", input_path)
-        convert_phase = ConvertPhase()
-        reader = convert_phase.process(input_path)
-        if not reader:
-            logging.error(f"Unable to convert {input_path}")
-            sys.exit(2)
-        save(reader, output_path)
+            output_path = self.default_output_path("converted", input_path)
+        run_pipeline(ConvertPhase(input_path), SavePhase(output_path))
 
     def pipeline_cmd(
         self,
@@ -118,72 +114,74 @@ class DigitalLandApi(object):
         null_path,
         issue_dir,
         organisation_path,
-        save_harmonised,
+        save_harmonised=False,
+        column_field_dir=None,
     ):
-        resource_hash = self.resource_hash_from(input_path)
+        resource = self.resource_from_path(input_path)
         dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
         intermediate_fieldnames = self.specification.intermediate_fieldnames(
             self.pipeline
         )
-        patch = self.pipeline.patches(resource_hash)
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
-        pm = get_plugin_manager()
-        issues = Issues()
-        lookups = self.pipeline.lookups(resource_hash)
+        plugin_manager = get_plugin_manager()
+        patches = self.pipeline.patches(resource)
+        lookups = self.pipeline.lookups(resource)
 
-        self.pipeline.run(
-            input_path,
-            phases=[
-                ConvertPhase(),
-                NormalisePhase(
-                    self.pipeline.skip_patterns(resource_hash), null_path=null_path
-                ),
-                ParsePhase(dataset),
-                MapPhase(
-                    intermediate_fieldnames,
-                    self.pipeline.columns(resource_hash),
-                    self.pipeline.concatenations(resource_hash),
-                ),
-                FilterPhase(self.pipeline.filters(resource_hash)),
-                HarmonisePhase(
-                    self.specification,
-                    self.pipeline,
-                    issues,
-                    collection,
-                    organisation.organisation_uri,
-                    patch,
-                    pm,
-                ),
-                SavePhase(
-                    self.default_output_path_for("harmonised", input_path),
-                    intermediate_fieldnames,
-                    enabled=save_harmonised,
-                ),
-                MigratePhase(
-                    self.specification.schema_field[schema],
-                    self.pipeline.migrations(),
-                ),
-                ReducePhase(self.specification.current_fieldnames(schema)),
-                EntityReferencePhase(self.specification),
-                EntityLookupPhase(lookups),
-                EntityPrunePhase(issues),
-                PivotPhase(),
-                FactorPhase(),
-                FactReferencePhase(self.specification),
-                FactLookupPhase(lookups, issues),
-                FactPrunePhase(),
-                SavePhase(
-                    output_path,
-                    fieldnames=self.specification.factor_fieldnames(),
-                ),
-            ],
+        issue_log = IssueLog(dataset=dataset, resource=resource)
+        column_field_log = ColumnFieldLog()
+
+        run_pipeline(
+            ConvertPhase(path=input_path),
+            NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
+            ParsePhase(dataset=dataset),
+            MapPhase(
+                fieldnames=intermediate_fieldnames,
+                columns=self.pipeline.columns(resource),
+                log=column_field_log,
+            ),
+            ConcatFieldPhase(
+                concats=self.pipeline.concatenations(resource),
+                column_field_log=column_field_log,
+            ),
+            FilterPhase(self.pipeline.filters(resource)),
+            # TBD: break down this complicated phase
+            HarmonisePhase(
+                specification=self.specification,
+                pipeline=self.pipeline,
+                issues=issue_log,
+                collection=collection,
+                organisation_uri=organisation.organisation_uri,
+                patches=patches,
+                plugin_manager=plugin_manager,
+            ),
+            SavePhase(
+                self.default_output_path("harmonised", input_path),
+                intermediate_fieldnames,
+                enabled=save_harmonised,
+            ),
+            MigratePhase(
+                self.specification.schema_field[schema],
+                self.pipeline.migrations(),
+            ),
+            ReducePhase(self.specification.current_fieldnames(schema)),
+            EntityReferencePhase(self.specification),
+            EntityLookupPhase(lookups),
+            EntityPrunePhase(issue_log),
+            PivotPhase(),
+            FactorPhase(),
+            FactReferencePhase(self.specification),
+            FactLookupPhase(lookups, issue_log),
+            FactPrunePhase(),
+            SavePhase(
+                output_path,
+                fieldnames=self.specification.factor_fieldnames(),
+            ),
         )
 
-        # TBD: move issues onto the stream, and make a SaveIssuesPhase
-        issues_file = IssuesFile(path=os.path.join(issue_dir, resource_hash + ".csv"))
-        issues_file.write_issues(issues)
+        issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+        column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
 
     #
     #  build dataset from processed resources
@@ -251,9 +249,9 @@ class DigitalLandApi(object):
             print(f"name: {name}")
 
     @staticmethod
-    def resource_hash_from(path):
+    def resource_from_path(path):
         return Path(path).stem
 
-    def default_output_path_for(self, command, input_path):
+    def default_output_path(self, command, input_path):
         directory = "" if command in ["harmonised", "transformed"] else "var/"
-        return f"{directory}{command}/{self.resource_hash_from(input_path)}.csv"
+        return f"{directory}{command}/{self.resource_from_path(input_path)}.csv"

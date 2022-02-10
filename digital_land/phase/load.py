@@ -1,20 +1,23 @@
 import csv
 from pathlib import Path
+from .phase import Phase
 
 
 class Stream:
-    def __init__(self, path, f=None, resource=None, dataset=None):
+    def __init__(self, path=None, f=None, resource=None, dataset=None):
         if not f:
             f = open(path, newline="")
 
         if not resource:
-            resource = Path(path).stem
+            if path:
+                resource = Path(path).stem
 
         self.path = path
         self.f = f
         self.resource = resource
         self.dataset = dataset
         self.line_number = 0
+        self.fieldnames = None
 
     @staticmethod
     def _reader(f):
@@ -39,3 +42,11 @@ class Stream:
 
     def __iter__(self):
         return self
+
+
+class LoadPhase(Phase):
+    def __init__(self, *args, **kwargs):
+        self.stream = Stream(*args, **kwargs)
+
+    def process(self, stream=None):
+        return self.stream

@@ -4,23 +4,29 @@ import itertools
 from .phase import Phase
 
 
-def fsave(reader, f, fieldnames=None):
+def save(stream, path=None, f=None, fieldnames=None):
+    logging.debug(f"save {path} {f} {fieldnames}")
+
+    if not f:
+        f = open(path, "w", newline="")
+
+    block = next(stream)
+    fieldnames = fieldnames or block.get(fieldnames, "") or block["row"].keys()
+
     if not fieldnames:
+        # write unparsed CSV
         writer = csv.writer(f)
-        key = "line"
+        row = "line"
     else:
+        # write canonical CSV
+        fieldnames = sorted(fieldnames)
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
-        key = "row"
+        row = "row"
 
-    for row in reader:
-        writer.writerow(row[key])
-
-
-def save(reader, path, fieldnames=None):
-    logging.debug(f"saving {path} {fieldnames}")
-    with open(path, "w", newline="") as f:
-        fsave(reader, f, fieldnames=fieldnames)
+    writer.writerow(block[row])
+    for block in stream:
+        writer.writerow(block[row])
 
 
 class SavePhase(Phase):
@@ -30,21 +36,24 @@ class SavePhase(Phase):
 
     def __init__(
         self,
-        path,
-        fieldnames,
+        path=None,
+        f=None,
+        fieldnames=None,
         enabled=True,
     ):
         self.path = path
+        self.f = f
         self.fieldnames = fieldnames
         self.enabled = enabled
 
-    def process(self, reader):
+    def process(self, stream):
         if self.enabled:
-            reader, save_stream = itertools.tee(reader)
+            stream, save_stream = itertools.tee(stream)
             save(
                 save_stream,
-                self.path,
-                sorted(self.fieldnames),
+                path=self.path,
+                f=self.f,
+                fieldnames=self.fieldnames,
             )
 
-        yield from reader
+        yield from stream

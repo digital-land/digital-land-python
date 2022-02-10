@@ -9,7 +9,7 @@ import tempfile
 import zipfile
 from io import StringIO
 import pandas as pd
-from ..stream import Stream
+from .load import Stream
 from .phase import Phase
 
 
@@ -113,7 +113,12 @@ def convert_features_to_csv(input_path):
 
 
 class ConvertPhase(Phase):
-    def process(self, input_path):
+    def __init__(self, path=None):
+        self.path = path
+
+    def process(self, stream=None):
+        input_path = self.path
+
         reader = self._read_binary_file(input_path)
 
         if not reader:

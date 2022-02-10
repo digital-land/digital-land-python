@@ -55,6 +55,14 @@ def issue_dir(f):
     )(f)
 
 
+def column_field_dir(f):
+    return click.option(
+        "--column-field-dir",
+        type=click.Path(exists=True),
+        default="var/column-field-dir/",
+    )(f)
+
+
 def endpoint_path(f):
     return click.option(
         "--endpoint-path",
@@ -176,6 +184,7 @@ def pipeline_cmd(
     issue_dir,
     organisation_path,
     save_harmonised,
+    column_field_dir,
 ):
     return API.pipeline_cmd(
         input_path,
@@ -185,6 +194,7 @@ def pipeline_cmd(
         issue_dir,
         organisation_path,
         save_harmonised,
+        column_field_dir,
     )
 
 

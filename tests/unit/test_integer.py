@@ -1,4 +1,4 @@
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 from digital_land.datatype.integer import IntegerDataType
 
 
@@ -13,7 +13,7 @@ def test_integer_normalise():
 
     assert integer.normalise(" 0123 ") == "123"
 
-    issues = Issues()
+    issues = IssueLog()
     assert integer.normalise("foo", issues=issues) == ""
 
     issue = issues.rows.pop()

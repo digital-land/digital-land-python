@@ -1,11 +1,11 @@
 import pytest
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 from digital_land.datatype.organisation import OrganisationURIDataType
 
 
 @pytest.mark.skip()
 def test_OrganisationURI_normalise():
-    issues = Issues()
+    issues = IssueLog()
 
     organisation_uri = OrganisationURIDataType()
 

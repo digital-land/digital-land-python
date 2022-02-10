@@ -1,10 +1,26 @@
 import os
-import re
 import csv
 import functools
 import importlib.util
 import logging
+from .phase.map import normalise
 from .phase.lookup import key as lookup_key
+
+
+def chain_phases(phases):
+    def add(f, g):
+        return lambda x: g.process(f(x))
+
+    return functools.reduce(add, phases, lambda phase: phase)
+
+
+def run_pipeline(*args):
+    logging.debug(f"run_pipeline {args}")
+    chain = chain_phases(args)
+
+    stream = chain(None)
+    for row in stream:
+        pass
 
 
 class Pipeline:
@@ -52,8 +68,14 @@ class Pipeline:
     def load_column(self):
         reader = self._row_reader("column.csv")
         for row in reader:
-            column = self.column.setdefault(row["resource"], {})
-            column[self.normalise(row["pattern"])] = row["value"]
+            resource_column = self.column.setdefault(row["resource"], {})
+
+            # migrate column.csv
+            row["dataset"] = row.get("dataset", "") or row["pipeline"]
+            row["column"] = row.get("column", "") or row["pattern"]
+            row["field"] = row.get("field", "") or row["value"]
+
+            resource_column[normalise(row["column"])] = row["field"]
 
     def load_filter(self):
         reader = self._row_reader("filter.csv")
@@ -107,7 +129,6 @@ class Pipeline:
     def load_lookup(self):
         reader = self._reader("lookup.csv")
         for row in reader:
-
             resource_lookup = self.lookup.setdefault(row["resource"], {})
 
             # migrate old lookup.csv files
@@ -223,28 +244,9 @@ class Pipeline:
         result.update(resource_lookup)
         return result
 
-    # TBD: reduce number of copies of this method
-    normalise_pattern = re.compile(r"[^a-z0-9-]")
-
-    def normalise(self, name):
-        return re.sub(self.normalise_pattern, "", name.lower())
-
     def get_pipeline_callback(self):
         file = os.path.join(self.path, "pipeline-callback.py")
         spec = importlib.util.spec_from_file_location("pipeline-callback.py", file)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module.PipelineCallback
-
-    @staticmethod
-    def compose(phases):
-        def add(f, g):
-            return lambda x: g.process(f(x))
-
-        return functools.reduce(add, phases, lambda phase: phase)
-
-    def run(self, input_path, phases):
-        logging.debug(f"running {input_path} through {phases}")
-        chain = self.compose(phases)
-        for row in chain(input_path):
-            pass

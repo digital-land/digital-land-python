@@ -24,6 +24,7 @@ indexes = {
     "old-entity": ["entity", "old-entity", "status"],
     "fact": ["entity"],
     "fact-resource": ["resource", "fact"],
+    "column-field": ["dataset", "resource", "column", "field"],
     "issue": [
         "resource",
         "dataset",
@@ -146,6 +147,16 @@ class DatasetPackage(SqlitePackage):
             self.insert("fact", fact_fields, row, upsert=True)
             self.insert("fact-resource", fact_resource_fields, row, upsert=True)
 
+    def load_column_fields(self, path, resource):
+        fields = self.specification.schema["column-field"]["fields"]
+
+        logging.info(f"loading column_fields from {path}")
+
+        for row in csv.DictReader(open(path, newline="")):
+            row["resource"] = resource
+            row["dataset"] = self.dataset
+            self.insert("column-field", fields, row)
+
     def load_issues(self, path, resource):
         fields = self.specification.schema["issue"]["fields"]
 
@@ -164,6 +175,9 @@ class DatasetPackage(SqlitePackage):
         self.create_cursor()
         self.load_facts(path)
         self.load_issues(path.replace("transformed/", "issue/"), resource)
+        self.load_column_fields(
+            path.replace("transformed/", "var/column-field/"), resource
+        )
         self.commit()
         self.disconnect()
 
