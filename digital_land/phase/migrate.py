@@ -18,11 +18,11 @@ class MigratePhase(Phase):
                     "organisation"
                 ]
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
             o = {}
-            row["resource"] = stream_data["resource"]
+            row["resource"] = block["resource"]
 
             # translate OrganisationURI into an organisation CURIE
             if "OrganisationURI" in row:
@@ -40,5 +40,5 @@ class MigratePhase(Phase):
                 if row["GeoX"] and row["GeoY"]:
                     o["point"] = f"POINT({row['GeoX']} {row['GeoY']})"
 
-            stream_data["row"] = o
-            yield stream_data
+            block["row"] = o
+            yield block
