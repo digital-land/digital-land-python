@@ -41,7 +41,6 @@ class DatasetPackage(SqlitePackage):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.entity_fields = self.specification.schema["entity"]["fields"]
-        self.spatialite()
 
     def migrate_entity(self, row):
         dataset = self.dataset
