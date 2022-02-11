@@ -44,9 +44,9 @@ class NormalisePhase(Phase):
                 return True
         return False
 
-    def process(self, reader):
-        for stream_data in reader:
-            line = stream_data["line"]
+    def process(self, stream):
+        for block in stream:
+            line = block["line"]
             line = self.normalise_whitespace(line)
             line = self.strip_nulls(line)
 
@@ -57,6 +57,6 @@ class NormalisePhase(Phase):
             if self.skip(line):
                 continue
 
-            stream_data["line"] = line
+            block["line"] = line
 
-            yield stream_data
+            yield block

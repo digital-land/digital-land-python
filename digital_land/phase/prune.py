@@ -10,15 +10,15 @@ class EntityPrunePhase(Phase):
     def __init__(self, issues=None):
         self.issues = issues
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
             if not row.get("entity", ""):
-                resource = stream_data["resource"]
+                resource = block["resource"]
                 prefix = row.get("prefix", "")
                 reference = row.get("reference", "")
                 curie = f"{prefix}:{reference}"
-                line_number = stream_data["line-number"]
+                line_number = block["line-number"]
 
                 if self.issues:
                     self.issues.log_issue(
@@ -28,10 +28,10 @@ class EntityPrunePhase(Phase):
                 logging.info(
                     f"{resource} line {line_number}: missing entity for {curie}"
                 )
-                logging.debug(stream_data)
+                logging.debug(block)
                 continue
 
-            yield stream_data
+            yield block
 
 
 class FactPrunePhase(Phase):
@@ -39,11 +39,11 @@ class FactPrunePhase(Phase):
     remove facts with a missing value
     """
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
 
             if not row.get("value", ""):
                 continue
 
-            yield stream_data
+            yield block

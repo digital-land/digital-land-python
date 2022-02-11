@@ -14,10 +14,10 @@ class FilterPhase(Phase):
         for field, pattern in filter_patterns.items():
             self.filter_patterns[field] = re.compile(pattern)
 
-    def process(self, reader):
-        for stream_data in reader:
+    def process(self, stream):
+        for block in stream:
             skip = False
-            row = stream_data["row"]
+            row = block["row"]
 
             for field in row:
                 if field in self.filter_patterns and self.filter_patterns[field].match(
@@ -29,4 +29,4 @@ class FilterPhase(Phase):
             if skip:
                 continue
 
-            yield stream_data
+            yield block

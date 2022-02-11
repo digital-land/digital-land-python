@@ -9,14 +9,14 @@ def fact_hash(entity, field, value):
 
 class FactorPhase(Phase):
     """
-    add fact identifiers, filter out facts with a missing entity
+    add a fact hash identifier
     """
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
 
             if row["entity"]:
                 row["fact"] = fact_hash(row["entity"], row["field"], row["value"])
 
-            yield stream_data
+            yield block

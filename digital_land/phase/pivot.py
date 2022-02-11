@@ -6,24 +6,24 @@ class PivotPhase(Phase):
     split entries into a series of facts
     """
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
             for field, value in sorted(row.items()):
 
                 if field in ["entity"]:
                     continue
 
-                stream_data["row"] = {
+                block["row"] = {
                     # fact
                     "fact": "",
                     "entity": row.get("entity", ""),
                     "field": field,
                     "value": value,
                     # entry
-                    "resource": stream_data["resource"],
-                    "line-number": stream_data["line-number"],
+                    "resource": block["resource"],
+                    "line-number": block["line-number"],
                     "entry-date": row["entry-date"],
                 }
 
-                yield stream_data
+                yield block

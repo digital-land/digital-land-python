@@ -11,13 +11,13 @@ class ReducePhase(Phase):
         self.fields = list(set(fields + ["entity", "organisation"]))
         logging.debug(f"reducing fields to {self.fields}")
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
 
             o = {}
             for field in self.fields:
                 o[field] = row.get(field, "")
 
-            stream_data["row"] = o
-            yield stream_data
+            block["row"] = o
+            yield block
