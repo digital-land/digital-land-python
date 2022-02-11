@@ -8,19 +8,19 @@ class ConcatFieldPhase(Phase):
     concatenate fields
     """
 
-    def __init__(self, concats={}):
+    def __init__(self, concats={}, log=None):
         self.concats = concats
 
     def process(self, stream):
         for block in stream:
             row = block["row"]
-            o = {}
+
             for fieldname, cat in self.concats.items():
-                o[fieldname] = cat["separator"].join(
+                row[fieldname] = cat["separator"].join(
                     filter(
                         None,
                         itertools.chain(
-                            [o.get(fieldname, None)],
+                            [row.get(fieldname, None)],
                             [
                                 row[h]
                                 for h in cat["fields"]
@@ -30,5 +30,4 @@ class ConcatFieldPhase(Phase):
                     )
                 )
 
-            block["row"] = o
             yield block

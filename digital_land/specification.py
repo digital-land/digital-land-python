@@ -203,15 +203,6 @@ class Specification:
             return field
         return f["parent-field"]
 
-    def key_field(self, schema):
-        if schema not in self.schema:
-            return ""
-        if self.schema[schema].get("key-field", ""):
-            return self.schema[schema]["key-field"]
-        if schema in self.schema_field[schema]:
-            return schema
-        return ""
-
     def dataset_prefix(self, dataset):
         return self.dataset[dataset].get("prefix", "") or dataset
 

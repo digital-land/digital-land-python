@@ -13,4 +13,5 @@ class ParsePhase(Phase):
 
         for block in stream:
             block["row"] = dict(zip(fieldnames, block["line"]))
+            del block["line"]
             yield block

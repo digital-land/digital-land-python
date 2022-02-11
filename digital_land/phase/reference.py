@@ -1,57 +1,56 @@
 from .phase import Phase
 
 
-class ReferencePhase(Phase):
+def split_curie(value):
+    s = value.split(":", 2)
+    if len(s) == 2:
+        return s
+    return ["", value]
+
+
+class EntityReferencePhase(Phase):
     """
-    ensure an entry has the prefix and reference CURIE fields
+    ensure an entry has the prefix and reference fields
     """
 
-    def __init__(self, specification):
+    def __init__(self, dataset=None, specification=None):
+        self.dataset = dataset
         self.specification = specification
+        if specification:
+            self.prefix = specification.dataset_prefix(self.dataset)
+        else:
+            self.prefix = dataset
 
-    @staticmethod
-    def split_curie(value):
-        s = value.split(":", 2)
-        if len(s) == 2:
-            return s
-        return ["", value]
+    def process_row(self, row):
+        reference = row.get("reference", "") or row.get(self.dataset, "")
+        reference_prefix, reference = split_curie(reference)
 
-    def process(self, reader):
-        for stream_data in reader:
-            row = stream_data["row"]
-            dataset = stream_data["dataset"]
-            prefix = row.get("prefix", "")
-            reference = row.get("reference", "")
+        prefix = row.get("prefix", "") or reference_prefix or self.prefix
+        return prefix, reference
 
-            if not prefix or not reference:
-                self.process_row(row, dataset)
-
-            yield stream_data
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
+            (row["prefix"], row["reference"]) = self.process_row(row)
+            yield block
 
 
-class EntityReferencePhase(ReferencePhase):
-    def process_row(self, row, dataset):
+class FactReferencePhase(EntityReferencePhase):
+    """
+    ensure a fact which is a reference has a prefix and reference field
+    """
 
+    def process_row(self, row):
+
+        prefix = row.get("prefix", "")
         reference = row.get("reference", "")
 
-        if not reference:
-            reference = row.get(self.specification.key_field(dataset), "")
-
-        reference_prefix, reference = self.split_curie(reference)
-        row["prefix"] = (
-            row.get("prefix", "")
-            or reference_prefix
-            or self.specification.dataset_prefix(dataset)
-        )
-        row["reference"] = reference
-
-
-class FactReferencePhase(ReferencePhase):
-    def process_row(self, row, dataset):
-        field = row["field"]
-        typology = self.specification.field[field]["typology"]
+        if prefix and reference:
+            return prefix, reference
 
         # TBD: infer if a field is a reference from the specification
+        field = row["field"]
+        typology = self.specification.field_typology(field)
         if typology in [
             "category",
             "document",
@@ -60,10 +59,8 @@ class FactReferencePhase(ReferencePhase):
             "policy",
             "legal-instrument",
         ]:
-            value_prefix, value_reference = self.split_curie(row["value"])
-            row["prefix"] = (
-                row.get("prefix", "")
-                or value_prefix
-                or self.specification.field_prefix(field)
-            )
-            row["reference"] = row.get("reference", "") or value_reference
+            value_prefix, value_reference = split_curie(row["value"])
+            prefix = prefix or value_prefix or self.specification.field_prefix(field)
+            reference = reference or value_reference
+
+        return prefix, reference

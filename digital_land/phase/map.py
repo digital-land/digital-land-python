@@ -15,9 +15,10 @@ class MapPhase(Phase):
     rename field names using the provided column map
     """
 
-    def __init__(self, fieldnames, columns={}):
+    def __init__(self, fieldnames, columns={}, log=None):
         self.columns = columns
         self.normalised_fieldnames = {normalise(f): f for f in fieldnames}
+        self.log = log
 
     def headers(self, fieldnames):
         headers = {}
@@ -69,6 +70,6 @@ class MapPhase(Phase):
                 if header not in o:
                     o[header] = ""
 
-            block["fieldnames"] = headers
             block["row"] = o
+
             yield block

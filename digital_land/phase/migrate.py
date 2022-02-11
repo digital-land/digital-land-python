@@ -10,32 +10,15 @@ class MigratePhase(Phase):
         self.migrations = migrations
         self.fields = fields
 
-        # map of OrganisationURI to organisation CURIE
-        self.organisation_curie = {}
-        for org in organisation.values():
-            if org.get("opendatacommunities", None):
-                self.organisation_curie[org["opendatacommunities"]] = org[
-                    "organisation"
-                ]
-
     def process(self, stream):
         for block in stream:
             row = block["row"]
             o = {}
-            row["resource"] = block["resource"]
-
-            # translate OrganisationURI into an organisation CURIE
-            if "OrganisationURI" in row:
-                row["OrganisationURI"] = self.organisation_curie.get(
-                    row["OrganisationURI"], ""
-                )
 
             for field in self.fields:
-                if field in row and row[field]:
-                    o[field] = row[field]
-                elif field in self.migrations and self.migrations[field] in row:
-                    o[field] = row[self.migrations[field]]
+                o[field] = row.get(self.migrations.get(field, ""), row.get(field, ""))
 
+            # TBD: move to separate point phase
             if set(["GeoX", "GeoY"]).issubset(row.keys()) and "point" in self.fields:
                 if row["GeoX"] and row["GeoY"]:
                     o["point"] = f"POINT({row['GeoX']} {row['GeoY']})"

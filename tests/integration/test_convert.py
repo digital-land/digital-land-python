@@ -1,3 +1,4 @@
+#!/usr/bin/env -S py.test -svv
 import csv
 import difflib
 import filecmp

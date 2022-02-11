@@ -176,7 +176,8 @@ def dataset_dump_cmd(input_path, output_path):
 @issue_dir
 @organisation_path
 @click.option("--save-harmonised", is_flag=True)
-def pipeline_cmd(
+@column_field_dir
+def pipeline_cmd_API(
     input_path,
     output_path,
     collection_dir,

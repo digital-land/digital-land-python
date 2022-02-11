@@ -1,3 +1,5 @@
+#!/usr/bin/env -S py.test -svv
+
 from digital_land.phase.migrate import MigratePhase
 
 from .conftest import FakeDictReader
@@ -34,6 +36,6 @@ def test_migrate_point():
 
     output = list(t.process(reader))
 
-    assert output == [
-        {"resource": "some-resource", "row": {"point": "POINT(-2.218153 50.747808)"}}
-    ]
+    assert output[0]["row"] == {
+        "point": "POINT(-2.218153 50.747808)",
+    }

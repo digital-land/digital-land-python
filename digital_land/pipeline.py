@@ -57,7 +57,8 @@ class Pipeline:
 
         # filter out rows not relevant to this pipeline
         for row in reader:
-            if row["pipeline"] and row["pipeline"] != self.name:
+            row["dataset"] = row.get("dataset", "") or row["pipeline"]
+            if row["dataset"] and row["dataset"] != self.name:
                 continue
             yield row
 
@@ -71,7 +72,6 @@ class Pipeline:
             resource_column = self.column.setdefault(row["resource"], {})
 
             # migrate column.csv
-            row["dataset"] = row.get("dataset", "") or row["pipeline"]
             row["column"] = row.get("column", "") or row["pattern"]
             row["field"] = row.get("field", "") or row["value"]
 
@@ -113,6 +113,7 @@ class Pipeline:
             }
 
     def load_migrate(self):
+        # TBD: remove this table, should come from specification replacement-field
         reader = self._row_reader("transform.csv")
         for row in reader:
             if row["replacement-field"] == "":

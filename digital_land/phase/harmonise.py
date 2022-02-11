@@ -99,17 +99,17 @@ class HarmonisePhase(Phase):
         if self.plugin_manager:
             self.plugin_manager.hook.set_resource_defaults_post(resource=resource)
 
-    def process(self, reader):
+    def process(self, stream):
         last_resource = None
 
-        for stream_data in reader:
-            row = stream_data["row"]
-            resource = stream_data["resource"]
+        for block in stream:
+            row = block["row"]
+            resource = block["resource"]
 
             if self.issues:
                 self.issues.dataset = self.dataset
                 self.issues.resource = resource
-                self.issues.line_number = stream_data["line-number"]
+                self.issues.line_number = block["line-number"]
 
             if not last_resource or last_resource != resource:
                 self.set_resource_defaults(resource)
@@ -167,5 +167,5 @@ class HarmonisePhase(Phase):
 
             last_resource = resource
 
-            stream_data["row"] = o
-            yield stream_data
+            block["row"] = o
+            yield block

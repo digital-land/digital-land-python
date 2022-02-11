@@ -156,12 +156,3 @@ def test_field_parent():
 def test_typology():
     specification = Specification("tests/data/specification")
     assert specification.typology["category"]["name"] == "Category"
-
-
-def test_key_fields():
-    specification = Specification("specification")
-    assert specification.key_field("brownfield-land") == "site"
-    assert specification.key_field("resource") == "resource"
-    assert specification.key_field("endpoint") == "endpoint"
-    assert specification.key_field("green-belt") == "green-belt"
-    assert specification.key_field("unknown") == ""

@@ -8,7 +8,6 @@ class ReducePhase(Phase):
     """
 
     def __init__(self, fields):
-        # self.fields = list(set(fields).union(set(("entity"))))
         self.fields = list(set(fields + ["entity", "organisation"]))
         logging.debug(f"reducing fields to {self.fields}")
 

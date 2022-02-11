@@ -13,6 +13,7 @@ from .organisation import Organisation
 from .package.dataset import DatasetPackage
 from .phase.concat import ConcatFieldPhase
 from .phase.convert import ConvertPhase
+from .phase.dump import DumpPhase
 from .phase.factor import FactorPhase
 from .phase.filter import FilterPhase
 from .phase.harmonise import HarmonisePhase
@@ -104,7 +105,7 @@ class DigitalLandApi(object):
     def convert_cmd(self, input_path, output_path):
         if not output_path:
             output_path = self.default_output_path("converted", input_path)
-        run_pipeline(ConvertPhase(input_path), SavePhase(output_path))
+        run_pipeline(ConvertPhase(input_path), DumpPhase(output_path))
 
     def pipeline_cmd(
         self,
@@ -135,7 +136,7 @@ class DigitalLandApi(object):
         run_pipeline(
             ConvertPhase(path=input_path),
             NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
-            ParsePhase(dataset=dataset),
+            ParsePhase(),
             MapPhase(
                 fieldnames=intermediate_fieldnames,
                 columns=self.pipeline.columns(resource),
@@ -143,7 +144,7 @@ class DigitalLandApi(object):
             ),
             ConcatFieldPhase(
                 concats=self.pipeline.concatenations(resource),
-                column_field_log=column_field_log,
+                log=column_field_log,
             ),
             FilterPhase(self.pipeline.filters(resource)),
             # TBD: break down this complicated phase
@@ -158,7 +159,7 @@ class DigitalLandApi(object):
             ),
             SavePhase(
                 self.default_output_path("harmonised", input_path),
-                intermediate_fieldnames,
+                fieldnames=intermediate_fieldnames,
                 enabled=save_harmonised,
             ),
             MigratePhase(
@@ -166,12 +167,15 @@ class DigitalLandApi(object):
                 self.pipeline.migrations(),
             ),
             ReducePhase(self.specification.current_fieldnames(schema)),
-            EntityReferencePhase(self.specification),
+            EntityReferencePhase(
+                dataset=dataset,
+                specification=self.specification,
+            ),
             EntityLookupPhase(lookups),
             EntityPrunePhase(issue_log),
             PivotPhase(),
             FactorPhase(),
-            FactReferencePhase(self.specification),
+            FactReferencePhase(dataset=dataset, specification=self.specification),
             FactLookupPhase(lookups, issue_log),
             FactPrunePhase(),
             SavePhase(
