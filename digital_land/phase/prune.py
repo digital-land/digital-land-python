@@ -22,7 +22,7 @@ class EntityPrunePhase(Phase):
 
                 if self.issues:
                     self.issues.log_issue(
-                        "entity", "missing lookup", curie, line_number=line_number
+                        "entity", "unknown entity", curie, line_number=line_number
                     )
 
                 logging.info(

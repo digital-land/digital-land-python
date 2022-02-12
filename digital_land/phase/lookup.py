@@ -11,11 +11,11 @@ def normalise(value):
     return re.sub(normalise_pattern, "", value.lower())
 
 
-def key(line_number="", organisation="", prefix="", reference=""):
+def key(line_number="", prefix="", reference=""):
+    line_number = str(line_number)
     prefix = normalise(prefix)
     reference = normalise(reference)
-    line_number = str(line_number)
-    return ",".join([line_number, organisation, prefix, reference])
+    return ",".join([line_number, prefix, reference])
 
 
 class LookupPhase(Phase):
@@ -23,7 +23,7 @@ class LookupPhase(Phase):
     lookup entity numbers by CURIE
     """
 
-    def __init__(self, lookups, field="", entity_field=""):
+    def __init__(self, lookups={}):
         self.lookups = lookups
 
     def lookup(self, **kwargs):
@@ -35,17 +35,14 @@ class LookupPhase(Phase):
             line_number = block["line-number"]
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
-            organisation = row.get("organisation", "")
 
             if prefix:
                 if not row.get(self.entity_field, ""):
                     row[self.entity_field] = (
+                        # by the resource and line number
                         self.lookup(line_number=line_number, prefix=prefix)
-                        or self.lookup(
-                            organisation=organisation,
-                            prefix=prefix,
-                            reference=reference,
-                        )
+
+                        # or by the CURIE
                         or self.lookup(prefix=prefix, reference=reference)
                     )
 

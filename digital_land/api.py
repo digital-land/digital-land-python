@@ -166,7 +166,7 @@ class DigitalLandApi(object):
                 self.specification.schema_field[schema],
                 self.pipeline.migrations(),
             ),
-            ReducePhase(self.specification.current_fieldnames(schema)),
+            ReducePhase(fields=self.specification.current_fieldnames(schema)),
             EntityReferencePhase(
                 dataset=dataset,
                 specification=self.specification,
@@ -176,7 +176,7 @@ class DigitalLandApi(object):
             PivotPhase(),
             FactorPhase(),
             FactReferencePhase(dataset=dataset, specification=self.specification),
-            FactLookupPhase(lookups, issue_log),
+            FactLookupPhase(lookups),
             FactPrunePhase(),
             SavePhase(
                 output_path,
