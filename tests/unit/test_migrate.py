@@ -7,24 +7,46 @@ from .conftest import FakeDictReader
 
 def test_migrate_passthrough():
     fields = ["field-one"]
-    migrateations = {"field-one": "FieldOne"}
-    t = MigratePhase(fields, migrateations)
+    migrations = {"field-one": "FieldOne"}
+    t = MigratePhase(fields, migrations)
     reader = FakeDictReader([{"field-one": "123"}], "some-resource")
 
     output = list(t.process(reader))
 
-    assert output == [{"resource": "some-resource", "row": {"field-one": "123"}}]
+    assert output == [
+        {
+            "resource": "some-resource",
+            "row": {
+                "field-one": "123",
+                "entity": "",
+                "prefix": "",
+                "reference": "",
+                "organisation": "",
+            },
+        }
+    ]
 
 
 def test_migrate_migrateation():
     fields = ["field-one"]
-    migrateations = {"field-one": "FieldOne"}
-    t = MigratePhase(fields, migrateations)
+    migrations = {"field-one": "FieldOne"}
+    t = MigratePhase(fields, migrations)
     reader = FakeDictReader([{"FieldOne": "123"}], "some-resource")
 
     output = list(t.process(reader))
 
-    assert output == [{"resource": "some-resource", "row": {"field-one": "123"}}]
+    assert output == [
+        {
+            "resource": "some-resource",
+            "row": {
+                "field-one": "123",
+                "entity": "",
+                "prefix": "",
+                "reference": "",
+                "organisation": "",
+            },
+        }
+    ]
 
 
 def test_migrate_point():
@@ -38,4 +60,8 @@ def test_migrate_point():
 
     assert output[0]["row"] == {
         "point": "POINT(-2.218153 50.747808)",
+        "entity": "",
+        "prefix": "",
+        "reference": "",
+        "organisation": "",
     }

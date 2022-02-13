@@ -8,7 +8,9 @@ class ReducePhase(Phase):
     """
 
     def __init__(self, fields):
-        self.fields = list(set(fields + ["entity", "organisation"]))
+        self.fields = list(
+            set(fields + ["entity", "organisation", "prefix", "reference"])
+        )
         logging.debug(f"reducing fields to {self.fields}")
 
     def process(self, stream):

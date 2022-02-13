@@ -8,7 +8,9 @@ class MigratePhase(Phase):
 
     def __init__(self, fields, migrations, organisation={}):
         self.migrations = migrations
-        self.fields = list(set(fields + ["entity", "organisation", "prefix", "reference"]))
+        self.fields = list(
+            set(fields + ["entity", "organisation", "prefix", "reference"])
+        )
 
     def process(self, stream):
         for block in stream:
