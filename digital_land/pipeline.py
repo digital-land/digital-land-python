@@ -151,6 +151,15 @@ class Pipeline:
                 )
             ] = row["entity"]
 
+            organisation = row.get("organisation", "")
+            resource_lookup[
+                lookup_key(
+                    prefix=prefix,
+                    reference=reference,
+                    organisation=organisation,
+                )
+            ] = row["entity"]
+
     def filters(self, resource=""):
         general_filters = self.filter.get("", {})
         if not resource:

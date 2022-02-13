@@ -11,11 +11,12 @@ def normalise(value):
     return re.sub(normalise_pattern, "", value.lower())
 
 
-def key(entry_number="", prefix="", reference=""):
+def key(entry_number="", prefix="", reference="", organisation=""):
     entry_number = str(entry_number)
     prefix = normalise(prefix)
     reference = normalise(reference)
-    return ",".join([entry_number, prefix, reference])
+    organisation = normalise(organisation)
+    return ",".join([entry_number, prefix, reference, organisation])
 
 
 class LookupPhase(Phase):
@@ -35,12 +36,20 @@ class LookupPhase(Phase):
             entry_number = block["entry-number"]
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
+            organisation = row.get("organisation", "")
 
             if prefix:
                 if not row.get(self.entity_field, ""):
                     row[self.entity_field] = (
                         # by the resource and row number
                         self.lookup(entry_number=entry_number)
+                        # TBD: fixup prefixes so this isn't needed ..
+                        # or by the organisation and the reference
+                        or self.lookup(
+                            prefix=prefix,
+                            organisation=organisation,
+                            reference=reference,
+                        )
                         # or by the CURIE
                         or self.lookup(prefix=prefix, reference=reference)
                     )
