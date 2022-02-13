@@ -8,6 +8,7 @@ class Log:
         self.rows = []
         self.fieldname = "unknown"
         self.line_number = 0
+        self.entry_number = 0
 
     def add(self, *args, **kwargs):
         pass
@@ -25,6 +26,7 @@ class IssueLog(Log):
         "dataset",
         "resource",
         "line-number",
+        "entry-number",
         "field",
         "issue-type",
         "value",
@@ -33,7 +35,7 @@ class IssueLog(Log):
     def log(self, issue_type, value):
         self.log_issue(self.fieldname, issue_type, value)
 
-    def log_issue(self, fieldname, issue_type, value, line_number=0):
+    def log_issue(self, fieldname, issue_type, value, line_number=0, entry_number=0):
         self.rows.append(
             {
                 "dataset": self.dataset,
@@ -42,6 +44,7 @@ class IssueLog(Log):
                 "issue-type": issue_type,
                 "value": value,
                 "line-number": line_number or self.line_number,
+                "entry-number": entry_number or self.entry_number,
             }
         )
 

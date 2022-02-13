@@ -22,6 +22,7 @@ from .phase.map import MapPhase
 from .phase.normalise import NormalisePhase
 from .phase.parse import ParsePhase
 from .phase.pivot import PivotPhase
+from .phase.prefix import EntityPrefixPhase
 from .phase.prune import EntityPrunePhase, FactPrunePhase
 from .phase.reduce import ReducePhase
 from .phase.reference import EntityReferencePhase, FactReferencePhase
@@ -171,6 +172,7 @@ class DigitalLandApi(object):
                 dataset=dataset,
                 specification=self.specification,
             ),
+            EntityPrefixPhase(dataset=dataset),
             EntityLookupPhase(lookups),
             EntityPrunePhase(issue_log),
             PivotPhase(),

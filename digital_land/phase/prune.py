@@ -19,6 +19,7 @@ class EntityPrunePhase(Phase):
                 reference = row.get("reference", "")
                 curie = f"{prefix}:{reference}"
                 line_number = block["line-number"]
+                entry_number = block["entry-number"]
 
                 if self.issues:
                     self.issues.log_issue(
@@ -26,7 +27,7 @@ class EntityPrunePhase(Phase):
                     )
 
                 logging.info(
-                    f"{resource} line {line_number}: missing entity for {curie}"
+                    f"{resource} row {entry_number}: missing entity for {curie}"
                 )
                 logging.debug(block)
                 continue

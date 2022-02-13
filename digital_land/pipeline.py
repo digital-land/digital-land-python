@@ -130,17 +130,21 @@ class Pipeline:
     def load_lookup(self):
         reader = self._reader("lookup.csv")
         for row in reader:
-            resource_lookup = self.lookup.setdefault(row.get("resource",""), {})
 
             # migrate old lookup.csv files
-            line_number = row.get("line-number", "") or row.get("row-number", "")
-            prefix = row.get("prefix", "") or row.get("dataset", "") or row.get("pipeline", "")
+            entry_number = row.get("entry-number", "")
+            prefix = (
+                row.get("prefix", "")
+                or row.get("dataset", "")
+                or row.get("pipeline", "")
+            )
             reference = row.get("reference", "") or row.get("value", "")
 
             # composite key, ordered by specificity
+            resource_lookup = self.lookup.setdefault(row.get("resource", ""), {})
             resource_lookup[
                 lookup_key(
-                    line_number=line_number,
+                    entry_number=entry_number,
                     prefix=prefix,
                     reference=reference,
                 )

@@ -3,7 +3,7 @@ import re
 from .phase import Phase
 
 
-# TBD: use same method as pipeline normalise
+# TBD: use same method as piperow normalise
 normalise_pattern = re.compile(r"[^a-z0-9-]")
 
 
@@ -11,11 +11,11 @@ def normalise(value):
     return re.sub(normalise_pattern, "", value.lower())
 
 
-def key(line_number="", prefix="", reference=""):
-    line_number = str(line_number)
+def key(entry_number="", prefix="", reference=""):
+    entry_number = str(entry_number)
     prefix = normalise(prefix)
     reference = normalise(reference)
-    return ",".join([line_number, prefix, reference])
+    return ",".join([entry_number, prefix, reference])
 
 
 class LookupPhase(Phase):
@@ -32,16 +32,15 @@ class LookupPhase(Phase):
     def process(self, stream):
         for block in stream:
             row = block["row"]
-            line_number = block["line-number"]
+            entry_number = block["entry-number"]
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
 
             if prefix:
                 if not row.get(self.entity_field, ""):
                     row[self.entity_field] = (
-                        # by the resource and line number
-                        self.lookup(line_number=line_number, prefix=prefix)
-
+                        # by the resource and row number
+                        self.lookup(entry_number=entry_number)
                         # or by the CURIE
                         or self.lookup(prefix=prefix, reference=reference)
                     )

@@ -110,6 +110,7 @@ class HarmonisePhase(Phase):
                 self.issues.dataset = self.dataset
                 self.issues.resource = resource
                 self.issues.line_number = block["line-number"]
+                self.issues.entry_number = block["entry-number"]
 
             if not last_resource or last_resource != resource:
                 self.set_resource_defaults(resource)

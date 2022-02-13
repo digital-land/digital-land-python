@@ -23,6 +23,7 @@ class PivotPhase(Phase):
                     # entry
                     "resource": block["resource"],
                     "line-number": block["line-number"],
+                    "entry-number": block["entry-number"],
                     "entry-date": row["entry-date"],
                 }
 

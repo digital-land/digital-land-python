@@ -11,7 +11,7 @@ fact-resource,end-date
 fact-resource,fact
 fact-resource,entry-date
 fact-resource,resource
-fact-resource,line-number
+fact-resource,entry-number
 fact-resource,start-date
 fact,end-date
 fact,entity
