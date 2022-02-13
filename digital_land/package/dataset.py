@@ -80,7 +80,7 @@ class DatasetPackage(SqlitePackage):
                 del row["json"]
 
         # add geometry
-        # defaulting point from the shape centroid should probaby be in the pipeline
+        # defaulting point from the shape centroid should be in the pipeline
         shape = row.get("geometry", "")
         point = row.get("point", "")
         wkt = shape or point
@@ -163,7 +163,7 @@ class DatasetPackage(SqlitePackage):
 
         for row in csv.DictReader(open(path, newline="")):
             row["resource"] = resource
-            row["pipeline"] = self.dataset
+            row["dataset"] = self.dataset
             self.insert("issue", fields, row)
 
     def load_transformed(self, path):

@@ -1,6 +1,6 @@
 # Digital Land Pipeline
 
-[![Build](https://github.com/digital-land/pipeline/workflows/Continuous%20Integration/badge.svg)](https://github.com/digital-land/pipeline/actions?query=workflow%3A%22Continuous+Integration%22)
+[![Continuous Integration](https://github.com/digital-land/digital-land-python/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/digital-land/digital-land-python/actions/workflows/continuous-integration.yml)
 [![codecov](https://codecov.io/gh/digital-land/digital-land-python/branch/main/graph/badge.svg?token=IH2ETPF2C1)](https://codecov.io/gh/digital-land/digital-land-python)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/digital-land/digital-land-python/blob/main/LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://black.readthedocs.io/en/stable/)
@@ -20,7 +20,7 @@
 
     Options:
       -d, --debug / --no-debug
-      -n, --pipeline-name TEXT
+      -n, --dataset TEXT
       -p, --pipeline-dir PATH
       -s, --specification-dir PATH
       --help                        Show this message and exit.
@@ -35,16 +35,9 @@
       collection-save-csv            save collection as CSV package
       convert                        convert a resource to CSV
       dataset-create                 create a dataset from processed resources
-      dataset-entries                create entries from dataset facts
+      dataset-entries                dump dataset entries as csv
       fetch                          fetch resource from a single endpoint
-      filter                         remove unnecessary rows
-      harmonise                      harmonise field values according to its
-                                     datatype
-      map                            map column names to dataset fields
-      normalise                      remove whitespace and empty rows
       pipeline                       process a resource
-      transform                      migrate field names to the latest
-                                     specification
 
 ## Development environment
 

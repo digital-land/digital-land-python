@@ -16,16 +16,16 @@ class HarmonisePhase(Phase):
     def __init__(
         self,
         specification=None,
-        pipeline=None,
+        dataset=None,
         issues=None,
         collection={},
         organisation_uri=None,
         patches={},
+        default_fieldnames={},
         plugin_manager=None,
     ):
         self.specification = specification
-        self.pipeline = pipeline
-        self.dataset = pipeline.dataset
+        self.dataset = dataset
         self.default_values = {}
         self.default_fieldnames = {}
         self.issues = issues
@@ -33,6 +33,7 @@ class HarmonisePhase(Phase):
         self.organisation_uri = organisation_uri
         self.patch = patches
         self.plugin_manager = plugin_manager
+        self.default_fieldnames = default_fieldnames
 
         if plugin_manager:
             plugin_manager.register(self)
@@ -87,7 +88,6 @@ class HarmonisePhase(Phase):
         if not resource:
             return
 
-        self.default_fieldnames = self.pipeline.default_fieldnames(resource)
         resource_entry = self.collection.resource.records[resource][0]
         resource_organisations = self.collection.resource_organisations(resource)
 
@@ -157,7 +157,7 @@ class HarmonisePhase(Phase):
             for typology in ["organisation", "geography", "document"]:
                 value = o.get(typology, "")
                 if value and ":" not in value:
-                    o[typology] = "%s:%s" % (self.pipeline.name, value)
+                    o[typology] = "%s:%s" % (self.dataset, value)
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):

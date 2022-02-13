@@ -21,8 +21,8 @@ def input_output_path(f):
     return functools.reduce(lambda x, arg: arg(x), reversed(arguments), f)
 
 
-def pipeline_name(f):
-    return click.option("--pipeline-name", "-n", type=click.STRING)(f)
+def dataset(f):
+    return click.option("--dataset", "-n", type=click.STRING)(f)
 
 
 def pipeline_dir(f):
@@ -90,12 +90,12 @@ def organisation_path(f):
 
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
-@pipeline_name
+@dataset
 @pipeline_dir
 @specification_dir
-def cli(debug, pipeline_name, pipeline_dir, specification_dir):
+def cli(debug, dataset, pipeline_dir, specification_dir):
     global API
-    API = DigitalLandApi(debug, pipeline_name, pipeline_dir, specification_dir)
+    API = DigitalLandApi(debug, dataset, pipeline_dir, specification_dir)
 
 
 @cli.command("fetch")

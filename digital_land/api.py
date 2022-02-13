@@ -47,22 +47,22 @@ class DigitalLandApi(object):
         return json.dumps(
             {
                 "debug": self.debug,
-                "pipeline_name": self.pipeline_name,
+                "dataset": self.dataset,
                 "pipeline_dir": self.pipeline_dir,
                 "specification_dir": self.specification_dir,
             }
         )
 
-    def __init__(self, debug, pipeline_name, pipeline_dir, specification_dir):
+    def __init__(self, debug, dataset, pipeline_dir, specification_dir):
         # Save init vars for easy serialization/deserialization
         self.debug = debug
-        self.dataset = self.pipeline_name = pipeline_name
+        self.dataset = dataset
         self.pipeline_dir = pipeline_dir
         self.specification_dir = specification_dir
 
         level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
-        self.pipeline = Pipeline(pipeline_dir, pipeline_name)
+        self.pipeline = Pipeline(pipeline_dir, dataset)
         self.specification = Specification(specification_dir)
 
     def fetch_cmd(self, url):
@@ -134,6 +134,7 @@ class DigitalLandApi(object):
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
         plugin_manager = get_plugin_manager()
         patches = self.pipeline.patches(resource)
+        default_fieldnames = self.pipeline.default_fieldnames(resource)
         lookups = self.pipeline.lookups(resource)
 
         issue_log = IssueLog(dataset=dataset, resource=resource)
@@ -156,11 +157,12 @@ class DigitalLandApi(object):
             # TBD: break down this complicated phase
             HarmonisePhase(
                 specification=self.specification,
-                pipeline=self.pipeline,
+                dataset=dataset,
                 issues=issue_log,
                 collection=collection,
                 organisation_uri=organisation.organisation_uri,
                 patches=patches,
+                default_fieldnames=default_fieldnames,
                 plugin_manager=plugin_manager,
             ),
             SavePhase(
