@@ -1,6 +1,5 @@
 import csv
 import os
-import re
 from datetime import datetime
 
 from .datatype.address import AddressDataType
@@ -149,11 +148,6 @@ class Specification:
         return set(self.current_fieldnames("fact")).union(
             self.current_fieldnames("fact-resource")
         )
-
-    normalise_re = re.compile(r"[^a-z0-9]")
-
-    def normalise(self, name):
-        return re.sub(self.normalise_re, "", name.lower())
 
     def field_type(self, fieldname):
         datatype = self.field[fieldname]["datatype"]
