@@ -5,7 +5,6 @@ from datetime import datetime
 from pathlib import Path
 
 from .makerules import pipeline_makerules
-from .pipeline_resource import get_pipeline_resource_mapping_for_collection
 from .register import hash_value
 from .schema import Schema
 from .store.csv import CSVStore
@@ -195,5 +194,28 @@ class Collection:
     def pipeline_makerules(self):
         pipeline_makerules(self)
 
-    def pipeline_resource_mapping(self):
-        return get_pipeline_resource_mapping_for_collection(self)
+    def dataset_resources(self):
+        "a map of resources needed by each dataset in a collection"
+        today = datetime.utcnow().isoformat()
+        endpoint_dataset = {}
+        dataset_resource = {}
+
+        for entry in self.source.entries:
+            if entry["end-date"] and entry["end-date"] > today:
+                continue
+
+            endpoint_dataset.setdefault(entry["endpoint"], set())
+            datasets = entry.get("datasets", "") or entry.get("pipelines", "")
+            for dataset in datasets.split(";"):
+                if dataset:
+                    endpoint_dataset[entry["endpoint"]].add(dataset)
+
+        for entry in self.resource.entries:
+            if entry["end-date"] and entry["end-date"] > today:
+                continue
+
+            for endpoint in entry["endpoints"].split(";"):
+                for dataset in endpoint_dataset[endpoint]:
+                    dataset_resource.setdefault(dataset, set())
+                    dataset_resource[dataset].add(entry["resource"])
+        return dataset_resource

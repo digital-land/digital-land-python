@@ -123,23 +123,23 @@ def collect_cmd(endpoint_path, collection_dir):
 #
 @cli.command("collection-list-resources", short_help="list resources for a pipeline")
 @collection_dir
-def pipeline_collection_list_resources_cmd(collection_dir):
-    return API.pipeline_collection_list_resources_cmd(collection_dir)
+def collection_list_resources_cmd(collection_dir):
+    return API.collection_list_resources_cmd(collection_dir)
 
 
 @cli.command(
     "collection-pipeline-makerules",
-    short_help="generate pipeline makerules for a collection",
+    short_help="generate makerules for processing a collection",
 )
 @collection_dir
-def pipeline_collection_pipeline_makerules_cmd(collection_dir):
-    return API.pipeline_collection_pipeline_makerules_cmd(collection_dir)
+def collection_pipeline_makerules_cmd(collection_dir):
+    return API.collection_pipeline_makerules_cmd(collection_dir)
 
 
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
 @collection_dir
-def pipeline_collection_save_csv_cmd(collection_dir):
-    return API.pipeline_collection_save_csv_cmd(collection_dir)
+def collection_save_csv_cmd(collection_dir):
+    return API.collection_save_csv_cmd(collection_dir)
 
 
 #

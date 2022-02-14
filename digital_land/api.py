@@ -79,23 +79,18 @@ class DigitalLandApi(object):
     #  collection commands
     #  TBD: make sub commands
     #
-    def pipeline_collection_list_resources_cmd(self, collection_dir):
+    def collection_list_resources_cmd(self, collection_dir):
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
         for resource in sorted(collection.resource.records):
             print(resource_path(resource, directory=collection_dir))
 
-    def pipeline_collection_pipeline_makerules_cmd(self, collection_dir):
+    def collection_pipeline_makerules_cmd(self, collection_dir):
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
         collection.pipeline_makerules()
 
-    def pipeline_resource_mapping_for_collection(self, collection_dir):
-        collection = Collection(name=None, directory=collection_dir)
-        collection.load()
-        return collection.pipeline_resource_mapping()
-
-    def pipeline_collection_save_csv_cmd(self, collection_dir):
+    def collection_save_csv_cmd(self, collection_dir):
         try:
             os.remove(Path(collection_dir) / "log.csv")
             os.remove(Path(collection_dir) / "resource.csv")
@@ -104,6 +99,13 @@ class DigitalLandApi(object):
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
         collection.save_csv()
+
+    #
+    #  Airflow spike entry point
+    def pipeline_resource_mapping_for_collection(self, collection_dir):
+        collection = Collection(name=None, directory=collection_dir)
+        collection.load()
+        return collection.dataset_resource_map()
 
     #
     #  pipeline commands
