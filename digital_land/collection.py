@@ -180,12 +180,18 @@ class Collection:
         except (FileNotFoundError):
             self.load_log_items()
 
+        try:
+            self.old_resource = CSVStore(Schema("old-resource"))
+            self.old_resource.load(directory=directory)
+        except (FileNotFoundError):
+            pass
+
     def resource_endpoints(self, resource):
-        "return the list of endpoints a resource was collected from"
+        "the list of endpoints a resource was collected from"
         return self.resource.records[resource][-1]["endpoints"].split(";")
 
     def resource_organisations(self, resource):
-        "return the list of organisations for which a resource was collected"
+        "the list of organisations for which a resource was collected"
         return self.resource.records[resource][-1]["organisations"].split(";")
 
     def resource_path(self, resource):
@@ -194,11 +200,15 @@ class Collection:
     def pipeline_makerules(self):
         pipeline_makerules(self)
 
-    def dataset_resources(self):
+    def dataset_resource_map(self):
         "a map of resources needed by each dataset in a collection"
         today = datetime.utcnow().isoformat()
         endpoint_dataset = {}
         dataset_resource = {}
+        redirect = {}
+
+        for entry in self.old_resource.entries:
+            redirect[entry["old-resource"]] = entry["resource"]
 
         for entry in self.source.entries:
             if entry["end-date"] and entry["end-date"] > today:
@@ -216,6 +226,10 @@ class Collection:
 
             for endpoint in entry["endpoints"].split(";"):
                 for dataset in endpoint_dataset[endpoint]:
-                    dataset_resource.setdefault(dataset, set())
-                    dataset_resource[dataset].add(entry["resource"])
+                    # ignore or redirect a resource in the old-resource table
+                    resource = entry["resource"]
+                    resource = redirect.get(resource, resource)
+                    if resource:
+                        dataset_resource.setdefault(dataset, set())
+                        dataset_resource[dataset].add(resource)
         return dataset_resource

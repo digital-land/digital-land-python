@@ -55,6 +55,14 @@ schemas = {
         ],
         "key": "resource",
     },
+    "old-resource": {
+        "fields": [
+            "old-resource",
+            "resource",
+            "status",
+        ],
+        "key": "old-resource",
+    },
 }
 
 
