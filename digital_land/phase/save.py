@@ -7,19 +7,25 @@ from .phase import Phase
 def save(stream, path=None, fieldnames=None, f=None):
     logging.debug(f"save {path} {fieldnames} {f}")
 
-    writer = None
+    if fieldnames:
+        block = None
+    else:
+        try:
+            block = next(stream)
+            fieldnames = block["row"].keys()
+        except StopIteration:
+            return
+
+    if not f:
+        f = open(path, "w", newline="")
+    fieldnames = sorted(fieldnames)
+    writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+
+    if block:
+        writer.writerow(block["row"])
 
     for block in stream:
-        if not fieldnames:
-            fieldnames = block["row"].keys()
-
-        if not writer:
-            if not f:
-                f = open(path, "w", newline="")
-            fieldnames = sorted(fieldnames)
-            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-            writer.writeheader()
-
         writer.writerow(block["row"])
 
 
