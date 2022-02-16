@@ -206,11 +206,13 @@ class DigitalLandApi(object):
         if not output_path:
             print("missing output path")
             sys.exit(2)
-        package = DatasetPackage(
-            self.dataset, path=output_path, specification_dir=self.specification_dir
-        )
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
-        package = DatasetPackage(self.dataset, organisation)
+        package = DatasetPackage(
+            self.dataset,
+            organisation=organisation,
+            path=output_path,
+            specification_dir=self.specification_dir,
+        )
         package.create()
         for path in input_paths:
             package.load_transformed(path)
