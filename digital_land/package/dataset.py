@@ -59,10 +59,11 @@ class DatasetPackage(SqlitePackage):
         if not row.get("reference", ""):
             logging.error(f"entity {entity}: missing reference")
 
+        # hack until FactReference is reliable ..
         if not row.get("organisation-entity", ""):
             row["organisation-entity"] = self.organisations.get(
-                row.get("organisation", ""), ""
-            )["entity"]
+                row.get("organisation", ""), {}
+            ).get("entity", "")
 
         # extended fields as JSON properties
         if not row.get("json", ""):
