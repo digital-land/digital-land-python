@@ -105,6 +105,7 @@ class DigitalLandApi(object):
     def pipeline_resource_mapping_for_collection(self, collection_dir):
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
+        collection.load_log_items(directory=collection_dir)
         return collection.dataset_resource_map()
 
     #
@@ -205,6 +206,9 @@ class DigitalLandApi(object):
         if not output_path:
             print("missing output path")
             sys.exit(2)
+        package = DatasetPackage(
+            self.dataset, path=output_path, specification_dir=self.specification_dir
+        )
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
         package = DatasetPackage(self.dataset, organisation)
         package.create()
