@@ -105,6 +105,7 @@ class DigitalLandApi(object):
     def pipeline_resource_mapping_for_collection(self, collection_dir):
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
+        collection.load_log_items(directory=collection_dir)
         return collection.dataset_resource_map()
 
     #
