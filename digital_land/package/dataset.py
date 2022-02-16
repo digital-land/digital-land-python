@@ -38,10 +38,11 @@ indexes = {
 
 
 class DatasetPackage(SqlitePackage):
-    def __init__(self, dataset, **kwargs):
+    def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.entity_fields = self.specification.schema["entity"]["fields"]
+        self.organisations = organisation.organisation
 
     def migrate_entity(self, row):
         dataset = self.dataset
@@ -57,6 +58,12 @@ class DatasetPackage(SqlitePackage):
 
         if not row.get("reference", ""):
             logging.error(f"entity {entity}: missing reference")
+
+        # hack until FactReference is reliable ..
+        if not row.get("organisation-entity", ""):
+            row["organisation-entity"] = self.organisations.get(
+                row.get("organisation", ""), {}
+            ).get("entity", "")
 
         # extended fields as JSON properties
         if not row.get("json", ""):

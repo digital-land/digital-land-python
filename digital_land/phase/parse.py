@@ -8,7 +8,11 @@ class ParsePhase(Phase):
 
     def process(self, stream):
 
-        block = next(stream)
+        try:
+            block = next(stream)
+        except StopIteration:
+            return None
+
         fieldnames = block["line"]
         entry_number = 0
 
