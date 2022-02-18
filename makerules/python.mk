@@ -17,13 +17,13 @@ flake8:
 test:: test-unit test-integration test-e2e test-airflow
 
 test-unit:
-	[ -d tests/unit ] && python -m pytest tests/unit
+	[ -d tests/unit ] && python -m pytest tests/unit --junitxml=.junitxml/unit.xml
 
 test-integration:
-	[ -d tests/integration ] && python -m pytest tests/integration
+	[ -d tests/integration ] && python -m pytest tests/integration --junitxml=.junitxml/integration.xml
 
 test-e2e:
-	[ -d tests/e2e ] && python -m pytest tests/e2e
+	[ -d tests/e2e ] && python -m pytest tests/e2e --junitxml=.junitxml/e2e.xml
 
 test-airflow::
 	python -m pytest $(shell python -c "import inspect, os; from digital_land_airflow import tests; print(os.path.dirname(inspect.getfile(tests)))") -p digital_land_airflow.tests.fixtures.base
