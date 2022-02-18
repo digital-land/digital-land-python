@@ -1,4 +1,9 @@
 import csv
+from datetime import datetime
+
+
+def entry_date():
+    return datetime.utcnow().isoformat()[:19] + "Z"
 
 
 class Log:
@@ -13,8 +18,9 @@ class Log:
     def add(self, *args, **kwargs):
         pass
 
-    def save(self, path):
-        f = open(path, "w", newline="")
+    def save(self, path=None, f=None):
+        if not f:
+            f = open(path, "w", newline="")
         writer = csv.DictWriter(f, self.fieldnames)
         writer.writeheader()
         for row in self.rows:
@@ -50,11 +56,12 @@ class IssueLog(Log):
 
 
 class ColumnFieldLog(Log):
-    fieldnames = ["dataset", "resource", "column", "field"]
+    fieldnames = ["entry_date", "dataset", "resource", "column", "field"]
 
     def add(self, column, issue_type, fieldname):
         self.rows.append(
             {
+                "entry-date": entry_date(),
                 "dataset": self.dataset,
                 "resource": self.resource,
                 "column": column,
@@ -62,3 +69,42 @@ class ColumnFieldLog(Log):
                 "field": fieldname,
             }
         )
+
+
+class DatasetResourceLog(Log):
+    fieldnames = [
+        "entry-date",
+        "dataset",
+        "resource",
+        "entry-count",
+        "line-count",
+        "mime-type",
+        "internal-path",
+        "internal-mime-type",
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.entry_count = 0
+        self.line_count = 0
+        self.mime_type = ""
+        self.internal_path = ""
+        self.internal_mime_type = ""
+
+    def add(self):
+        self.rows.append(
+            {
+                "entry-date": entry_date(),
+                "dataset": self.dataset,
+                "resource": self.resource,
+                "entry-count": self.entry_count,
+                "line-count": self.line_count,
+                "mime-type": self.mime_type,
+                "internal-path": self.internal_path,
+                "internal-mime-type": self.internal_mime_type,
+            }
+        )
+
+    def save(self, *args, **kwargs):
+        self.add()
+        super().save(*args, **kwargs)

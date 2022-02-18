@@ -59,7 +59,15 @@ def column_field_dir(f):
     return click.option(
         "--column-field-dir",
         type=click.Path(exists=True),
-        default="var/column-field-dir/",
+        default="var/column-field/",
+    )(f)
+
+
+def dataset_resource_dir(f):
+    return click.option(
+        "--dataset-resource-dir",
+        type=click.Path(exists=True),
+        default="var/dataset-resource/",
     )(f)
 
 
@@ -178,6 +186,7 @@ def dataset_dump_cmd(input_path, output_path):
 @organisation_path
 @click.option("--save-harmonised", is_flag=True)
 @column_field_dir
+@dataset_resource_dir
 def pipeline_cmd_API(
     input_path,
     output_path,
@@ -187,6 +196,7 @@ def pipeline_cmd_API(
     organisation_path,
     save_harmonised,
     column_field_dir,
+    dataset_resource_dir,
 ):
     return API.pipeline_cmd(
         input_path,
@@ -197,6 +207,7 @@ def pipeline_cmd_API(
         organisation_path,
         save_harmonised,
         column_field_dir,
+        dataset_resource_dir,
     )
 
 

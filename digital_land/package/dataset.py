@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 # TBD: move to from specification datapackage definition
 tables = {
-    "resource-dataset": None,
+    "dataset-resource": None,
     "column-field": None,
     "issue": None,
     "entity": None,
@@ -33,7 +33,7 @@ indexes = {
         "field",
         "issue-type",
     ],
-    "resource-dataset": ["resource"],
+    "dataset-resource": ["resource"],
 }
 
 
@@ -144,6 +144,29 @@ class DatasetPackage(SqlitePackage):
         self.commit()
         self.disconnect()
 
+    def add_counts(self):
+        """count the number of entities by resource"""
+        self.connect()
+        self.create_cursor()
+        self.execute(
+            "select resource, count(*)"
+            "  from ("
+            "    select distinct resource, fact.entity"
+            "  from entity, fact, fact_resource"
+            "  where entity.entity = fact.entity"
+            "    and fact.fact = fact_resource.fact"
+            "  ) group by resource"
+        )
+        results = self.cursor.fetchall()
+        for result in results:
+            resource = result[0]
+            count = result[1]
+            self.execute(
+                f"update dataset_resource set entity_count = {count} where resource = '{resource}'"
+            )
+        self.commit()
+        self.disconnect()
+
     def load_facts(self, path):
         logging.info(f"loading facts from {path}")
 
@@ -174,6 +197,14 @@ class DatasetPackage(SqlitePackage):
             row["dataset"] = self.dataset
             self.insert("issue", fields, row)
 
+    def load_dataset_resource(self, path, resource):
+        fields = self.specification.schema["dataset-resource"]["fields"]
+
+        logging.info(f"loading dataset-resource from {path}")
+
+        for row in csv.DictReader(open(path, newline="")):
+            self.insert("dataset-resource", fields, row)
+
     def load_transformed(self, path):
         m = re.search(r"/([a-f0-9]+).csv$", path)
         resource = m.group(1)
@@ -184,6 +215,9 @@ class DatasetPackage(SqlitePackage):
         self.load_issues(path.replace("transformed/", "issue/"), resource)
         self.load_column_fields(
             path.replace("transformed/", "var/column-field/"), resource
+        )
+        self.load_dataset_resource(
+            path.replace("transformed/", "var/dataset-resource/"), resource
         )
         self.commit()
         self.disconnect()

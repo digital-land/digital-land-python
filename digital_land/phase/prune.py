@@ -7,10 +7,12 @@ class EntityPrunePhase(Phase):
     remove entries with a missing entity
     """
 
-    def __init__(self, issues=None):
-        self.issues = issues
+    def __init__(self, issue_log=None, dataset_resource_log=None):
+        self.issues = issue_log
+        self.log = dataset_resource_log
 
     def process(self, stream):
+        entry_count = 0
         for block in stream:
             row = block["row"]
             if not row.get("entity", ""):
@@ -32,7 +34,10 @@ class EntityPrunePhase(Phase):
                 logging.debug(block)
                 continue
 
+            entry_count = entry_count + 1
             yield block
+
+        self.log.entry_count = entry_count
 
 
 class FactPrunePhase(Phase):
