@@ -29,7 +29,7 @@ def detect_encoding(f):
     return detector.result["encoding"]
 
 
-def load_csv(path, encoding="UTF-8"):
+def load_csv(path, encoding="UTF-8", log=None):
     logging.debug(f"trying csv {path}")
 
     if not encoding:
@@ -48,7 +48,7 @@ def load_csv(path, encoding="UTF-8"):
 
     f.seek(0)
 
-    return Stream(path, f=f)
+    return Stream(path, f=f, log=log)
 
 
 def execute(command):
@@ -113,8 +113,10 @@ def convert_features_to_csv(input_path):
 
 
 class ConvertPhase(Phase):
-    def __init__(self, path=None):
+    def __init__(self, path=None, dataset_resource_log=None):
         self.path = path
+        self.log = dataset_resource_log
+        self.charset = ""
 
     def process(self, stream=None):
         input_path = self.path
@@ -125,6 +127,7 @@ class ConvertPhase(Phase):
             encoding = detect_file_encoding(input_path)
             if encoding:
                 logging.debug("encoding detected: %s", encoding)
+                self.charset = ";charset=" + encoding
                 reader = self._read_text_file(input_path, encoding)
 
         if not reader:
@@ -133,21 +136,24 @@ class ConvertPhase(Phase):
             # raise StopIteration()
             reader = iter(())
 
-        return Stream(input_path, f=reader)
+        return Stream(input_path, f=reader, log=self.log)
 
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
+        self.log.mime_type = "text/csv" + self.charset
         content = f.read(10)
         f.seek(0)
         converted_csv_file = None
 
         if content.lower().startswith("<!doctype "):
+            self.log.mime_type = "text/html" + self.charset
             logging.warn("%s has <!doctype, IGNORING!", input_path)
             f.close()
             return None
 
         elif content.lower().startswith(("<?xml ", "<wfs:")):
             logging.debug("%s looks like xml", input_path)
+            self.log.mime_type = "application/xml" + self.charset
             converted_csv_file = convert_features_to_csv(input_path)
             if not converted_csv_file:
                 f.close()
@@ -156,6 +162,7 @@ class ConvertPhase(Phase):
 
         elif content.lower().startswith("{"):
             logging.debug("%s looks like json", input_path)
+            self.log.mime_type = "application/json" + self.charset
             converted_csv_file = convert_features_to_csv(input_path)
 
         if converted_csv_file:
@@ -171,15 +178,24 @@ class ConvertPhase(Phase):
         excel_reader = read_excel(input_path)
         if excel_reader:
             logging.debug(f"{input_path} looks like excel")
+            self.log.mime_type = "application/vnd.ms-excel"
             return excel_reader
 
         # Then try zip
         if zipfile.is_zipfile(input_path):
             logging.debug(f"{input_path} looks like zip")
-            internal_path = self._find_zip_file(
-                input_path, ".shp"
-            ) or self._find_zip_file(input_path, ".gml")
+            self.log.mime_type = "application/zip"
+
+            internal_path = self._find_zip_file(input_path, ".shp")
             if internal_path:
+                self.log.internal_mime_type = "x-gis/x-shapefile"
+            else:
+                internal_path = self._find_zip_file(input_path, ".gml")
+                if internal_path:
+                    self.log.internal_mime_type = "application/gml+xml"
+
+            if internal_path:
+                self.log.internal_path = internal_path
                 temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
                 os.link(input_path, temp_path)
                 zip_path = f"/vsizip/{temp_path}{internal_path}"
@@ -197,6 +213,7 @@ class ConvertPhase(Phase):
             pass
         else:
             logging.debug(f"{input_path} looks like SQLite")
+            self.log.mime_type = "application/geopackage+sqlite3"
             csv_path = convert_features_to_csv(input_path)
             encoding = detect_file_encoding(csv_path)
             return read_csv(csv_path, encoding)

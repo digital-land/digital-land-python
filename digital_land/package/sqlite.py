@@ -190,7 +190,7 @@ class SqlitePackage(Package):
     def create_tables(self):
         for table in self.tables:
             fields = self.specification.schema[table]["fields"]
-            key_field = self.specification.schema[table]["key-field"] or table
+            key_field = table
 
             # a join table for each list field
             for field in fields:

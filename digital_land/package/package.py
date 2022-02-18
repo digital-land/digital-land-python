@@ -21,7 +21,6 @@ class Specification:
         ):
             self.schema[row["schema"]] = row
             self.schema[row["schema"]].setdefault("fields", [])
-            self.schema[row["schema"]]["key-field"] = row["key-field"] or row["schema"]
 
         for row in csv.DictReader(
             open(f"{self.specification_dir}/dataset.csv", newline="")

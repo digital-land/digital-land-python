@@ -8,7 +8,7 @@ import canonicaljson
 
 from .collection import Collection, resource_path
 from .collect import Collector
-from .log import IssueLog, ColumnFieldLog
+from .log import IssueLog, ColumnFieldLog, DatasetResourceLog
 from .organisation import Organisation
 from .package.dataset import DatasetPackage
 from .phase.concat import ConcatFieldPhase
@@ -114,7 +114,12 @@ class DigitalLandApi(object):
     def convert_cmd(self, input_path, output_path):
         if not output_path:
             output_path = self.default_output_path("converted", input_path)
-        run_pipeline(ConvertPhase(input_path), DumpPhase(output_path))
+        dataset_resource_log = DatasetResourceLog()
+        run_pipeline(
+            ConvertPhase(input_path, dataset_resource_log=dataset_resource_log),
+            DumpPhase(output_path),
+        )
+        dataset_resource_log.save(f=sys.stdout)
 
     def pipeline_cmd(
         self,
@@ -126,6 +131,7 @@ class DigitalLandApi(object):
         organisation_path,
         save_harmonised=False,
         column_field_dir=None,
+        dataset_resource_dir=None,
     ):
         resource = self.resource_from_path(input_path)
         dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
@@ -141,10 +147,11 @@ class DigitalLandApi(object):
         lookups = self.pipeline.lookups(resource)
 
         issue_log = IssueLog(dataset=dataset, resource=resource)
-        column_field_log = ColumnFieldLog()
+        column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
+        dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
         run_pipeline(
-            ConvertPhase(path=input_path),
+            ConvertPhase(path=input_path, dataset_resource_log=dataset_resource_log),
             NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
             ParsePhase(),
             MapPhase(
@@ -184,7 +191,9 @@ class DigitalLandApi(object):
             ),
             EntityPrefixPhase(dataset=dataset),
             EntityLookupPhase(lookups),
-            EntityPrunePhase(issue_log),
+            EntityPrunePhase(
+                issue_log=issue_log, dataset_resource_log=dataset_resource_log
+            ),
             PivotPhase(),
             FactorPhase(),
             FactReferencePhase(dataset=dataset, specification=self.specification),
@@ -198,6 +207,7 @@ class DigitalLandApi(object):
 
         issue_log.save(os.path.join(issue_dir, resource + ".csv"))
         column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
+        dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
 
     #
     #  build dataset from processed resources
@@ -217,6 +227,7 @@ class DigitalLandApi(object):
         for path in input_paths:
             package.load_transformed(path)
         package.load_entities()
+        package.add_counts()
 
     def dataset_dump_cmd(self, input_path, output_path):
         cmd = (

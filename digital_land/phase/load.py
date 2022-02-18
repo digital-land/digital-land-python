@@ -4,7 +4,7 @@ from .phase import Phase
 
 
 class Stream:
-    def __init__(self, path=None, f=None, resource=None, dataset=None):
+    def __init__(self, path=None, f=None, resource=None, dataset=None, log=None):
         if not f:
             f = open(path, newline="")
 
@@ -18,6 +18,7 @@ class Stream:
         self.dataset = dataset
         self.line_number = 0
         self.fieldnames = None
+        self.log = log
 
     @staticmethod
     def _reader(f):
@@ -36,6 +37,13 @@ class Stream:
                 "line-number": self.line_number,
                 "row": {},
             }
+
+        if self.log:
+            if not self.log.dataset:
+                self.log.dataset = self.dataset
+            if not self.log.resource:
+                self.log.resource = self.resource
+            self.log.line_count = self.line_number
 
     def __next__(self):
         return next(self.next())
