@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 # TBD: move to from specification datapackage definition
 tables = {
-    "resource-dataset": None,
+    "dataset-resource": None,
     "column-field": None,
     "issue": None,
     "entity": None,
@@ -33,7 +33,7 @@ indexes = {
         "field",
         "issue-type",
     ],
-    "resource-dataset": ["resource"],
+    "dataset-resource": ["resource"],
 }
 
 
