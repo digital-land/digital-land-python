@@ -212,7 +212,7 @@ class DatasetPackage(SqlitePackage):
         self.connect()
         self.create_cursor()
         self.load_facts(path)
-        self.load_issues(path.replace("transformed/", "issue/"), resource)
+        # self.load_issues(path.replace("transformed/", "issue/"), resource)
         self.load_column_fields(
             path.replace("transformed/", "var/column-field/"), resource
         )
