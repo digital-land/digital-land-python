@@ -6,7 +6,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.8, 3.9]
@@ -25,6 +25,11 @@ jobs:
     - name: Lint, Test, Coverage
       run: |
         make
+    - name: Publish Test Report
+      uses: mikepenz/action-junit-report@v2
+      if: always() # always run even if the previous step fails
+      with:
+        report_paths: '.junitxml/*.xml'
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v1
       with:

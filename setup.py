@@ -64,6 +64,7 @@ setup(
             "responses",
             "XlsxWriter",
             "wasabi",
+            "digital-land-airflow[test]@git+https://github.com/digital-land/digital-land-airflow#egg=digital-land-airflow[test]",
         ]
         + maybe_black
     },
