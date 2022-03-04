@@ -177,7 +177,13 @@ class ConvertPhase(Phase):
     def _find_zip_file(self, input_file, suffix=".gml"):
         zip_ = zipfile.ZipFile(input_file)
         files = zip_.namelist()
-        files = list(set(filter(lambda s: s.endswith(suffix), files)))
+        files = list(
+            set(
+                filter(
+                    lambda s: s.endswith(suffix) or s.endswith(suffix.upper()), files
+                )
+            )
+        )
         if not files or not len(files):
             return None
         if len(files) > 1:
@@ -197,7 +203,7 @@ class ConvertPhase(Phase):
         if internal_path:
             return internal_path, "x-gis/x-mapinfo-tab"
 
-        return None
+        return None, None
 
     def _read_binary_file(self, input_path):
         # First try excel
