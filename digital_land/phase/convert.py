@@ -174,6 +174,31 @@ class ConvertPhase(Phase):
 
         return reader
 
+    def _find_zip_file(self, input_file, suffix=".gml"):
+        zip_ = zipfile.ZipFile(input_file)
+        files = zip_.namelist()
+        files = list(set(filter(lambda s: s.endswith(suffix), files)))
+        if not files or not len(files):
+            return None
+        if len(files) > 1:
+            raise ValueError("Zipfile contains more than one %s file" % suffix)
+        return "/" + files[0]
+
+    def find_internal_path(self, input_path):
+        internal_path = self._find_zip_file(input_path, ".shp")
+        if internal_path:
+            return internal_path, "x-gis/x-shapefile"
+
+        internal_path = self._find_zip_file(input_path, ".gml")
+        if internal_path:
+            return internal_path, "application/gml+xml"
+
+        internal_path = self._find_zip_file(input_path, ".tab")
+        if internal_path:
+            return internal_path, "x-gis/x-mapinfo-tab"
+
+        return None
+
     def _read_binary_file(self, input_path):
         # First try excel
         excel_reader = read_excel(input_path)
@@ -187,20 +212,14 @@ class ConvertPhase(Phase):
             logging.debug(f"{input_path} looks like zip")
             self.log.mime_type = "application/zip"
 
-            internal_path = self._find_zip_file(input_path, ".shp")
-            if internal_path:
-                self.log.internal_mime_type = "x-gis/x-shapefile"
-            else:
-                internal_path = self._find_zip_file(input_path, ".gml")
-                if internal_path:
-                    self.log.internal_mime_type = "application/gml+xml"
-
+            internal_path, mime_type = self.find_internal_path(input_path)
             if internal_path:
                 self.log.internal_path = internal_path
+                self.log.internal_mime_type = mime_type
                 temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
                 os.link(input_path, temp_path)
                 zip_path = f"/vsizip/{temp_path}{internal_path}"
-                logging.debug("zip_path: %s" % zip_path)
+                logging.debug(f"zip_path: {zip_path} mime_type: {mime_type}")
                 csv_path = convert_features_to_csv(zip_path)
                 encoding = detect_file_encoding(csv_path)
                 return read_csv(csv_path, encoding)
@@ -220,13 +239,3 @@ class ConvertPhase(Phase):
             return read_csv(csv_path, encoding)
 
         return None
-
-    def _find_zip_file(self, input_file, suffix=".gml"):
-        zip_ = zipfile.ZipFile(input_file)
-        files = zip_.namelist()
-        files = list(set(filter(lambda s: s.endswith(suffix), files)))
-        if not files or not len(files):
-            return None
-        if len(files) > 1:
-            raise ValueError("Zipfile contains more than one %s file" % suffix)
-        return "/" + files[0]
