@@ -52,6 +52,7 @@ def load_csv(path, encoding="UTF-8", log=None):
 
 
 def execute(command):
+    logging.debug("execute: %s", command)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
