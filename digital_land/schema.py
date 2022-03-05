@@ -31,6 +31,7 @@ schemas = {
     },
     "source": {
         "fields": [
+            "source",
             "attribution",
             "collection",
             "documentation-url",

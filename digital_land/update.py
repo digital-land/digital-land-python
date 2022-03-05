@@ -1,4 +1,5 @@
 from datetime import datetime, date
+import hashlib
 
 from .register import Item, hash_value
 from .collection import Collection
@@ -113,8 +114,17 @@ def add_endpoint(entry, endpoint_register):
 
 
 def add_source(entry, source_register):
+    if not entry.get("source", ""):
+        key = "%s|%s|%s" % (
+            entry["collection"],
+            entry["organisation"],
+            entry["endpoint"],
+        )
+        entry["source"] = hashlib.md5(key.encode()).hexdigest()
+
     item = Item(
         {
+            "source": entry.get("source", ""),
             "collection": entry["collection"],
             "pipelines": entry.get("pipelines", entry["collection"]),
             "organisation": entry.get("organisation", ""),
