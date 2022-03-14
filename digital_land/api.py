@@ -111,12 +111,16 @@ class DigitalLandApi(object):
     #
     #  pipeline commands
     #
-    def convert_cmd(self, input_path, output_path):
+    def convert_cmd(self, input_path, output_path, custom_temp_dir=None):
         if not output_path:
             output_path = self.default_output_path("converted", input_path)
         dataset_resource_log = DatasetResourceLog()
         run_pipeline(
-            ConvertPhase(input_path, dataset_resource_log=dataset_resource_log),
+            ConvertPhase(
+                input_path,
+                dataset_resource_log=dataset_resource_log,
+                custom_temp_dir=custom_temp_dir,
+            ),
             DumpPhase(output_path),
         )
         dataset_resource_log.save(f=sys.stdout)
@@ -132,6 +136,7 @@ class DigitalLandApi(object):
         save_harmonised=False,
         column_field_dir=None,
         dataset_resource_dir=None,
+        custom_temp_dir=None,
     ):
         resource = self.resource_from_path(input_path)
         dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
@@ -151,7 +156,11 @@ class DigitalLandApi(object):
         dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
         run_pipeline(
-            ConvertPhase(path=input_path, dataset_resource_log=dataset_resource_log),
+            ConvertPhase(
+                path=input_path,
+                dataset_resource_log=dataset_resource_log,
+                custom_temp_dir=custom_temp_dir,
+            ),
             NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
             ParsePhase(),
             MapPhase(
