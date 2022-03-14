@@ -114,10 +114,16 @@ def convert_features_to_csv(input_path):
 
 
 class ConvertPhase(Phase):
-    def __init__(self, path=None, dataset_resource_log=None):
+    def __init__(self, path=None, dataset_resource_log=None, custom_temp_dir=None):
         self.path = path
         self.log = dataset_resource_log
         self.charset = ""
+        # Allows for custom temporary directory to be specified
+        # This allows symlink creation in case of /tmp & path being on different partitions
+        if custom_temp_dir:
+            self.temp_file_extra_kwargs = {"dir": custom_temp_dir}
+        else:
+            self.temp_file_extra_kwargs = {}
 
     def process(self, stream=None):
         input_path = self.path
@@ -222,7 +228,9 @@ class ConvertPhase(Phase):
             if internal_path:
                 self.log.internal_path = internal_path
                 self.log.internal_mime_type = mime_type
-                temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
+                temp_path = tempfile.NamedTemporaryFile(
+                    suffix=".zip", **self.temp_file_extra_kwargs
+                ).name
                 os.link(input_path, temp_path)
                 zip_path = f"/vsizip/{temp_path}{internal_path}"
                 logging.debug(f"zip_path: {zip_path} mime_type: {mime_type}")
