@@ -151,7 +151,7 @@ class Collection:
         self.log.load(directory=log_directory)
 
         self.resource = ResourceLogStore(Schema("resource"))
-        self.resource.load(log=self.log, source=self.source)
+        self.resource.load(log=self.log, source=self.source, directory=directory)
 
     def save_csv(self, directory=None):
         if not directory:
