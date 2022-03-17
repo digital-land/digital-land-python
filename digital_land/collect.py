@@ -127,6 +127,7 @@ class Collector:
         # fetch each source at most once per-day
         log_path = self.log_path(log_datetime, endpoint)
         if os.path.isfile(log_path):
+            logging.debug(f"{log_path} exists")
             return FetchStatus.ALREADY_FETCHED
 
         log = {
