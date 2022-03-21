@@ -1,7 +1,6 @@
 import pytest
 
 from collections import defaultdict
-from datetime import date
 
 from digital_land.schema import Schema
 from digital_land.store.memory import MemoryStore
