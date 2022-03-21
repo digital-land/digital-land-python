@@ -114,13 +114,12 @@ def add_endpoint(entry, endpoint_register):
 
 
 def add_source(entry, source_register):
-    if not entry.get("source", ""):
-        key = "%s|%s|%s" % (
-            entry["collection"],
-            entry["organisation"],
-            entry["endpoint"],
-        )
-        entry["source"] = hashlib.md5(key.encode()).hexdigest()
+    key = "%s|%s|%s" % (
+        entry["collection"],
+        entry["organisation"],
+        entry["endpoint"],
+    )
+    entry["source"] = hashlib.md5(key.encode()).hexdigest()
 
     item = Item(
         {
