@@ -4,8 +4,6 @@ import json
 import logging
 from pathlib import Path
 
-import canonicaljson
-
 from .collection import Collection, resource_path
 from .collect import Collector
 from .log import IssueLog, ColumnFieldLog, DatasetResourceLog
@@ -32,7 +30,7 @@ from .pipeline import Pipeline, run_pipeline
 from .plugin import get_plugin_manager
 from .schema import Schema
 from .specification import Specification
-from .update import add_source_endpoint, get_failing_endpoints_from_registers
+from .update import add_source_endpoint
 from .datasette.docker import build_container
 
 
@@ -248,14 +246,6 @@ class DigitalLandApi(object):
     #
     #  configuration commands
     #
-    @staticmethod
-    def collection_check_endpoints_cmd(first_date, log_dir, endpoint_path, last_date):
-        """find active endpoints that are failing during collection"""
-        output = get_failing_endpoints_from_registers(
-            log_dir, endpoint_path, first_date.date(), last_date.date()
-        )
-        print(canonicaljson.encode_canonical_json(output))
-
     @staticmethod
     def collection_add_source_cmd(entry, collection, endpoint_url, collection_dir):
         """

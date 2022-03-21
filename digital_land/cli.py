@@ -2,7 +2,6 @@ import functools
 import logging
 import sys
 from collections import defaultdict
-from datetime import date
 
 import click
 
@@ -212,30 +211,6 @@ def pipeline_cmd_API(
 
 
 # Endpoint commands
-
-
-@cli.command(
-    "collection-check-endpoints", short_help="check logs for failing endpoints"
-)
-@click.argument("first-date", type=click.DateTime(formats=["%Y-%m-%d"]))
-@click.option(
-    "--log-dir",
-    type=click.Path(exists=True),
-    help="path to log files",
-    default="collection/log/",
-)
-@endpoint_path
-@click.option(
-    "--last-date",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    help="upper bound of date range to consider",
-    default=str(date.today()),
-)
-def collection_check_endpoints_cmd(first_date, log_dir, endpoint_path, last_date):
-    """find active endpoints that are failing during collection"""
-    return API.collection_check_endpoints_cmd(
-        first_date, log_dir, endpoint_path, last_date
-    )
 
 
 @cli.command(
