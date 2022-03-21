@@ -68,6 +68,17 @@ def has_collected_resource(log_item):
     return True, failure_reason
 
 
+def recalculate_source_hashes(collection):
+    for entry in collection.source.entries:
+        key = "%s|%s|%s" % (
+            entry["collection"],
+            entry["organisation"],
+            entry["endpoint"],
+        )
+        entry["source"] = hashlib.md5(key.encode()).hexdigest()
+
+
+
 def add_source_endpoint(entry, directory=None, collection=None):
 
     if not collection:
@@ -79,6 +90,7 @@ def add_source_endpoint(entry, directory=None, collection=None):
     add_endpoint(entry, collection.endpoint)
     add_source(entry, collection.source)
 
+    recalculate_source_hashes(collection)
     collection.save_csv()
 
 
@@ -114,13 +126,6 @@ def add_endpoint(entry, endpoint_register):
 
 
 def add_source(entry, source_register):
-    key = "%s|%s|%s" % (
-        entry["collection"],
-        entry["organisation"],
-        entry["endpoint"],
-    )
-    entry["source"] = hashlib.md5(key.encode()).hexdigest()
-
     item = Item(
         {
             "source": entry.get("source", ""),
