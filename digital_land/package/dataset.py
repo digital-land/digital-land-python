@@ -106,6 +106,11 @@ class DatasetPackage(SqlitePackage):
         return row
 
     def entity_row(self, facts):
+        """entity_row.
+
+        :param  facts: Nested List of facts pertaining to an entity [[entity, field, value]] (and resource)
+        :type   facts: list[list[str]]
+        """
         # time ordered priority
         # TBD: handle primary versus secondary sources ..
         row = {}
@@ -133,8 +138,11 @@ class DatasetPackage(SqlitePackage):
 
         facts = []
         for fact in results:
+            # If facts and fact does not point to same entity as first fact
             if facts and fact[0] != facts[0][0]:
+                # Insert existing facts
                 self.insert_entity(facts)
+                # Reset facts list for new entity
                 facts = []
             facts.append(fact)
 
