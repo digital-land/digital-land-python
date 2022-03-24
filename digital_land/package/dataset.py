@@ -1,9 +1,12 @@
+from collections import defaultdict
 import csv
-import json
-import re
-import shapely.wkt
 from decimal import Decimal
+import json
 import logging
+import re
+
+import shapely.wkt
+
 from .sqlite import SqlitePackage
 
 logger = logging.getLogger(__name__)
@@ -38,11 +41,12 @@ indexes = {
 
 
 class DatasetPackage(SqlitePackage):
-    def __init__(self, dataset, organisation, **kwargs):
+    def __init__(self, dataset, organisation, organisation_resource_map, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.entity_fields = self.specification.schema["entity"]["fields"]
         self.organisations = organisation.organisation
+        self.organisation_resource_map = organisation_resource_map
 
     def migrate_entity(self, row):
         dataset = self.dataset
@@ -58,12 +62,6 @@ class DatasetPackage(SqlitePackage):
 
         if not row.get("reference", ""):
             logging.error(f"entity {entity}: missing reference")
-
-        # hack until FactReference is reliable ..
-        if not row.get("organisation-entity", ""):
-            row["organisation-entity"] = self.organisations.get(
-                row.get("organisation", ""), {}
-            ).get("entity", "")
 
         # extended fields as JSON properties
         if not row.get("json", ""):
@@ -114,9 +112,47 @@ class DatasetPackage(SqlitePackage):
         # time ordered priority
         # TBD: handle primary versus secondary sources ..
         row = {}
-        row["entity"] = facts[0][0]
+        # hack until FactReference is reliable ..
+        organisation_entity = self.organisations.get(
+            row.get("organisation", ""), {}
+        ).get("entity", "")
+        entity_id = facts[0][0]
+
+        row["entity"] = entity_id
+        row["organisation-entity"] = organisation_entity
+        fact_by_rank = defaultdict(list)
         for fact in facts:
-            row[fact[1]] = fact[2]
+            fact_name = fact[1]
+            value = fact[2]
+            resource = fact[3]
+            fact_by_rank[fact_name].append({"value": value, "resource_hash": resource})
+        for fact_name, fact_values in fact_by_rank.items():
+            if len(fact_values) > 1:
+                # We have more than once source here, prefer the primary
+                primary_source_values = list(
+                    filter(
+                        lambda pair: pair["resource_hash"]
+                        in self.organisation_resource_map[organisation_entity],
+                        fact_values,
+                    )
+                )
+                if len(primary_source_values) == 1:
+                    # We have only one value for the primary source present, nice and easy
+                    row[fact_name] = primary_source_values[0]["value"]
+                elif len(primary_source_values) > 1:
+                    # Check to see same resources
+                    deduplicated_values = set(
+                        val["value"] for val in primary_source_values
+                    )
+                    if len(deduplicated_values) > 1:
+                        logger.warn(
+                            f"Multiple primary source values for fact {fact_name} on {entity_id}: {deduplicated_values}"
+                        )
+                    else:
+                        row[fact_name] = list(deduplicated_values)[0]
+            else:
+                row[fact_name] = fact_values[0]["value"]
+
         return row
 
     def insert_entity(self, facts):
@@ -130,9 +166,10 @@ class DatasetPackage(SqlitePackage):
         self.connect()
         self.create_cursor()
         self.execute(
-            "select entity, field, value from fact"
+            "select entity, field, value, fact_resource.resource from fact"
+            " join fact_resource on fact.fact = fact_resource.fact "
             "  where value != ''"
-            "  order by entity, field, entry_date"
+            "  order by entity, field, fact.entry_date, fact_resource.resource"
         )
         results = self.cursor.fetchall()
 

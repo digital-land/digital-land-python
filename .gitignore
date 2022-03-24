@@ -16,8 +16,8 @@ demodata/
 .venv
 .direnv
 var/cache
-collection
-specification
+/collection
+/specification
 ssl.pem
 var
 .junitxml

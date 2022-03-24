@@ -1,8 +1,9 @@
+from collections import defaultdict
+from datetime import datetime
 import logging
 import os
-import re
-from datetime import datetime
 from pathlib import Path
+import re
 
 from .makerules import pipeline_makerules
 from .register import hash_value
@@ -233,3 +234,10 @@ class Collection:
                         dataset_resource.setdefault(dataset, set())
                         dataset_resource[dataset].add(resource)
         return dataset_resource
+
+    def organisation_resource_map(self):
+        organisation_resource_map = defaultdict(list)
+        for entry in self.resource.entries:
+            for organisation in entry["organisations"].split(";"):
+                organisation_resource_map[organisation].append(entry["resource"])
+        return organisation_resource_map

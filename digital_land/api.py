@@ -219,16 +219,22 @@ class DigitalLandApi(object):
     #
     #  build dataset from processed resources
     #
-    def dataset_create_cmd(self, input_paths, output_path, organisation_path):
+    def dataset_create_cmd(
+        self, input_paths, output_path, organisation_path, collection_dir
+    ):
         if not output_path:
             print("missing output path")
             sys.exit(2)
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
+        collection = Collection(name=None, directory=collection_dir)
+        collection.load()
+        organisation_resource_map = collection.organisation_resource_map()
         package = DatasetPackage(
             self.dataset,
             organisation=organisation,
             path=output_path,
             specification_dir=self.specification_dir,
+            organisation_resource_map=organisation_resource_map,
         )
         package.create()
         for path in input_paths:

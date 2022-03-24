@@ -159,11 +159,14 @@ def convert_cmd(input_path, output_path):
 
 
 @cli.command("dataset-create", short_help="create a dataset from processed resources")
+@collection_dir
 @organisation_path
 @click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
-def dataset_create_cmd(input_paths, output_path, organisation_path):
-    return API.dataset_create_cmd(input_paths, output_path, organisation_path)
+def dataset_create_cmd(input_paths, output_path, organisation_path, collection_dir):
+    return API.dataset_create_cmd(
+        input_paths, output_path, organisation_path, collection_dir
+    )
 
 
 @cli.command("dataset-entries", short_help="dump dataset entries as csv")
