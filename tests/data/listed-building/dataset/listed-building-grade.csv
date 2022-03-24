@@ -1,0 +1,4 @@
+dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology
+listed-building-grade,"",700000,2021-11-22,"","","{""listed-building-grade"": ""I""}",I,"","",listed-building-grade,I,"",category
+listed-building-grade,"",700001,2021-11-22,"","","{""listed-building-grade"": ""II""}",II,"","",listed-building-grade,II,"",category
+listed-building-grade,"",700002,2021-11-22,"","","{""listed-building-grade"": ""II*""}",II*,"","",listed-building-grade,II*,"",category

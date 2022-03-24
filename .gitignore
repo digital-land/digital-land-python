@@ -14,9 +14,11 @@ demodata/
 .eggs
 *.gfs
 .venv
+.direnv
 var/cache
 collection
 specification
 ssl.pem
 var
 .junitxml
+pyrightconfig.json
