@@ -8,7 +8,6 @@ from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
 from .datatype.flag import FlagDataType
 from .datatype.integer import IntegerDataType
-from .datatype.organisation import OrganisationURIDataType
 from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
 from .datatype.wkt import WktDataType
@@ -167,9 +166,6 @@ class Specification:
 
         if datatype in typemap:
             return typemap[datatype]()
-
-        if fieldname in ["OrganisationURI"]:
-            return OrganisationURIDataType()
 
         raise ValueError("unknown datatype '%s' for '%s' field" % (datatype, fieldname))
 
