@@ -21,7 +21,6 @@ class HarmonisePhase(Phase):
         collection={},
         patches={},
         default_fieldnames={},
-        plugin_manager=None,
     ):
         self.specification = specification
         self.dataset = dataset

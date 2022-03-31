@@ -137,7 +137,6 @@ class Collector:
 
         start = timer()
 
-        # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
         if plugin == "":
             log, content = self.get(url, log)
         elif plugin == "wfs":
