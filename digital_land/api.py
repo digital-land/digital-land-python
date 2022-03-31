@@ -27,7 +27,6 @@ from .phase.reference import EntityReferencePhase, FactReferencePhase
 from .phase.save import SavePhase
 from .phase.migrate import MigratePhase
 from .pipeline import Pipeline, run_pipeline
-from .plugin import get_plugin_manager
 from .schema import Schema
 from .specification import Specification
 from .update import add_source_endpoint
@@ -144,7 +143,6 @@ class DigitalLandApi(object):
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
-        plugin_manager = get_plugin_manager()
         patches = self.pipeline.patches(resource)
         default_fieldnames = self.pipeline.default_fieldnames(resource)
         lookups = self.pipeline.lookups(resource)
@@ -180,7 +178,6 @@ class DigitalLandApi(object):
                 organisation_uri=organisation.organisation_uri,
                 patches=patches,
                 default_fieldnames=default_fieldnames,
-                plugin_manager=plugin_manager,
             ),
             SavePhase(
                 self.default_output_path("harmonised", input_path),

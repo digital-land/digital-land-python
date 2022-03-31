@@ -45,7 +45,6 @@ setup(
         "openpyxl",
         "Shapely",
         "SPARQLWrapper",
-        "pluggy",
         "sqlalchemy",
         "tenacity",
         "mysql-connector-python",
