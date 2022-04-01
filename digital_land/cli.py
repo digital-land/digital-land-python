@@ -86,15 +86,6 @@ def source_path(f):
     )(f)
 
 
-def organisation_path(f):
-    return click.option(
-        "--organisation-path",
-        "-o",
-        type=click.Path(exists=True),
-        default="var/cache/organisation.csv",
-    )(f)
-
-
 @click.group()
 @click.option("-d", "--debug/--no-debug", default=False)
 @dataset
@@ -159,11 +150,10 @@ def convert_cmd(input_path, output_path):
 
 
 @cli.command("dataset-create", short_help="create a dataset from processed resources")
-@organisation_path
 @click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
-def dataset_create_cmd(input_paths, output_path, organisation_path):
-    return API.dataset_create_cmd(input_paths, output_path, organisation_path)
+def dataset_create_cmd(input_paths, output_path):
+    return API.dataset_create_cmd(input_paths, output_path)
 
 
 @cli.command("dataset-entries", short_help="dump dataset entries as csv")
@@ -182,7 +172,6 @@ def dataset_dump_cmd(input_path, output_path):
     default=None,
 )
 @issue_dir
-@organisation_path
 @click.option("--save-harmonised", is_flag=True)
 @column_field_dir
 @dataset_resource_dir
@@ -192,7 +181,6 @@ def pipeline_cmd_API(
     collection_dir,
     null_path,
     issue_dir,
-    organisation_path,
     save_harmonised,
     column_field_dir,
     dataset_resource_dir,
@@ -203,7 +191,6 @@ def pipeline_cmd_API(
         collection_dir,
         null_path,
         issue_dir,
-        organisation_path,
         save_harmonised,
         column_field_dir,
         dataset_resource_dir,

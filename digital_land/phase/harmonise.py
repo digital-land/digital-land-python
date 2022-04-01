@@ -19,7 +19,6 @@ class HarmonisePhase(Phase):
         dataset=None,
         issues=None,
         collection={},
-        organisation_uri=None,
         patches={},
         default_fieldnames={},
     ):
@@ -29,7 +28,6 @@ class HarmonisePhase(Phase):
         self.default_fieldnames = {}
         self.issues = issues
         self.collection = collection
-        self.organisation_uri = organisation_uri
         self.patch = patches
         self.default_fieldnames = default_fieldnames
 
