@@ -98,6 +98,7 @@ def test_package_dataset(
 ):
     # Setup
     expected_csv_result = dataset_dir.joinpath(f"{dataset_name}.csv")
+    expected_hoisted_csv_result = dataset_dir.joinpath(f"{dataset_name}-hoisted.csv")
 
     input_paths = [
         str(transformed_path)
@@ -110,6 +111,8 @@ def test_package_dataset(
     sqlite_path.touch()
     csv_path = output_dir.joinpath(f"{dataset_name}.csv")
     csv_path.touch()
+    hoisted_csv_path = output_dir.joinpath(f"{dataset_name}-hoisted.csv")
+    hoisted_csv_path.touch()
 
     # Call
     api = DigitalLandApi(
@@ -117,13 +120,20 @@ def test_package_dataset(
         dataset=dataset_name,
         pipeline_dir=pipeline_dir,
         specification_dir=str(specification_path),
+        tmp_dir_path=str(tmp_path)
     )
     api.dataset_create_cmd(input_paths, sqlite_path, organisation_path)
 
     api.dataset_dump_cmd(sqlite_path, csv_path)
+    api.dataset_dump_hoisted_cmd(sqlite_path, csv_path, hoisted_csv_path)
 
     # Assert
     with csv_path.open() as actual, expected_csv_result.open() as expected:
+        actual_dict_list = list(DictReader(actual))
+        expected_dict_list = list(DictReader(expected))
+        assert actual_dict_list == expected_dict_list
+
+    with hoisted_csv_path.open() as actual, expected_hoisted_csv_result.open() as expected:
         actual_dict_list = list(DictReader(actual))
         expected_dict_list = list(DictReader(expected))
         assert actual_dict_list == expected_dict_list

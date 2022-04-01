@@ -167,9 +167,13 @@ def dataset_create_cmd(input_paths, output_path, organisation_path):
 
 
 @cli.command("dataset-entries", short_help="dump dataset entries as csv")
+@click.option("--no-dump-hoisted", is_flag=True)
+@click.option("--hoisted-output-path", type=click.Path(), default=None, help="Path of CSV with additional top-level `entity.json` fields")
 @input_output_path
-def dataset_dump_cmd(input_path, output_path):
-    return API.dataset_dump_cmd(input_path, output_path)
+def dataset_dump_cmd(input_path, output_path, hoisted_output_path, no_dump_hoisted):
+    API.dataset_dump_cmd(input_path, output_path, hoisted_output_path)
+    if not no_dump_hoisted:
+        API.dataset_dump_hoisted_cmd(input_path, output_path, hoisted_output_path)
 
 
 @cli.command("pipeline", short_help="process a resource")

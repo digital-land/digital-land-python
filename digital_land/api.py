@@ -1,8 +1,13 @@
+import csv
+import itertools
+
 import os
+import subprocess
 import sys
 import json
 import logging
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from .collection import Collection, resource_path
 from .collect import Collector
@@ -34,6 +39,12 @@ from .update import add_source_endpoint
 from .datasette.docker import build_container
 
 
+def execute(command):
+    logging.info("Command: {command}")
+    proc = subprocess.run(command, shell=True, check=True, capture_output=True)
+    return proc.returncode, proc.stdout.decode("utf-8"), proc.stderr.decode("utf-8")
+
+
 class DigitalLandApi(object):
     pipeline: Pipeline
     specification: Specification
@@ -51,17 +62,21 @@ class DigitalLandApi(object):
             }
         )
 
-    def __init__(self, debug, dataset, pipeline_dir, specification_dir):
+    def __init__(self, debug, dataset, pipeline_dir, specification_dir, tmp_dir_path=None):
         # Save init vars for easy serialization/deserialization
         self.debug = debug
         self.dataset = dataset
         self.pipeline_dir = pipeline_dir
         self.specification_dir = specification_dir
+        self.tmp_dir_path = tmp_dir_path
 
         level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
         self.pipeline = Pipeline(pipeline_dir, dataset)
         self.specification = Specification(specification_dir)
+
+    def _get_tmp_filepath(self, suffix=None):
+        return Path(NamedTemporaryFile(suffix=suffix, dir=self.tmp_dir_path or "/tmp").name)
 
     def fetch_cmd(self, url):
         """fetch a single source endpoint URL, and add it to the collection"""
@@ -109,7 +124,7 @@ class DigitalLandApi(object):
     #
     #  pipeline commands
     #
-    def convert_cmd(self, input_path, output_path, custom_temp_dir=None):
+    def convert_cmd(self, input_path, output_path):
         if not output_path:
             output_path = self.default_output_path("converted", input_path)
         dataset_resource_log = DatasetResourceLog()
@@ -117,7 +132,7 @@ class DigitalLandApi(object):
             ConvertPhase(
                 input_path,
                 dataset_resource_log=dataset_resource_log,
-                custom_temp_dir=custom_temp_dir,
+                custom_temp_dir=self.tmp_dir_path
             ),
             DumpPhase(output_path),
         )
@@ -134,7 +149,6 @@ class DigitalLandApi(object):
         save_harmonised=False,
         column_field_dir=None,
         dataset_resource_dir=None,
-        custom_temp_dir=None,
     ):
         resource = self.resource_from_path(input_path)
         dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
@@ -157,7 +171,7 @@ class DigitalLandApi(object):
             ConvertPhase(
                 path=input_path,
                 dataset_resource_log=dataset_resource_log,
-                custom_temp_dir=custom_temp_dir,
+                custom_temp_dir=self.tmp_dir_path
             ),
             NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
             ParsePhase(),
@@ -242,6 +256,30 @@ class DigitalLandApi(object):
         )
         logging.info(cmd)
         os.system(cmd)
+
+    def dataset_dump_hoisted_cmd(self, sqlite_path, csv_path, hoisted_csv_path):
+        if not hoisted_csv_path:
+            hoisted_csv_path = csv_path.replace(".csv", "-hoisted.csv")
+        # TODO refactor into hoist and dump phases
+        json_fields_output = self._get_tmp_filepath(suffix=".json")
+        cmd = (
+            f"sqlite3 -header -csv {sqlite_path} 'select DISTINCT json_each.key from entity, json_each(entity.json);' > {json_fields_output}"
+        )
+        exit_code, stdout, stderr = execute(cmd)
+        with open(csv_path, "r") as read_file, open(hoisted_csv_path, "w+") as write_file, json_fields_output.open("r") as fields_file:
+            reader = csv.DictReader(read_file)
+            spec_field_names = [
+                field.replace("-", "_") for field in itertools.chain(*[self.specification.current_fieldnames(schema) for schema in self.specification.dataset_schema[self.dataset]])
+
+            ]
+            field_names = set(spec_field_names + reader.fieldnames)
+            writer = csv.DictWriter(write_file, fieldnames=field_names)
+            writer.writeheader()
+            for row in reader:
+                json_string = row.pop("json") or "{}"
+                row.update(json.loads(json_string))
+                snake_case_row = dict([(key.replace("-", "_"), val) for key, val in row.items()])
+                writer.writerow(snake_case_row)
 
     #
     #  configuration commands
