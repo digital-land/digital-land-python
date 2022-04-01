@@ -117,7 +117,6 @@ def test_package_dataset(
         dataset=dataset_name,
         pipeline_dir=pipeline_dir,
         specification_dir=str(specification_path),
-        tmp_dir_path=str(tmp_path),
     )
     api.dataset_create_cmd(input_paths, sqlite_path, organisation_path)
     api.dataset_dump_cmd(sqlite_path, csv_path)

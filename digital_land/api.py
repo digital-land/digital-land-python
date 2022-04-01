@@ -53,15 +53,12 @@ class DigitalLandApi(object):
             }
         )
 
-    def __init__(
-        self, debug, dataset, pipeline_dir, specification_dir, tmp_dir_path=None
-    ):
+    def __init__(self, debug, dataset, pipeline_dir, specification_dir):
         # Save init vars for easy serialization/deserialization
         self.debug = debug
         self.dataset = dataset
         self.pipeline_dir = pipeline_dir
         self.specification_dir = specification_dir
-        self.tmp_dir_path = tmp_dir_path
 
         level = logging.DEBUG if debug else logging.INFO
         logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
@@ -114,7 +111,7 @@ class DigitalLandApi(object):
     #
     #  pipeline commands
     #
-    def convert_cmd(self, input_path, output_path):
+    def convert_cmd(self, input_path, output_path, custom_temp_dir=None):
         if not output_path:
             output_path = self.default_output_path("converted", input_path)
         dataset_resource_log = DatasetResourceLog()
@@ -122,7 +119,7 @@ class DigitalLandApi(object):
             ConvertPhase(
                 input_path,
                 dataset_resource_log=dataset_resource_log,
-                custom_temp_dir=self.tmp_dir_path,
+                custom_temp_dir=custom_temp_dir,
             ),
             DumpPhase(output_path),
         )
@@ -139,6 +136,7 @@ class DigitalLandApi(object):
         save_harmonised=False,
         column_field_dir=None,
         dataset_resource_dir=None,
+        custom_temp_dir=None,
     ):
         resource = self.resource_from_path(input_path)
         dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
@@ -161,7 +159,7 @@ class DigitalLandApi(object):
             ConvertPhase(
                 path=input_path,
                 dataset_resource_log=dataset_resource_log,
-                custom_temp_dir=self.tmp_dir_path,
+                custom_temp_dir=custom_temp_dir,
             ),
             NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
             ParsePhase(),
