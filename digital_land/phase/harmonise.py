@@ -136,10 +136,11 @@ class HarmonisePhase(Phase):
                 )
 
             # ensure typology fields are a CURIE
-            for typology in ["organisation", "geography", "document"]:
-                value = o.get(typology, "")
-                if value and ":" not in value:
-                    o[typology] = "%s:%s" % (self.dataset, value)
+            if 0:
+                for typology in ["organisation", "geography", "document"]:
+                    value = o.get(typology, "")
+                    if value and ":" not in value:
+                        o[typology] = "%s:%s" % (self.dataset, value)
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
