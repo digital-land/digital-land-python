@@ -128,7 +128,6 @@ class DigitalLandApi(object):
         collection_dir,
         null_path,
         issue_dir,
-        save_harmonised=False,
         column_field_dir=None,
         dataset_resource_dir=None,
         custom_temp_dir=None,
@@ -174,11 +173,6 @@ class DigitalLandApi(object):
                 collection=collection,
                 patches=patches,
                 default_fieldnames=default_fieldnames,
-            ),
-            SavePhase(
-                self.default_output_path("harmonised", input_path),
-                fieldnames=intermediate_fieldnames,
-                enabled=save_harmonised,
             ),
             MigratePhase(
                 self.specification.schema_field[schema],

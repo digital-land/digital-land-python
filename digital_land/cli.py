@@ -172,7 +172,6 @@ def dataset_dump_cmd(input_path, output_path):
     default=None,
 )
 @issue_dir
-@click.option("--save-harmonised", is_flag=True)
 @column_field_dir
 @dataset_resource_dir
 def pipeline_cmd_API(
@@ -181,7 +180,6 @@ def pipeline_cmd_API(
     collection_dir,
     null_path,
     issue_dir,
-    save_harmonised,
     column_field_dir,
     dataset_resource_dir,
 ):
@@ -191,7 +189,6 @@ def pipeline_cmd_API(
         collection_dir,
         null_path,
         issue_dir,
-        save_harmonised,
         column_field_dir,
         dataset_resource_dir,
     )
