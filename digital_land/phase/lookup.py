@@ -11,12 +11,11 @@ def normalise(value):
     return re.sub(normalise_pattern, "", value.lower())
 
 
-def key(entry_number="", prefix="", reference="", organisation=""):
+def key(entry_number="", prefix="", reference=""):
     entry_number = str(entry_number)
     prefix = normalise(prefix)
     reference = normalise(reference)
-    organisation = normalise(organisation)
-    return ",".join([entry_number, prefix, reference, organisation])
+    return ",".join([entry_number, prefix, reference])
 
 
 class LookupPhase(Phase):
@@ -26,6 +25,7 @@ class LookupPhase(Phase):
 
     def __init__(self, lookups={}):
         self.lookups = lookups
+        print(lookups)
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
@@ -36,25 +36,14 @@ class LookupPhase(Phase):
             entry_number = block["entry-number"]
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
-            organisation = row.get("organisation", "")
 
             if prefix:
                 if not row.get(self.entity_field, ""):
-                    row[self.entity_field] = (
-                        # by the resource and row number
-                        (
-                            self.entity_field == "entity"
-                            and self.lookup(prefix=prefix, entry_number=entry_number)
-                        )
-                        # TBD: fixup prefixes so this isn't needed ..
-                        # or by the organisation and the reference
-                        or self.lookup(
-                            prefix=prefix,
-                            organisation=organisation,
-                            reference=reference,
-                        )
-                        # or by the CURIE
-                        or self.lookup(prefix=prefix, reference=reference)
+                    row[self.entity_field] = self.lookup(
+                        entry_number=entry_number, prefix=prefix
+                    ) or self.lookup(
+                        prefix=prefix,
+                        reference=reference,
                     )
 
             yield block

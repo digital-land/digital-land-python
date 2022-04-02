@@ -151,12 +151,10 @@ class Pipeline:
                 )
             ] = row["entity"]
 
-            organisation = row.get("organisation", "")
             resource_lookup[
                 lookup_key(
                     prefix=prefix,
                     reference=reference,
-                    organisation=organisation,
                 )
             ] = row["entity"]
 
