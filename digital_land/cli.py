@@ -178,7 +178,7 @@ def dataset_create_cmd(input_paths, output_path, organisation_path):
 def dataset_dump_cmd(input_path, output_path, hoisted_output_path, no_dump_hoisted):
     API.dataset_dump_cmd(input_path, output_path)
     if not no_dump_hoisted:
-        API.dataset_dump_hoisted_cmd(input_path, output_path, hoisted_output_path)
+        API.dataset_dump_hoisted_cmd(output_path, hoisted_output_path)
 
 
 @cli.command("pipeline", short_help="process a resource")

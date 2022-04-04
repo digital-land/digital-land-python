@@ -246,7 +246,7 @@ class DigitalLandApi(object):
         logging.info(cmd)
         os.system(cmd)
 
-    def dataset_dump_hoisted_cmd(self, sqlite_path, csv_path, hoisted_csv_path):
+    def dataset_dump_hoisted_cmd(self, csv_path, hoisted_csv_path):
         if not hoisted_csv_path:
             hoisted_csv_path = csv_path.replace(".csv", "-hoisted.csv")
 
@@ -254,6 +254,7 @@ class DigitalLandApi(object):
             hoisted_csv_path, "w+"
         ) as write_file:
             reader = csv.DictReader(read_file)
+
             spec_field_names = [
                 field.replace("-", "_")
                 for field in itertools.chain(
@@ -263,10 +264,14 @@ class DigitalLandApi(object):
                     ]
                 )
             ]
+            reader_fieldnames = list(reader.fieldnames)
+            reader_fieldnames.remove("json")
             hoisted_field_names = set(spec_field_names).difference(
-                set(list(reader.fieldnames))
+                set(reader_fieldnames)
             )
-            field_names = list(reader.fieldnames) + list(hoisted_field_names)
+            # Make sure we put hoisted fieldnames last
+            field_names = reader_fieldnames + sorted(list(hoisted_field_names))
+
             writer = csv.DictWriter(write_file, fieldnames=field_names)
             writer.writeheader()
             for row in reader:
