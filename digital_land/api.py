@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import csv
 import itertools
 import os
@@ -262,10 +263,14 @@ class DigitalLandApi(object):
                     ]
                 )
             ]
-            field_names = set(spec_field_names + reader.fieldnames)
+            hoisted_field_names = set(spec_field_names).difference(
+                set(list(reader.fieldnames))
+            )
+            field_names = list(reader.fieldnames) + list(hoisted_field_names)
             writer = csv.DictWriter(write_file, fieldnames=field_names)
             writer.writeheader()
             for row in reader:
+                row = OrderedDict(row)
                 json_string = row.pop("json") or "{}"
                 row.update(json.loads(json_string))
                 snake_case_row = dict(
