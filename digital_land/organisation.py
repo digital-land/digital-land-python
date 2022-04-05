@@ -1,5 +1,6 @@
 import re
 import csv
+import logging
 from pathlib import Path
 
 
@@ -38,6 +39,7 @@ class Organisation:
                 self.organisation_lookup[uri] = row["organisation"]
                 self.organisation_uri[row["organisation"].lower()] = uri
                 self.organisation_uri[uri] = uri
+                self.organisation_uri[uri.replace("/id/", "/doc/")] = uri
                 self.organisation_uri[uri_basename(uri)] = uri
                 self.organisation_uri[row["statistical-geography"].lower()] = uri
                 if "local-authority-eng" in row["organisation"]:
@@ -59,4 +61,9 @@ class Organisation:
                     self.organisation_uri[lower_uri(row["pattern"])] = row["value"]
 
     def lookup(self, organisation):
+        if not organisation:
+            return organisation
+        if organisation.lower() not in self.organisation_lookup:
+            logging.info(f"unknown organisation {organisation}")
+            return ""
         return self.organisation_lookup[organisation.lower()]
