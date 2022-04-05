@@ -25,7 +25,6 @@ class LookupPhase(Phase):
 
     def __init__(self, lookups={}):
         self.lookups = lookups
-        print(lookups)
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
