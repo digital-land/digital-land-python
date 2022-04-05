@@ -71,6 +71,7 @@ class Organisation:
         for leg in [
             "http://opendatacommunities.org/resource?uri=http://opendatacommunities.org/id/geography/administration/nmd/",
             "http://opendatacommunities.org/id/geography/administration/nmd/",
+            "http://opendatacommunities.org/id/geography/administration/ua/",
             "http://opendatacommunities.org/id/geography/administration/npark/",
         ]:
             if organisation.startswith(leg):
