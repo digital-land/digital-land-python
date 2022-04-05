@@ -19,7 +19,6 @@ class HarmonisePhase(Phase):
         dataset=None,
         issues=None,
         collection={},
-        organisation_uri=None,
         patches={},
         default_fieldnames={},
         plugin_manager=None,
@@ -30,14 +29,8 @@ class HarmonisePhase(Phase):
         self.default_fieldnames = {}
         self.issues = issues
         self.collection = collection
-        self.organisation_uri = organisation_uri
         self.patch = patches
-        self.plugin_manager = plugin_manager
         self.default_fieldnames = default_fieldnames
-
-        if plugin_manager:
-            plugin_manager.register(self)
-            plugin_manager.hook.init_harmoniser_plugin(harmoniser=self)
 
     def log_issue(self, field, issue, value):
         if self.issues:
@@ -96,9 +89,6 @@ class HarmonisePhase(Phase):
         )
         self.default_values["entry-date"] = resource_entry["start-date"]
 
-        if self.plugin_manager:
-            self.plugin_manager.hook.set_resource_defaults_post(resource=resource)
-
     def process(self, stream):
         last_resource = None
 
@@ -119,13 +109,6 @@ class HarmonisePhase(Phase):
 
             for field in row:
                 row[field] = self.apply_patch(field, row[field])
-                if self.plugin_manager:
-                    plugin_results = self.plugin_manager.hook.apply_patch_post(
-                        fieldname=field, value=row[field]
-                    )
-                    if len(plugin_results) == 1:
-                        row[field] = plugin_results[0]
-
                 o[field] = self.harmonise_field(field, row[field])
 
             # default missing values
