@@ -63,6 +63,14 @@ class Organisation:
     def lookup(self, organisation):
         if not organisation:
             return organisation
+
+        for leg in [
+            "http://opendatacommunities.org/resource?uri=http://opendatacommunities.org/id/geography/administration/nmd/",
+            "http://opendatacommunities.org/id/geography/administration/nmd/",
+        ]:
+            if organisation.startswith(leg):
+                organisation = organisation[len(leg) :]
+
         if organisation.lower() not in self.organisation_lookup:
             logging.info(f"unknown organisation {organisation}")
             return ""
