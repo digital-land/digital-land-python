@@ -36,7 +36,7 @@ class ResourceDefaultPhase(Phase):
 
             for field in ["organisation", "entry-date"]:
                 if not row.get(field, "") and field in self.default_values:
-                    self.issues.log_issue(field, "resource default", row[field])
+                    self.issues.log_issue(field, "resource default", self.default_values[field])
                     row[field] = self.default_values[field]
 
             entry_date = datetime.strptime(row["entry-date"][:10], "%Y-%m-%d").date()
