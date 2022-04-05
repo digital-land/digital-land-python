@@ -13,22 +13,27 @@ from .log import IssueLog, ColumnFieldLog, DatasetResourceLog
 from .package.dataset import DatasetPackage
 from .phase.concat import ConcatFieldPhase
 from .phase.convert import ConvertPhase
+from .phase.default import DefaultFieldPhase
 from .phase.dump import DumpPhase
 from .phase.factor import FactorPhase
 from .phase.filter import FilterPhase
+from .phase.issue import IssuePhase
 from .phase.harmonise import HarmonisePhase
 from .phase.lookup import EntityLookupPhase, FactLookupPhase
 from .phase.map import MapPhase
+from .phase.migrate import MigratePhase
 from .phase.normalise import NormalisePhase
 from .phase.organisation import OrganisationPhase
 from .phase.parse import ParsePhase
+from .phase.patch import PatchPhase
 from .phase.pivot import PivotPhase
+from .phase.point import PointPhase
 from .phase.prefix import EntityPrefixPhase
 from .phase.prune import EntityPrunePhase, FactPrunePhase
 from .phase.reduce import ReducePhase
 from .phase.reference import EntityReferencePhase, FactReferencePhase
+from .phase.resource import ResourceDefaultPhase
 from .phase.save import SavePhase
-from .phase.migrate import MigratePhase
 from .pipeline import Pipeline, run_pipeline
 from .schema import Schema
 from .specification import Specification
@@ -159,25 +164,22 @@ class DigitalLandApi(object):
             ),
             NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
             ParsePhase(),
+            IssuePhase(dataset=dataset, issues=issue_log),
             MapPhase(
                 fieldnames=intermediate_fieldnames,
                 columns=self.pipeline.columns(resource),
                 log=column_field_log,
             ),
+            FilterPhase(self.pipeline.filters(resource)),
             ConcatFieldPhase(
                 concats=self.pipeline.concatenations(resource),
                 log=column_field_log,
             ),
-            FilterPhase(self.pipeline.filters(resource)),
-            # TBD: break down this complicated phase
-            HarmonisePhase(
-                specification=self.specification,
-                dataset=dataset,
-                issues=issue_log,
-                collection=collection,
-                patches=patches,
-                default_fieldnames=default_fieldnames,
-            ),
+            PatchPhase(issues=issue_log, patches=patches),
+            DefaultFieldPhase(issues=issue_log, fieldnames=default_fieldnames),
+            ResourceDefaultPhase(issues=issue_log, collection=collection),
+            HarmonisePhase(issues=issue_log, specification=self.specification),
+            PointPhase(issues=issue_log),
             MigratePhase(
                 fields=self.specification.schema_field[schema],
                 migrations=self.pipeline.migrations(),

@@ -9,7 +9,7 @@ def fact_hash(entity, field, value):
 
 class FactorPhase(Phase):
     """
-    add a fact hash identifier
+    add a hash for each fact
     """
 
     def process(self, stream):
