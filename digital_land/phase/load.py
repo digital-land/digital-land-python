@@ -53,6 +53,10 @@ class Stream:
 
 
 class LoadPhase(Phase):
+    """
+    create a phase stream from a python stream
+    """
+
     def __init__(self, *args, **kwargs):
         self.stream = Stream(*args, **kwargs)
 

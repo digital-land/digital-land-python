@@ -114,6 +114,10 @@ def convert_features_to_csv(input_path):
 
 
 class ConvertPhase(Phase):
+    """
+    convert a resource into a stream
+    """
+
     def __init__(self, path=None, dataset_resource_log=None, custom_temp_dir=None):
         self.path = path
         self.log = dataset_resource_log

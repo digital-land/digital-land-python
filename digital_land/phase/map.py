@@ -10,9 +10,8 @@ def normalise(name):
 
 
 class MapPhase(Phase):
-
     """
-    rename field names using the provided column map
+    map columns to fields using the column table
     """
 
     def __init__(self, fieldnames, columns={}, log=None):

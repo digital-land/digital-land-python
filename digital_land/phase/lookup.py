@@ -50,8 +50,16 @@ class LookupPhase(Phase):
 
 
 class EntityLookupPhase(LookupPhase):
+    """
+    lookup entity numbers by CURIE
+    """
+
     entity_field = "entity"
 
 
 class FactLookupPhase(LookupPhase):
+    """
+    lookup reference entity numbers by CURIE
+    """
+
     entity_field = "reference-entity"
