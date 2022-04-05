@@ -39,7 +39,11 @@ class Organisation:
                 self.organisation_lookup[uri] = row["organisation"]
                 self.organisation_uri[row["organisation"].lower()] = uri
                 self.organisation_uri[uri] = uri
+                self.organisation_uri[uri.replace("http:", "https:")] = uri
                 self.organisation_uri[uri.replace("/id/", "/doc/")] = uri
+                self.organisation_uri[
+                    uri.replace("/id/", "/doc/").replace("http:", "https:")
+                ] = uri
                 self.organisation_uri[uri_basename(uri)] = uri
                 self.organisation_uri[row["statistical-geography"].lower()] = uri
                 if "local-authority-eng" in row["organisation"]:
@@ -67,6 +71,7 @@ class Organisation:
         for leg in [
             "http://opendatacommunities.org/resource?uri=http://opendatacommunities.org/id/geography/administration/nmd/",
             "http://opendatacommunities.org/id/geography/administration/nmd/",
+            "http://opendatacommunities.org/id/geography/administration/npark/",
         ]:
             if organisation.startswith(leg):
                 organisation = organisation[len(leg) :]
