@@ -6,7 +6,7 @@ class MigratePhase(Phase):
     change field names to match the latest specification
     """
 
-    def __init__(self, fields, migrations, organisation={}):
+    def __init__(self, fields, migrations):
         self.migrations = migrations
         self.fields = list(
             set(fields + ["entity", "organisation", "prefix", "reference"])

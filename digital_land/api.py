@@ -21,6 +21,7 @@ from .phase.harmonise import HarmonisePhase
 from .phase.lookup import EntityLookupPhase, FactLookupPhase
 from .phase.map import MapPhase
 from .phase.normalise import NormalisePhase
+from .phase.organisation import OrganisationPhase
 from .phase.parse import ParsePhase
 from .phase.pivot import PivotPhase
 from .phase.prefix import EntityPrefixPhase
@@ -180,7 +181,6 @@ class DigitalLandApi(object):
                 dataset=dataset,
                 issues=issue_log,
                 collection=collection,
-                organisation_uri=organisation.organisation_uri,
                 patches=patches,
                 default_fieldnames=default_fieldnames,
                 plugin_manager=plugin_manager,
@@ -191,9 +191,10 @@ class DigitalLandApi(object):
                 enabled=save_harmonised,
             ),
             MigratePhase(
-                self.specification.schema_field[schema],
-                self.pipeline.migrations(),
+                fields=self.specification.schema_field[schema],
+                migrations=self.pipeline.migrations(),
             ),
+            OrganisationPhase(organisation=organisation),
             ReducePhase(fields=self.specification.current_fieldnames(schema)),
             EntityReferencePhase(
                 dataset=dataset,
