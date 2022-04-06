@@ -1,40 +1,48 @@
-import pytest
-from digital_land.log import IssueLog
-from digital_land.datatype.organisation import OrganisationURIDataType
+from digital_land.organisation import Organisation
 
 
-@pytest.mark.skip()
-def test_OrganisationURI_normalise():
-    issues = IssueLog()
+def test_organisation_lookup():
+    organisation = Organisation(
+        organisation_path="tests/data/listed-building/organisation.csv"
+    )
 
-    organisation_uri = OrganisationURIDataType()
-
-    assert "grape" not in organisation_uri.enum
-
+    assert organisation.lookup("Borchester") == ""
+    assert organisation.lookup("local-authority-eng:LBH") == "local-authority-eng:LBH"
     assert (
-        organisation_uri.normalise(
+        organisation.lookup("government-organisation:PB1164")
+        == "government-organisation:PB1164"
+    )
+    assert (
+        organisation.lookup(
             "http://opendatacommunities.org/id/district-council/brentwood"
         )
-        == "http://opendatacommunities.org/id/district-council/brentwood"
+        == "local-authority-eng:BRW"
     )
+
     assert (
-        organisation_uri.normalise("brentwood")
-        == "http://opendatacommunities.org/id/district-council/brentwood"
-    )
-    assert (
-        organisation_uri.normalise("E07000068")
-        == "http://opendatacommunities.org/id/district-council/brentwood"
-    )
-
-    assert organisation_uri.normalise("foo") == ""
-
-    assert organisation_uri.normalise("foo", issues=issues) == ""
-    issue = issues.rows.pop()
-    assert issue["issue-type"] == "OrganisationURI"
-    assert issue["value"] == "foo"
-    assert issues.rows == []
-
-    with pytest.raises(ValueError):
-        organisation_uri.add_value(
-            "http://opendatacommunities.org/id/district-council/borchester", "ambridge"
+        organisation.lookup(
+            "http://opendatacommunities.org/id/district-council/tamworth"
         )
+        == "local-authority-eng:TAW"
+    )
+    assert (
+        organisation.lookup(
+            "http://opendatacommunities.org/doc/district-council/tamworth"
+        )
+        == "local-authority-eng:TAW"
+    )
+    assert (
+        organisation.lookup(
+            "https://opendatacommunities.org/id/district-council/tamworth"
+        )
+        == "local-authority-eng:TAW"
+    )
+    assert (
+        organisation.lookup(
+            "https://opendatacommunities.org/doc/district-council/tamworth"
+        )
+        == "local-authority-eng:TAW"
+    )
+
+    assert organisation.lookup("E07000068") == "local-authority-eng:BRW"
+    assert organisation.lookup("Lambeth") == "local-authority-eng:LBH"

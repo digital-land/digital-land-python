@@ -64,6 +64,9 @@ class Organisation:
                 if row["field"] == "OrganisationURI":
                     self.organisation_uri[lower_uri(row["pattern"])] = row["value"]
 
+        for key in self.organisation:
+            self.organisation_lookup[key.lower()] = key
+
     def lookup(self, organisation):
         if not organisation:
             return organisation
