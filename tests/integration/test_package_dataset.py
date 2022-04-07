@@ -8,12 +8,6 @@ from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
 
 
-# Read-only fixtures
-@pytest.fixture
-def organisation_path(data_dir):
-    return data_dir.joinpath("organisation.csv")
-
-
 @pytest.fixture
 def data_dir():
     return Path(__file__).parent.parent.joinpath("data").joinpath("listed-building")
@@ -115,7 +109,7 @@ def test_package_dataset(
         pipeline_dir=pipeline_dir,
         specification_dir=str(specification_path),
     )
-    api.dataset_create_cmd(input_paths, sqlite_path, organisation_path)
+    api.dataset_create_cmd(input_paths, sqlite_path)
     api.dataset_dump_cmd(sqlite_path, csv_path)
 
     # Assert

@@ -10,6 +10,7 @@ from pathlib import Path
 from .collection import Collection, resource_path
 from .collect import Collector
 from .log import IssueLog, ColumnFieldLog, DatasetResourceLog
+from .organisation import Organisation
 from .package.dataset import DatasetPackage
 from .phase.concat import ConcatFieldPhase
 from .phase.convert import ConvertPhase
@@ -137,6 +138,7 @@ class DigitalLandApi(object):
         collection_dir,
         null_path,
         issue_dir,
+        organisation_path,
         column_field_dir=None,
         dataset_resource_dir=None,
         custom_temp_dir=None,
@@ -148,6 +150,7 @@ class DigitalLandApi(object):
         )
         collection = Collection(name=None, directory=collection_dir)
         collection.load()
+        organisation = Organisation(organisation_path, Path(self.pipeline.path))
         patches = self.pipeline.patches(resource)
         default_fieldnames = self.pipeline.default_fieldnames(resource)
         lookups = self.pipeline.lookups(resource)
