@@ -125,6 +125,18 @@ class DatasetPackage(SqlitePackage):
         if row:
             self.insert("entity", self.entity_fields, row)
 
+    def load_old_entities(self, path):
+        """load the old-entity table"""
+
+        fields = self.specification.schema["old-entity"]["fields"]
+        logging.info(f"loading old-entity from {path}")
+        self.connect()
+        self.create_cursor()
+        for row in csv.DictReader(open(path, newline="")):
+            self.insert("old-entity", fields, row)
+        self.commit()
+        self.disconnect()
+
     def load_entities(self):
         """load the entity table from the fact table"""
         self.connect()

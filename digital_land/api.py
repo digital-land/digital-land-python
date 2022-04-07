@@ -238,6 +238,11 @@ class DigitalLandApi(object):
         for path in input_paths:
             package.load_transformed(path)
         package.load_entities()
+
+        old_entity_path = os.path.join(self.pipeline.path, "old-entity.csv")
+        if os.path.exists(old_entity_path):
+            package.load_old_entities(old_entity_path)
+
         package.add_counts()
 
     def dataset_dump_cmd(self, input_path, output_path):
