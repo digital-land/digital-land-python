@@ -21,7 +21,6 @@ specification_path = os.path.join(
 class Specification:
     def __init__(self, path="specification"):
         self.dataset = {}
-        self.dataset = {}
         self.dataset_names = []
         self.schema = {}
         self.schema_names = []

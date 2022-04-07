@@ -1,3 +1,6 @@
+from collections import OrderedDict
+import csv
+import itertools
 import os
 import sys
 import json
@@ -20,6 +23,7 @@ from .phase.lookup import EntityLookupPhase, FactLookupPhase
 from .phase.map import MapPhase
 from .phase.migrate import MigratePhase
 from .phase.normalise import NormalisePhase
+from .phase.organisation import OrganisationPhase
 from .phase.parse import ParsePhase
 from .phase.patch import PatchPhase
 from .phase.pivot import PivotPhase
@@ -176,10 +180,12 @@ class DigitalLandApi(object):
             ResourceDefaultPhase(issues=issue_log, collection=collection),
             HarmonisePhase(issues=issue_log, specification=self.specification),
             PointPhase(issues=issue_log),
+            FilterPhase(self.pipeline.filters(resource)),
             MigratePhase(
-                self.specification.schema_field[schema],
-                self.pipeline.migrations(),
+                fields=self.specification.schema_field[schema],
+                migrations=self.pipeline.migrations(),
             ),
+            OrganisationPhase(organisation=organisation),
             ReducePhase(fields=self.specification.current_fieldnames(schema)),
             EntityReferencePhase(
                 dataset=dataset,
@@ -229,6 +235,43 @@ class DigitalLandApi(object):
         )
         logging.info(cmd)
         os.system(cmd)
+
+    def dataset_dump_hoisted_cmd(self, csv_path, hoisted_csv_path):
+        if not hoisted_csv_path:
+            hoisted_csv_path = csv_path.replace(".csv", "-hoisted.csv")
+
+        with open(csv_path, "r") as read_file, open(
+            hoisted_csv_path, "w+"
+        ) as write_file:
+            reader = csv.DictReader(read_file)
+
+            spec_field_names = [
+                field.replace("-", "_")
+                for field in itertools.chain(
+                    *[
+                        self.specification.current_fieldnames(schema)
+                        for schema in self.specification.dataset_schema[self.dataset]
+                    ]
+                )
+            ]
+            reader_fieldnames = list(reader.fieldnames)
+            reader_fieldnames.remove("json")
+            hoisted_field_names = set(spec_field_names).difference(
+                set(reader_fieldnames)
+            )
+            # Make sure we put hoisted fieldnames last
+            field_names = reader_fieldnames + sorted(list(hoisted_field_names))
+
+            writer = csv.DictWriter(write_file, fieldnames=field_names)
+            writer.writeheader()
+            for row in reader:
+                row = OrderedDict(row)
+                json_string = row.pop("json") or "{}"
+                row.update(json.loads(json_string))
+                snake_case_row = dict(
+                    [(key.replace("-", "_"), val) for key, val in row.items()]
+                )
+                writer.writerow(snake_case_row)
 
     #
     #  configuration commands
