@@ -84,7 +84,24 @@ class LogStore(ItemStore):
 
 # a register of resources constructed from the log register
 class ResourceLogStore(CSVStore):
-    def load(self, log, source, directory=collection_directory):
+    def load(
+        self, log: LogStore, source: CSVStore, directory: str = collection_directory
+    ):
+        """
+        Rebuild resource.csv file from the log store
+
+        This does not depend in any way on the current state of resource.csv on the file system
+
+        We cannot assume that all resources are present on the local file system as we also want to keep records
+        of resources we have not collected within the current collector execution due to their end_date elapsing
+
+        :param log:
+        :type log: LogStore
+        :param source:
+        :type source: CSVStore
+        :param directory:
+        :type directory: str
+        """
         resources = {}
         today = datetime.utcnow().isoformat()[:10]
 
@@ -92,15 +109,8 @@ class ResourceLogStore(CSVStore):
             if "resource" in entry:
                 resource = entry["resource"]
                 if resource not in resources:
-                    path = resource_path(resource, directory=directory)
-                    try:
-                        size = os.path.getsize(path)
-                    except (FileNotFoundError):
-                        logging.warning("missing %s" % (path))
-                        size = ""
-
                     resources[resource] = {
-                        "bytes": size,
+                        "bytes": entry["bytes"],
                         "endpoints": {},
                         "start-date": entry["entry-date"],
                         "end-date": entry["entry-date"],
@@ -123,6 +133,15 @@ class ResourceLogStore(CSVStore):
             end_date = isodate(resource["end-date"])
             if end_date >= today:
                 end_date = ""
+
+            if not end_date:
+                path = resource_path(resource, directory=directory)
+                try:
+                    size = os.path.getsize(path)
+                except (FileNotFoundError):
+                    logging.warning("missing %s" % (path))
+                    size = ""
+                resource["bytes"] = size
 
             self.add_entry(
                 {
