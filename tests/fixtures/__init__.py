@@ -74,10 +74,15 @@ def pipeline_dir(data_dir, tmp_path):
 
 
 @pytest.fixture
-def collection_resources_dir(data_dir, collection_dir):
+def populated_collection_dir_results(data_dir):
+    return data_dir.joinpath("collection").joinpath("resources")
+
+
+@pytest.fixture
+def collection_resources_dir(populated_collection_dir_results, collection_dir):
     resources_dir = collection_dir.joinpath("resource")
     copytree(
-        data_dir.joinpath("collection").joinpath("resources").joinpath("resource"),
+        populated_collection_dir_results.joinpath("resource"),
         resources_dir,
     )
     return resources_dir
