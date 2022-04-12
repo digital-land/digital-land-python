@@ -37,6 +37,7 @@ setup(
         "canonicaljson",
         "click",
         "cchardet",
+        "datasette",
         "pandas",
         "pyproj",
         "requests",
