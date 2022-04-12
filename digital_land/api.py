@@ -36,6 +36,7 @@ from .schema import Schema
 from .specification import Specification
 from .update import add_source_endpoint
 from .datasette.docker import build_container
+from .utils import get_filename_without_suffix
 
 
 class DigitalLandApi(object):
@@ -246,11 +247,17 @@ class DigitalLandApi(object):
         package.add_counts()
 
     def dataset_dump_cmd(self, input_path, output_path):
-        cmd = (
-            f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
+        output_path_obj = Path(output_path)
+        old_entity_output_path = output_path_obj.parent.joinpath(
+            f"{get_filename_without_suffix(output_path_obj)}-old-entity.csv"
         )
-        logging.info(cmd)
-        os.system(cmd)
+        cmds = [
+            f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}",
+            f"sqlite3 -header -csv {input_path} 'select * from old_entity;' > {old_entity_output_path}",
+        ]
+        for cmd in cmds:
+            logging.info(cmd)
+            os.system(cmd)
 
     def dataset_dump_hoisted_cmd(self, csv_path, hoisted_csv_path):
         if not hoisted_csv_path:
