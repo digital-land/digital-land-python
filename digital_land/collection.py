@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -133,15 +132,6 @@ class ResourceLogStore(CSVStore):
             end_date = isodate(resource["end-date"])
             if end_date >= today:
                 end_date = ""
-
-            if not end_date:
-                path = resource_path(resource, directory=directory)
-                try:
-                    size = os.path.getsize(path)
-                except (FileNotFoundError):
-                    logging.warning("missing %s" % (path))
-                    size = ""
-                resource["bytes"] = size
 
             self.add_entry(
                 {
