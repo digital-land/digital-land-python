@@ -1,11 +1,17 @@
+import re
 from .phase import Phase
 
 
+# match CURIEs which don't have a space after the colon
+curie_re = re.compile(r"(?P<prefix>[A-Za-z0-9_-]+):(?P<reference>[A-Za-z0-9_-].*)$")
+
+
 def split_curie(value):
-    s = value.split(":", 2)
-    if len(s) == 2:
-        return s
-    return ["", value]
+    match = curie_re.match(value)
+    if not match:
+        return ["", value]
+
+    return [match.group("prefix"), match.group("reference")]
 
 
 class EntityReferencePhase(Phase):
