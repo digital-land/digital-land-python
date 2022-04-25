@@ -42,7 +42,10 @@ class LookupPhase(Phase):
                 if not row.get(self.entity_field, ""):
                     row[self.entity_field] = (
                         # by the resource and row number
-                        self.lookup(entry_number=entry_number)
+                        (
+                            self.entity_field == "entity"
+                            and self.lookup(prefix=prefix, entry_number=entry_number)
+                        )
                         # TBD: fixup prefixes so this isn't needed ..
                         # or by the organisation and the reference
                         or self.lookup(
