@@ -75,7 +75,8 @@ class WktDataType(DataType):
             geometry = transform(flip, geometry)
 
         if geometry.geom_type != "Point":
-            geometry = geometry.simplify(0.00002)
+            # see https://gist.github.com/psd/0189bc66fd46e00a82df2acbc7e35c8a
+            geometry = geometry.simplify(0.000005)
             if not isinstance(geometry, MultiPolygon):
                 # simplify will reduce to simple Polygon if possible
                 geometry = MultiPolygon([geometry])
