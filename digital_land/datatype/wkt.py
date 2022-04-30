@@ -38,6 +38,7 @@ def within_england(x, y):
 
 
 # check if NW of the SE corner of the Irish Sea
+# https://gridreferencefinder.com/?gr=SC7000000000
 def osgb_within_england(x, y):
     return not (x < 270000.0 and y > 400000.0)
 
