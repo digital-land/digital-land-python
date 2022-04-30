@@ -17,8 +17,82 @@ def test_wkt_point_wgs84():
     issues = IssueLog()
 
     # Nelson's colum
-    assert wkt.normalise("POINT( -0.127972   51.507722 )", issues=issues) == "POINT (-0.127972 51.507722)"
+    assert (
+        wkt.normalise("POINT( -0.127972   51.507722 )", issues=issues)
+        == "POINT (-0.127972 51.507722)"
+    )
     assert issue_type(issues) is None
+
+
+def test_wkt_point_wgs84_south_west():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # Scilly Isles
+    assert (
+        wkt.normalise("POINT (-6.322778 49.936111)", issues=issues)
+        == "POINT (-6.322778 49.936111)"
+    )
+    assert issue_type(issues) is None
+
+
+def test_wkt_point_wgs84_north_east():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # Berwick-upon-Tweed
+    assert (
+        wkt.normalise("POINT (-2.007 55.771)", issues=issues)
+        == "POINT (-2.007000 55.771000)"
+    )
+    assert issue_type(issues) is None
+
+
+def test_wkt_point_wgs84_flipped():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # Nelson's colum
+    assert (
+        wkt.normalise("POINT (51.507722 -0.127972)", issues=issues)
+        == "POINT (-0.127972 51.507722)"
+    )
+    assert issue_type(issues) == "WGS84 flipped"
+
+
+def test_wkt_point_wgs84_out_of_range():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    assert wkt.normalise("POINT (0.0 0.0)", issues=issues) == ""
+    assert issue_type(issues) == "WGS84 out of bounds"
+
+    assert wkt.normalise("POINT (0.0 48.1)", issues=issues) == ""
+    assert issue_type(issues) == "WGS84 out of bounds"
+
+
+def test_wkt_point_northings_eastings():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # Nelson's column TQ 30015 80415
+    assert (
+        wkt.normalise("POINT (530015 180415)", issues=issues)
+        == "POINT (-0.127985 51.507717)"
+    )
+    assert issue_type(issues) == "OSGB"
+
+
+def test_wkt_point_flipped_northings_eastings():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # Nelson's column TQ 30015 80415
+    assert (
+        wkt.normalise("POINT (180415 530015)", issues=issues)
+        == "POINT (-0.127985 51.507717)"
+    )
+    assert issue_type(issues) == "OSGB flipped"
 
 
 def test_wkt_point_mercator():
@@ -27,7 +101,10 @@ def test_wkt_point_mercator():
 
     # Nelson's Column
     # https://epsg.io/map#srs=3857&x=-14245.780102&y=6711600.069496&z=17&layer=streets
-    assert wkt.normalise("POINT(-14245.780102 6711600.069496)", issues=issues) == "POINT (-0.127972 51.507722)"
+    assert (
+        wkt.normalise("POINT (-14245.780102 6711600.069496)", issues=issues)
+        == "POINT (-0.127972 51.507722)"
+    )
     assert issue_type(issues) == "Mercator"
 
 
@@ -37,7 +114,35 @@ def test_wkt_point_mercator_flipped():
 
     # Nelson's Column
     # https://epsg.io/map#srs=3857&x=-14245.780102&y=6711600.069496&z=17&layer=streets
-    assert wkt.normalise("POINT(6711600.069496 -14245.780102)", issues=issues) == "POINT (-0.127972 51.507722)"
+    assert (
+        wkt.normalise("POINT (6711600.069496 -14245.780102)", issues=issues)
+        == "POINT (-0.127972 51.507722)"
+    )
+
+
+def test_wkt_point_missing_values():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    assert wkt.normalise("POINT", issues=issues) == ""
+    assert issue_type(issues) == "invalid WKT"
+
+    assert wkt.normalise("POINT ()", issues=issues) == ""
+    assert issue_type(issues) == "invalid WKT"
+
+    assert wkt.normalise("POINT (-0.127972 )", issues=issues) == ""
+    assert issue_type(issues) == "invalid WKT"
+
+
+def test_wkt_point_out_of_range_values():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    assert wkt.normalise("POINT (1000 100000000)", issues=issues) == ""
+    assert issue_type(issues) == "invalid"
+
+    assert wkt.normalise("POINT (100000000 10000)", issues=issues) == ""
+    assert issue_type(issues) == "invalid"
 
 
 def test_wkt_multipolygon_wgs84():

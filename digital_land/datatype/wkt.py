@@ -1,19 +1,22 @@
 import shapely.wkt
+from shapely.errors import WKTReadingError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
 from pyproj import Transformer
 from .datatype import DataType
 
 
+# use PyProj to transform coordinates between systems
+# https://pyproj4.github.io/pyproj/stable/api/transformer.html#transformer
+
 # convert from OSGB Northings and Eastings to WGS84
 # https://epsg.io/27700
 # https://epsg.io/4326
-osgb_to_wgs84 = Transformer.from_crs(27700, 4326)
+osgb_to_wgs84 = Transformer.from_crs(27700, 4326, always_xy=True)
 
 # convert from Pseudo-Mercator metres to WGS84 decimal degrees
 # https://epsg.io/3857
 # https://epsg.io/4326
-# https://pyproj4.github.io/pyproj/stable/api/transformer.html#transformer
 mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
 
@@ -44,8 +47,11 @@ def flip(x, y, z=None):
 
 
 def parse_wkt(value):
-    # TBD: turn exception into issue
-    geometry = shapely.wkt.loads(value)
+    print("parse_wkt", value)
+    try:
+        geometry = shapely.wkt.loads(value)
+    except WKTReadingError:
+        return None, "invalid WKT"
 
     if geometry.geom_type == "Point":
         first_point = geometry.coords[0]
@@ -70,7 +76,6 @@ def parse_wkt(value):
         if osgb_within_england(y, x):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
-            geometry = transform(flip, geometry)
             return geometry, "OSGB flipped"
 
         return None, "OSGB out of bounds"

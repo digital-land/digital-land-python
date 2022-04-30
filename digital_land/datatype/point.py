@@ -1,4 +1,5 @@
-from .wkt import WktDataType, parse_wkt
+import shapely.wkt
+from .wkt import WktDataType
 
 
 class PointDataType(WktDataType):
@@ -12,7 +13,7 @@ class PointDataType(WktDataType):
         if not point:
             return default
 
-        geometry, issue = parse_wkt(point)
+        geometry = shapely.wkt.loads(point)
         x, y = geometry.coords[0]
 
         return [str(x), str(y)]
