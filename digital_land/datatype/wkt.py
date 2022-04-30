@@ -49,7 +49,6 @@ def flip(x, y, z=None):
 
 
 def parse_wkt(value):
-    print("parse_wkt", value)
     try:
         geometry = shapely.wkt.loads(value)
     except WKTReadingError:
