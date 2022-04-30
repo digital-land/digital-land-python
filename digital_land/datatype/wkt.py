@@ -2,6 +2,7 @@ import shapely.wkt
 from shapely.errors import WKTReadingError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
+from shapely.geometry.polygon import orient
 from pyproj import Transformer
 from .datatype import DataType
 
@@ -105,6 +106,14 @@ def dump_wkt(geometry, precision=6, simplification=0.000005, dimensions=2):
         # force geometry to be MULTIPOLYGON
         if not isinstance(geometry, MultiPolygon):
             geometry = MultiPolygon([geometry])
+
+        # fix winding order
+        # WKT external rings should be counterclockwise, interior rings clockwise
+        # https://shapely.readthedocs.io/en/stable/manual.html#shapely.geometry.polygon.orient
+        polygons = []
+        for geom in geometry.geoms:
+            polygons.append(orient(geom))
+        geometry = MultiPolygon(polygons)
 
     wkt = shapely.wkt.dumps(
         geometry, rounding_precision=precision, output_dimension=dimensions
