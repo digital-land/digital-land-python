@@ -92,7 +92,7 @@ def test_point_flipped_northings_eastings():
     assert issue_type(issues) == "OSGB flipped"
 
 
-def test_point_metres():
+def test_point_mercator():
     issues = IssueLog()
     point = PointDataType()
 
@@ -102,10 +102,10 @@ def test_point_metres():
         "-0.127972",
         "51.507722",
     ]
-    assert issue_type(issues) == "Metres"
+    assert issue_type(issues) == "Mercator"
 
 
-def test_point_metres_flipped():
+def test_point_mercator_flipped():
     issues = IssueLog()
     point = PointDataType()
 

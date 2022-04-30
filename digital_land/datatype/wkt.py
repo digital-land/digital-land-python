@@ -14,7 +14,7 @@ osgb_to_wgs84 = Transformer.from_crs(27700, 4326)
 # https://epsg.io/3857
 # https://epsg.io/4326
 # https://pyproj4.github.io/pyproj/stable/api/transformer.html#transformer
-metres_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
+mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
 
 def degrees_like(x, y):
@@ -76,16 +76,16 @@ def parse_wkt(value):
         return None, "OSGB out of bounds"
 
     if metres_like(x, y):
-        _x, _y = metres_to_wgs84.transform(x, y)
+        _x, _y = mercator_to_wgs84.transform(x, y)
         if within_england(_x, _y):
-            return transform(metres_to_wgs84.transform, geometry), "Metres"
+            return transform(mercator_to_wgs84.transform, geometry), "Mercator"
 
     if metres_like(y, x):
-        _x, _y = metres_to_wgs84.transform(y, x)
+        _x, _y = mercator_to_wgs84.transform(y, x)
         if within_england(_x, _y):
             geometry = transform(flip, geometry)
-            geometry = transform(metres_to_wgs84.transform, geometry)
-            return geometry, "Metres flipped"
+            geometry = transform(mercator_to_wgs84.transform, geometry)
+            return geometry, "Mercator flipped"
 
     return None, "invalid"
 
