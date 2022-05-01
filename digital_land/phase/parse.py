@@ -3,11 +3,10 @@ from .phase import Phase
 
 class ParsePhase(Phase):
     """
-    convert stream lines of text into rows of fields
+    convert stream from lines of text into rows of columns
     """
 
     def process(self, stream):
-
         try:
             block = next(stream)
         except StopIteration:

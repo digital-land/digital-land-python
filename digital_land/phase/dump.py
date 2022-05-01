@@ -17,7 +17,7 @@ def dump(stream, path=None, f=None):
 
 class DumpPhase(Phase):
     """
-    dump stream lines to a file
+    dump the raw stream to a file
     """
 
     def __init__(

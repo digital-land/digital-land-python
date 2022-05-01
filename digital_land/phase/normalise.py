@@ -1,6 +1,3 @@
-#
-#  normalise CSV file formatting
-#
 import os
 import re
 import csv
@@ -10,6 +7,10 @@ patch_dir = os.path.join(os.path.dirname(__file__), "../patch")
 
 
 class NormalisePhase(Phase):
+    """
+    normalise CSV file whitespace
+    """
+
     spaces = " \n\r\t\f"
     null_patterns = []
     skip_patterns = []

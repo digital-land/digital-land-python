@@ -4,7 +4,7 @@ from .phase import Phase
 
 class FilterPhase(Phase):
     """
-    filter out rows based on field values
+    remove rows which match the filter pattern
     """
 
     filter_patterns = {}
