@@ -49,7 +49,10 @@ def pipeline_makerules(collection):
             )
             print("\t@echo")
             print("\t: resource:", resource)
-            print("\t: organisations:", " ".join(collection.resource_organisations(resource)))
+            print(
+                "\t: organisations:",
+                " ".join(collection.resource_organisations(resource)),
+            )
             print("\t: endpoints:", " ".join(collection.resource_endpoints(resource)))
             print("\t@echo")
             print("\t$(run-pipeline)")
