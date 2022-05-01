@@ -183,6 +183,7 @@ class DigitalLandApi(object):
             ResourceDefaultPhase(issues=issue_log, collection=collection),
             HarmonisePhase(issues=issue_log, specification=self.specification),
             PointPhase(issues=issue_log),
+            FilterPhase(self.pipeline.filters(resource)),
             MigratePhase(
                 fields=self.specification.schema_field[schema],
                 migrations=self.pipeline.migrations(),
