@@ -1,4 +1,5 @@
 import re
+from ..log import ColumnFieldLog
 from .phase import Phase
 
 
@@ -18,7 +19,13 @@ class MapPhase(Phase):
     def __init__(self, fieldnames, columns={}, log=None):
         self.columns = columns
         self.normalised_fieldnames = {normalise(f): f for f in fieldnames}
+        if not log:
+            log = ColumnFieldLog()
         self.log = log
+
+    def log_headers(self, headers):
+        for column, field in headers.items():
+            self.log.add(column=column, field=field)
 
     def headers(self, fieldnames):
         headers = {}
@@ -58,6 +65,7 @@ class MapPhase(Phase):
 
             if not headers:
                 headers = self.headers(row.keys())
+                self.log_headers(headers)
 
             o = {}
 

@@ -56,17 +56,16 @@ class IssueLog(Log):
 
 
 class ColumnFieldLog(Log):
-    fieldnames = ["entry_date", "dataset", "resource", "column", "field"]
+    fieldnames = ["entry-date", "dataset", "resource", "column", "field"]
 
-    def add(self, column, issue_type, fieldname):
+    def add(self, column, field):
         self.rows.append(
             {
                 "entry-date": entry_date(),
                 "dataset": self.dataset,
                 "resource": self.resource,
                 "column": column,
-                "issue-type": issue_type,
-                "field": fieldname,
+                "field": field,
             }
         )
 
