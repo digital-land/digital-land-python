@@ -154,9 +154,6 @@ def normalise_geometry(geometry, simplification=0.000005):
 
 
 def dump_wkt(geometry, precision=6, dimensions=2):
-    if not geometry:
-        return ""
-
     wkt = shapely.wkt.dumps(
         geometry, rounding_precision=precision, output_dimension=dimensions
     )
@@ -181,5 +178,8 @@ class WktDataType(DataType):
 
             if issue:
                 issues.log(issue, "")
+
+        if not geometry:
+            return default
 
         return dump_wkt(geometry)
