@@ -3,8 +3,10 @@ from shapely.errors import WKTReadingError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
 from shapely.geometry.polygon import orient
+from shapely.validation import explain_validity, make_valid
 from pyproj import Transformer
 from .datatype import DataType
+import logging
 
 
 # use PyProj to transform coordinates between systems
@@ -96,23 +98,64 @@ def parse_wkt(value):
     return None, "invalid"
 
 
-def dump_wkt(geometry, precision=6, simplification=0.000005, dimensions=2):
-    if geometry.geom_type != "Point":
+def make_multipolygon(geometry):
+    if geometry.geom_type in ["Point", "Line", "MultiLineString"]:
+        return None
 
-        # see https://gist.github.com/psd/0189bc66fd46e00a82df2acbc7e35c8a
-        geometry = geometry.simplify(simplification)
+    if geometry.geom_type == "MultiPolygon":
+        return geometry
 
-        # force geometry to be MULTIPOLYGON
-        if not isinstance(geometry, MultiPolygon):
-            geometry = MultiPolygon([geometry])
+    if geometry.geom_type == "Polygon":
+        return MultiPolygon([geometry])
 
-        # fix winding order
-        # WKT external rings should be counterclockwise, interior rings clockwise
-        # https://shapely.readthedocs.io/en/stable/manual.html#shapely.geometry.polygon.orient
+    if geometry.geom_type == "GeometryCollection":
+        polygons = []
+        for geom in geometry.geoms:
+            if geom.geom_type == "Polygon":
+                polygons.append(geom)
+            elif geom.geom_type == "MultiPolygon":
+                for polygon in geom.geoms:
+                    polygons.append(polygon)
+            else:
+                logging.info(f"skipping {geom.geom_type}")
+        return MultiPolygon(polygons)
+
+    raise ValueError(f"unexpected geometry {geometry.geom_type}")
+
+
+def normalise_geometry(geometry, simplification=0.000005):
+    if geometry.geom_type in ["Point", "Line", "MultiLineString"]:
+        return geometry, None
+
+    # see https://gist.github.com/psd/0189bc66fd46e00a82df2acbc7e35c8a
+    geometry = geometry.simplify(simplification)
+
+    # check and resolve an invalid geometry
+    # result may be a GeometryCollection containing points and lines
+    # https://shapely.readthedocs.io/en/stable/manual.html#validation.make_valid
+    issue = None
+    if not geometry.is_valid:
+        issue = explain_validity(geometry)
+        geometry = make_valid(geometry)
+
+    # ensure geometry is a MultiPolygon
+    geometry = make_multipolygon(geometry)
+
+    # fix winding order
+    # WKT external rings should be counterclockwise, interior rings clockwise
+    # https://shapely.readthedocs.io/en/stable/manual.html#shapely.geometry.polygon.orient
+    if geometry:
         polygons = []
         for geom in geometry.geoms:
             polygons.append(orient(geom))
         geometry = MultiPolygon(polygons)
+
+    return geometry, issue
+
+
+def dump_wkt(geometry, precision=6, dimensions=2):
+    if not geometry:
+        return ""
 
     wkt = shapely.wkt.dumps(
         geometry, rounding_precision=precision, output_dimension=dimensions
@@ -133,7 +176,10 @@ class WktDataType(DataType):
         if issue:
             issues.log(issue, "")
 
-        if not geometry:
-            return default
+        if geometry:
+            geometry, issue = normalise_geometry(geometry)
+
+            if issue:
+                issues.log(issue, "")
 
         return dump_wkt(geometry)
