@@ -17,6 +17,7 @@ import requests
 from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
 from .plugins.wfs import get as wfs_get
+from .plugins.arcgis import get as arcgis_get
 
 
 class FetchStatus(Enum):
@@ -140,12 +141,14 @@ class Collector:
         # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
         if plugin == "":
             log, content = self.get(url, log)
+        elif plugin == "arcgis":
+            log, content = arcgis_get(self, url, log)
         elif plugin == "wfs":
             log, content = wfs_get(self, url, log)
         elif plugin == "sparql":
             log, content = sparql_get(self, url, log)
         else:
-            logging.error("unknown plugin '%s' for endpoint %s" % plugin, endpoint)
+            logging.error("unknown plugin '%s' for endpoint %s" % (plugin, endpoint))
 
         log["elapsed"] = str(round(timer() - start, 3))
 

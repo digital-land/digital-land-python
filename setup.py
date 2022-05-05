@@ -38,6 +38,7 @@ setup(
         "click",
         "cchardet",
         "datasette",
+        "esridump",
         "pandas",
         "pyproj",
         "requests",
