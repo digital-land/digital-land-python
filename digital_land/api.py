@@ -165,13 +165,13 @@ class DigitalLandApi(object):
             ),
             NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
             ParsePhase(),
+            ConcatFieldPhase(
+                concats=self.pipeline.concatenations(resource),
+                log=column_field_log,
+            ),
             MapPhase(
                 fieldnames=intermediate_fieldnames,
                 columns=self.pipeline.columns(resource),
-                log=column_field_log,
-            ),
-            ConcatFieldPhase(
-                concats=self.pipeline.concatenations(resource),
                 log=column_field_log,
             ),
             FilterPhase(self.pipeline.filters(resource)),
