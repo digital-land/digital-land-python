@@ -13,18 +13,8 @@ def test_migrate_passthrough():
 
     output = list(t.process(reader))
 
-    assert output == [
-        {
-            "resource": "some-resource",
-            "row": {
-                "field-one": "123",
-                "entity": "",
-                "prefix": "",
-                "reference": "",
-                "organisation": "",
-            },
-        }
-    ]
+    assert output[0]["row"]["field-one"] == "123"
+    assert "FieldOne" not in output[0]["row"]
 
 
 def test_migrate_migrateation():
@@ -35,18 +25,8 @@ def test_migrate_migrateation():
 
     output = list(t.process(reader))
 
-    assert output == [
-        {
-            "resource": "some-resource",
-            "row": {
-                "field-one": "123",
-                "entity": "",
-                "prefix": "",
-                "reference": "",
-                "organisation": "",
-            },
-        }
-    ]
+    assert output[0]["row"]["field-one"] == "123"
+    assert "FieldOne" not in output[0]["row"]
 
 
 def test_migrate_point():

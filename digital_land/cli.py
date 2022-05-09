@@ -203,6 +203,8 @@ def pipeline_cmd_API(
     organisations,
     entry_date,
 ):
+    endpoints = endpoints.split()
+    organisations = organisations.split()
     return API.pipeline_cmd(
         input_path,
         output_path,

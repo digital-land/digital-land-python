@@ -1,8 +1,3 @@
-#
-#  harmonise values to the datatype for each field
-#  -- record an issue where the process changes the value
-#
-
 import re
 from datetime import datetime
 
@@ -16,40 +11,19 @@ class HarmonisePhase(Phase):
     def __init__(
         self,
         specification=None,
-        dataset=None,
         issues=None,
         patches={},
-        default_fieldnames={},
         plugin_manager=None,
-        organisations=[],
-        entry_date="",
     ):
         self.specification = specification
-        self.dataset = dataset
-        self.default_values = {}
-        self.default_fieldnames = {}
         self.issues = issues
         self.patch = patches
-        self.default_fieldnames = default_fieldnames
-
-        # resource specific default values
-        if len(organisations) == 1:
-            self.default_values["organisation"] = organisations[0]
-
-        if entry_date:
-            self.default_values["entry-date"] = entry_date
-
-    def log_issue(self, field, issue, value):
-        if self.issues:
-            self.issues.log_issue(field, issue, value)
 
     def harmonise_field(self, fieldname, value):
         if not value:
             return ""
 
-        if self.issues:
-            self.issues.fieldname = fieldname
-
+        self.issues.fieldname = fieldname
         datatype = self.specification.field_type(fieldname)
         return datatype.normalise(value, issues=self.issues)
 
@@ -60,46 +34,25 @@ class HarmonisePhase(Phase):
             if match:
                 newvalue = match.expand(replacement)
                 if newvalue != value:
-                    self.log_issue(fieldname, "patch", value)
+                    self.issues.log_issue(fieldname, "patch", value)
                 return newvalue
 
         return value
 
-    def set_default(self, o, fieldname, value):
-        if value and not o.get(fieldname, ""):
-            self.log_issue(fieldname, "default", value)
-            o[fieldname] = value
-        return o
-
-    def default(self, o):
-        for fieldname in self.default_fieldnames:
-            for default_field in self.default_fieldnames[fieldname]:
-                o = self.set_default(o, fieldname, o.get(default_field, ""))
-
-        for fieldname in self.default_values:
-            o = self.set_default(o, fieldname, self.default_values[fieldname])
-
-        return o
-
     def process(self, stream):
         for block in stream:
             row = block["row"]
-            resource = block["resource"]
 
-            if self.issues:
-                self.issues.dataset = self.dataset
-                self.issues.resource = resource
-                self.issues.line_number = block["line-number"]
-                self.issues.entry_number = block["entry-number"]
+            self.issues.dataset = block["dataset"]
+            self.issues.resource = block["resource"]
+            self.issues.line_number = block["line-number"]
+            self.issues.entry_number = block["entry-number"]
 
             o = {}
 
             for field in row:
                 row[field] = self.apply_patch(field, row[field])
                 o[field] = self.harmonise_field(field, row[field])
-
-            # default missing values
-            o = self.default(o)
 
             # future entry dates
             for field in ["entry-date", "LastUpdatedDate"]:
@@ -108,15 +61,13 @@ class HarmonisePhase(Phase):
                     and datetime.strptime(o[field][:10], "%Y-%m-%d").date()
                     > datetime.today().date()
                 ):
-                    if self.issues:
-                        self.issues.log_issue(field, "future entry-date", row[field])
-                    o[field] = self.default_values["entry-date"]
+                    self.issues.log_issue(field, "future entry-date", row[field])
+                    o[field] = ""
 
             # fix point geometry
             # TBD: generalise as a co-constraint
             if set(["GeoX", "GeoY"]).issubset(row.keys()):
-                if self.issues:
-                    self.issues.fieldname = "GeoX,GeoY"
+                self.issues.fieldname = "GeoX,GeoY"
 
                 point = PointDataType()
                 (o["GeoX"], o["GeoY"]) = point.normalise(
@@ -127,7 +78,7 @@ class HarmonisePhase(Phase):
             for typology in ["organisation", "geography", "document"]:
                 value = o.get(typology, "")
                 if value and ":" not in value:
-                    o[typology] = "%s:%s" % (self.dataset, value)
+                    o[typology] = "%s:%s" % (row["dataset"], value)
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):

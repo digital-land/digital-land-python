@@ -208,7 +208,7 @@ class Pipeline:
 
         return result
 
-    def default_fieldnames(self, resource=None):
+    def default_fields(self, resource=None, endpoints=[]):
         general_default = self.default.get("", {})
         if not resource:
             return general_default
@@ -223,6 +223,10 @@ class Pipeline:
         result.update(general_default)
 
         return result
+
+    def default_values(self, resource=None, endpoints=[]):
+        default_values = {}
+        return default_values
 
     def concatenations(self, resource=None):
         general_concat = self.concat.get("", {})

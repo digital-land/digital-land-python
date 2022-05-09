@@ -55,14 +55,14 @@ def test_resource_specific_patches():
     assert patches == {"field-one": {"something": "else", "pat": "val"}}
 
 
-def test_default_fieldnames():
+def test_default_fields():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
-    assert p.default_fieldnames() == {"field-integer": ["field-two"]}
+    assert p.default_fields() == {"field-integer": ["field-two"]}
 
 
-def test_resource_specific_default_fieldnames():
+def test_resource_specific_default_fields():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
-    assert p.default_fieldnames("resource-one") == {
+    assert p.default_fields("resource-one") == {
         "field-integer": ["field-other-integer", "field-two"]
     }
 

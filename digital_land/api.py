@@ -14,6 +14,7 @@ from .organisation import Organisation
 from .package.dataset import DatasetPackage
 from .phase.concat import ConcatFieldPhase
 from .phase.convert import ConvertPhase
+from .phase.default import DefaultPhase
 from .phase.dump import DumpPhase
 from .phase.factor import FactorPhase
 from .phase.filter import FilterPhase
@@ -128,14 +129,6 @@ class DigitalLandApi(object):
         )
         dataset_resource_log.save(f=sys.stdout)
 
-    def resource_defaults(self, resource, collection_dir):
-        collection = Collection(name=None, directory=collection_dir)
-        collection.load()
-        endpoints = collection.resource_endpoints(resource)
-        organisations = collection.resource_organisations(resource)
-        entry_date = collection.resource_start_date(resource)
-        return endpoints, organisations, entry_date
-
     def pipeline_cmd(
         self,
         input_path,
@@ -148,30 +141,42 @@ class DigitalLandApi(object):
         column_field_dir=None,
         dataset_resource_dir=None,
         custom_temp_dir=None,  # TBD: rename to "tmpdir"
-        endpoints=None,
-        organisations=None,
-        entry_date=None,
+        endpoints=[],
+        organisations=[],
+        entry_date="",
     ):
         resource = self.resource_from_path(input_path)
         dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
         intermediate_fieldnames = self.specification.intermediate_fieldnames(
             self.pipeline
         )
-        organisation = Organisation(organisation_path, Path(self.pipeline.path))
         plugin_manager = get_plugin_manager()
-        patches = self.pipeline.patches(resource)
-        default_fieldnames = self.pipeline.default_fieldnames(resource)
-        lookups = self.pipeline.lookups(resource)
-
-        if not endpoints:
-            endpoints, organisations, entry_date = self.resource_defaults(
-                resource,
-                collection_dir,
-            )
-
         issue_log = IssueLog(dataset=dataset, resource=resource)
         column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
         dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
+
+        patches = self.pipeline.patches(resource)
+        lookups = self.pipeline.lookups(resource)
+        default_fields = self.pipeline.default_fields(resource)
+        default_values = self.pipeline.default_values(resource, endpoints)
+
+        # load organisations
+        organisation = Organisation(organisation_path, Path(self.pipeline.path))
+
+        # load the resource default values from the collection
+        if not endpoints:
+            collection = Collection(name=None, directory=collection_dir)
+            collection.load()
+            endpoints = collection.resource_endpoints(resource)
+            organisations = collection.resource_organisations(resource)
+            entry_date = collection.resource_start_date(resource)
+
+        # resource specific default values
+        if len(organisations) == 1:
+            default_values["organisation"] = organisations[0]
+
+        if entry_date:
+            default_values["entry-date"] = entry_date
 
         run_pipeline(
             ConvertPhase(
@@ -194,13 +199,14 @@ class DigitalLandApi(object):
             # TBD: break down this complicated phase
             HarmonisePhase(
                 specification=self.specification,
-                dataset=dataset,
                 issues=issue_log,
                 patches=patches,
-                default_fieldnames=default_fieldnames,
                 plugin_manager=plugin_manager,
-                organisations=organisations,
-                entry_date=entry_date,
+            ),
+            DefaultPhase(
+                default_fields=default_fields,
+                default_values=default_values,
+                issues=issue_log,
             ),
             SavePhase(
                 self.default_output_path("harmonised", input_path),
