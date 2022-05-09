@@ -6,6 +6,7 @@ from digital_land.api import DigitalLandApi
 from digital_land.specification import specification_path
 
 
+@pytest.mark.skip("data needs updating")
 @pytest.mark.parametrize(
     "dataset_name",
     [
@@ -60,6 +61,7 @@ def test_package_dataset(
         assert list(actual_dict_reader) == list(expected_dict_reader)
 
 
+@pytest.mark.skip("data needs updating")
 @pytest.mark.parametrize(
     "dataset_name",
     [
