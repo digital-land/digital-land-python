@@ -21,3 +21,5 @@ $(error sqldiff not found in PATH)
 endif
 	sudo apt-get install sqlite3
 endif
+	pyproj sync --file uk_os_OSTN15_NTv2_OSGBtoETRS.tif -v
+
