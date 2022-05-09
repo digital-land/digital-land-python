@@ -1,4 +1,4 @@
-#!/usr/bin/env pytest
+#!/usr/bin/env -S py.test -svv
 
 from digital_land.log import IssueLog
 from digital_land.datatype.point import PointDataType
@@ -74,8 +74,8 @@ def test_point_northings_eastings():
 
     # Nelson's column TQ 30015 80415
     assert point.normalise(["530015", "180415"], issues=issues) == [
-        "-0.127985",
-        "51.507717",
+        "-0.12796",
+        "51.507718",
     ]
     assert issue_type(issues) == "OSGB"
 
@@ -86,8 +86,8 @@ def test_point_flipped_northings_eastings():
 
     # Nelson's column TQ 30015 80415
     assert point.normalise(["180415", "530015"], issues=issues) == [
-        "-0.127985",
-        "51.507717",
+        "-0.12796",
+        "51.507718",
     ]
     assert issue_type(issues) == "OSGB flipped"
 

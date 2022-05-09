@@ -13,6 +13,9 @@ import logging
 # use PyProj to transform coordinates between systems
 # https://pyproj4.github.io/pyproj/stable/api/transformer.html#transformer
 
+if not TransformerGroup("epsg:27700", "epsg:4326").best_available:
+    logging.warning("not using the best available OSGB correction tables")
+
 # convert from OSGB Northings and Eastings to WGS84
 # https://epsg.io/27700
 # https://epsg.io/4326
@@ -23,10 +26,6 @@ osgb_to_wgs84 = Transformer.from_crs(27700, 4326, always_xy=True)
 # https://epsg.io/4326
 mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
-def check_data_grids_downloaded():
-    "Function to check that additional data grids have been downloaded to increase the accuracy of our convertions"
-    tg = TransformerGroup('epsg:27700','epsg:4326')
-    return tg.best_available
 
 def degrees_like(x, y):
     return x > -60.0 and x < 60.0 and y > -60.0 and y < 60.0
@@ -78,9 +77,6 @@ def parse_wkt(value):
         return None, "WGS84 out of bounds"
 
     if easting_northing_like(x, y):
-        if not check_data_grids_downloaded:
-            logging.warning('We are not using the most accurate projection available due to missing data grids')
-
         if osgb_within_england(x, y):
             return transform(osgb_to_wgs84.transform, geometry), "OSGB"
 
