@@ -5,6 +5,7 @@ from shapely.geometry import MultiPolygon
 from shapely.geometry.polygon import orient
 from shapely.validation import explain_validity, make_valid
 from pyproj import Transformer
+from pyproj.transformer import TransformerGroup
 from .datatype import DataType
 import logging
 
@@ -22,6 +23,10 @@ osgb_to_wgs84 = Transformer.from_crs(27700, 4326, always_xy=True)
 # https://epsg.io/4326
 mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
+def check_data_grids_downloaded():
+    "Function to check that additional data grids have been downloaded to increase the accuracy of our convertions"
+    tg = TransformerGroup('epsg:27700','epsg:4326')
+    return tg.best_available
 
 def degrees_like(x, y):
     return x > -60.0 and x < 60.0 and y > -60.0 and y < 60.0
@@ -73,6 +78,9 @@ def parse_wkt(value):
         return None, "WGS84 out of bounds"
 
     if easting_northing_like(x, y):
+        if not check_data_grids_downloaded:
+            logging.warning('We are not using the most accurate projection available due to missing data grids')
+
         if osgb_within_england(x, y):
             return transform(osgb_to_wgs84.transform, geometry), "OSGB"
 
