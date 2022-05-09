@@ -183,39 +183,37 @@ def dataset_dump_hoisted_cmd(input_path, output_path):
 
 @cli.command("pipeline", short_help="process a resource")
 @input_output_path
-@collection_dir
-@click.option(
-    "--null-path",
-    type=click.Path(exists=True),
-    help="patterns for null fields",
-    default=None,
-)
 @issue_dir
-@organisation_path
-@click.option("--save-harmonised", is_flag=True)
 @column_field_dir
 @dataset_resource_dir
+@organisation_path
+@click.option("--save-harmonised", is_flag=True)
+@click.option("--endpoints", help="list of endpoint hashes", default="")
+@click.option("--organisations", help="list of organisations", default="")
+@click.option("--entry-date", help="default entry-date value", default="")
 def pipeline_cmd_API(
     input_path,
     output_path,
-    collection_dir,
-    null_path,
     issue_dir,
-    organisation_path,
-    save_harmonised,
     column_field_dir,
     dataset_resource_dir,
+    organisation_path,
+    save_harmonised,
+    endpoints,
+    organisations,
+    entry_date,
 ):
     return API.pipeline_cmd(
         input_path,
         output_path,
-        collection_dir,
-        null_path,
-        issue_dir,
-        organisation_path,
-        save_harmonised,
-        column_field_dir,
-        dataset_resource_dir,
+        issue_dir=issue_dir,
+        column_field_dir=column_field_dir,
+        dataset_resource_dir=dataset_resource_dir,
+        organisation_path=organisation_path,
+        save_harmonised=save_harmonised,
+        endpoints=endpoints,
+        organisations=organisations,
+        entry_date=entry_date,
     )
 
 

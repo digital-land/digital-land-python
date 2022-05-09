@@ -199,6 +199,10 @@ class Collection:
         "the list of endpoints a resource was collected from"
         return self.resource.records[resource][-1]["endpoints"].split(";")
 
+    def resource_start_date(self, resource):
+        "the first date a resource was collected"
+        return self.resource.records[resource][-1]["start-date"]
+
     def resource_organisations(self, resource):
         "the list of organisations for which a resource was collected"
         return self.resource.records[resource][-1]["organisations"].split(";")

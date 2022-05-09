@@ -39,6 +39,9 @@ def pipeline_makerules(collection):
             fixed_path = Path("fixed") / (resource + ".csv")
             resource_path = collection.resource_path(resource)
             resource_path = fixed_path if os.path.isfile(fixed_path) else resource_path
+            endpoints = " ".join(collection.resource_endpoints(resource))
+            organisations = " ".join(collection.resource_organisations(resource))
+            entry_date = collection.resource_start_date(resource)
 
             print(
                 "\n%s: %s"
@@ -47,15 +50,12 @@ def pipeline_makerules(collection):
                     resource_path,
                 )
             )
-            print("\t@echo")
-            print("\t: resource:", resource)
             print(
-                "\t: organisations:",
-                " ".join(collection.resource_organisations(resource)),
+                "\t$(call run-pipeline,"
+                + f" --endpoints '{endpoints}'"
+                + f" --organisations '{organisations}'"
+                + f" --entry-date '{entry_date}')"
             )
-            print("\t: endpoints:", " ".join(collection.resource_endpoints(resource)))
-            print("\t@echo")
-            print("\t$(run-pipeline)")
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
         print("\t$(build-dataset)")

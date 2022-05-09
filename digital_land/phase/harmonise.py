@@ -18,19 +18,26 @@ class HarmonisePhase(Phase):
         specification=None,
         dataset=None,
         issues=None,
-        collection={},
         patches={},
         default_fieldnames={},
         plugin_manager=None,
+        organisations=[],
+        entry_date="",
     ):
         self.specification = specification
         self.dataset = dataset
         self.default_values = {}
         self.default_fieldnames = {}
         self.issues = issues
-        self.collection = collection
         self.patch = patches
         self.default_fieldnames = default_fieldnames
+
+        # resource specific default values
+        if len(organisations) == 1:
+            self.default_values["organisation"] = organisations[0]
+
+        if entry_date:
+            self.default_values["entry-date"] = entry_date
 
     def log_issue(self, field, issue, value):
         if self.issues:
@@ -59,9 +66,7 @@ class HarmonisePhase(Phase):
         return value
 
     def set_default(self, o, fieldname, value):
-        if fieldname not in o:
-            return o
-        if value and not o[fieldname]:
+        if value and not o.get(fieldname, ""):
             self.log_issue(fieldname, "default", value)
             o[fieldname] = value
         return o
@@ -76,22 +81,7 @@ class HarmonisePhase(Phase):
 
         return o
 
-    def set_resource_defaults(self, resource):
-        self.default_values = {}
-        if not resource:
-            return
-
-        resource_entry = self.collection.resource.records[resource][0]
-        resource_organisations = self.collection.resource_organisations(resource)
-
-        self.default_values["organisation"] = (
-            resource_organisations[0] if len(resource_organisations) == 1 else ""
-        )
-        self.default_values["entry-date"] = resource_entry["start-date"]
-
     def process(self, stream):
-        last_resource = None
-
         for block in stream:
             row = block["row"]
             resource = block["resource"]
@@ -101,9 +91,6 @@ class HarmonisePhase(Phase):
                 self.issues.resource = resource
                 self.issues.line_number = block["line-number"]
                 self.issues.entry_number = block["entry-number"]
-
-            if not last_resource or last_resource != resource:
-                self.set_resource_defaults(resource)
 
             o = {}
 
@@ -148,8 +135,6 @@ class HarmonisePhase(Phase):
                 o["wikipedia"] = row["wikipedia"].replace(
                     "https://en.wikipedia.org/wiki/", ""
                 )
-
-            last_resource = resource
 
             block["row"] = o
             yield block
