@@ -60,7 +60,7 @@ def parse_wkt(value):
     except WKTReadingError:
         return None, "invalid WKT"
 
-    if geometry.geom_type == "Point":
+    if geometry.geom_type in ["Point", "LineString"]:
         first_point = geometry.coords[0]
     else:
         first_point = geometry.geoms[0].exterior.coords[0]
@@ -103,7 +103,7 @@ def parse_wkt(value):
 
 
 def make_multipolygon(geometry):
-    if geometry.geom_type in ["Point", "Line", "MultiLineString"]:
+    if geometry.geom_type in ["Point", "Line", "LineString", "MultiLineString"]:
         return None
 
     if geometry.geom_type == "MultiPolygon":
