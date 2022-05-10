@@ -78,7 +78,7 @@ class HarmonisePhase(Phase):
             for typology in ["organisation", "geography", "document"]:
                 value = o.get(typology, "")
                 if value and ":" not in value:
-                    o[typology] = "%s:%s" % (row["dataset"], value)
+                    o[typology] = "%s:%s" % (block["dataset"], value)
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
