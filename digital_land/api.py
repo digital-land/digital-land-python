@@ -208,11 +208,9 @@ class DigitalLandApi(object):
                 default_values=default_values,
                 issues=issue_log,
             ),
-            SavePhase(
-                self.default_output_path("harmonised", input_path),
-                fieldnames=intermediate_fieldnames,
-                enabled=save_harmonised,
-            ),
+            # TBD: move migrating columns to fields to be immediately after map
+            # this will simplify harmonisation but effect brownfield-land
+            # and other pipelines which operate on columns
             MigratePhase(
                 fields=self.specification.schema_field[schema],
                 migrations=self.pipeline.migrations(),
@@ -225,6 +223,11 @@ class DigitalLandApi(object):
             ),
             EntityPrefixPhase(dataset=dataset),
             EntityLookupPhase(lookups),
+            SavePhase(
+                self.default_output_path("harmonised", input_path),
+                fieldnames=intermediate_fieldnames,
+                enabled=save_harmonised,
+            ),
             EntityPrunePhase(
                 issue_log=issue_log, dataset_resource_log=dataset_resource_log
             ),
