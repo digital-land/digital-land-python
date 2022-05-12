@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 
 from .phase import Phase
@@ -6,18 +5,13 @@ from digital_land.datatype.point import PointDataType
 
 
 class HarmonisePhase(Phase):
-    patch = {}
-
     def __init__(
         self,
         specification=None,
         issues=None,
-        patches={},
-        plugin_manager=None,
     ):
         self.specification = specification
         self.issues = issues
-        self.patch = patches
 
     def harmonise_field(self, fieldname, value):
         if not value:
@@ -26,18 +20,6 @@ class HarmonisePhase(Phase):
         self.issues.fieldname = fieldname
         datatype = self.specification.field_type(fieldname)
         return datatype.normalise(value, issues=self.issues)
-
-    def apply_patch(self, fieldname, value):
-        patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
-        for pattern, replacement in patches.items():
-            match = re.match(pattern, value, flags=re.IGNORECASE)
-            if match:
-                newvalue = match.expand(replacement)
-                if newvalue != value:
-                    self.issues.log_issue(fieldname, "patch", value)
-                return newvalue
-
-        return value
 
     def process(self, stream):
         for block in stream:
@@ -51,10 +33,9 @@ class HarmonisePhase(Phase):
             o = {}
 
             for field in row:
-                row[field] = self.apply_patch(field, row[field])
                 o[field] = self.harmonise_field(field, row[field])
 
-            # future entry dates
+            # remove future entry dates
             for field in ["entry-date", "LastUpdatedDate"]:
                 if (
                     o.get(field, "")

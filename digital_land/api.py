@@ -23,6 +23,7 @@ from .phase.lookup import EntityLookupPhase, FactLookupPhase
 from .phase.map import MapPhase
 from .phase.normalise import NormalisePhase
 from .phase.organisation import OrganisationPhase
+from .phase.patch import PatchPhase
 from .phase.parse import ParsePhase
 from .phase.pivot import PivotPhase
 from .phase.prefix import EntityPrefixPhase
@@ -32,7 +33,6 @@ from .phase.reference import EntityReferencePhase, FactReferencePhase
 from .phase.save import SavePhase
 from .phase.migrate import MigratePhase
 from .pipeline import Pipeline, run_pipeline
-from .plugin import get_plugin_manager
 from .schema import Schema
 from .specification import Specification
 from .update import add_source_endpoint
@@ -150,7 +150,6 @@ class DigitalLandApi(object):
         intermediate_fieldnames = self.specification.intermediate_fieldnames(
             self.pipeline
         )
-        plugin_manager = get_plugin_manager()
         issue_log = IssueLog(dataset=dataset, resource=resource)
         column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
         dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
@@ -196,12 +195,13 @@ class DigitalLandApi(object):
                 log=column_field_log,
             ),
             FilterPhase(self.pipeline.filters(resource)),
-            # TBD: break down this complicated phase
+            PatchPhase(
+                issues=issue_log,
+                patches=patches,
+            ),
             HarmonisePhase(
                 specification=self.specification,
                 issues=issue_log,
-                patches=patches,
-                plugin_manager=plugin_manager,
             ),
             DefaultPhase(
                 default_fields=default_fields,
