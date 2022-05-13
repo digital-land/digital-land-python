@@ -23,18 +23,21 @@ class DefaultPhase(Phase):
                 self.issues.line_number = block["line-number"]
                 self.issues.entry_number = block["entry-number"]
 
-            # default is from the contents of another field in this row
+            # default field from another field
             for field in self.default_fields:
-                for default_field in self.default_fields[field]:
+                if not row.get(field, ""):
+                    default_field = self.default_fields.get(field, "")
                     value = row.get(default_field, "")
-                    if value and not row.get(field, ""):
+                    if value:
                         self.issues.log_issue(field, "default-field", default_field)
                         row[field] = value
 
-            # default value for the whole resource
-            for field, value in self.default_values.items():
-                if value and not row.get(field, ""):
-                    self.issues.log_issue(field, "default-value", value)
-                    row[field] = value
+            # default field value
+            for field in self.default_values:
+                if not row.get(field, ""):
+                    value = self.default_values.get(field, "")
+                    if value:
+                        self.issues.log_issue(field, "default-value", value)
+                        row[field] = value
 
             yield block

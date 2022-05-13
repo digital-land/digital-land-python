@@ -154,10 +154,14 @@ class DigitalLandApi(object):
         column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
         dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
-        patches = self.pipeline.patches(resource)
-        lookups = self.pipeline.lookups(resource)
-        default_fields = self.pipeline.default_fields(resource)
-        default_values = self.pipeline.default_values(resource, endpoints)
+        # load pipeline configuration
+        skip_patterns = self.pipeline.skip_patterns(resource)
+        columns = self.pipeline.columns(resource)
+        concats = self.pipeline.concatenations(resource)
+        patches = self.pipeline.patches(resource=resource)
+        lookups = self.pipeline.lookups(resource=resource)
+        default_fields = self.pipeline.default_fields(resource=resource)
+        default_values = self.pipeline.default_values(endpoints=endpoints)
 
         # load organisations
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
@@ -183,15 +187,12 @@ class DigitalLandApi(object):
                 dataset_resource_log=dataset_resource_log,
                 custom_temp_dir=custom_temp_dir,
             ),
-            NormalisePhase(self.pipeline.skip_patterns(resource), null_path=null_path),
+            NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
             ParsePhase(),
-            ConcatFieldPhase(
-                concats=self.pipeline.concatenations(resource),
-                log=column_field_log,
-            ),
+            ConcatFieldPhase(concats=concats, log=column_field_log),
             MapPhase(
                 fieldnames=intermediate_fieldnames,
-                columns=self.pipeline.columns(resource),
+                columns=columns,
                 log=column_field_log,
             ),
             FilterPhase(self.pipeline.filters(resource)),
@@ -209,8 +210,8 @@ class DigitalLandApi(object):
                 issues=issue_log,
             ),
             # TBD: move migrating columns to fields to be immediately after map
-            # this will simplify harmonisation but effect brownfield-land
-            # and other pipelines which operate on columns
+            # this will simplify harmonisation and remove intermediate_fieldnames
+            # but effects brownfield-land and other pipelines which operate on columns
             MigratePhase(
                 fields=self.specification.schema_field[schema],
                 migrations=self.pipeline.migrations(),

@@ -1,3 +1,5 @@
+#!/usr/bin/env -S py.test -svv
+
 from digital_land.pipeline import Pipeline
 
 
@@ -57,13 +59,13 @@ def test_resource_specific_patches():
 
 def test_default_fields():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
-    assert p.default_fields() == {"field-integer": ["field-two"]}
+    assert p.default_fields() == {"field-integer": "field-two"}
 
 
 def test_resource_specific_default_fields():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
     assert p.default_fields("resource-one") == {
-        "field-integer": ["field-other-integer", "field-two"]
+        "field-integer": "field-other-integer",
     }
 
 

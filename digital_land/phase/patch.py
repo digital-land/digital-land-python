@@ -34,10 +34,7 @@ class PatchPhase(Phase):
             self.issues.line_number = block["line-number"]
             self.issues.entry_number = block["entry-number"]
 
-            o = {}
-
             for field in row:
                 row[field] = self.apply_patch(field, row[field])
 
-            block["row"] = o
             yield block

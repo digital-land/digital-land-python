@@ -33,14 +33,16 @@ class Pipeline:
         self.filter = {}
         self.skip_pattern = {}
         self.patch = {}
-        self.default = {}
+        self.default_field = {}
+        self.default_value = {}
         self.concat = {}
         self.migrate = {}
         self.lookup = {}
         self.load_column()
         self.load_skip_patterns()
         self.load_patch()
-        self.load_default()
+        self.load_default_fields()
+        self.load_default_values()
         self.load_concat()
         self.load_migrate()
         self.load_lookup()
@@ -48,75 +50,67 @@ class Pipeline:
 
     def _reader(self, filename):
         # read a file from the pipeline path, ignore if missing
-        file = os.path.join(self.path, filename)
-        if not os.path.isfile(file):
+        path = os.path.join(self.path, filename)
+        if not os.path.isfile(path):
             return []
-        return csv.DictReader(open(file))
+        logging.debug(f"load {path}")
+        return csv.DictReader(open(path))
 
     def _row_reader(self, filename):
-        reader = self._reader(filename)
-
-        # filter out rows not relevant to this pipeline
-        for row in reader:
+        for row in self._reader(filename):
             row["dataset"] = row.get("dataset", "") or row["pipeline"]
             if row["dataset"] and row["dataset"] != self.name:
                 continue
             yield row
 
-    @property
-    def schema(self):
-        raise NotImplementedError()
-
     def load_column(self):
-        reader = self._row_reader("column.csv")
-        for row in reader:
-            resource_column = self.column.setdefault(row["resource"], {})
+        for row in self._row_reader("column.csv"):
+            record = self.column.setdefault(row["resource"], {})
 
             # migrate column.csv
             row["column"] = row.get("column", "") or row["pattern"]
             row["field"] = row.get("field", "") or row["value"]
 
-            resource_column[normalise(row["column"])] = row["field"]
+            record[normalise(row["column"])] = row["field"]
 
     def load_filter(self):
-        reader = self._row_reader("filter.csv")
-        for row in reader:
-            filter = self.filter.setdefault(row["resource"], {})
-            filter[row["field"]] = row["pattern"]
+        for row in self._row_reader("filter.csv"):
+            record = self.filter.setdefault(row["resource"], {})
+            record[row["field"]] = row["pattern"]
 
     def load_skip_patterns(self):
-        reader = self._row_reader("skip.csv")
-        for row in reader:
-            pattern = self.skip_pattern.setdefault(row["resource"], [])
-            pattern.append(row["pattern"])
+        for row in self._row_reader("skip.csv"):
+            record = self.skip_pattern.setdefault(row["resource"], [])
+            record.append(row["pattern"])
 
     def load_patch(self):
-        reader = self._row_reader("patch.csv")
-        for row in reader:
+        for row in self._row_reader("patch.csv"):
             resource_patch = self.patch.setdefault(row["resource"], {})
             field_patch = resource_patch.setdefault(row["field"], {})
             field_patch[row["pattern"]] = row["value"]
 
-    def load_default(self):
-        reader = self._row_reader("default.csv")
-        for row in reader:
-            resource_default = self.default.setdefault(row["resource"], {})
-            field_default = resource_default.setdefault(row["field"], [])
-            field_default.append(row["default-field"])
+    def load_default_fields(self):
+        # TBD: rename default-field.csv
+        for row in self._row_reader("default.csv"):
+            record = self.default_field.setdefault(row.get("resource", ""), {})
+            record[row["field"]] = row["default-field"]
+
+    def load_default_values(self):
+        for row in self._row_reader("default-value.csv"):
+            record = self.default_value.setdefault(row.get("endpoint", ""), {})
+            record[row["field"]] = row["value"]
 
     def load_concat(self):
-        reader = self._row_reader("concat.csv")
-        for row in reader:
-            resource_concat = self.concat.setdefault(row["resource"], {})
-            resource_concat[row["field"]] = {
+        for row in self._row_reader("concat.csv"):
+            record = self.concat.setdefault(row["resource"], {})
+            record[row["field"]] = {
                 "fields": row["fields"].split(";"),
                 "separator": row["separator"],
             }
 
+    # TBD: remove this table, should come from specification replacement-field
     def load_migrate(self):
-        # TBD: remove this table, should come from specification replacement-field
-        reader = self._row_reader("transform.csv")
-        for row in reader:
+        for row in self._row_reader("transform.csv"):
             if row["replacement-field"] == "":
                 continue
 
@@ -129,8 +123,7 @@ class Pipeline:
             self.migrate[row["replacement-field"]] = row["field"]
 
     def load_lookup(self):
-        reader = self._reader("lookup.csv")
-        for row in reader:
+        for row in self._reader("lookup.csv"):
 
             # migrate old lookup.csv files
             entry_number = row.get("entry-number", "")
@@ -208,25 +201,20 @@ class Pipeline:
 
         return result
 
-    def default_fields(self, resource=None, endpoints=[]):
-        general_default = self.default.get("", {})
-        if not resource:
-            return general_default
+    def default_fields(self, resource=None):
+        config = self.default_field
+        d = config.get("", {})
+        for key, value in config.get(resource, {}).items():
+            d[key] = value
+        return d
 
-        resource_default = self.default.get(resource, {})
-
-        result = {}
-        for field, default in resource_default.items():
-            result[field] = default + general_default.pop(field, [])
-
-        # Merge any remaining general defaults into the result
-        result.update(general_default)
-
-        return result
-
-    def default_values(self, resource=None, endpoints=[]):
-        default_values = {}
-        return default_values
+    def default_values(self, endpoints=[]):
+        config = self.default_value
+        d = config.get("", {})
+        for endpoint in endpoints:
+            for key, value in config.get(endpoint, {}).items():
+                d[key] = value
+        return d
 
     def concatenations(self, resource=None):
         general_concat = self.concat.get("", {})
