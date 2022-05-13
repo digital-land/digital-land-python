@@ -48,7 +48,7 @@ class Pipeline:
         self.load_lookup()
         self.load_filter()
 
-    def _reader(self, filename):
+    def file_reader(self, filename):
         # read a file from the pipeline path, ignore if missing
         path = os.path.join(self.path, filename)
         if not os.path.isfile(path):
@@ -56,15 +56,15 @@ class Pipeline:
         logging.debug(f"load {path}")
         return csv.DictReader(open(path))
 
-    def _row_reader(self, filename):
-        for row in self._reader(filename):
+    def reader(self, filename):
+        for row in self.file_reader(filename):
             row["dataset"] = row.get("dataset", "") or row["pipeline"]
             if row["dataset"] and row["dataset"] != self.name:
                 continue
             yield row
 
     def load_column(self):
-        for row in self._row_reader("column.csv"):
+        for row in self.reader("column.csv"):
             record = self.column.setdefault(row["resource"], {})
 
             # migrate column.csv
@@ -74,34 +74,34 @@ class Pipeline:
             record[normalise(row["column"])] = row["field"]
 
     def load_filter(self):
-        for row in self._row_reader("filter.csv"):
+        for row in self.reader("filter.csv"):
             record = self.filter.setdefault(row["resource"], {})
             record[row["field"]] = row["pattern"]
 
     def load_skip_patterns(self):
-        for row in self._row_reader("skip.csv"):
+        for row in self.reader("skip.csv"):
             record = self.skip_pattern.setdefault(row["resource"], [])
             record.append(row["pattern"])
 
     def load_patch(self):
-        for row in self._row_reader("patch.csv"):
-            resource_patch = self.patch.setdefault(row["resource"], {})
-            field_patch = resource_patch.setdefault(row["field"], {})
-            field_patch[row["pattern"]] = row["value"]
+        for row in self.reader("patch.csv"):
+            record = self.patch.setdefault(row["resource"], {})
+            record = record.setdefault(row["field"], {})
+            record[row["pattern"]] = row["value"]
 
     def load_default_fields(self):
         # TBD: rename default-field.csv
-        for row in self._row_reader("default.csv"):
+        for row in self.reader("default.csv"):
             record = self.default_field.setdefault(row.get("resource", ""), {})
             record[row["field"]] = row["default-field"]
 
     def load_default_values(self):
-        for row in self._row_reader("default-value.csv"):
+        for row in self.reader("default-value.csv"):
             record = self.default_value.setdefault(row.get("endpoint", ""), {})
             record[row["field"]] = row["value"]
 
     def load_concat(self):
-        for row in self._row_reader("concat.csv"):
+        for row in self.reader("concat.csv"):
             record = self.concat.setdefault(row["resource"], {})
             record[row["field"]] = {
                 "fields": row["fields"].split(";"),
@@ -110,7 +110,7 @@ class Pipeline:
 
     # TBD: remove this table, should come from specification replacement-field
     def load_migrate(self):
-        for row in self._row_reader("transform.csv"):
+        for row in self.reader("transform.csv"):
             if row["replacement-field"] == "":
                 continue
 
@@ -123,7 +123,7 @@ class Pipeline:
             self.migrate[row["replacement-field"]] = row["field"]
 
     def load_lookup(self):
-        for row in self._reader("lookup.csv"):
+        for row in self.file_reader("lookup.csv"):
 
             # migrate old lookup.csv files
             entry_number = row.get("entry-number", "")
@@ -154,16 +154,10 @@ class Pipeline:
             ] = row["entity"]
 
     def filters(self, resource=""):
-        general_filters = self.filter.get("", {})
-        if not resource:
-            return general_filters
-
-        resource_filters = self.filter.get(resource, {})
-        result = {}
-        result.update(general_filters)
-        result.update(resource_filters)
-
-        return result
+        d = self.filter.get("", {})
+        if resource:
+            d.update(self.filter.get(resource, {}))
+        return d
 
     def columns(self, resource=""):
         general_columns = self.column.get("", {})
@@ -217,36 +211,19 @@ class Pipeline:
         return d
 
     def concatenations(self, resource=None):
-        general_concat = self.concat.get("", {})
-
-        if not resource:
-            return general_concat
-
-        resource_concat = self.concat.get(resource, {})
-
-        result = {}
-        result.update(general_concat)
-        result.update(resource_concat)
-        return result
+        d = self.concat.get("", {})
+        if resource:
+            d.update(self.concat.get(resource, {}))
+        return d
 
     def migrations(self):
         return self.migrate
 
-    def conversions(self):
-        return {}  # TODO
-
     def lookups(self, resource=None):
-        general_lookup = self.lookup.get("", {})
-
-        if not resource:
-            return general_lookup
-
-        resource_lookup = self.lookup.get(resource, {})
-
-        result = {}
-        result.update(general_lookup)
-        result.update(resource_lookup)
-        return result
+        d = self.lookup.get("", {})
+        if resource:
+            d.update(self.lookup.get(resource, {}))
+        return d
 
     def get_pipeline_callback(self):
         file = os.path.join(self.path, "pipeline-callback.py")
