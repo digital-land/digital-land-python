@@ -17,7 +17,7 @@ def chain_phases(phases):
 
 def run_pipeline(*args):
     logging.debug(f"run_pipeline {args}")
-    chain = chain_phases(args)
+    chain = chain_phases([arg for arg in args if arg])
 
     stream = chain(None)
     for row in stream:
@@ -35,15 +35,18 @@ class Pipeline:
         self.patch = {}
         self.default_field = {}
         self.default_value = {}
+        self.combine_field = {}
         self.concat = {}
         self.migrate = {}
         self.lookup = {}
+
         self.load_column()
         self.load_skip_patterns()
         self.load_patch()
         self.load_default_fields()
         self.load_default_values()
         self.load_concat()
+        self.load_combine_fields()
         self.load_migrate()
         self.load_lookup()
         self.load_filter()
@@ -99,6 +102,11 @@ class Pipeline:
         for row in self.reader("default-value.csv"):
             record = self.default_value.setdefault(row.get("endpoint", ""), {})
             record[row["field"]] = row["value"]
+
+    def load_combine_fields(self):
+        for row in self.reader("combine.csv"):
+            record = self.combine_field.setdefault(row.get("endpoint", ""), {})
+            record[row["field"]] = row["separator"]
 
     def load_concat(self):
         for row in self.reader("concat.csv"):
@@ -204,6 +212,14 @@ class Pipeline:
 
     def default_values(self, endpoints=[]):
         config = self.default_value
+        d = config.get("", {})
+        for endpoint in endpoints:
+            for key, value in config.get(endpoint, {}).items():
+                d[key] = value
+        return d
+
+    def combine_fields(self, endpoints=[]):
+        config = self.combine_field
         d = config.get("", {})
         for endpoint in endpoints:
             for key, value in config.get(endpoint, {}).items():

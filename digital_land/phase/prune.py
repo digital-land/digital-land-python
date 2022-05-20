@@ -2,6 +2,29 @@ from .phase import Phase
 import logging
 
 
+class FieldPrunePhase(Phase):
+    """
+    reduce fields to just those specified for the dataset
+    """
+
+    def __init__(self, fields):
+        self.fields = list(
+            set(fields + ["entity", "organisation", "prefix", "reference"])
+        )
+        logging.debug(f"pruning fields to {self.fields}")
+
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
+
+            o = {}
+            for field in self.fields:
+                o[field] = row.get(field, "")
+
+            block["row"] = o
+            yield block
+
+
 class EntityPrunePhase(Phase):
     """
     remove entries with a missing entity

@@ -27,8 +27,8 @@ from .phase.patch import PatchPhase
 from .phase.parse import ParsePhase
 from .phase.pivot import PivotPhase
 from .phase.prefix import EntityPrefixPhase
-from .phase.prune import EntityPrunePhase, FactPrunePhase
-from .phase.reduce import ReducePhase
+from .phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrunePhase
+from .phase.combine import FactCombinePhase
 from .phase.reference import EntityReferencePhase, FactReferencePhase
 from .phase.save import SavePhase
 from .phase.migrate import MigratePhase
@@ -162,6 +162,7 @@ class DigitalLandApi(object):
         lookups = self.pipeline.lookups(resource=resource)
         default_fields = self.pipeline.default_fields(resource=resource)
         default_values = self.pipeline.default_values(endpoints=endpoints)
+        combine_fields = self.pipeline.combine_fields(endpoints=endpoints)
 
         # load organisations
         organisation = Organisation(organisation_path, Path(self.pipeline.path))
@@ -217,7 +218,7 @@ class DigitalLandApi(object):
                 migrations=self.pipeline.migrations(),
             ),
             OrganisationPhase(organisation=organisation),
-            ReducePhase(fields=self.specification.current_fieldnames(schema)),
+            FieldPrunePhase(fields=self.specification.current_fieldnames(schema)),
             EntityReferencePhase(
                 dataset=dataset,
                 specification=self.specification,
@@ -233,6 +234,7 @@ class DigitalLandApi(object):
                 issue_log=issue_log, dataset_resource_log=dataset_resource_log
             ),
             PivotPhase(),
+            FactCombinePhase(issue_log=issue_log, fields=combine_fields),
             FactorPhase(),
             FactReferencePhase(dataset=dataset, specification=self.specification),
             FactLookupPhase(lookups),

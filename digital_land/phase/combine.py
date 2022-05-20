@@ -1,0 +1,53 @@
+from copy import deepcopy
+from .phase import Phase
+
+
+def multipolygons(wkt):
+    assert wkt.startswith("MULTIPOLYGON (")
+    return wkt[len("MULTIPOLYGON (") : len(wkt) - 1]
+
+
+def combine_geometries(values):
+    return "MULTIPOLYGON (" + ",".join(multipolygons(wkt) for wkt in values) + ")"
+
+
+class FactCombinePhase(Phase):
+    """
+    combine a field value from multiple facts
+    """
+
+    def __init__(self, issue_log=None, fields=[]):
+        self.issues = issue_log
+        self.fields = fields
+        self.cache = {}  # this in-memory cache could get quite large
+
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
+            field = row["field"]
+
+            if field in self.fields:
+                e = self.cache.setdefault(row["entity"], {})
+                e.setdefault(field, [])
+                e[field].append(deepcopy(block))
+                continue
+
+            yield block
+
+        for entity, e in self.cache.items():
+            for field, blocks in e.items():
+                # combine unique values from blocks for this entity
+                values = sorted(set(block["row"]["value"] for block in blocks))
+                if field == "geometry":
+                    value = combine_geometries(values)
+                else:
+                    value = self.fields[field].join(values)
+
+                # emit blocks with the combined value
+                for block in blocks:
+                    self.issues.line_number = block["line-number"]
+                    self.issues.entry_number = block["entry-number"]
+                    self.issues.log_issue(field, "combined-value", entity)
+
+                    block["row"]["value"] = value
+                    yield block
