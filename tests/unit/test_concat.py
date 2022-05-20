@@ -4,7 +4,7 @@ from .testphase import TestPhase
 from digital_land.phase.concat import ConcatFieldPhase
 
 
-def test_map_concat():
+def test_concat():
     output = TestPhase(
         ConcatFieldPhase(
             concats={"CombinedField": {"fields": ["part1", "part2"], "separator": "."}},
