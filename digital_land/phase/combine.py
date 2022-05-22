@@ -36,8 +36,12 @@ class FactCombinePhase(Phase):
 
         for entity, e in self.cache.items():
             for field, blocks in e.items():
-                # combine unique values from blocks for this entity
-                values = sorted(set(block["row"]["value"] for block in blocks))
+                # combine unique values for this entity
+                values = (
+                    block["row"]["value"] for block in blocks if block["row"]["value"]
+                )
+                values = sorted(set(values))
+
                 if field == "geometry":
                     value = combine_geometries(values)
                 else:
