@@ -209,6 +209,18 @@ class ConvertPhase(Phase):
         if internal_path:
             return internal_path, "x-gis/x-mapinfo-tab"
 
+        internal_path = self._find_zip_file(input_path, ".geojson")
+        if internal_path:
+            return internal_path, "application/vnd.geo+json"
+
+        internal_path = self._find_zip_file(input_path, ".json")
+        if internal_path:
+            return internal_path, "application/vnd.geo+json"
+
+        internal_path = self._find_zip_file(input_path, ".kml")
+        if internal_path:
+            return internal_path, "application/vnd.google-earth.kml+xml"
+
         return None, None
 
     def _read_binary_file(self, input_path):
