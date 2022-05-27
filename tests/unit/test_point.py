@@ -131,7 +131,7 @@ def test_point_out_of_range_values():
     issues = IssueLog()
 
     assert point.normalise(["1000", "100000000"], issues=issues) == ["", ""]
-    assert issue_type(issues) == "invalid"
+    assert issue_type(issues) == "invalid coordinates"
 
     assert point.normalise(["100000000", "10000"], issues=issues) == ["", ""]
-    assert issue_type(issues) == "invalid"
+    assert issue_type(issues) == "invalid coordinates"

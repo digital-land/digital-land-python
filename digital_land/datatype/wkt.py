@@ -99,7 +99,7 @@ def parse_wkt(value):
             geometry = transform(mercator_to_wgs84.transform, geometry)
             return geometry, "Mercator flipped"
 
-    return None, "invalid"
+    return None, "invalid coordinates"
 
 
 def make_multipolygon(geometry):
@@ -181,7 +181,7 @@ class WktDataType(DataType):
             geometry, issue = normalise_geometry(geometry)
 
             if issue:
-                issues.log(issue, "")
+                issues.log("invalid geometry", issue)
 
         if not geometry:
             return default

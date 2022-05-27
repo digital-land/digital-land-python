@@ -152,10 +152,10 @@ def test_wkt_point_out_of_range_values():
     issues = IssueLog()
 
     assert wkt.normalise("POINT (1000 100000000)", issues=issues) == ""
-    assert issue_type(issues) == "invalid"
+    assert issue_type(issues) == "invalid coordinates"
 
     assert wkt.normalise("POINT (100000000 10000)", issues=issues) == ""
-    assert issue_type(issues) == "invalid"
+    assert issue_type(issues) == "invalid coordinates"
 
 
 def test_wkt_multipolygon_wgs84():

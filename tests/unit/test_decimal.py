@@ -1,3 +1,5 @@
+#!/usr/bin/env pytest
+
 from decimal import Decimal
 from digital_land.log import IssueLog
 from digital_land.datatype.decimal import DecimalDataType
@@ -31,7 +33,7 @@ def test_decimal_normalise():
     assert decimal.normalise("£1,200.00") == "1200"
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "decimal"
+    assert issue["issue-type"] == "invalid decimal"
     assert issue["value"] == "foo"
     assert issues.rows == []
 
@@ -42,13 +44,13 @@ def test_decimal_normalise():
     assert decimal.normalise("34.3", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "minimum"
+    assert issue["issue-type"] == "too small"
     assert issue["value"] == "34.3"
     assert issues.rows == []
 
     assert decimal.normalise("69.9", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "maximum"
+    assert issue["issue-type"] == "too large"
     assert issue["value"] == "69.9"
     assert issues.rows == []

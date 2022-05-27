@@ -63,7 +63,9 @@ class HarmonisePhase(Phase):
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
-                self.issues.log_issue("wikipedia", "removed prefix", row["wikipedia"])
+                self.issues.log_issue(
+                    "wikipedia", "removed URI prefix", row["wikipedia"]
+                )
                 o["wikipedia"] = row["wikipedia"].replace(
                     "https://en.wikipedia.org/wiki/", ""
                 )

@@ -19,6 +19,6 @@ class FlagDataType(DataType):
             return value
 
         if issues:
-            issues.log("flag", value)
+            issues.log("invalid flag", value)
 
         return ""

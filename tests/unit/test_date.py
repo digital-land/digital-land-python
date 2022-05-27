@@ -41,7 +41,7 @@ def test_date_normalise():
     assert date.normalise("2019-02-29", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "date"
+    assert issue["issue-type"] == "invalid date"
     assert issue["value"] == "2019-02-29"
     assert issues.rows == []
 
@@ -49,6 +49,6 @@ def test_date_normalise():
     assert date.normalise("foo", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "date"
+    assert issue["issue-type"] == "invalid date"
     assert issue["value"] == "foo"
     assert issues.rows == []

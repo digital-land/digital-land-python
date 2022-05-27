@@ -18,17 +18,17 @@ class IntegerDataType(DataType):
             n = int(value)
         except ValueError:
             if issues:
-                issues.log("integer", value)
+                issues.log("invalid integer", value)
             return ""
 
         if self.minimum is not None and n < self.minimum:
             if issues:
-                issues.log("minimum", value)
+                issues.log("too small", value)
             return ""
 
         if self.maximum is not None and n > self.maximum:
             if issues:
-                issues.log("maximum", value)
+                issues.log("too large", value)
             return ""
 
         return self.format(n)

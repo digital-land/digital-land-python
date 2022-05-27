@@ -44,6 +44,6 @@ class DateDataType(DataType):
                 pass
 
         if issues:
-            issues.log("date", fieldvalue)
+            issues.log("invalid date", fieldvalue)
 
         return ""

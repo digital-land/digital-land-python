@@ -15,6 +15,6 @@ def test_uri_normalise():
     assert uri.normalise("example.com", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "uri"
+    assert issue["issue-type"] == "invalid URI"
     assert issue["value"] == "example.com"
     assert issues.rows == []
