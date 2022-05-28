@@ -4,7 +4,7 @@ from .phase import Phase
 
 class FilterPhase(Phase):
     """
-    filter out rows based on field values
+    filter rows based on field values
     """
 
     filter_patterns = {}
@@ -16,17 +16,12 @@ class FilterPhase(Phase):
 
     def process(self, stream):
         for block in stream:
-            skip = False
+            include = True
             row = block["row"]
 
             for field in row:
-                if field in self.filter_patterns and self.filter_patterns[field].match(
-                    row[field]
-                ):
-                    skip = True
-                    break
+                if field in self.filter_patterns:
+                    include = self.filter_patterns[field].match(row[field])
 
-            if skip:
-                continue
-
-            yield block
+            if include:
+                yield block
