@@ -7,10 +7,10 @@ class FilterPhase(Phase):
     filter rows based on field values
     """
 
-    def __init__(self, filter_patterns={}):
-        self.filter_patterns = {}
-        for field, pattern in filter_patterns.items():
-            self.filter_patterns[field] = re.compile(pattern)
+    def __init__(self, filters={}):
+        self.filters = {}
+        for field, pattern in filters.items():
+            self.filters[field] = re.compile(pattern)
 
     def process(self, stream):
         for block in stream:
@@ -18,8 +18,8 @@ class FilterPhase(Phase):
             row = block["row"]
 
             for field in row:
-                if field in self.filter_patterns:
-                    include = self.filter_patterns[field].match(row[field])
+                if field in self.filters:
+                    include = self.filters[field].match(row[field])
                     print(field, row[field], include)
 
             if include:

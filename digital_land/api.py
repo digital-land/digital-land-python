@@ -196,7 +196,7 @@ class DigitalLandApi(object):
                 columns=columns,
                 log=column_field_log,
             ),
-            FilterPhase(self.pipeline.filters(resource)),
+            FilterPhase(filters=self.pipeline.filters(resource)),
             PatchPhase(
                 issues=issue_log,
                 patches=patches,
