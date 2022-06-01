@@ -23,7 +23,7 @@ tables = {
 indexes = {
     "old-entity": ["entity", "old-entity", "status"],
     "fact": ["entity"],
-    "fact-resource": ["resource", "fact"],
+    "fact-resource": ["fact"],
     "column-field": ["dataset", "resource", "column", "field"],
     "issue": [
         "resource",
