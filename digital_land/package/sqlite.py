@@ -223,7 +223,7 @@ class SqlitePackage(Package):
 
     def create_index(self, table, fields, name=None):
         if not name:
-            name = colname(table) + "_index"
+            name = colname(table) + "_".join(cols) + "_index"
         logging.info("creating index %s" % (name))
         cols = [colname(field) for field in fields if not field.endswith("-geom")]
         self.execute(
