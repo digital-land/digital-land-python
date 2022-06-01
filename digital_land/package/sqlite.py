@@ -246,7 +246,8 @@ class SqlitePackage(Package):
 
     def create_indexes(self):
         for table, fields in self.indexes.items():
-            self.create_index(table, fields)
+            for field in fields:
+                self.create_index(table, field)
 
     def create_database(self):
         if os.path.exists(self.path):

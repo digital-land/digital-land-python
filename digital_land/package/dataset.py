@@ -23,16 +23,9 @@ tables = {
 indexes = {
     "old-entity": ["entity", "old-entity", "status"],
     "fact": ["entity"],
-    "fact-resource": ["fact"],
+    "fact-resource": ["fact", "resource"],
     "column-field": ["dataset", "resource", "column", "field"],
-    "issue": [
-        "resource",
-        "dataset",
-        "line-number",
-        "entry-number",
-        "field",
-        "issue-type",
-    ],
+    "issue": ["resource", "dataset", "field"],
     "dataset-resource": ["resource"],
 }
 
