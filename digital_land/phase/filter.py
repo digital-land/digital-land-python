@@ -19,8 +19,7 @@ class FilterPhase(Phase):
 
             for field in row:
                 if field in self.filters:
-                    include = self.filters[field].match(row[field])
-                    print(field, row[field], include)
+                    include = self.filters[field].match(row[field]) is not None
 
             if include:
                 yield block
