@@ -19,7 +19,7 @@ def _reader(s):
 def test_filter_in():
     patterns = {"name": "^T"}
 
-    phase = FilterPhase(filter_patterns=patterns)
+    phase = FilterPhase(filters=patterns)
     stream = _reader("reference,name\r\n" + "1,One\r\n" + "2,Two\r\n" + "3,Three\r\n")
     out = list(phase.process(stream))
     assert out[0]["row"] == {"reference": "2", "name": "Two"}
