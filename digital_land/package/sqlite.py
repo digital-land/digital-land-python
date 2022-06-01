@@ -222,10 +222,12 @@ class SqlitePackage(Package):
             self.commit()
 
     def create_index(self, table, fields, name=None):
-        if not name:
-            name = colname(table) + "_".join(cols) + "_index"
-        logging.info("creating index %s" % (name))
+        if type(fields) is not list:
+            fields = [fields]
         cols = [colname(field) for field in fields if not field.endswith("-geom")]
+        if not name:
+            name = colname(table) + "_on_" + "__".join(cols) + "_index"
+        logging.info("creating index %s" % (name))
         self.execute(
             "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
             % (name, colname(table), ", ".join(cols))
@@ -245,9 +247,9 @@ class SqlitePackage(Package):
                 self.commit()
 
     def create_indexes(self):
-        for table, fields in self.indexes.items():
-            for field in fields:
-                self.create_index(table, field)
+        for table, index_fields in self.indexes.items():
+            for fields in index_fields:
+                self.create_index(table, fields)
 
     def create_database(self):
         if os.path.exists(self.path):
