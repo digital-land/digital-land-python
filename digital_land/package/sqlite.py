@@ -227,11 +227,12 @@ class SqlitePackage(Package):
         cols = [colname(field) for field in fields if not field.endswith("-geom")]
         if not name:
             name = colname(table) + "_on_" + "__".join(cols) + "_index"
-        logging.info("creating index %s" % (name))
-        self.execute(
-            "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
-            % (name, colname(table), ", ".join(cols))
-        )
+        if cols:
+            logging.info("creating index %s" % (name))
+            self.execute(
+                "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
+                % (name, colname(table), ", ".join(cols))
+            )
 
         if self._spatialite:
             logging.info("creating spatial indexes %s" % (name))
