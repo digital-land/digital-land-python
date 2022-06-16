@@ -25,7 +25,6 @@ class HarmonisePhase(Phase):
         for block in stream:
             row = block["row"]
 
-            self.issues.dataset = block["dataset"]
             self.issues.resource = block["resource"]
             self.issues.line_number = block["line-number"]
             self.issues.entry_number = block["entry-number"]

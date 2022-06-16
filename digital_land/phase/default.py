@@ -18,7 +18,6 @@ class DefaultPhase(Phase):
 
             # TBD: change log_issue to take these values from the block
             if self.issues:
-                self.issues.dataset = block["dataset"]
                 self.issues.resource = block["resource"]
                 self.issues.line_number = block["line-number"]
                 self.issues.entry_number = block["entry-number"]
