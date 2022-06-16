@@ -146,7 +146,8 @@ class DigitalLandApi(object):
         entry_date="",
     ):
         resource = self.resource_from_path(input_path)
-        dataset = schema = self.specification.pipeline[self.pipeline.name]["schema"]
+        dataset = self.dataset
+        schema = self.specification.pipeline[self.pipeline.name]["schema"]
         intermediate_fieldnames = self.specification.intermediate_fieldnames(
             self.pipeline
         )
