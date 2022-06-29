@@ -62,6 +62,8 @@ def parse_wkt(value):
 
     if geometry.geom_type in ["Point", "LineString"]:
         first_point = geometry.coords[0]
+    elif geometry.geom_type in ["Polygon"]:
+        first_point = geometry.exterior.coords[0]
     else:
         first_point = geometry.geoms[0].exterior.coords[0]
 
