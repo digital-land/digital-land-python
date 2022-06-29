@@ -124,10 +124,14 @@ class ResourceLogStore(CSVStore):
                 resources[resource]["endpoints"][entry["endpoint"]] = True
 
         for key, resource in sorted(resources.items()):
-            organisations = {}
+            organisations = set()
+            datasets = set()
             for endpoint in resource["endpoints"]:
                 for entry in source.records[endpoint]:
-                    organisations[entry["organisation"]] = True
+                    organisations.add(entry["organisation"])
+                    datasets = set(
+                        entry.get("datasets", entry.get("pipelines", "")).split(";")
+                    )
 
             end_date = isodate(resource["end-date"])
             if end_date >= today:
@@ -139,6 +143,7 @@ class ResourceLogStore(CSVStore):
                     "bytes": resource["bytes"],
                     "endpoints": ";".join(sorted(resource["endpoints"])),
                     "organisations": ";".join(sorted(organisations)),
+                    "datasets": ";".join(sorted(datasets)),
                     "start-date": isodate(resource["start-date"]),
                     "end-date": end_date,
                 }

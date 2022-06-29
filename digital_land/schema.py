@@ -50,6 +50,7 @@ schemas = {
             "resource",
             "bytes",
             "organisations",
+            "datasets",
             "endpoints",
             "start-date",
             "end-date",

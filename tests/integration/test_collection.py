@@ -1,3 +1,4 @@
+#!/usr/bin/env -S pytest -svv
 from csv import DictReader
 
 from digital_land.api import DigitalLandApi
