@@ -29,6 +29,7 @@ class SqlitePackage(Package):
         self.suffix = ".sqlite3"
         self._spatialite = None
         self.join_tables = {}
+        self.fields = {}
         super().__init__(*args, **kwargs)
 
     def field_coltype(self, field):
@@ -166,7 +167,7 @@ class SqlitePackage(Package):
 
     def load(self):
         for table in self.tables:
-            fields = self.specification.schema[table]["fields"]
+            fields = self.fields[table]
             path = "%s/%s.csv" % (self.tables[table], table)
             self.create_cursor()
             self.load_table(table, fields, path=path)
@@ -214,6 +215,7 @@ class SqlitePackage(Package):
                     ignore.add(field)
 
             fields = [field for field in fields if field not in ignore]
+            self.fields[table] = fields
 
             self.create_cursor()
             self.create_table(table, fields, key_field)
