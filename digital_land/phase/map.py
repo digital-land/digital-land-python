@@ -3,7 +3,7 @@ from ..log import ColumnFieldLog
 from .phase import Phase
 
 
-normalise_pattern = re.compile(r"[^a-z0-9-]")
+normalise_pattern = re.compile(r"[^a-z0-9-_]")
 
 
 def normalise(name):
@@ -72,6 +72,7 @@ class MapPhase(Phase):
             for header in headers:
                 if headers[header] == "IGNORE":
                     continue
+
                 o[headers[header]] = row.get(header, "")
 
             for header in self.normalised_fieldnames.values():
