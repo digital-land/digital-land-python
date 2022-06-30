@@ -188,11 +188,13 @@ class SqlitePackage(Package):
             self.commit()
 
     def create_tables(self):
+
         for table in self.tables:
             fields = self.specification.schema[table]["fields"]
             key_field = table
 
             # a join table for each list field
+            ignore = set()
             for field in fields:
                 if self.specification.field[field]["cardinality"] == "n" and "%s|%s" % (
                     table,
@@ -209,7 +211,9 @@ class SqlitePackage(Package):
                         "field": parent_field,
                         "split-field": field,
                     }
-                    fields.remove(field)
+                    ignore.add(field)
+
+            fields = [field for field in fields if field not in ignore]
 
             self.create_cursor()
             self.create_table(table, fields, key_field)
