@@ -171,6 +171,7 @@ class WktDataType(DataType):
         pass
 
     def normalise(self, value, default="", issues=None):
+
         if not value:
             return default
 
@@ -180,6 +181,17 @@ class WktDataType(DataType):
             issues.log(issue, "")
 
         if geometry:
+
+            # Reduce precision prior to normalisation.
+            # this prevents reintroduction of errors fixed by
+            # normalisation process. This was happening in some
+            # cases in the final dump_wkt call on more precise,
+            # fixed/normalised geometry. To reduce precision,
+            # round trip the geometry through shapely with 6 dp precision.
+
+            _wkt = dump_wkt(geometry, precision=6)
+            geometry = shapely.wkt.loads(_wkt)
+
             geometry, issue = normalise_geometry(geometry)
 
             if issue:

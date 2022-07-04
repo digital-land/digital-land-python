@@ -22,3 +22,5 @@ ssl.pem
 var
 .junitxml
 pyrightconfig.json
+.idea
+.python-version

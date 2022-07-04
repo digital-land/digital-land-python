@@ -1,0 +1,16 @@
+from tests.data.wkt.test_wkt_data import (
+    HADRIANS_WALL_OSGB,
+    UPWEY_QUARRIES_AND_BINCOMBE_DOWN_OSGB,
+    ASHDOWN_FOREST_PART_1_OSGB,
+    ASHDOWN_FOREST_PART_2_OSGB,
+    FELPHAM_OSGB,
+)
+
+self_intersections_osgb_wkt = [
+    HADRIANS_WALL_OSGB,
+    UPWEY_QUARRIES_AND_BINCOMBE_DOWN_OSGB,
+    ASHDOWN_FOREST_PART_1_OSGB,
+    ASHDOWN_FOREST_PART_2_OSGB,
+]
+
+too_few_points_osgb_wkt = [FELPHAM_OSGB]
