@@ -75,7 +75,7 @@ def test_point_northings_eastings():
     # Nelson's column TQ 30015 80415
     assert point.normalise(["530015", "180415"], issues=issues) == [
         "-0.12796",
-        "51.5077183",
+        "51.507718",
     ]
     assert issue_type(issues) == "OSGB"
 
@@ -87,7 +87,7 @@ def test_point_flipped_northings_eastings():
     # Nelson's column TQ 30015 80415
     assert point.normalise(["180415", "530015"], issues=issues) == [
         "-0.12796",
-        "51.5077183",
+        "51.507718",
     ]
     assert issue_type(issues) == "OSGB flipped"
 
