@@ -24,8 +24,8 @@ def test_parse_wkt_polygon():
         issues=issues,
     )
     assert (
-            output
-            == "MULTIPOLYGON (((-5.118622 50.203865,-5.118614 50.203882,-5.118724 50.203904,-5.118745 50.203907,-5.118752 50.203888,-5.118728 50.203884,-5.118622 50.203865)))"  # noqa: E501
+        output
+        == "MULTIPOLYGON (((-5.118622 50.203865,-5.118614 50.203882,-5.118724 50.203904,-5.118745 50.203907,-5.118752 50.203888,-5.118728 50.203884,-5.118622 50.203865)))"  # noqa: E501
     )
 
 
@@ -35,8 +35,8 @@ def test_wkt_point_wgs84():
 
     # Nelson's colum
     assert (
-            wkt.normalise("POINT( -0.127972   51.507722 )", issues=issues)
-            == "POINT (-0.127972 51.507722)"
+        wkt.normalise("POINT( -0.127972   51.507722 )", issues=issues)
+        == "POINT (-0.127972 51.507722)"
     )
     assert issue_type(issues) is None
 
@@ -47,8 +47,8 @@ def test_wkt_point_wgs84_south_west():
 
     # Scilly Isles
     assert (
-            wkt.normalise("POINT (-6.322778 49.936111)", issues=issues)
-            == "POINT (-6.322778 49.936111)"
+        wkt.normalise("POINT (-6.322778 49.936111)", issues=issues)
+        == "POINT (-6.322778 49.936111)"
     )
     assert issue_type(issues) is None
 
@@ -59,8 +59,8 @@ def test_wkt_point_wgs84_north_east():
 
     # Berwick-upon-Tweed
     assert (
-            wkt.normalise("POINT (-2.007 55.771)", issues=issues)
-            == "POINT (-2.007000 55.771000)"
+        wkt.normalise("POINT (-2.007 55.771)", issues=issues)
+        == "POINT (-2.007000 55.771000)"
     )
     assert issue_type(issues) is None
 
@@ -71,8 +71,8 @@ def test_wkt_point_wgs84_flipped():
 
     # Nelson's colum
     assert (
-            wkt.normalise("POINT (51.507722 -0.127972)", issues=issues)
-            == "POINT (-0.127972 51.507722)"
+        wkt.normalise("POINT (51.507722 -0.127972)", issues=issues)
+        == "POINT (-0.127972 51.507722)"
     )
     assert issue_type(issues) == "WGS84 flipped"
 
@@ -94,8 +94,8 @@ def test_wkt_point_northings_eastings():
 
     # Nelson's column TQ 30015 80415
     assert (
-            wkt.normalise("POINT (530015 180415)", issues=issues)
-            == "POINT (-0.127960 51.507718)"
+        wkt.normalise("POINT (530015 180415)", issues=issues)
+        == "POINT (-0.127960 51.507718)"
     )
     assert issue_type(issues) == "OSGB"
 
@@ -108,8 +108,8 @@ def test_parse_wkt_ogbd_to_wgs84_accuracy():
         issues=issues,
     )
     assert (
-            output
-            == "MULTIPOLYGON (((-5.118622 50.203865,-5.118614 50.203882,-5.118724 50.203904,-5.118745 50.203907,-5.118752 50.203888,-5.118728 50.203884,-5.118622 50.203865)))"  # noqa: E501
+        output
+        == "MULTIPOLYGON (((-5.118622 50.203865,-5.118614 50.203882,-5.118724 50.203904,-5.118745 50.203907,-5.118752 50.203888,-5.118728 50.203884,-5.118622 50.203865)))"  # noqa: E501
     )
 
 
@@ -119,8 +119,8 @@ def test_wkt_point_flipped_northings_eastings():
 
     # Nelson's column TQ 30015 80415
     assert (
-            wkt.normalise("POINT (180415 530015)", issues=issues)
-            == "POINT (-0.127960 51.507718)"
+        wkt.normalise("POINT (180415 530015)", issues=issues)
+        == "POINT (-0.127960 51.507718)"
     )
     assert issue_type(issues) == "OSGB flipped"
 
@@ -132,8 +132,8 @@ def test_wkt_point_mercator():
     # Nelson's Column
     # https://epsg.io/map#srs=3857&x=-14245.780102&y=6711600.069496&z=17&layer=streets
     assert (
-            wkt.normalise("POINT (-14245.780102 6711600.069496)", issues=issues)
-            == "POINT (-0.127972 51.507722)"
+        wkt.normalise("POINT (-14245.780102 6711600.069496)", issues=issues)
+        == "POINT (-0.127972 51.507722)"
     )
     assert issue_type(issues) == "Mercator"
 
@@ -145,8 +145,8 @@ def test_wkt_point_mercator_flipped():
     # Nelson's Column
     # https://epsg.io/map#srs=3857&x=-14245.780102&y=6711600.069496&z=17&layer=streets
     assert (
-            wkt.normalise("POINT (6711600.069496 -14245.780102)", issues=issues)
-            == "POINT (-0.127972 51.507722)"
+        wkt.normalise("POINT (6711600.069496 -14245.780102)", issues=issues)
+        == "POINT (-0.127972 51.507722)"
     )
 
 
