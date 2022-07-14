@@ -45,7 +45,7 @@ setup(
         "validators",
         "xlrd==1.2.0",
         "openpyxl",
-        "Shapely",
+        "Shapely==1.8.0",  # Version locking till https://github.com/shapely/shapely/issues/1364 is fixed
         "SPARQLWrapper",
         "pluggy",
         "sqlalchemy",
