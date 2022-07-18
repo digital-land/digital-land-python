@@ -1,4 +1,4 @@
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 from digital_land.datatype.date import DateDataType
 
 
@@ -37,18 +37,18 @@ def test_date_normalise():
     # found this in the wild
     assert date.normalise("22/05/2018\xa0") == "2018-05-22"
 
-    issues = Issues()
+    issues = IssueLog()
     assert date.normalise("2019-02-29", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "date"
+    assert issue["issue-type"] == "invalid date"
     assert issue["value"] == "2019-02-29"
     assert issues.rows == []
 
-    issues = Issues()
+    issues = IssueLog()
     assert date.normalise("foo", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "date"
+    assert issue["issue-type"] == "invalid date"
     assert issue["value"] == "foo"
     assert issues.rows == []

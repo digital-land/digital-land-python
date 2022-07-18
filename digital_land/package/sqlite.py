@@ -25,7 +25,15 @@ def coltype(datatype):
 
 
 class SqlitePackage(Package):
-    _spatialite = None
+    def __init__(self, *args, **kwargs):
+        self.suffix = ".sqlite3"
+        self._spatialite = None
+        self.join_tables = {}
+        self.fields = {}
+        super().__init__(*args, **kwargs)
+
+    def field_coltype(self, field):
+        return coltype(self.specification.field[field]["datatype"])
 
     def spatialite(self, path=None):
         if not path:
@@ -38,21 +46,19 @@ class SqlitePackage(Package):
                     path = "/usr/lib/x86_64-linux-gnu/mod_spatialite.so"
         self._spatialite = path
 
-    def connect(self, path):
-        self.path = path
-        self.connection = sqlite3.connect(path)
+    def connect(self):
+        logging.debug(f"sqlite3 connect {self.path}")
+        self.connection = sqlite3.connect(self.path)
 
         if self._spatialite:
             self.connection.enable_load_extension(True)
             self.connection.load_extension(self._spatialite)
-            self.connection.execute("select InitSpatialMetadata(1)")
 
     def disconnect(self):
+        logging.debug("sqlite3 disconnect")
         self.connection.close()
 
-    def create_table(
-        self, table, fields, key_field=None, field_datatype={}, unique=None
-    ):
+    def create_table(self, table, fields, key_field=None, unique=None):
         self.execute(
             "CREATE TABLE %s (%s%s%s)"
             % (
@@ -62,7 +68,7 @@ class SqlitePackage(Package):
                         "%s %s%s"
                         % (
                             colname(field),
-                            coltype(field_datatype[field]),
+                            self.field_coltype(field),
                             (" PRIMARY KEY" if field == key_field else ""),
                         )
                         for field in fields
@@ -118,8 +124,8 @@ class SqlitePackage(Package):
             sys.exit(3)
 
     def colvalue(self, row, field):
-        value = row.get(field, "")
-        t = coltype(self.specification.field[field]["datatype"])
+        value = str(row.get(field, ""))
+        t = self.field_coltype(field)
         if t == "INTEGER":
             if value == "":
                 return "NULL"
@@ -129,21 +135,22 @@ class SqlitePackage(Package):
                 return "NULL"
         return "'%s'" % value.replace("'", "''")
 
-    def insert(self, table, fields, row):
+    def insert(self, table, fields, row, upsert=False):
         fields = [field for field in fields if not field.endswith("-geom")]
         self.execute(
             """
             INSERT OR REPLACE INTO %s(%s)
-            VALUES (%s);
+            VALUES (%s)%s;
             """
             % (
                 colname(table),
                 ",".join([colname(field) for field in fields]),
                 ",".join(["%s" % self.colvalue(row, field) for field in fields]),
+                " ON CONFLICT DO NOTHING " if upsert else "",
             )
         )
 
-    def load_csv(self, path, table, fields):
+    def load_table(self, table, fields, path=None):
         logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for field in row:
@@ -151,22 +158,87 @@ class SqlitePackage(Package):
                     row[field] = ""
             self.insert(table, fields, row)
 
-    def load_join(self, path, table, fields, split_field=None, field=None):
+    def load_join_table(self, table, fields, split_field=None, field=None, path=None):
         logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for value in row[split_field].split(";"):
                 row[field] = value
                 self.insert(table, fields, row)
 
-    def index(self, table, fields, name=None):
-        if not name:
-            name = colname(table) + "_index"
-        logging.info("creating index %s" % (name))
+    def load(self):
+        for table in self.tables:
+            fields = self.fields[table]
+            path = "%s/%s.csv" % (self.tables[table], table)
+            self.create_cursor()
+            self.load_table(table, fields, path=path)
+            self.commit()
+
+        for join_table, join in self.join_tables.items():
+            table = join["table"]
+            field = join["field"]
+            fields = [table, field]
+            path = "%s/%s.csv" % (self.tables[table], table)
+            self.create_cursor()
+            self.load_join_table(
+                join_table,
+                fields=fields,
+                split_field=join["split-field"],
+                field=field,
+                path=path,
+            )
+            self.commit()
+
+    def create_tables(self):
+
+        for table in self.tables:
+            fields = self.specification.schema[table]["fields"]
+            key_field = table
+
+            # a join table for each list field
+            ignore = set()
+            for field in fields:
+                if self.specification.field[field]["cardinality"] == "n" and "%s|%s" % (
+                    table,
+                    field,
+                ) not in [
+                    "concat|fields",
+                    "convert|parameters",
+                    "endpoint|parameters",
+                ]:
+                    parent_field = self.specification.field[field]["parent-field"]
+                    join_table = "%s_%s" % (table, parent_field)
+                    self.join_tables[join_table] = {
+                        "table": table,
+                        "field": parent_field,
+                        "split-field": field,
+                    }
+                    ignore.add(field)
+
+            fields = [field for field in fields if field not in ignore]
+            self.fields[table] = fields
+
+            self.create_cursor()
+            self.create_table(table, fields, key_field)
+            self.commit()
+
+        for join_table, join in self.join_tables.items():
+            fields = [join["table"], join["field"]]
+            self.create_cursor()
+            self.create_table(join_table, fields, unique=fields)
+            self.commit()
+
+    def create_index(self, table, fields, name=None):
+        if type(fields) is not list:
+            fields = [fields]
         cols = [colname(field) for field in fields if not field.endswith("-geom")]
-        self.execute(
-            "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
-            % (name, colname(table), ", ".join(cols))
-        )
+        if not name:
+            name = colname(table) + "_on_" + "__".join(cols) + "_index"
+        if cols:
+            logging.info("creating index %s" % (name))
+            self.execute(
+                "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
+                % (name, colname(table), ", ".join(cols))
+            )
 
         if self._spatialite:
             logging.info("creating spatial indexes %s" % (name))
@@ -181,73 +253,24 @@ class SqlitePackage(Package):
                 )
                 self.commit()
 
-    def create(self, path=None):
-        if not path:
-            path = self.datapackage + ".sqlite3"
+    def create_indexes(self):
+        for table, index_fields in self.indexes.items():
+            for fields in index_fields:
+                self.create_index(table, fields)
 
-        if os.path.exists(path):
-            os.remove(path)
+    def create_database(self):
+        if os.path.exists(self.path):
+            os.remove(self.path)
 
-        self.connect(path)
+        self.connect()
 
-        for table in self.tables:
-            path = "%s/%s.csv" % (self.tables[table], table)
-            fields = self.specification.schema[table]["fields"]
-            key_field = self.specification.schema[table]["key-field"] or table
-            field_datatype = {
-                field: self.specification.field[field]["datatype"] for field in fields
-            }
+        if self._spatialite:
+            self.connection.execute("select InitSpatialMetadata(1)")
 
-            # make a many-to-many table for each list
-            joins = {}
-            for field in fields:
-                if self.specification.field[field]["cardinality"] == "n" and "%s|%s" % (
-                    table,
-                    field,
-                ) not in [
-                    "concat|fields",
-                    "convert|parameters",
-                    "endpoint|parameters",
-                ]:
-                    parent_field = self.specification.field[field]["parent-field"]
-                    joins[field] = parent_field
-                    field_datatype[parent_field] = self.specification.field[
-                        parent_field
-                    ]["datatype"]
-                    fields.remove(field)
+        self.create_tables()
 
-            self.create_cursor()
-            self.create_table(table, fields, key_field, field_datatype)
-            self.commit()
-
-            self.create_cursor()
-            self.load_csv(path, table, fields)
-            self.commit()
-
-            for split_field, field in joins.items():
-                join_table = "%s_%s" % (table, field)
-
-                self.create_cursor()
-                self.create_table(
-                    join_table,
-                    [table, field],
-                    None,
-                    field_datatype,
-                    unique=[table, field],
-                )
-                self.commit()
-
-                self.create_cursor()
-                self.load_join(
-                    path,
-                    join_table,
-                    [table, field],
-                    split_field=split_field,
-                    field=field,
-                )
-                self.commit()
-
-        for table, columns in self.indexes.items():
-            self.index(table, columns)
-
+    def create(self):
+        self.create_database()
+        self.load()
+        self.create_indexes()
         self.disconnect()

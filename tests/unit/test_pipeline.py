@@ -1,3 +1,5 @@
+#!/usr/bin/env -S py.test -svv
+
 from digital_land.pipeline import Pipeline
 
 
@@ -55,15 +57,15 @@ def test_resource_specific_patches():
     assert patches == {"field-one": {"something": "else", "pat": "val"}}
 
 
-def test_default_fieldnames():
+def test_default_fields():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
-    assert p.default_fieldnames() == {"field-integer": ["field-two"]}
+    assert p.default_fields() == {"field-integer": "field-two"}
 
 
-def test_resource_specific_default_fieldnames():
+def test_resource_specific_default_fields():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
-    assert p.default_fieldnames("resource-one") == {
-        "field-integer": ["field-other-integer", "field-two"]
+    assert p.default_fields("resource-one") == {
+        "field-integer": "field-other-integer",
     }
 
 
@@ -87,7 +89,7 @@ def test_resource_specific_concatenations():
     }
 
 
-def test_transform():
+def test_migrate():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
-    transform = p.transformations()
-    assert transform == {"field-one": "FieldOne"}
+    migrations = p.migrations()
+    assert migrations == {"field-one": "FieldOne"}

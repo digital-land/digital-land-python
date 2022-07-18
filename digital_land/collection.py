@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -84,7 +83,24 @@ class LogStore(ItemStore):
 
 # a register of resources constructed from the log register
 class ResourceLogStore(CSVStore):
-    def load(self, log, source, directory=collection_directory):
+    def load(
+        self, log: LogStore, source: CSVStore, directory: str = collection_directory
+    ):
+        """
+        Rebuild resource.csv file from the log store
+
+        This does not depend in any way on the current state of resource.csv on the file system
+
+        We cannot assume that all resources are present on the local file system as we also want to keep records
+        of resources we have not collected within the current collector execution due to their end_date elapsing
+
+        :param log:
+        :type log: LogStore
+        :param source:
+        :type source: CSVStore
+        :param directory:
+        :type directory: str
+        """
         resources = {}
         today = datetime.utcnow().isoformat()[:10]
 
@@ -92,15 +108,8 @@ class ResourceLogStore(CSVStore):
             if "resource" in entry:
                 resource = entry["resource"]
                 if resource not in resources:
-                    path = resource_path(resource, directory=directory)
-                    try:
-                        size = os.path.getsize(path)
-                    except (FileNotFoundError):
-                        logging.warning("missing %s" % (path))
-                        size = ""
-
                     resources[resource] = {
-                        "bytes": size,
+                        "bytes": entry["bytes"],
                         "endpoints": {},
                         "start-date": entry["entry-date"],
                         "end-date": entry["entry-date"],
@@ -115,10 +124,14 @@ class ResourceLogStore(CSVStore):
                 resources[resource]["endpoints"][entry["endpoint"]] = True
 
         for key, resource in sorted(resources.items()):
-            organisations = {}
+            organisations = set()
+            datasets = set()
             for endpoint in resource["endpoints"]:
                 for entry in source.records[endpoint]:
-                    organisations[entry["organisation"]] = True
+                    organisations.add(entry["organisation"])
+                    datasets = set(
+                        entry.get("datasets", entry.get("pipelines", "")).split(";")
+                    )
 
             end_date = isodate(resource["end-date"])
             if end_date >= today:
@@ -130,6 +143,7 @@ class ResourceLogStore(CSVStore):
                     "bytes": resource["bytes"],
                     "endpoints": ";".join(sorted(resource["endpoints"])),
                     "organisations": ";".join(sorted(organisations)),
+                    "datasets": ";".join(sorted(datasets)),
                     "start-date": isodate(resource["start-date"]),
                     "end-date": end_date,
                 }
@@ -151,7 +165,7 @@ class Collection:
         self.log.load(directory=log_directory)
 
         self.resource = ResourceLogStore(Schema("resource"))
-        self.resource.load(log=self.log, source=self.source)
+        self.resource.load(log=self.log, source=self.source, directory=directory)
 
     def save_csv(self, directory=None):
         if not directory:
@@ -180,12 +194,22 @@ class Collection:
         except (FileNotFoundError):
             self.load_log_items()
 
+        try:
+            self.old_resource = CSVStore(Schema("old-resource"))
+            self.old_resource.load(directory=directory)
+        except (FileNotFoundError):
+            pass
+
     def resource_endpoints(self, resource):
-        "return the list of endpoints a resource was collected from"
+        "the list of endpoints a resource was collected from"
         return self.resource.records[resource][-1]["endpoints"].split(";")
 
+    def resource_start_date(self, resource):
+        "the first date a resource was collected"
+        return self.resource.records[resource][-1]["start-date"]
+
     def resource_organisations(self, resource):
-        "return the list of organisations for which a resource was collected"
+        "the list of organisations for which a resource was collected"
         return self.resource.records[resource][-1]["organisations"].split(";")
 
     def resource_path(self, resource):
@@ -193,3 +217,37 @@ class Collection:
 
     def pipeline_makerules(self):
         pipeline_makerules(self)
+
+    def dataset_resource_map(self):
+        "a map of resources needed by each dataset in a collection"
+        today = datetime.utcnow().isoformat()
+        endpoint_dataset = {}
+        dataset_resource = {}
+        redirect = {}
+
+        for entry in self.old_resource.entries:
+            redirect[entry["old-resource"]] = entry["resource"]
+
+        for entry in self.source.entries:
+            if entry["end-date"] and entry["end-date"] > today:
+                continue
+
+            endpoint_dataset.setdefault(entry["endpoint"], set())
+            datasets = entry.get("datasets", "") or entry.get("pipelines", "")
+            for dataset in datasets.split(";"):
+                if dataset:
+                    endpoint_dataset[entry["endpoint"]].add(dataset)
+
+        for entry in self.resource.entries:
+            if entry["end-date"] and entry["end-date"] > today:
+                continue
+
+            for endpoint in entry["endpoints"].split(";"):
+                for dataset in endpoint_dataset[endpoint]:
+                    # ignore or redirect a resource in the old-resource table
+                    resource = entry["resource"]
+                    resource = redirect.get(resource, resource)
+                    if resource:
+                        dataset_resource.setdefault(dataset, set())
+                        dataset_resource[dataset].add(resource)
+        return dataset_resource

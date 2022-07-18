@@ -1,4 +1,6 @@
-from digital_land.issues import Issues
+#!/usr/bin/env pytest
+
+from digital_land.log import IssueLog
 from digital_land.datatype.integer import IntegerDataType
 
 
@@ -13,18 +15,18 @@ def test_integer_normalise():
 
     assert integer.normalise(" 0123 ") == "123"
 
-    issues = Issues()
+    issues = IssueLog()
     assert integer.normalise("foo", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "integer"
+    assert issue["issue-type"] == "invalid integer"
     assert issue["value"] == "foo"
     assert issues.rows == []
 
     assert integer.normalise("12foo", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "integer"
+    assert issue["issue-type"] == "invalid integer"
     assert issue["value"] == "12foo"
     assert issues.rows == []
 
@@ -35,13 +37,13 @@ def test_integer_normalise():
     assert integer.normalise("34", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "minimum"
+    assert issue["issue-type"] == "too small"
     assert issue["value"] == "34"
     assert issues.rows == []
 
     assert integer.normalise("69", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "maximum"
+    assert issue["issue-type"] == "too large"
     assert issue["value"] == "69"
     assert issues.rows == []

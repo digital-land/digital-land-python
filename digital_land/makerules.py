@@ -2,70 +2,60 @@
 
 import os
 from pathlib import Path
-from datetime import datetime
 
 
-def transformed_path(resource, pipeline):
-    return "$(TRANSFORMED_DIR)" + pipeline + "/" + resource + ".csv"
+#
+#  create the dependencies between collected resources and a dataset
+#  saved as collection/pipeline.mk
+#
 
 
-def dataset_path(pipeline):
-    return "$(DATASET_DIR)" + pipeline + ".csv"
+def transformed_path(resource, dataset):
+    return "$(TRANSFORMED_DIR)" + dataset + "/" + resource + ".csv"
+
+
+def dataset_path(dataset):
+    return "$(DATASET_DIR)" + dataset + ".csv"
 
 
 def pipeline_makerules(collection):
-    today = datetime.utcnow().isoformat()
-
-    endpoint_pipeline = {}
-    pipeline_resource = {}
-
-    for entry in collection.source.entries:
-        if entry["end-date"] and entry["end-date"] > today:
-            continue
-
-        endpoint_pipeline.setdefault(entry["endpoint"], set())
-        for pipeline in entry["pipelines"].split(";"):
-            if pipeline:
-                endpoint_pipeline[entry["endpoint"]].add(pipeline)
-
-    for entry in collection.resource.entries:
-        if entry["end-date"] and entry["end-date"] > today:
-            continue
-
-        for endpoint in entry["endpoints"].split(";"):
-            for pipeline in endpoint_pipeline[endpoint]:
-                pipeline_resource.setdefault(pipeline, set())
-                pipeline_resource[pipeline].add(entry["resource"])
-
+    dataset_resource = collection.dataset_resource_map()
     sep = ""
-    for pipeline in sorted(pipeline_resource):
+    for dataset in sorted(dataset_resource):
         print(sep, end="")
         sep = "\n\n"
 
-        pipeline_var = pipeline.upper().replace("-", "_")
-        dataset_var = pipeline_var + "_DATASET"
-        dataset_files_var = pipeline_var + "_TRANSFORMED_FILES"
+        name_var = dataset.upper().replace("-", "_")
+        dataset_var = name_var + "_DATASET"
+        dataset_files_var = name_var + "_TRANSFORMED_FILES"
 
-        print("%s=%s" % (dataset_var, dataset_path(pipeline)))
+        print("%s=%s" % (dataset_var, dataset_path(dataset)))
         print("%s=" % (dataset_files_var), end="")
-        for resource in sorted(pipeline_resource[pipeline]):
-            print("\\\n    %s" % (transformed_path(resource, pipeline)), end="")
+        for resource in sorted(dataset_resource[dataset]):
+            print("\\\n    %s" % (transformed_path(resource, dataset)), end="")
         print()
 
-        for resource in sorted(pipeline_resource[pipeline]):
-
+        for resource in sorted(dataset_resource[dataset]):
             fixed_path = Path("fixed") / (resource + ".csv")
             resource_path = collection.resource_path(resource)
             resource_path = fixed_path if os.path.isfile(fixed_path) else resource_path
+            endpoints = " ".join(collection.resource_endpoints(resource))
+            organisations = " ".join(collection.resource_organisations(resource))
+            entry_date = collection.resource_start_date(resource)
 
             print(
                 "\n%s: %s"
                 % (
-                    transformed_path(resource, pipeline),
+                    transformed_path(resource, dataset),
                     resource_path,
                 )
             )
-            print("\t$(run-pipeline)")
+            print(
+                "\t$(call run-pipeline,"
+                + f" --endpoints '{endpoints}'"
+                + f" --organisations '{organisations}'"
+                + f" --entry-date '{entry_date}')"
+            )
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
         print("\t$(build-dataset)")

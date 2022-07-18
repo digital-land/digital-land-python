@@ -20,7 +20,12 @@ def test_dataset():
 
 def test_schema_names():
     specification = Specification("tests/data/specification")
-    assert specification.schema_names == ["schema-one", "schema-two", "schema-three"]
+    assert specification.schema_names == [
+        "schema-one",
+        "schema-two",
+        "schema-three",
+        "fact",
+    ]
 
 
 def test_schema():
@@ -62,22 +67,35 @@ def test_datatype():
 
 def test_field_names():
     specification = Specification("tests/data/specification")
-    assert specification.field_names == [
-        "category",
-        "text",
-        "field-string",
-        "field-integer",
-        "field-other-integer",
-        "field-old",
-        "field-category",
-        "field-categories",
-        "name",
-        "organisation",
-        "address",
-        "amount",
-        "date",
-        "schema-three",
-    ]
+    assert set(specification.field_names) == set(
+        [
+            "category",
+            "text",
+            "field-string",
+            "field-integer",
+            "field-other-integer",
+            "field-old",
+            "field-category",
+            "field-categories",
+            "name",
+            "organisation",
+            "address",
+            "amount",
+            "date",
+            "schema-three",
+            "entity",
+            "line-number",
+            "entry-number",
+            "value",
+            "start-date",
+            "end-date",
+            "entry-date",
+            "resource",
+            "field",
+            "reference-entity",
+            "fact",
+        ]
+    )
 
 
 def test_field():
@@ -92,20 +110,31 @@ def test_schema_field():
 
 def test_current_fieldnames():
     specification = Specification("tests/data/specification")
-    assert specification.current_fieldnames() == [
-        "entity",
-        "category",
-        "text",
-        "field-string",
-        "field-integer",
-        "name",
-        "organisation",
-        "address",
-        "amount",
-        "date",
-        "schema-three",
-        "slug",
-    ]
+    assert set(specification.current_fieldnames()) == set(
+        [
+            "entity",
+            "category",
+            "text",
+            "field-string",
+            "field-integer",
+            "name",
+            "organisation",
+            "address",
+            "amount",
+            "date",
+            "schema-three",
+            "start-date",
+            "entry-date",
+            "entry-number",
+            "end-date",
+            "fact",
+            "field",
+            "reference-entity",
+            "line-number",
+            "resource",
+            "value",
+        ]
+    )
 
 
 def test_field_type():
@@ -129,12 +158,3 @@ def test_field_parent():
 def test_typology():
     specification = Specification("tests/data/specification")
     assert specification.typology["category"]["name"] == "Category"
-
-
-def test_key_fields():
-    specification = Specification("specification")
-    assert specification.key_field("brownfield-land") == "site"
-    assert specification.key_field("resource") == "resource"
-    assert specification.key_field("endpoint") == "endpoint"
-    assert specification.key_field("green-belt") == "green-belt"
-    assert specification.key_field("unknown") == ""

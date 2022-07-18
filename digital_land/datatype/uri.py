@@ -12,6 +12,6 @@ class URIDataType(DataType):
             return uri
 
         if issues:
-            issues.log("uri", value)
+            issues.log("invalid URI", value)
 
         return ""

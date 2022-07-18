@@ -1,12 +1,16 @@
 import io
 import re
-from digital_land.load import detect_encoding
+
+from digital_land.phase.convert import detect_encoding
+
+
+# TBD: split this code into a WFS API plugin and a canonicalisation step
 
 
 strip_exps = [
-    (re.compile(br' ?timeStamp="[^"]*"'), br""),
-    (re.compile(br' ?fid="[^"]*"'), br""),
-    (re.compile(br'(gml:id="[^."]+)[^"]*'), br"\1"),
+    (re.compile(rb' ?timeStamp="[^"]*"'), rb""),
+    (re.compile(rb' ?fid="[^"]*"'), rb""),
+    (re.compile(rb'(gml:id="[^."]+)[^"]*'), rb"\1"),
 ]
 
 

@@ -1,0 +1,6 @@
+dataset,resource,field,pattern,value
+listed-building,,listed-building-grade,Listed Building Grade I,I
+listed-building,,listed-building-grade,Listed Building Grade II,II
+listed-building,,listed-building-grade,Listed Building Grade II*,II*
+listed-building-outline,,reference,^(.*)\.0000*$,\1
+listed-building-outline,,reference,^Listed Building Grade (.*)$,\1,

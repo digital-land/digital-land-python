@@ -31,6 +31,7 @@ schemas = {
     },
     "source": {
         "fields": [
+            "source",
             "attribution",
             "collection",
             "documentation-url",
@@ -49,11 +50,20 @@ schemas = {
             "resource",
             "bytes",
             "organisations",
+            "datasets",
             "endpoints",
             "start-date",
             "end-date",
         ],
         "key": "resource",
+    },
+    "old-resource": {
+        "fields": [
+            "old-resource",
+            "resource",
+            "status",
+        ],
+        "key": "old-resource",
     },
 }
 

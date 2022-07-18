@@ -1,6 +1,5 @@
 import csv
 import os
-import re
 from datetime import datetime
 
 from .datatype.address import AddressDataType
@@ -15,9 +14,13 @@ from .datatype.uri import URIDataType
 from .datatype.wkt import WktDataType
 
 
+specification_path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "specification"
+)
+
+
 class Specification:
     def __init__(self, path="specification"):
-        self.dataset = {}
         self.dataset = {}
         self.dataset_names = []
         self.schema = {}
@@ -129,15 +132,21 @@ class Specification:
         if "entity" not in fields:
             fields = ["entity"] + fields
 
-        if "slug" not in fields:
-            fields = fields + ["slug"]
+        return sorted(fields)
 
-        return fields
+    def intermediate_fieldnames(self, pipeline):
+        schema = self.pipeline[pipeline.name]["schema"]
+        fieldnames = self.schema_field[schema].copy()
+        replacement_fields = list(pipeline.migrations().keys())
+        for field in replacement_fields:
+            if field in fieldnames:
+                fieldnames.remove(field)
+        return sorted(fieldnames)
 
-    normalise_re = re.compile(r"[^a-z0-9]")
-
-    def normalise(self, name):
-        return re.sub(self.normalise_re, "", name.lower())
+    def factor_fieldnames(self):
+        return set(self.current_fieldnames("fact")).union(
+            self.current_fieldnames("fact-resource")
+        )
 
     def field_type(self, fieldname):
         datatype = self.field[fieldname]["datatype"]
@@ -187,11 +196,8 @@ class Specification:
             return field
         return f["parent-field"]
 
-    def key_field(self, schema):
-        if schema not in self.schema:
-            return ""
-        if self.schema[schema].get("key-field", ""):
-            return self.schema[schema]["key-field"]
-        if schema in self.schema_field[schema]:
-            return schema
-        return ""
+    def dataset_prefix(self, dataset):
+        return self.dataset[dataset].get("prefix", "") or dataset
+
+    def field_prefix(self, field):
+        return self.field[field].get("prefix", "") or field

@@ -1,4 +1,4 @@
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 from digital_land.datatype.uri import URIDataType
 
 
@@ -11,10 +11,10 @@ def test_uri_normalise():
         == "https://example.com/foobar/baz"
     )
 
-    issues = Issues()
+    issues = IssueLog()
     assert uri.normalise("example.com", issues=issues) == ""
 
     issue = issues.rows.pop()
-    assert issue["issue-type"] == "uri"
+    assert issue["issue-type"] == "invalid URI"
     assert issue["value"] == "example.com"
     assert issues.rows == []

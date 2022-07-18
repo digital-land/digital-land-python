@@ -1,10 +1,10 @@
 import pytest
-from digital_land.issues import Issues
+from digital_land.log import IssueLog
 from digital_land.datatype.enum import EnumDataType
 
 
 def test_enum_normalise():
-    issues = Issues()
+    issues = IssueLog()
     enum = EnumDataType(["apple", "orange", "banana"])
 
     assert enum.normalise("apple") == "apple"
