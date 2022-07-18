@@ -2,7 +2,8 @@ name: Build and push digital-land-python to public ECR
 on:
   push:
     branches:
-      - main
+      # - main # TODO reinstate this before merge
+      - run-pipeline-commands-locally
 
 jobs:
   build:
