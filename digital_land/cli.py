@@ -191,6 +191,7 @@ def dataset_dump_hoisted_cmd(input_path, output_path):
 @click.option("--endpoints", help="list of endpoint hashes", default="")
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
+@click.option("--custom-temp-dir", help="default temporary directory", default=None)
 def pipeline_cmd_API(
     input_path,
     output_path,
@@ -202,6 +203,7 @@ def pipeline_cmd_API(
     endpoints,
     organisations,
     entry_date,
+    custom_temp_dir,
 ):
     endpoints = endpoints.split()
     organisations = organisations.split()
@@ -216,6 +218,7 @@ def pipeline_cmd_API(
         endpoints=endpoints,
         organisations=organisations,
         entry_date=entry_date,
+        custom_temp_dir=custom_temp_dir,
     )
 
 
