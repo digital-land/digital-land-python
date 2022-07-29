@@ -7,7 +7,15 @@ from digital_land.log import IssueLog
 def test_patch_regex():
     issues = IssueLog()
 
-    patches = {"grade": {"^1$": "I", "^2$": "II", "^2\\*$": "II*", "^2 Star$": "II*", "^3$": "III"}}
+    patches = {
+        "grade": {
+            "^1$": "I",
+            "^2$": "II",
+            "^2\\*$": "II*",
+            "^2 Star$": "II*",
+            "^3$": "III",
+        }
+    }
 
     p = PatchPhase(patches=patches, issues=issues)
 
