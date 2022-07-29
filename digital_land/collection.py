@@ -161,13 +161,16 @@ class Collection:
             directory = directory or self.directory
             log_directory = Path(directory) / "log/*/"
 
+        logging.info("loading log files")
         self.log = LogStore(Schema("log"))
         self.log.load(directory=log_directory)
 
+        logging.info("indexing resources")
         self.resource = ResourceLogStore(Schema("resource"))
         self.resource.load(log=self.log, source=self.source, directory=directory)
 
     def save_csv(self, directory=None):
+        logging.info("saving csv")
         if not directory:
             directory = self.directory
 
