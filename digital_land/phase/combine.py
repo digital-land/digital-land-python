@@ -1,15 +1,19 @@
 from copy import deepcopy
+
+from shapely.geometry import MultiPolygon
+
 from .phase import Phase
 from shapely.ops import unary_union
 from digital_land.datatype.wkt import dump_wkt
 import shapely.wkt
 
 
-def combine_geometries(wkts):
+def combine_geometries(wkts, precision=6):
     # https://shapely.readthedocs.io/en/stable/manual.html#shapely.ops.unary_union
     geometries = [shapely.wkt.loads(x)[0] for x in wkts]
     union = unary_union(geometries)
-    return dump_wkt(union)
+    multipolygon = MultiPolygon([union])
+    return dump_wkt(multipolygon, precision=precision)
 
 
 class FactCombinePhase(Phase):
