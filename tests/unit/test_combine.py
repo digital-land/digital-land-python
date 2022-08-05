@@ -26,6 +26,26 @@ def test_combine_geometries():
     assert actual_geometry.wkt == expected_geometry.wkt
 
 
+def test_combine_geometries_handles_disjoint_geometries():
+
+    expected_geometry = shapely.wkt.loads(
+        "MULTIPOLYGON (((5 10, 10 20, 40 10, 15 5, 5 10)), ((10 40, 45 40, 30 20, 10 40)))"
+    )  # noqa
+    combined_wkt = combine_geometries(
+        [
+            "MULTIPOLYGON (((30 20,45 40,10 40,30 20)))",
+            "MULTIPOLYGON (((15 5,40 10,10 20,5 10,15 5)))",
+        ],
+        precision=0,
+    )
+
+    actual_geometry = shapely.wkt.loads(combined_wkt)
+
+    assert actual_geometry.is_valid
+    assert actual_geometry.geom_type == "MultiPolygon"
+    assert actual_geometry.wkt == expected_geometry.wkt
+
+
 def test_combine_phase():
     def stream():
         n = 0

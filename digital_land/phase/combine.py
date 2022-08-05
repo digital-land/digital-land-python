@@ -12,8 +12,9 @@ def combine_geometries(wkts, precision=6):
     # https://shapely.readthedocs.io/en/stable/manual.html#shapely.ops.unary_union
     geometries = [shapely.wkt.loads(x)[0] for x in wkts]
     union = unary_union(geometries)
-    multipolygon = MultiPolygon([union])
-    return dump_wkt(multipolygon, precision=precision)
+    if not isinstance(union, MultiPolygon):
+        union = MultiPolygon([union])
+    return dump_wkt(union, precision=precision)
 
 
 class FactCombinePhase(Phase):
