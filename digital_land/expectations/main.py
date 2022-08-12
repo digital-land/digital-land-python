@@ -1,6 +1,6 @@
 from .core import QueryRunner, config_parser, DataQualityException
 from datetime import datetime
-from .expectations import * # noqa
+from .expectations import *  # noqa
 
 
 def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
