@@ -26,6 +26,6 @@ ifndef SPACIAL
 ifeq ($(UNAME),Darwin)
 $(error GDAL tools not found in PATH)
 endif
-	apt-get install libsqlite3-mod-spatialite -y
+	sudo apt-get install libsqlite3-mod-spatialite -y
 endif
 	pyproj sync --file uk_os_OSTN15_NTv2_OSGBtoETRS.tif -v
