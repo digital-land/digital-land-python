@@ -3,6 +3,7 @@ from .expectations import *
 from math import inf
 from datetime import datetime
 
+
 def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
 
     now = datetime.now()

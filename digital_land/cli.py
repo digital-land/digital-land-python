@@ -260,9 +260,12 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 def build_datasette(tag, data_dir, ext, options):
     return API.build_datasette(tag, data_dir, ext, options)
 
+
 @cli.command("expectations", short_help="runs data quality expectations")
 @click.option("--results-path", help="path to save json results", required=True)
-@click.option("--sqlite-dataset-path", help="path and name to sqlite3 dataset", required=True)
+@click.option(
+    "--sqlite-dataset-path", help="path/name to sqlite3 dataset", required=True
+)
 @click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
-def call_expectations(results_path,sqlite_dataset_path, data_quality_yaml):
+def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     return API.expectation_cmd(results_path, sqlite_dataset_path, data_quality_yaml)

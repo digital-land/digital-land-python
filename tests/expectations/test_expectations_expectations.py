@@ -2,7 +2,9 @@ import pandas as pd
 from expectations.expectations import *
 
 # Shared testing resources
-tested_dataset = "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+tested_dataset = (
+    "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+)
 
 query_runner = QueryRunner(tested_dataset)
 

@@ -1,6 +1,7 @@
 import pandas as pd
 from expectations.core import *
 
+
 def test_transform_first_col_into_set():
     df = pd.DataFrame(
         {"name": ["Paul", "Tony", "Adam", "Rico"]},
@@ -12,8 +13,10 @@ def test_transform_first_col_into_set():
 
 
 def test_query_runner():
-  
-    tested_dataset = "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+
+    tested_dataset = (
+        "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+    )
     query_runner = QueryRunner(tested_dataset)
     sql_query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
     result = query_runner.run_query(sql_query)
