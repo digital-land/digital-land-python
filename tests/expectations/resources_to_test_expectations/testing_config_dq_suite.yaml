@@ -1,0 +1,36 @@
+collection_name: "listed-building"
+dataset_path_name: "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+tables:
+        - tb_name: "fact"
+          tb_expected_min_row_count: 4000
+          tb_expected_max_row_count: 5000
+          tb_fields:
+            - field_name: "field"
+              field_duplicity_allowed: True
+              field_content_type: str
+              field_allowed_set_of_values:
+                - "description"
+                - "entry-date"
+                - "geometry"
+                - "listed-building-grade"
+                - "name"
+              field_row_count_range_per_value:
+                - lookup_value: "geometry"
+                  min_row_count: 450
+                  max_row_count: 550
+            - field_name: "entity"
+              field_duplicity_allowed: False
+              field_content_type: int              
+              field_row_count_range_per_value:           
+                - lookup_value: "42114488"
+                  min_row_count: 8
+                  max_row_count: 10
+                - lookup_value: "42114489"
+                  min_row_count: 8
+                  max_row_count: 10
+                - lookup_value: "42114490"
+                  min_row_count: 8
+                  max_row_count: 10
+custom_queries:
+  - query: "not implemented yet"
+    expected_result: "not implemented yet"
