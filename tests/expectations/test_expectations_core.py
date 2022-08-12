@@ -1,5 +1,9 @@
 import pandas as pd
-from expectations.core import *
+from expectations.core import (
+    transform_df_first_column_into_set,
+    config_parser,
+    QueryRunner,
+)
 
 
 def test_transform_first_col_into_set():
@@ -7,7 +11,6 @@ def test_transform_first_col_into_set():
         {"name": ["Paul", "Tony", "Adam", "Rico"]},
         columns=["name"],
     )
-    column = "name"
     expected_set = {"Paul", "Tony", "Adam", "Rico"}
     assert expected_set == transform_df_first_column_into_set(df)
 

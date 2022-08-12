@@ -1,5 +1,17 @@
-import pandas as pd
-from expectations.expectations import *
+from expectations.core import QueryRunner
+from expectations.expectations import (
+    expect_database_to_have_set_of_tables,
+    expect_table_to_have_set_of_columns,
+    expect_table_row_count_to_be_in_range,
+    expect_row_count_for_lookup_value_to_be_in_range,
+    expect_field_values_to_be_within_set,
+    expect_values_for_field_to_be_unique,
+    expect_geoshapes_to_be_valid,
+    expect_values_for_a_key_stored_in_json_are_within_a_set,
+    expect_keys_in_json_field_to_be_in_set_of_options,
+    expect_values_in_field_to_be_within_range,
+    expect_custom_query_result_to_be_as_predicted,
+)
 
 # Shared testing resources
 tested_dataset = (
@@ -26,9 +38,9 @@ def test_check_database_has_expected_tables_Success():
         query_runner, expected_table_set, fail_if_found_more_than_expected=True
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_database_has_expected_tables_Success_with_fme_false():
@@ -48,9 +60,9 @@ def test_check_database_has_expected_tables_Success_with_fme_false():
         query_runner, expected_table_set, fail_if_found_more_than_expected=False
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_database_has_expected_tables_Fail():
@@ -70,7 +82,7 @@ def test_check_database_has_expected_tables_Fail():
         query_runner, expected_table_set, fail_if_found_more_than_expected=True
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: difference between expected tables and found tables on the db see details"
@@ -116,7 +128,7 @@ def test_check_database_has_expected_tables_Fail_with_fme_false():
         query_runner, expected_table_set, fail_if_found_more_than_expected=False
     )
 
-    assert response.result == False
+    assert response.result is False
 
 
 def test_check_database_has_expected_tables_find_more_than_expected_fail():
@@ -135,7 +147,7 @@ def test_check_database_has_expected_tables_find_more_than_expected_fail():
         query_runner, expected_table_set, fail_if_found_more_than_expected=True
     )
 
-    assert response.result == False
+    assert response.result is False
 
 
 def test_check_table_has_expected_columns_Success():
@@ -163,9 +175,9 @@ def test_check_table_has_expected_columns_Success():
         query_runner, table_name=table_name, expected_columns_set=expected_column_set
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_table_has_expected_columns_Fail():
@@ -193,7 +205,7 @@ def test_check_table_has_expected_columns_Fail():
         query_runner, table_name=table_name, expected_columns_set=expected_column_set
     )
 
-    assert response.result == False
+    assert response.result is False
 
 
 def test_check_table_has_expected_columns_fail_if_find_more_than_expected_Fail():
@@ -223,7 +235,7 @@ def test_check_table_has_expected_columns_fail_if_find_more_than_expected_Fail()
         fail_if_found_more_than_expected=fail_if_found_more_than_expected,
     )
 
-    assert response.result == False
+    assert response.result is False
 
 
 def test_check_table_has_expected_columns_success_if_find_more_than_expected_Success():
@@ -254,9 +266,9 @@ def test_check_table_has_expected_columns_success_if_find_more_than_expected_Suc
         fail_if_found_more_than_expected=fail_if_found_more_than_expected,
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_row_count_of_table_is_in_expected_range_Success():
@@ -272,9 +284,9 @@ def test_row_count_of_table_is_in_expected_range_Success():
         max_expected_row_count=max_expected_row_count,
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_row_count_of_table_is_in_expected_range_Fail():
@@ -290,7 +302,7 @@ def test_row_count_of_table_is_in_expected_range_Fail():
         max_expected_row_count=max_expected_row_count,
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: row count not in the expected range for table 'entity' see details"
@@ -320,9 +332,9 @@ def test_row_count_grouped_by_field_Success2():
         count_ranges_per_value=dict_value_and_count_ranges,
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_row_count_grouped_by_field_Fail():
@@ -342,7 +354,7 @@ def test_row_count_grouped_by_field_Fail():
         count_ranges_per_value=dict_value_and_count_ranges,
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: table 'fact': one or more counts per lookup_value not in expected range see for more info see details"
@@ -383,9 +395,9 @@ def test_check_field_values_within_expected_set_of_values_No_unexpected_value():
         fail_if_not_found_entire_expected_set,
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_field_values_within_expected_set_of_values_One_unexpected_value():
@@ -413,7 +425,7 @@ def test_check_field_values_within_expected_set_of_values_One_unexpected_value()
         fail_if_not_found_entire_expected_set,
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: values for field 'field' on table 'fact' do not fit expected set criteria, see details"
@@ -474,7 +486,7 @@ def test_check_field_values_within_expected_set_of_values_Not_found_entire_expec
         fail_if_not_found_entire_expected_set,
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: values for field 'field' on table 'fact' do not fit expected set criteria, see details"
@@ -534,9 +546,9 @@ def test_check_field_values_within_expected_set_of_values_Entire_expected_set_fo
         fail_if_not_found_entire_expected_set,
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_uniqueness_field_set_of_fields_True():
@@ -548,9 +560,9 @@ def test_check_uniqueness_field_set_of_fields_True():
 
     response = expect_values_for_field_to_be_unique(query_runner, table_name, fields)
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_uniqueness_field_set_of_fields_False():
@@ -562,7 +574,7 @@ def test_check_uniqueness_field_set_of_fields_False():
 
     response = expect_values_for_field_to_be_unique(query_runner, table_name, fields)
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: duplicate values for the combined fields '['field', 'entry_date']' on table 'fact', see details"
@@ -611,9 +623,9 @@ def test_check_geo_shapes_are_valid_True():
         query_runner, table_name, shape_field, ref_fields
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_geo_shapes_are_valid_False():
@@ -629,7 +641,7 @@ def test_check_geo_shapes_are_valid_False():
         query_runner, table_name, shape_field, ref_fields
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: 1 invalid shapes found in field 'geometry' on table 'one_invalid_among_five', see details"
@@ -650,12 +662,12 @@ def test_check_json_values_for_key_within_expected_set_True():
         query_runner, table_name, field_name, json_key, expected_values_set, ref_fields
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
-def test_check_json_values_for_key_within_expected_set_True():
+def test_check_json_values_for_key_within_expected_set_False():
     "Test case where II* is not expected but found"
     table_name = "entity"
     field_name = "json"
@@ -668,7 +680,7 @@ def test_check_json_values_for_key_within_expected_set_True():
         query_runner, table_name, field_name, json_key, expected_values_set, ref_fields
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: found non-expected values for key 'listed-building-grade' in field 'json' on table 'entity', see details"
@@ -741,7 +753,7 @@ def test_check_json_values_for__not_found_key_False():
         query_runner, table_name, field_name, json_key, expected_values_set, ref_fields
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: found non-expected values for key 'not-present-key' in field 'json' on table 'entity', see details"
@@ -765,9 +777,9 @@ def test_check_json_keys_are_within_Expected_keys_set_True():
         query_runner, table_name, field_name, expected_key_set, ref_fields
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_json_keys_are_within_Expected_keys_set_False():
@@ -781,7 +793,7 @@ def test_check_json_keys_are_within_Expected_keys_set_False():
         query_runner, table_name, field_name, expected_key_set, ref_fields
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: found non-expected json keys in the field 'json' on table 'entity', see details"
@@ -806,9 +818,9 @@ def test_check_value_for_field_is_within_expected_range_True():
         ref_fields,
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_value_for_field_is_within_expected_range_False():
@@ -828,7 +840,7 @@ def test_check_value_for_field_is_within_expected_range_False():
         ref_fields,
     )
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg
         == "Fail: found 18 values out of the expected range for field 'reference' on table 'entity', see details"
@@ -892,9 +904,9 @@ def test_check_custom_query_expectataion_True():
         query_runner, custom_query, expected_query_result
     )
 
-    assert response.result == True
+    assert response.result is True
     assert response.msg == "Success: data quality as expected"
-    assert response.details == None
+    assert response.details is None
 
 
 def test_check_custom_query_expectataion_Fail():
@@ -928,7 +940,7 @@ def test_check_custom_query_expectataion_Fail():
 
     print(response.details)
 
-    assert response.result == False
+    assert response.result is False
     assert (
         response.msg == "Fail: result for custom query was not as expected, see details"
     )

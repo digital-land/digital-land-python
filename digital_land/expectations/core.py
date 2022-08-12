@@ -63,6 +63,7 @@ class QueryRunner:
             return results
 
 
+# TODO write unit tests for this class
 @dataclass_json
 @dataclass
 class ExpectationResponse:
@@ -97,7 +98,7 @@ class ExpectationResponse:
     def save_to_file(self, dir_path: str):
         "Prepares a naming convention and saves the response to a provided path"
 
-        if self.result == True:
+        if self.result is True:
             name_status = "success"
         else:
             name_status = "fail"
@@ -115,7 +116,7 @@ class ExpectationResponse:
 
         result = 0
 
-        if self.result == False:
+        if self.result is False:
             warnings.warn(self.msg)
             if self.expectation_input["expectation_severity"] == "RaiseError":
                 result = 1

@@ -35,7 +35,7 @@ def expect_database_to_have_set_of_tables(
         msg = "Success: data quality as expected"
         details = None
     else:
-        msg = f"Fail: difference between expected tables and found tables on the db see details"
+        msg = "Fail: difference between expected tables and found tables on the db see details"
         details = {
             "expected_tables": expected_tables_set,
             "found_tables": found_tables_set,
@@ -322,7 +322,7 @@ def expect_geoshapes_to_be_valid(
 
     str_ref_fields = ",".join(ref_fields)
     sql_query = f"""
-        SELECT {str_ref_fields}, ST_IsValid(ST_GeomFromText({shape_field})) AS is_valid 
+        SELECT {str_ref_fields}, ST_IsValid(ST_GeomFromText({shape_field})) AS is_valid
         FROM {table_name}
         WHERE ST_IsValid(ST_GeomFromText({shape_field})) IN (0,-1);"""
     invalid_shapes = query_runner.run_query(sql_query)
@@ -378,9 +378,9 @@ def expect_values_for_a_key_stored_in_json_are_within_a_set(
     str_expected_values_set = "','".join(expected_values_set)
 
     sql_query = f"""
-        SELECT {str_ref_fields},json_extract({field}, '$.{json_key}') AS value_found_for_key 
-        FROM {table_name} 
-        WHERE 
+        SELECT {str_ref_fields},json_extract({field}, '$.{json_key}') AS value_found_for_key
+        FROM {table_name}
+        WHERE
             (json_extract({field}, '$.{json_key}') NOT IN ('{str_expected_values_set}'))
             OR (json_extract({field}, '$.{json_key}')) IS NULL;"""
 
@@ -432,8 +432,8 @@ def expect_keys_in_json_field_to_be_in_set_of_options(
 
     sql_query = (
         f"""
-        SELECT {str_ref_fields},json_remove({field_name}, {str_expected_keys_set}) AS non_expected_keys 
-        FROM {table_name} 
+        SELECT {str_ref_fields},json_remove({field_name}, {str_expected_keys_set}) AS non_expected_keys
+        FROM {table_name}
         WHERE non_expected_keys IS NOT NULL AND non_expected_keys <> '"""
         + "{}'"
     )
@@ -481,8 +481,8 @@ def expect_values_in_field_to_be_within_range(
 
     str_ref_fields = ",".join(ref_fields)
 
-    sql_query = f"""SELECT {str_ref_fields},{field_name} 
-                    FROM {table_name} 
+    sql_query = f"""SELECT {str_ref_fields},{field_name}
+                    FROM {table_name}
                     WHERE {field_name} < {min_expected_value} OR {field_name} > {max_expected_value}"""
 
     records_with_value_out_of_range = query_runner.run_query(sql_query)
@@ -539,7 +539,7 @@ def expect_custom_query_result_to_be_as_predicted(
         msg = "Success: data quality as expected"
         details = None
     else:
-        msg = f"Fail: result for custom query was not as expected, see details"
+        msg = "Fail: result for custom query was not as expected, see details"
         details = {
             "custom_query": custom_query,
             "query_result": query_result.to_dict(orient="records"),
