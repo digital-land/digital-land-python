@@ -1,5 +1,5 @@
 import pandas as pd
-from expectations.core import (
+from digital_land.expectations.core import (
     transform_df_first_column_into_set,
     config_parser,
     QueryRunner,
@@ -18,7 +18,7 @@ def test_transform_first_col_into_set():
 def test_query_runner():
 
     tested_dataset = (
-        "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+        "tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
     )
     query_runner = QueryRunner(tested_dataset)
     sql_query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
@@ -43,12 +43,14 @@ def test_query_runner():
 
 
 def test_config_parser():
-    file_path = "../tests/expectations/resources_to_test_expectations/testing_config_dq_suite.yaml"
+    file_path = (
+        "tests/expectations/resources_to_test_expectations/testing_config_dq_suite.yaml"
+    )
     result = config_parser(file_path)
 
     expected_dictionary = {
         "collection_name": "listed-building",
-        "dataset_path_name": "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3",
+        "dataset_path_name": "tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3",
         "tables": [
             {
                 "tb_name": "fact",

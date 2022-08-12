@@ -1,5 +1,5 @@
 collection_name: "listed-building"
-dataset_path_name: "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+dataset_path_name: "tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
 tables:
         - tb_name: "fact"
           tb_expected_min_row_count: 4000

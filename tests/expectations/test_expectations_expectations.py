@@ -1,5 +1,5 @@
-from expectations.core import QueryRunner
-from expectations.expectations import (
+from digital_land.expectations.core import QueryRunner
+from digital_land.expectations.expectations import (
     expect_database_to_have_set_of_tables,
     expect_table_to_have_set_of_columns,
     expect_table_row_count_to_be_in_range,
@@ -15,7 +15,7 @@ from expectations.expectations import (
 
 # Shared testing resources
 tested_dataset = (
-    "../tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
+    "tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
 )
 
 query_runner = QueryRunner(tested_dataset)
@@ -612,7 +612,7 @@ def test_check_uniqueness_field_set_of_fields_False():
 
 def test_check_geo_shapes_are_valid_True():
     """Tests with five valid geo shapes, should return True."""
-    tested_dataset = "../tests/expectations/resources_to_test_expectations/five_valid_multipolygons.sqlite3"
+    tested_dataset = "tests/expectations/resources_to_test_expectations/five_valid_multipolygons.sqlite3"
     query_runner = QueryRunner(tested_dataset)
 
     table_name = "five_valid_multipolygons"
@@ -630,7 +630,7 @@ def test_check_geo_shapes_are_valid_True():
 
 def test_check_geo_shapes_are_valid_False():
     """Tests with one geo shape that is invalid in a table with 5."""
-    tested_dataset = "../tests/expectations/resources_to_test_expectations/one_invalid_among_five.sqlite3"
+    tested_dataset = "tests/expectations/resources_to_test_expectations/one_invalid_among_five.sqlite3"
     query_runner = QueryRunner(tested_dataset)
 
     table_name = "one_invalid_among_five"
