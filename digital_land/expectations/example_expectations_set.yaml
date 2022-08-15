@@ -14,35 +14,30 @@ expectations:
   - expectation_name: expect_table_row_count_to_be_in_range
     expectation_severity: RaiseError
     table_name: column_field
-    expectation_severity: RaiseError    
     min_expected_row_count: 300
     max_expected_row_count: 600
   
   - expectation_name: expect_table_row_count_to_be_in_range
     expectation_severity: RaiseError
     table_name: dataset_resource
-    expectation_severity: RaiseError    
     min_expected_row_count: 90
     max_expected_row_count: 200
 
   - expectation_name: expect_table_row_count_to_be_in_range
     expectation_severity: RaiseError
     table_name: entity
-    expectation_severity: RaiseError    
     min_expected_row_count: 8500
     max_expected_row_count: 12000
 
   - expectation_name: expect_table_row_count_to_be_in_range
     expectation_severity: RaiseError
     table_name: fact
-    expectation_severity: RaiseError    
     min_expected_row_count: 80000
     max_expected_row_count: 85000
 
   - expectation_name: expect_table_row_count_to_be_in_range
     expectation_severity: RaiseError
     table_name: fact_resource
-    expectation_severity: RaiseError    
     min_expected_row_count: 175000
     max_expected_row_count: 185000
 
