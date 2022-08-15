@@ -98,7 +98,7 @@ class ExpectationResponse:
     def save_to_file(self, dir_path: str):
         "Prepares a naming convention and saves the response to a provided path"
 
-        if self.result is True:
+        if self.result:
             name_status = "success"
         else:
             name_status = "fail"
@@ -116,7 +116,7 @@ class ExpectationResponse:
 
         result = 0
 
-        if self.result is False:
+        if not self.result:
             warnings.warn(self.msg)
             if self.expectation_input["expectation_severity"] == "RaiseError":
                 result = 1
