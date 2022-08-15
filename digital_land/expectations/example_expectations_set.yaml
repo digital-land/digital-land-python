@@ -1,0 +1,143 @@
+collection_name: conservation-area
+
+expectations:
+  - expectation_name: expect_database_to_have_set_of_tables
+    expectation_severity: RaiseError
+    fail_if_found_more_than_expected: False
+    expected_tables_set: 
+      - column_field
+      - dataset_resource
+      - entity
+      - fact
+      - fact_resource
+  
+  - expectation_name: expect_table_row_count_to_be_in_range
+    expectation_severity: RaiseError
+    table_name: column_field
+    expectation_severity: RaiseError    
+    min_expected_row_count: 300
+    max_expected_row_count: 600
+  
+  - expectation_name: expect_table_row_count_to_be_in_range
+    expectation_severity: RaiseError
+    table_name: dataset_resource
+    expectation_severity: RaiseError    
+    min_expected_row_count: 90
+    max_expected_row_count: 200
+
+  - expectation_name: expect_table_row_count_to_be_in_range
+    expectation_severity: RaiseError
+    table_name: entity
+    expectation_severity: RaiseError    
+    min_expected_row_count: 8500
+    max_expected_row_count: 12000
+
+  - expectation_name: expect_table_row_count_to_be_in_range
+    expectation_severity: RaiseError
+    table_name: fact
+    expectation_severity: RaiseError    
+    min_expected_row_count: 80000
+    max_expected_row_count: 85000
+
+  - expectation_name: expect_table_row_count_to_be_in_range
+    expectation_severity: RaiseError
+    table_name: fact_resource
+    expectation_severity: RaiseError    
+    min_expected_row_count: 175000
+    max_expected_row_count: 185000
+
+  - expectation_name: expect_table_to_have_set_of_columns
+    expectation_severity: RaiseError 
+    table_name: entity    
+    fail_if_found_more_than_expected: False   
+    expected_columns_set:      
+      - dataset 
+      - end_date 
+      - entity 
+      - entry_date 
+      - geojson 
+      - geometry
+      - json 
+      - name
+      - organisation_entity
+      - point
+      - prefix
+      - reference
+      - start_date
+      - typology
+
+  - expectation_name: expect_values_for_field_to_be_unique
+    expectation_severity: RaiseError
+    table_name: entity
+    fields:
+      - entity
+
+  - expectation_name: expect_values_in_field_to_be_within_range
+    expectation_severity: RaiseError
+    min_expected_value: 44000000
+    max_expected_value: 44999999
+    table_name: entity
+    field_name: entity
+    ref_fields:
+      - entity
+
+  - expectation_name: expect_geoshapes_to_be_valid
+    expectation_severity: RaiseError
+    table_name: entity
+    field_name: geometry  
+    ref_fields: 
+      - entity
+    shape_field: geometry
+
+  - expectation_name: expect_row_count_for_lookup_value_to_be_in_range
+    expectation_severity: RaiseError
+    table_name: entity
+    field_name: organisation_entity
+    count_ranges_per_value:
+      - lookup_value: 16 
+        min_row_count: 7000
+        max_row_count: 8000
+      - lookup_value: 109
+        min_row_count: 20
+        max_row_count: 70
+
+  - expectation_name: expect_keys_in_json_field_to_be_in_set_of_options
+    expectation_severity: RaiseError
+    table_name: entity
+    field_name: json     
+    ref_fields: 
+        - entity
+    expected_keys_set: 
+      - categories
+      - documentation-url
+      - end-date
+      - entity
+      - entry-date
+      - geometry
+      - legislation
+      - name
+      - notes
+      - organisation
+      - point
+      - reference
+      - start-date
+      - conservation-area
+
+  - expectation_name: expect_custom_query_result_to_be_as_predicted
+    expectation_severity: RaiseError
+    custom_query: "SELECT entity FROM entity WHERE within(GeomFromText('POINT(-0.07850740376649457 51.51240013438393)'), GeomFromText(geometry));"
+    expected_query_result: 
+      - entity: 303443
+
+  - expectation_name: expect_custom_query_result_to_be_as_predicted
+    custom_query: "SELECT dataset, entity, typology, reference FROM entity WHERE reference IN (6407,6345)"
+    expectation_severity: RaiseError
+    expected_query_result: 
+      - dataset: conservation-area        
+        entity: 303444
+        typology: geography
+        reference: "6407"
+      - dataset: conservation-area        
+        entity: 303445
+        typology: geography
+        reference: "6345"    

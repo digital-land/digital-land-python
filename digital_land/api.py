@@ -37,6 +37,7 @@ from .schema import Schema
 from .specification import Specification
 from .update import add_source_endpoint
 from .datasette.docker import build_container
+from .expectations.main import run_dq_suite
 
 
 class DigitalLandApi(object):
@@ -318,6 +319,9 @@ class DigitalLandApi(object):
                     [(key.replace("-", "_"), val) for key, val in row.items()]
                 )
                 writer.writerow(snake_case_row)
+
+    def expectation_cmd(self, results_path, sqlite_dataset_path, data_quality_yaml):
+        run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml)
 
     #
     #  configuration commands
