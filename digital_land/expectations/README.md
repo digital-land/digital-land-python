@@ -18,4 +18,7 @@ Executing a yaml data quality file against a sqlite3 file is done the following 
 
     digital-land expectations --results-path "expectations/results" --sqlite-dataset-path "/src/sharing_area/conservation-area-collection/dataset/conservation-area.sqlite3" --data-quality-yaml "/src/sharing_area/green-box-data-quality/expectations/conservation-area.yaml"
 
-Note that ideally in prod --results-path should be changed to a dir of your choice.
+Note that in prod you will need to change the parameters to the ones of your pipeline
+    --results-path 
+    --sqlite-dataset-path
+    --data-quality-yaml
