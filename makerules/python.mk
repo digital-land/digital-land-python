@@ -14,7 +14,7 @@ black:
 flake8:
 	flake8 .
 
-test:: test-unit test-integration test-e2e test-airflow
+test:: test-unit test-integration test-e2e
 
 test-unit:
 	[ -d tests/unit ] && python -m pytest tests/unit --junitxml=.junitxml/unit.xml
