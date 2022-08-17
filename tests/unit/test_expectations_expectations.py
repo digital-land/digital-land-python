@@ -11,6 +11,7 @@ from digital_land.expectations.expectations import (
     expect_keys_in_json_field_to_be_in_set_of_options,
     expect_values_in_field_to_be_within_range,
     expect_custom_query_result_to_be_as_predicted,
+    expect_values_stored_for_a_key_in_json_match_a_set_of_regex_strings,
 )
 
 # Shared testing resources
@@ -979,3 +980,108 @@ def test_check_custom_query_expectataion_Fail():
             },
         ],
     }
+
+
+def test_expect_values_for_a_key_stored_in_json_match_a_set_of_regex_strings_True():
+    "Test case where domain endings are within expected list"
+    custom_tested_dataset = "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3"
+
+    custom_query_runner = QueryRunner(custom_tested_dataset)
+
+    table_name = "mock_with_evil"
+    field_name = "json"
+    json_key = "documentation-url"
+    ref_fields = ["entity"]
+    list_of_domain_endings = [".gov.uk", ".org.uk"]
+
+    response = expect_values_stored_for_a_key_in_json_match_a_set_of_regex_strings(
+        custom_query_runner,
+        table_name,
+        field_name,
+        json_key,
+        list_of_domain_endings,
+        ref_fields,
+    )
+
+    assert response.result
+
+
+def test_expect_values_for_a_key_stored_in_json_match_a_set_of_regex_strings_False1():
+    "Returns False because .org.uk is not in the list of endings expected"
+    custom_tested_dataset = "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3"
+
+    custom_query_runner = QueryRunner(custom_tested_dataset)
+
+    table_name = "mock_with_evil"
+    field_name = "json"
+    json_key = "documentation-url"
+    ref_fields = ["entity"]
+    list_of_domain_endings = [".gov.uk", ".irg.uk"]
+
+    response = expect_values_stored_for_a_key_in_json_match_a_set_of_regex_strings(
+        custom_query_runner,
+        table_name,
+        field_name,
+        json_key,
+        list_of_domain_endings,
+        ref_fields,
+    )
+
+    assert not response.result
+    assert response.msg == "Fail: found 2 records with unexpected domains, see details"
+
+
+def test_expect_values_for_a_key_stored_in_json_match_a_set_of_regex_strings_False2():
+    "Returns False because it finds invalid url"
+    custom_tested_dataset = "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3"
+
+    custom_query_runner = QueryRunner(custom_tested_dataset)
+
+    table_name = "mock_with_evil"
+    field_name = "json"
+    json_key = "documentation-url-evil-no-http"
+    ref_fields = ["entity"]
+    list_of_domain_endings = [".gov.uk", ".org.uk"]
+
+    response = expect_values_stored_for_a_key_in_json_match_a_set_of_regex_strings(
+        custom_query_runner,
+        table_name,
+        field_name,
+        json_key,
+        list_of_domain_endings,
+        ref_fields,
+    )
+
+    assert not response.result
+    assert response.msg == "Fail: found 1 invalid URLs, see details"
+
+
+def test_expect_values_for_a_key_stored_in_json_match_a_set_of_regex_strings_False3():
+    """Returns False when testing against evil urls, present test used 5 different shapes
+    https://evil-site.example.com/stuff.gov.uk/
+    http://evil-site.example.com/stuff.gov.uk/
+    http://evil-site.example.com//stuff.gov.uk/
+    https://evil-site.example.com/https://stuff.gov.uk/
+    http://evil-site.example.com/http://stuff.gov.uk/
+    """
+    custom_tested_dataset = "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3"
+
+    custom_query_runner = QueryRunner(custom_tested_dataset)
+
+    table_name = "mock_with_evil"
+    field_name = "json"
+    json_key = "documentation-url-evil"
+    ref_fields = ["entity"]
+    list_of_domain_endings = [".gov.uk", ".org.uk"]
+
+    response = expect_values_stored_for_a_key_in_json_match_a_set_of_regex_strings(
+        custom_query_runner,
+        table_name,
+        field_name,
+        json_key,
+        list_of_domain_endings,
+        ref_fields,
+    )
+
+    assert not response.result
+    assert response.msg == "Fail: found 5 records with unexpected domains, see details"
