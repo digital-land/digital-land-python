@@ -23,13 +23,13 @@ Note 1: in prod you will need to change the parameters to the ones of your pipel
     --sqlite-dataset-path
     --data-quality-yaml
 
-Note 2: because the command is running from the digital-land CLI it needs to either be run in a folder that has the default subfolders for dataset, pipeline_dir and specification_dir OR it needs to be given thouse as additional parameters (even if the only parameters it really uses are the 3 mentioned in Note 1)
+Note 2: because the command is running from the digital-land CLI it needs to either be run in a folder that has the default subfolders for dataset, pipeline_dir and specification_dir OR it needs to be given these as additional parameters (even if the only parameters it uses are the 3 mentioned in Note 1)
 
 ## Writting you data-quality-yaml
 
 An example of a yaml is provided in the file: expectations/example_expectations_set.yaml
 
-The core structure needed in the is as follows:
+The core structure needed in the yaml is as follows:
 
 ```yaml
 expectations:
@@ -52,20 +52,14 @@ expectations:
       - value_2
       - value_3
       - value_4
-    (...)
-    argument_x: value_x
-  
-  (...)
 
-  - expectation_name: name_of_the_expectation_function_X
-    (...)
-
+    (... and so on)
 ```
 ### Important Notes:
-- name_of_the_expectation_function should match their definition in expectations/expectations.py
-- expectation_severity should be either *RaiseError* or *LogWarning*. If any expectation with RaiseError severity returns False main will exit with a DataQuality Error, if only LogWarning expectations return False the script will print the Failed as warnings and will also save the it to the results folder as Fail but the scrit will not exit with error.
+- **name_of_the_expectation_function** should match their definition in expectations/expectations.py
+- **expectation_severity** should be either *RaiseError* or *LogWarning*. If any expectation with *RaiseError* severity returns *False* main will exit with a *DataQualityError*, if only *LogWarning* expectations return *False* the script will raise a warning and will also save to the results folder as *Fail* but the scrit will not exit with *error*.
 - all arguments names should match the expectation arguments in expectations/expectations.py
-- all arguments shape should be consistent with their types in the definition. For example, when providing an argument that expects a list you need to have the yaml equivalent of a list even if you want to provide one single item in the list:
+- the way the arguments are expressed in yaml should be consistent with their types in the function definition. For example, when providing an argument that is expected as a list in the function definition, you need to have the yaml equivalent of a list, even if you want to provide one single item in the list:
 
 ```yaml
     list_name:
