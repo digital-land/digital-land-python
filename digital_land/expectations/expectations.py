@@ -557,7 +557,7 @@ def expect_custom_query_result_to_be_as_predicted(
     return expectation_response
 
 
-def expect_values_stored_for_a_key_in_json_match_a_set_of_regex_strings(
+def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
     query_runner: QueryRunner,
     table_name: str,
     field_name: str,
