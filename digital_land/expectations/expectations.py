@@ -555,3 +555,98 @@ def expect_custom_query_result_to_be_as_predicted(
     )
 
     return expectation_response
+
+
+def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
+    query_runner: QueryRunner,
+    table_name: str,
+    field_name: str,
+    json_key: str,
+    list_of_domain_endings: list,
+    ref_fields: list,
+    expectation_severity: str = "RaiseError",
+    **kwargs,
+):
+    """Looks at urls stored inside a json field within a given json_key:
+        - returns FALSE if the value doesn't start with "http://" or "https://"
+        - checks if the domain ends with one of the values provided in the
+        list_of_domain_endings, returns:
+            - FALSE if it finds one or more records whose endings are not in
+            the list
+            - TRUE if all domain endings are in the list provided
+
+    NOTE: The domain here is all that was found between "http://" (or https://)
+     and the first "/" after it.
+    """
+    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    str_ref_fields = ",".join(ref_fields)
+
+    sql_look_for_inv_urls = f"""
+                    WITH prepare as
+                        (SELECT
+                            {str_ref_fields},
+                            json_extract({field_name}, '$.{json_key}') as url
+                        FROM {table_name}
+                        WHERE json_extract(json, '$.{json_key}') IS NOT NULL)
+
+                    SELECT {str_ref_fields}, url
+                    FROM prepare
+                    WHERE INSTR(url, 'https://') = 0 AND INSTR(url, 'http://') = 0
+                    """
+
+    found_invalid_urls = query_runner.run_query(sql_look_for_inv_urls)
+
+    if len(found_invalid_urls) != 0:
+        # if doesn't start with http:// or https:// it stops early
+        result = False
+        msg = f"Fail: found {len(found_invalid_urls)} invalid URLs, see details"
+        details = {"invalid_urls_found": found_invalid_urls.to_dict(orient="records")}
+    else:
+        sql_check_domain = f"""
+            WITH prepare as
+                (SELECT
+                    {str_ref_fields},
+                    json_extract({field_name}, '$.{json_key}') as url
+                FROM {table_name}
+                WHERE json_extract(json, '$.{json_key}') IS NOT NULL)
+            SELECT
+                {str_ref_fields},
+                SUBSTR(
+                    SUBSTR(url, INSTR(url, '//') + 2),
+                    0,
+                    INSTR(SUBSTR(url, INSTR(url, '//') + 2),'/'))
+                AS extracted_domain
+            FROM prepare
+            WHERE extracted_domain NOT LIKE '%{list_of_domain_endings[0]}'
+        """
+        for ending in list_of_domain_endings[1:]:
+            sql_check_domain = (
+                sql_check_domain + "    AND extracted_domain NOT LIKE '%" + ending + "'"
+            )
+
+        found_unexpected_domain = query_runner.run_query(sql_check_domain)
+
+        result = len(found_unexpected_domain) == 0
+
+        if result:
+            msg = "Success: data quality as expected"
+            details = None
+        else:
+            msg = f"Fail: found {len(found_unexpected_domain)} records with unexpected domains, see details"
+            details = {
+                "records_with_unexpected_domains": found_unexpected_domain.to_dict(
+                    orient="records"
+                )
+            }
+
+    expectation_response = ExpectationResponse(
+        expectation_input=expectation_input,
+        result=result,
+        msg=msg,
+        details=details,
+        sqlite_dataset=query_runner.inform_dataset_path(),
+    )
+
+    return expectation_response
