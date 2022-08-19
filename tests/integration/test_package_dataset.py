@@ -1,3 +1,5 @@
+import json
+import os.path
 from csv import DictReader
 
 import pytest
@@ -61,14 +63,9 @@ def test_package_dataset(
         assert list(actual_dict_reader) == list(expected_dict_reader)
 
 
-@pytest.mark.skip("data needs updating")
 @pytest.mark.parametrize(
     "dataset_name",
-    [
-        "listed-building-grade",
-        "listed-building-outline",
-        "locally-listed-building",
-    ],
+    ["listed-building-grade"],
 )
 def test_package_dataset_hoisted(
     # Parametrize args
@@ -81,13 +78,14 @@ def test_package_dataset_hoisted(
     tmp_path,
 ):
     # Setup
-    expected_hoisted_csv_result = dataset_dir.joinpath(f"{dataset_name}-hoisted.csv")
+    expected_flattened_csv_result = dataset_dir.joinpath(f"{dataset_name}-expected.csv")
 
     csv_path = dataset_dir.joinpath(f"{dataset_name}.csv")
 
-    output_dir = tmp_path.joinpath("dataset_output")
-    output_dir.mkdir()
-    hoisted_csv_path = output_dir.joinpath(f"{dataset_name}-hoisted.csv")
+    flattened_output_dir = tmp_path.joinpath("dataset_output")
+    flattened_output_dir.mkdir()
+    flattened_csv_path = flattened_output_dir.joinpath(f"{dataset_name}.csv")
+    flattened_json_path = flattened_output_dir.joinpath(f"{dataset_name}.json")
 
     # Call
     api = DigitalLandApi(
@@ -96,10 +94,16 @@ def test_package_dataset_hoisted(
         pipeline_dir=pipeline_dir,
         specification_dir=str(specification_path),
     )
-    api.dataset_dump_hoisted_cmd(csv_path, hoisted_csv_path)
+    api.dataset_dump_flattened_cmd(csv_path, flattened_output_dir)
 
-    with hoisted_csv_path.open() as actual, expected_hoisted_csv_result.open() as expected:
+    with flattened_csv_path.open() as actual, expected_flattened_csv_result.open() as expected:
         actual_dict_reader = DictReader(actual)
         expected_dict_reader = DictReader(expected)
         assert actual_dict_reader.fieldnames == expected_dict_reader.fieldnames
         assert list(actual_dict_reader) == list(expected_dict_reader)
+
+    assert os.path.isfile(flattened_json_path)
+    with flattened_json_path.open() as actual:
+        data = json.load(actual)
+        assert 3 == len(data["entities"])
+        assert 3 == data["count"]

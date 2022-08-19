@@ -173,12 +173,12 @@ def dataset_dump_cmd(input_path, output_path):
 
 
 @cli.command(
-    "dataset-entries-hoisted",
+    "dataset-entries-flattened",
     short_help="dump dataset entries as csv with additional top-level `entity.json` fields",
 )
 @input_output_path
-def dataset_dump_hoisted_cmd(input_path, output_path):
-    API.dataset_dump_hoisted_cmd(csv_path=input_path, hoisted_csv_path=output_path)
+def dataset_dump_flattened_cmd(input_path, output_path):
+    API.dataset_dump_flattened_cmd(csv_path=input_path, flattened_dir=output_path)
 
 
 @cli.command("pipeline", short_help="process a resource")

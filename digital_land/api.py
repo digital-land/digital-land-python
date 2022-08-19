@@ -282,12 +282,20 @@ class DigitalLandApi(object):
         logging.info(cmd)
         os.system(cmd)
 
-    def dataset_dump_hoisted_cmd(self, csv_path, hoisted_csv_path):
-        if not hoisted_csv_path:
-            hoisted_csv_path = csv_path.replace(".csv", "-hoisted.csv")
+    def dataset_dump_flattened_cmd(self, csv_path, flattened_dir):
 
+        if isinstance(csv_path, str):
+            path = Path(csv_path)
+            dataset_name = path.stem
+        elif isinstance(csv_path, Path):
+            dataset_name = csv_path.stem
+        else:
+            logging.error(f"Can't extract datapackage name from {csv_path}")
+            sys.exit(-1)
+
+        flattened_csv_path = os.path.join(flattened_dir, f"{dataset_name}.csv")
         with open(csv_path, "r") as read_file, open(
-            hoisted_csv_path, "w+"
+            flattened_csv_path, "w+"
         ) as write_file:
             reader = csv.DictReader(read_file)
 
@@ -302,14 +310,15 @@ class DigitalLandApi(object):
             ]
             reader_fieldnames = list(reader.fieldnames)
             reader_fieldnames.remove("json")
-            hoisted_field_names = set(spec_field_names).difference(
+            flattened_field_names = set(spec_field_names).difference(
                 set(reader_fieldnames)
             )
-            # Make sure we put hoisted fieldnames last
-            field_names = reader_fieldnames + sorted(list(hoisted_field_names))
+            # Make sure we put flattened fieldnames last
+            field_names = reader_fieldnames + sorted(list(flattened_field_names))
 
             writer = csv.DictWriter(write_file, fieldnames=field_names)
             writer.writeheader()
+            entities = []
             for row in reader:
                 row = OrderedDict(row)
                 json_string = row.pop("json") or "{}"
@@ -318,6 +327,12 @@ class DigitalLandApi(object):
                     [(key.replace("-", "_"), val) for key, val in row.items()]
                 )
                 writer.writerow(snake_case_row)
+                entities.append(snake_case_row)
+
+        # write the entities to json file as well
+        flattened_json_path = os.path.join(flattened_dir, f"{dataset_name}.json")
+        with open(flattened_json_path, "w") as out_json:
+            out_json.write(json.dumps({"entities": entities, "count": len(entities)}))
 
     def expectation_cmd(self, results_path, sqlite_dataset_path, data_quality_yaml):
         from .expectations.main import run_dq_suite

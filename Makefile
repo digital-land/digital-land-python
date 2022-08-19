@@ -3,7 +3,7 @@ PACKAGE=digital_land
 include makerules/makerules.mk
 include makerules/python.mk
 
-SPACIAL := $(shell command -v mod_spatialite 2> /dev/null)
+SPATIAL := $(shell command -v mod_spatialite 2> /dev/null)
 GDAL := $(shell command -v ogr2ogr 2> /dev/null)
 SQLDIFF := $(shell command -v sqldiff 2> /dev/null)
 UNAME := $(shell uname)
@@ -22,7 +22,7 @@ $(error sqldiff not found in PATH)
 endif
 	sudo apt-get install sqlite3
 endif
-ifndef SPACIAL
+ifndef SPATIAL
 ifeq ($(UNAME),Darwin)
 $(error GDAL tools not found in PATH)
 endif
