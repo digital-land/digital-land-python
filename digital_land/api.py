@@ -7,6 +7,9 @@ import json
 import logging
 from pathlib import Path
 
+import geojson
+import shapely
+
 from .collection import Collection, resource_path
 from .collect import Collector
 from .log import IssueLog, ColumnFieldLog, DatasetResourceLog
@@ -300,7 +303,7 @@ class DigitalLandApi(object):
             reader = csv.DictReader(read_file)
 
             spec_field_names = [
-                field.replace("-", "_")
+                field
                 for field in itertools.chain(
                     *[
                         self.specification.current_fieldnames(schema)
@@ -308,8 +311,12 @@ class DigitalLandApi(object):
                     ]
                 )
             ]
-            reader_fieldnames = list(reader.fieldnames)
-            reader_fieldnames.remove("json")
+            reader_fieldnames = [
+                field.replace("_", "-")
+                for field in list(reader.fieldnames)
+                if field != "json"
+            ]
+
             flattened_field_names = set(spec_field_names).difference(
                 set(reader_fieldnames)
             )
@@ -320,19 +327,35 @@ class DigitalLandApi(object):
             writer.writeheader()
             entities = []
             for row in reader:
+                row.pop("geojson", None)
                 row = OrderedDict(row)
                 json_string = row.pop("json") or "{}"
                 row.update(json.loads(json_string))
-                snake_case_row = dict(
-                    [(key.replace("-", "_"), val) for key, val in row.items()]
+                kebab_case_row = dict(
+                    [(key.replace("_", "-"), val) for key, val in row.items()]
                 )
-                writer.writerow(snake_case_row)
-                entities.append(snake_case_row)
+                writer.writerow(kebab_case_row)
+                entities.append(kebab_case_row)
 
         # write the entities to json file as well
         flattened_json_path = os.path.join(flattened_dir, f"{dataset_name}.json")
         with open(flattened_json_path, "w") as out_json:
             out_json.write(json.dumps({"entities": entities}))
+
+        features = []
+        if len(entities) > 0 and entities[0]["typology"] == "geography":
+            for e in entities:
+                wkt = e.pop("geometry")
+                geometry = shapely.wkt.loads(wkt)
+                feature = geojson.Feature(geometry=geometry)
+                feature["properties"] = e
+                features.append(feature)
+
+            feature_collection = geojson.FeatureCollection(features=features)
+
+            geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
+            with open(geojson_path, "w") as out_geojson:
+                out_geojson.write(geojson.dumps(feature_collection))
 
     def expectation_cmd(self, results_path, sqlite_dataset_path, data_quality_yaml):
         from .expectations.main import run_dq_suite

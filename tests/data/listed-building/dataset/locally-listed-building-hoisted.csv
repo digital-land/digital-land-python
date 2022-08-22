@@ -1,2 +1,0 @@
-dataset,end_date,entity,entry_date,geojson,geometry,name,organisation_entity,point,prefix,reference,start_date,typology,documentation_url,listed_building_grade,locally_listed_building,wikidata,wikipedia
-locally-listed-building,,41100447,2021-12-23,,"MULTIPOLYGON (((1.025641 51.354931,1.025825 51.355022,1.025780 51.355060,1.025370 51.354861,1.025418 51.354823,1.025641 51.354931)))","The Yard Cottage, The Street,, Barham, CT4 6NY",,POINT(1.025598 51.354941),locally-listed-building,,,geography,,,,,
