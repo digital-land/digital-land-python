@@ -332,7 +332,7 @@ class DigitalLandApi(object):
         # write the entities to json file as well
         flattened_json_path = os.path.join(flattened_dir, f"{dataset_name}.json")
         with open(flattened_json_path, "w") as out_json:
-            out_json.write(json.dumps({"entities": entities, "count": len(entities)}))
+            out_json.write(json.dumps({"entities": entities}))
 
     def expectation_cmd(self, results_path, sqlite_dataset_path, data_quality_yaml):
         from .expectations.main import run_dq_suite

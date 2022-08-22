@@ -106,4 +106,3 @@ def test_package_dataset_hoisted(
     with flattened_json_path.open() as actual:
         data = json.load(actual)
         assert 3 == len(data["entities"])
-        assert 3 == data["count"]
