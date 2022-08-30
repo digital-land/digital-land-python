@@ -344,12 +344,16 @@ class DigitalLandApi(object):
 
         features = []
         if len(entities) > 0 and entities[0]["typology"] == "geography":
-            for e in entities:
-                wkt = e.pop("geometry")
-                geometry = shapely.wkt.loads(wkt)
-                feature = geojson.Feature(geometry=geometry)
-                feature["properties"] = e
-                features.append(feature)
+            for entity in entities:
+                wkt = entity.pop("geometry")
+                try:
+                    geometry = shapely.wkt.loads(wkt)
+                    feature = geojson.Feature(geometry=geometry)
+                    feature["properties"] = entity
+                    features.append(feature)
+                except Exception as e:
+                    logging.error(f"Error loading wkt from {entity['entity']}")
+                    logging.error(e)
 
             feature_collection = geojson.FeatureCollection(features=features)
 
