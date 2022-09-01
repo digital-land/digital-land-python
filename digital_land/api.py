@@ -343,29 +343,29 @@ class DigitalLandApi(object):
             out_json.write(json.dumps({"entities": entities}))
 
         features = []
-        if len(entities) > 0 and entities[0]["typology"] == "geography":
-            for entity in entities:
-                wkt = entity.pop("geometry")
-                if wkt:
-                    try:
-                        geometry = shapely.wkt.loads(wkt)
-                        feature = geojson.Feature(geometry=geometry)
-                        feature["properties"] = entity
-                        features.append(feature)
-                    except Exception as e:
-                        logging.error(f"Error loading wkt from {entity['entity']}")
-                        logging.error(e)
-                else:
-                    wkt = entity.pop("point")
-                    if wkt:
-                        try:
-                            geometry = shapely.wkt.loads(wkt)
-                            feature = geojson.Point(geometry=geometry)
-                            feature["properties"] = entity
-                            features.append(feature)
-                        except Exception as e:
-                            logging.error(f"Error loading wkt from {entity['entity']}")
-                            logging.error(e)
+        for entity in (e for e in entities if e["typology"] == "geography"):
+            geom = entity.pop("geometry")
+            point = entity.pop("point")
+            if geom:
+                try:
+                    geometry = shapely.wkt.loads(geom)
+                    feature = geojson.Feature(geometry=geometry, properties=entity)
+                    features.append(feature)
+                except Exception as e:
+                    logging.error(f"Error loading wkt from entity {entity['entity']}")
+                    logging.error(e)
+            elif point:
+                try:
+                    geometry = shapely.wkt.loads(point)
+                    feature = geojson.Feature(geometry=geometry, properties=entity)
+                    features.append(feature)
+                except Exception as e:
+                    logging.error(f"Error loading wkt from entity {entity['entity']}")
+                    logging.error(e)
+            else:
+                logging.error(
+                    f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
+                )
 
         if features:
             feature_collection = geojson.FeatureCollection(features=features)
