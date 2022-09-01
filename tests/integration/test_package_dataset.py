@@ -65,7 +65,7 @@ def test_package_dataset(
 
 @pytest.mark.parametrize(
     "dataset_name",
-    ["listed-building-outline"],
+    ["listed-building-grade"],
 )
 def test_package_dataset_hoisted(
     # Parametrize args
