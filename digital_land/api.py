@@ -390,15 +390,15 @@ class DigitalLandApi(object):
                     geojson_path,
                 ]
             )
-        if not os.path.isfile(rfc7946_geojson_path):
-            logging.error(
-                "Could not generate rfc7946 compliant geojson. Use existing file."
-            )
-            os.rename(geojson_path, rfc7946_geojson_path)
-        else:
-            # clear up input geojson file
-            if os.path.isfile(geojson_path):
-                os.remove(geojson_path)
+            if not os.path.isfile(rfc7946_geojson_path):
+                logging.error(
+                    "Could not generate rfc7946 compliant geojson. Use existing file."
+                )
+                os.rename(geojson_path, rfc7946_geojson_path)
+            else:
+                # clear up input geojson file
+                if os.path.isfile(geojson_path):
+                    os.remove(geojson_path)
 
     def expectation_cmd(self, results_path, sqlite_dataset_path, data_quality_yaml):
         from .expectations.main import run_dq_suite
