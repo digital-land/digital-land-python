@@ -16,7 +16,7 @@ from .log import IssueLog, ColumnFieldLog, DatasetResourceLog
 from .organisation import Organisation
 from .package.dataset import DatasetPackage
 from .phase.concat import ConcatFieldPhase
-from .phase.convert import ConvertPhase
+from .phase.convert import ConvertPhase, execute
 from .phase.default import DefaultPhase
 from .phase.dump import DumpPhase
 from .phase.factor import FactorPhase
@@ -368,10 +368,37 @@ class DigitalLandApi(object):
                 )
 
         if features:
-            feature_collection = geojson.FeatureCollection(features=features)
-            geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
+            feature_collection = geojson.FeatureCollection(
+                features=features, name=dataset_name
+            )
+            geojson_path = os.path.join(flattened_dir, f"{dataset_name}-tmp.geojson")
             with open(geojson_path, "w") as out_geojson:
                 out_geojson.write(geojson.dumps(feature_collection))
+
+            rfc7946_geojson_path = os.path.join(
+                flattened_dir, f"{dataset_name}.geojson"
+            )
+
+            execute(
+                [
+                    "ogr2ogr",
+                    "-f",
+                    "GeoJSON",
+                    "-lco",
+                    "RFC7946=YES",
+                    rfc7946_geojson_path,
+                    geojson_path,
+                ]
+            )
+        if not os.path.isfile(rfc7946_geojson_path):
+            logging.error(
+                "Could not generate rfc7946 compliant geojson. Use existing file."
+            )
+            os.rename(geojson_path, rfc7946_geojson_path)
+        else:
+            # clear up input geojson file
+            if os.path.isfile(geojson_path):
+                os.remove(geojson_path)
 
     def expectation_cmd(self, results_path, sqlite_dataset_path, data_quality_yaml):
         from .expectations.main import run_dq_suite
