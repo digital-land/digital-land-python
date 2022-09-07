@@ -88,10 +88,14 @@ class DatasetPackage(SqlitePackage):
 
         if wkt:
             if not row.get("latitude", ""):
-                geometry = shapely.wkt.loads(wkt)
-                geometry = geometry.centroid
-                row["longitude"] = "%.6f" % round(Decimal(geometry.x), 6)
-                row["latitude"] = "%.6f" % round(Decimal(geometry.y), 6)
+                try:
+                    geometry = shapely.wkt.loads(wkt)
+                    geometry = geometry.centroid
+                    row["longitude"] = "%.6f" % round(Decimal(geometry.x), 6)
+                    row["latitude"] = "%.6f" % round(Decimal(geometry.y), 6)
+                except Exception as e:
+                    logging.error(f"error processing wkt {wkt} for entity {entity}")
+                    logging.error(e)
 
             if not row.get("point", ""):
                 row["point"] = "POINT(%s %s)" % (row["longitude"], row["latitude"])
