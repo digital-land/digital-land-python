@@ -96,6 +96,7 @@ class DatasetPackage(SqlitePackage):
                 except Exception as e:
                     logging.error(f"error processing wkt {wkt} for entity {entity}")
                     logging.error(e)
+                    return None
 
             if not row.get("point", ""):
                 row["point"] = "POINT(%s %s)" % (row["longitude"], row["latitude"])
