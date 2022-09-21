@@ -106,6 +106,7 @@ def _execute_convert(input_file, output_file):
     returncode, outs, errs = execute(
         [
             "digital-land",
+            "-d",
             "-n",
             "some-pipeline",
             "-p",

@@ -4,7 +4,6 @@ from shutil import copytree
 
 import pytest
 
-
 TODAY = date.today()
 
 
