@@ -3,6 +3,7 @@ from csv import DictReader
 
 from digital_land.commands import collection_save_csv
 
+
 def _get_filename_without_suffix_from_path(path):
     return path.name[: -len("".join(path.suffixes))]
 
