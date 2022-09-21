@@ -3,10 +3,12 @@ import csv
 import difflib
 import filecmp
 import pathlib
-
 import pytest
 import xlsxwriter
-from tests.utils.helpers import execute, print_diffs
+
+from click.testing import CliRunner
+from digital_land.cli import cli
+from tests.utils.helpers import print_diffs
 
 
 @pytest.mark.parametrize(
@@ -103,23 +105,15 @@ def _test_convert(input_file):
 
 
 def _execute_convert(input_file, output_file):
-    returncode, outs, errs = execute(
-        [
-            "digital-land",
-            "-d",
-            "-n",
-            "some-pipeline",
-            "-p",
-            "tests/data/pipeline",
-            "-s",
-            "tests/data/specification",
-            "convert",
-            input_file,
-            output_file,
-        ]
-    )
-    assert returncode == 0, f"return code non-zero: {errs}"
-    assert "ERROR" not in errs
+    args = [
+        "convert",
+        str(input_file),
+        str(output_file),
+    ]
+    runner = CliRunner()
+    result = runner.invoke(cli, args)
+
+    assert 0 == result.exit_code
 
 
 def read_csv(file):
