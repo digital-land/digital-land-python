@@ -1,8 +1,7 @@
 #!/usr/bin/env -S pytest -svv
 from csv import DictReader
 
-from digital_land.api import DigitalLandApi
-from digital_land.specification import specification_path
+from digital_land.commands import collection_save_csv
 
 
 def _get_filename_without_suffix_from_path(path):
@@ -23,15 +22,8 @@ def test_collection(
     # Pytest fixtures
     tmp_path,
 ):
-    # Call
-    api = DigitalLandApi(
-        debug=False,
-        dataset=None,
-        pipeline_dir=pipeline_dir,
-        specification_dir=str(specification_path),
-    )
-    # Call
-    api.collection_save_csv_cmd(collection_dir)
+
+    collection_save_csv(collection_dir)
 
     # Assert
     actual_log_csv = collection_dir.joinpath("log.csv")

@@ -48,9 +48,6 @@ setup(
         "Shapely==1.8.0",  # Version locking till https://github.com/shapely/shapely/issues/1364 is fixed
         "SPARQLWrapper",
         "pluggy",
-        "sqlalchemy",
-        "tenacity",
-        "mysql-connector-python",
         "specification@git+https://github.com/digital-land/specification",
         "geojson",
         "spatialite",
@@ -69,7 +66,6 @@ setup(
             "responses",
             "XlsxWriter",
             "wasabi",
-            "digital-land-airflow[test]@git+https://github.com/digital-land/digital-land-airflow#egg=digital-land-airflow[test]",
         ]
         + maybe_black
     },
@@ -79,7 +75,7 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Database",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

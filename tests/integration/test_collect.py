@@ -1,11 +1,13 @@
 import csv
 import json
 import urllib.request
-from datetime import datetime
-
 import pytest
 
-from tests.utils.helpers import execute, hash_digest
+from datetime import datetime
+from click.testing import CliRunner
+from digital_land.cli import cli
+
+from tests.utils.helpers import hash_digest
 
 ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/main/tests/data/resource_examples/csv.csv"
 COLLECTION_DIR = "./collection"
@@ -19,37 +21,32 @@ def endpoint_csv(tmp_path):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerow({"endpoint": hash_digest(ENDPOINT), "endpoint-url": ENDPOINT})
-    return p
+    return str(p)
 
 
 @pytest.fixture()
 def collection_dir(tmp_path):
     c = tmp_path / "collection"
     c.mkdir()
-    return c
+    return str(c)
 
 
 def test_collect(endpoint_csv, collection_dir):
-    collection_dir = collection_dir
-    returncode, outs, errs = execute(
-        [
-            "digital-land",
-            "-p",
-            "tests/data/pipeline",
-            "-s",
-            "tests/data/specification",
-            "collect",
-            "-c",
-            collection_dir,
-            endpoint_csv,
-        ]
-    )
+
+    args = [
+        "collect",
+        "--collection-dir",
+        collection_dir,
+        endpoint_csv,
+    ]
+
+    runner = CliRunner()
+    result = runner.invoke(cli, args)
 
     log_date = datetime.utcnow().isoformat()[:10]
     log_file = f"{collection_dir}/log/{log_date}/{hash_digest(ENDPOINT)}.json"
 
-    assert returncode == 0, f"return code non-zero: {errs}"
-    assert "ERROR" not in errs
+    assert 0 == result.exit_code
 
     resource = read_log(log_file)
     assert resource
