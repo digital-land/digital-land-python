@@ -111,11 +111,13 @@ def convert_cmd(input_path, output_path):
 @organisation_path
 @click.pass_context
 def dataset_create_cmd(ctx, input_paths, output_path, organisation_path):
-    pipeline = ctx.obj["PIPELINE"]
-    specification = ctx.obj["SPECIFICATION"]
-    dataset = ctx.obj["DATASET"]
     return dataset_create(
-        input_paths, output_path, organisation_path, pipeline, specification, dataset
+        input_paths=input_paths,
+        output_path=output_path,
+        organisation_path=organisation_path,
+        pipeline = ctx.obj["PIPELINE"],
+        dataset = ctx.obj["DATASET"],
+        specification = ctx.obj["SPECIFICATION"],
     )
 
 
@@ -132,8 +134,8 @@ def dataset_dump_cmd(input_path, output_path):
 @input_output_path
 @click.pass_context
 def dataset_dump_flattened_cmd(ctx, input_path, output_path):
-    specification = ctx["specfication"]
-    dataset = ctx["dataset"]
+    specification = ctx.obj["SPECIFICATION"]
+    dataset = ctx.obj["DATASET"]
     dataset_dump_flattened(input_path, output_path, specification, dataset)
 
 

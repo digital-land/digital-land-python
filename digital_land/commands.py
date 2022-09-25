@@ -225,17 +225,17 @@ def pipeline_run(
 #  build dataset from processed resources
 #
 def dataset_create(
-    input_paths, output_path, organisation_path, pipeline, dataset, specification_dir
+    input_paths, output_path, organisation_path, pipeline, dataset, specification
 ):
     if not output_path:
-        print("missing output path")
+        print("missing output path", file=sys.stderr)
         sys.exit(2)
     organisation = Organisation(organisation_path, Path(pipeline.path))
     package = DatasetPackage(
         dataset,
         organisation=organisation,
         path=output_path,
-        specification_dir=specification_dir,
+        specification_dir=None,   # TBD: package should use this specification object
     )
     package.create()
     for path in input_paths:
@@ -395,7 +395,7 @@ def build_datasette(tag, data_dir, ext, options):
     datasets = [f"{d}" for d in Path(data_dir).rglob(f"*.{ext}")]
     for dataset in datasets:
         if not Path(dataset).exists():
-            print(f"{dataset} not found")
+            print(f"{dataset} not found", file=sys.stderr)
             sys.exit(1)
     container_id, name = build_container(datasets, tag, options)
     print("%s dataset successfully packaged" % len(datasets))
