@@ -112,7 +112,7 @@ def convert_cmd(input_path, output_path):
 @click.pass_context
 def dataset_create_cmd(ctx, input_paths, output_path, organisation_path):
     pipeline = ctx.obj["PIPELINE"]
-    specification = ctx.obj["SPECIFCATION"]
+    specification = ctx.obj["SPECIFICATION"]
     dataset = ctx.obj["DATASET"]
     return dataset_create(
         input_paths, output_path, organisation_path, pipeline, specification, dataset
@@ -165,7 +165,7 @@ def pipeline_command(
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
-    specification = ctx.obj["SPECIFCATION"]
+    specification = ctx.obj["SPECIFICATION"]
 
     endpoints = endpoints.split()
     organisations = organisations.split()
