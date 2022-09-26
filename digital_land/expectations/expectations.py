@@ -657,13 +657,20 @@ def expect_geometry_intersects_entity(
     expected_query_result: list,
     entity_geometry_field:str = 'geometry',
     returned_entity_fields:list[str] = ['name'],
+    returned_json_fields:list[str] = None,
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
+
+    if returned_json_fields is not None:
+        json_sql_list = [f"json_extract(json,'$.{field}') as {field}" for field in returned_json_fields]
+        fields = [*returned_entity_fields,*json_sql_list]
+    else:
+        fields = returned_entity_fields
     
-    custom_query = f"SELECT {','.join(returned_entity_fields)} FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
+    custom_query = f"SELECT {','.join(fields)} FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
 
     query_result = query_runner.run_query(custom_query)
 
