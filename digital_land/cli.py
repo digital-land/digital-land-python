@@ -115,9 +115,9 @@ def dataset_create_cmd(ctx, input_paths, output_path, organisation_path):
         input_paths=input_paths,
         output_path=output_path,
         organisation_path=organisation_path,
-        pipeline = ctx.obj["PIPELINE"],
-        dataset = ctx.obj["DATASET"],
-        specification = ctx.obj["SPECIFICATION"],
+        pipeline=ctx.obj["PIPELINE"],
+        dataset=ctx.obj["DATASET"],
+        specification=ctx.obj["SPECIFICATION"],
     )
 
 

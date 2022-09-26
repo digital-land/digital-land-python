@@ -235,7 +235,7 @@ def dataset_create(
         dataset,
         organisation=organisation,
         path=output_path,
-        specification_dir=None,   # TBD: package should use this specification object
+        specification_dir=None,  # TBD: package should use this specification object
     )
     package.create()
     for path in input_paths:
