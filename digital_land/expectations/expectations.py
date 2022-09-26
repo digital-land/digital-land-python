@@ -651,7 +651,7 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
 
     return expectation_response
 
-def expect_geometry_initersects_entity(
+def expect_geometry_intersects_entity(
     query_runner: QueryRunner,
     geometry: str,
     expected_query_result: list,
