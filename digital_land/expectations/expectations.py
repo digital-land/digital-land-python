@@ -655,14 +655,15 @@ def expect_geometry_intersects_entity(
     query_runner: QueryRunner,
     geometry: str,
     expected_query_result: list,
-    entity_field:str = 'geometry',
+    entity_geometry_field:str = 'geometry',
+    returned_entity_fields:list[str] = ['name'],
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     
-    custom_query = f"SELECT entity FROM entity WHERE ST_Intersects(GeomFromText({entity_field}),GeomFromText('{geometry}'));"
+    custom_query = f"SELECT {','.join(returned_entity_fields)} FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
 
     query_result = query_runner.run_query(custom_query)
 
