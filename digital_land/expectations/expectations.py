@@ -665,7 +665,7 @@ def expect_geometry_intersects_entity(
     expectation_input = locals()
 
     if returned_json_fields is not None:
-        json_sql_list = [f"json_extract(json,'$.{field}') as {field}" for field in returned_json_fields]
+        json_sql_list = [f"json_extract(json,'$.{field}') as '{field}'" for field in returned_json_fields]
         fields = [*returned_entity_fields,*json_sql_list]
     else:
         fields = returned_entity_fields
