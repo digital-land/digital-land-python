@@ -651,31 +651,92 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
 
     return expectation_response
 
-def expect_geospatial_lasso_query_result_to_be_as_predicted(
+def expect_geometry_initersects_entity(
     query_runner: QueryRunner,
-    polygon_wkt: str,
+    geometry: str,
     expected_query_result: list,
+    entity_field:str = 'geometry',
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
-    """Receives a polygon (in wkt) and for a given point field in a given table retrieves those rows
-    which are contained withiin the polygon
-    
-    custom sqlite/spatialite query as string and a expected
-    result in the form of list of row dictionaires, for example, 3 rows
-    would look like this:
-
-    [{'col_name1': value1, 'col_name_2': value2, 'col_name_3': value3},
-     {'col_name1': value1, 'col_name_2': value2, 'col_name_3': value3},
-     {'col_name1': value1, 'col_name_2': value2, 'col_name_3': value3}]
-
-    Returns True if the result for the query are as expected and False
-    otherwise, with details.
-    """
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     
-    custom_query = f"SELECT entity FROM entity WHERE within(GeomFromText(point),GeomFromText({polygon_wkt}));"
+    custom_query = f"SELECT entity FROM entity WHERE ST_Intersects(GeomFromText({entity_field}),GeomFromText('{geometry}'));"
+
+    query_result = query_runner.run_query(custom_query)
+
+    result = query_result.to_dict(orient="records") == expected_query_result
+
+    if result:
+        msg = "Success: data quality as expected"
+        details = None
+    else:
+        msg = "Fail: result for lasso query was not as expected, see details"
+        details = {
+            "query_result": query_result.to_dict(orient="records"),
+            "expected_query_result": expected_query_result,
+        }
+
+    expectation_response = ExpectationResponse(
+        expectation_input=expectation_input,
+        result=result,
+        msg=msg,
+        details=details,
+        sqlite_dataset=query_runner.inform_dataset_path(),
+    )
+
+    return expectation_response  
+
+def expext_geometry_within_entity(
+    query_runner: QueryRunner,
+    geometry: str,
+    expected_query_result: list,
+    entity_field:str = 'geometry',
+    expectation_severity: str = "RaiseError",
+    **kwargs,
+):
+    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+    
+    custom_query = f"SELECT entity FROM entity WHERE ST_Within(GeomFromText({geometry}),GeomFromText('{entity_field}'));"
+
+    query_result = query_runner.run_query(custom_query)
+
+    result = query_result.to_dict(orient="records") == expected_query_result
+
+    if result:
+        msg = "Success: data quality as expected"
+        details = None
+    else:
+        msg = "Fail: result for lasso query was not as expected, see details"
+        details = {
+            "query_result": query_result.to_dict(orient="records"),
+            "expected_query_result": expected_query_result,
+        }
+
+    expectation_response = ExpectationResponse(
+        expectation_input=expectation_input,
+        result=result,
+        msg=msg,
+        details=details,
+        sqlite_dataset=query_runner.inform_dataset_path(),
+    )
+
+    return expectation_response   
+
+def expect_entty_within_geometry(
+    query_runner: QueryRunner,
+    geometry: str,
+    expected_query_result: list,
+    entity_field:str = 'geometry',
+    expectation_severity: str = "RaiseError",
+    **kwargs,
+):
+    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+    
+    custom_query = f"SELECT entity FROM entity WHERE ST_Intersects(GeomFromText({entity_field}),GeomFromText('{geometry}'));"
 
     query_result = query_runner.run_query(custom_query)
 
