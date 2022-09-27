@@ -25,7 +25,8 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
             data_quality_execution_time=data_quality_execution_time,
             **arguments
         )
-
+        print(response.to_json)
+        print(response.to_dict)
         response.save_to_file(results_path)
         failed_expectation_with_error_severity += response.act_on_failure()
 
