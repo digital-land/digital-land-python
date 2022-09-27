@@ -651,7 +651,7 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
 
     return expectation_response
 
-def expect_geometry_intersects_entity(
+def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
     expected_query_result: list,
@@ -696,31 +696,31 @@ def expect_geometry_intersects_entity(
 
     return expectation_response  
 
-def expext_geometry_within_entity(
+def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
-    expected_query_result: list,
-    entity_field:str = 'geometry',
+    expected_count: list,
+    entity_geometry_field:str = 'geometry',
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     
-    custom_query = f"SELECT entity FROM entity WHERE ST_Within(GeomFromText({geometry}),GeomFromText('{entity_field}'));"
+    custom_query = f"SELECT COUNT(*) as count FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
 
     query_result = query_runner.run_query(custom_query)
 
-    result = query_result.to_dict(orient="records") == expected_query_result
+    result = query_result.to_dict(orient="records")['count'] == expected_count
 
     if result:
         msg = "Success: data quality as expected"
         details = None
     else:
-        msg = "Fail: result for lasso query was not as expected, see details"
+        msg = "Fail: result count is not correct, see details"
         details = {
-            "query_result": query_result.to_dict(orient="records"),
-            "expected_query_result": expected_query_result,
+            "result_count": query_result.to_dict(orient="records")['count'],
+            "expected_count": expected_count,
         }
 
     expectation_response = ExpectationResponse(
@@ -731,33 +731,31 @@ def expext_geometry_within_entity(
         sqlite_dataset=query_runner.inform_dataset_path(),
     )
 
-    return expectation_response   
+    return expectation_response
 
-def expect_entty_within_geometry(
+def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     query_runner: QueryRunner,
-    geometry: str,
-    expected_query_result: list,
-    entity_field:str = 'geometry',
+    expected_count: list,
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     
-    custom_query = f"SELECT entity FROM entity WHERE ST_Intersects(GeomFromText({entity_field}),GeomFromText('{geometry}'));"
+    custom_query = f"SELECT COUNT(*) as count FROM entity;"
 
     query_result = query_runner.run_query(custom_query)
 
-    result = query_result.to_dict(orient="records") == expected_query_result
+    result = query_result.to_dict(orient="records")['count'] == expected_count
 
     if result:
         msg = "Success: data quality as expected"
         details = None
     else:
-        msg = "Fail: result for lasso query was not as expected, see details"
+        msg = "Fail: result count is not correct, see details"
         details = {
-            "query_result": query_result.to_dict(orient="records"),
-            "expected_query_result": expected_query_result,
+            "result_count": query_result.to_dict(orient="records")['count'],
+            "expected_count": expected_count,
         }
 
     expectation_response = ExpectationResponse(
