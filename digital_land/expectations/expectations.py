@@ -711,8 +711,8 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
 
     query_result = query_runner.run_query(custom_query)
 
-    print(len(query_result.to_dict(orient="records")))
-    result = query_result.to_dict(orient="records")[0]['count'] == expected_count
+    result_count = query_result.to_dict(orient="records")[0]['count']
+    result = result_count == expected_count
 
     if result:
         msg = "Success: data quality as expected"
@@ -720,7 +720,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
         details = {
-            "result_count": query_result.to_dict(orient="records")['count'],
+            "result_count": result_count,
             "expected_count": expected_count,
         }
 
@@ -746,9 +746,8 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     custom_query = f"SELECT COUNT(*) as count FROM entity;"
 
     query_result = query_runner.run_query(custom_query)
-
-    print(len(query_result.to_dict(orient="records")))
-    result = query_result.to_dict(orient="records")[0]['count'] == expected_count
+    result_count = query_result.to_dict(orient="records")[0]['count']
+    result = result_count == expected_count
 
     if result:
         msg = "Success: data quality as expected"
@@ -756,7 +755,7 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
         details = {
-            "result_count": query_result.to_dict(orient="records")['count'],
+            "result_count": result_count,
             "expected_count": expected_count,
         }
 
