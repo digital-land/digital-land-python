@@ -6,6 +6,7 @@ from dataclasses_json import dataclass_json
 from datetime import datetime
 import warnings
 import copy
+import os
 
 
 def transform_df_first_column_into_set(dataframe: pd.DataFrame) -> set:
@@ -106,7 +107,7 @@ class ExpectationResponse:
         name_hash = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")[:-3]
         file_name = f"{self.data_quality_execution_time}_{name_status}_{self.expectation_input['expectation_name']}_{name_hash}.json"
 
-        with open(dir_path + file_name, "w") as f:
+        with open(os.path.join(dir_path, file_name), "w") as f:
             self_save_version = copy.deepcopy(self)
             self_save_version.result = str(self_save_version.result)
             f.write(self_save_version.to_json())
