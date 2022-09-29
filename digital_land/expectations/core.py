@@ -18,7 +18,8 @@ def config_parser(filepath: str):
     "Will parse a config file"
     with open(filepath) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
-        config = dict(config)
+        if config is not None:
+            config = dict(config)
     return config
 
 
