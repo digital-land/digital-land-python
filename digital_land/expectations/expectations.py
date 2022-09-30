@@ -651,13 +651,14 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
 
     return expectation_response
 
+
 def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
     expected_query_result: list,
-    entity_geometry_field:str = 'geometry',
-    returned_entity_fields:list[str] = ['name'],
-    returned_json_fields:list[str] = None,
+    entity_geometry_field: str = "geometry",
+    returned_entity_fields: list[str] = ["name"],
+    returned_json_fields: list[str] = None,
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
@@ -665,11 +666,14 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     expectation_input = locals()
 
     if returned_json_fields is not None:
-        json_sql_list = [f"json_extract(json,'$.{field}') as '{field}'" for field in returned_json_fields]
-        fields = [*returned_entity_fields,*json_sql_list]
+        json_sql_list = [
+            f"json_extract(json,'$.{field}') as '{field}'"
+            for field in returned_json_fields
+        ]
+        fields = [*returned_entity_fields, *json_sql_list]
     else:
         fields = returned_entity_fields
-    
+
     custom_query = f"SELECT {','.join(fields)} FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
 
     query_result = query_runner.run_query(custom_query)
@@ -694,24 +698,25 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
         sqlite_dataset=query_runner.inform_dataset_path(),
     )
 
-    return expectation_response  
+    return expectation_response
+
 
 def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
     expected_count: list,
-    entity_geometry_field:str = 'geometry',
+    entity_geometry_field: str = "geometry",
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
-    
+
     custom_query = f"SELECT COUNT(*) as count FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
 
     query_result = query_runner.run_query(custom_query)
 
-    result_count = query_result.to_dict(orient="records")[0]['count']
+    result_count = query_result.to_dict(orient="records")[0]["count"]
     result = result_count == expected_count
 
     if result:
@@ -743,11 +748,11 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
 ):
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
-    
-    custom_query = f"SELECT COUNT(*) as count FROM entity;"
+
+    custom_query = "SELECT COUNT(*) as count FROM entity;"
 
     query_result = query_runner.run_query(custom_query)
-    result_count = query_result.to_dict(orient="records")[0]['count']
+    result_count = query_result.to_dict(orient="records")[0]["count"]
     result = result_count == expected_count
 
     if result:

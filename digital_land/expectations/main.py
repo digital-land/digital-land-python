@@ -12,7 +12,7 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
     data_quality_suite_config = config_parser(data_quality_yaml)
 
     if data_quality_suite_config is None:
-        warnings.warn('No expectations provided in yaml file')
+        warnings.warn("No expectations provided in yaml file")
         return
 
     dataset_name = data_quality_suite_config.get("dataset_name", None)
@@ -21,7 +21,7 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
         run_directory = f"{data_quality_execution_time}_{dataset_name}"
     else:
         run_directory = data_quality_execution_time
-    
+
     run_path = os.path.join(results_path, run_directory)
     os.mkdir(run_path)
 
@@ -38,7 +38,7 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
         response = run_expectation(
             query_runner=query_runner,
             data_quality_execution_time=data_quality_execution_time,
-            **arguments
+            **arguments,
         )
         # print(response.to_json)
 
@@ -49,6 +49,7 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
         raise DataQualityException(
             "One or more expectations with severity RaiseError failed, see results for more details"
         )
+
 
 def run_expectation(query_runner: QueryRunner, expectation_name: str, **kwargs):
     return globals()[expectation_name](query_runner=query_runner, **kwargs)

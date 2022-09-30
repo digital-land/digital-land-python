@@ -22,6 +22,7 @@ def config_parser(filepath: str):
             config = dict(config)
     return config
 
+
 class DataQualityException(Exception):
     """Exception raised for failed expectations with severity RaiseError.
     Attributes: response
