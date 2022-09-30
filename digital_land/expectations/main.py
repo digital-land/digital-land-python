@@ -50,6 +50,5 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
             "One or more expectations with severity RaiseError failed, see results for more details"
         )
 
-
 def run_expectation(query_runner: QueryRunner, expectation_name: str, **kwargs):
     return globals()[expectation_name](query_runner=query_runner, **kwargs)

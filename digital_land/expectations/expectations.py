@@ -734,6 +734,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
 
     return expectation_response
 
+
 def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     query_runner: QueryRunner,
     expected_count: list,
