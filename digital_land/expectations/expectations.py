@@ -657,8 +657,8 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     geometry: str,
     expected_query_result: list,
     entity_geometry_field: str = "geometry",
-    returned_entity_fields: list[str] = ["name"],
-    returned_json_fields: list[str] = None,
+    returned_entity_fields: list = ["name"],
+    returned_json_fields: list = None,
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
