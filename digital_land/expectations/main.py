@@ -1,14 +1,29 @@
 from .core import QueryRunner, config_parser, DataQualityException
 from datetime import datetime
 from .expectations import *  # noqa
+import os
+import warnings
 
 
 def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
 
     now = datetime.now()
     data_quality_execution_time = now.strftime("%Y%m%d_%H%M%S")
-
     data_quality_suite_config = config_parser(data_quality_yaml)
+
+    if data_quality_suite_config is None:
+        warnings.warn("No expectations provided in yaml file")
+        return
+
+    dataset_name = data_quality_suite_config.get("dataset_name", None)
+
+    if dataset_name:
+        run_directory = f"{data_quality_execution_time}_{dataset_name}"
+    else:
+        run_directory = data_quality_execution_time
+
+    run_path = os.path.join(results_path, run_directory)
+    os.mkdir(run_path)
 
     query_runner = QueryRunner(sqlite_dataset_path)
 
@@ -23,10 +38,11 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
         response = run_expectation(
             query_runner=query_runner,
             data_quality_execution_time=data_quality_execution_time,
-            **arguments
+            **arguments,
         )
+        # print(response.to_json)
 
-        response.save_to_file(results_path)
+        response.save_to_file(run_path)
         failed_expectation_with_error_severity += response.act_on_failure()
 
     if failed_expectation_with_error_severity > 0:

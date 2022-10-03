@@ -650,3 +650,127 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
     )
 
     return expectation_response
+
+
+def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
+    query_runner: QueryRunner,
+    geometry: str,
+    expected_query_result: list,
+    entity_geometry_field: str = "geometry",
+    returned_entity_fields: list = ["name"],
+    returned_json_fields: list = None,
+    expectation_severity: str = "RaiseError",
+    **kwargs,
+):
+    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    if returned_json_fields is not None:
+        json_sql_list = [
+            f"json_extract(json,'$.{field}') as '{field}'"
+            for field in returned_json_fields
+        ]
+        fields = [*returned_entity_fields, *json_sql_list]
+    else:
+        fields = returned_entity_fields
+
+    custom_query = f"SELECT {','.join(fields)} FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
+
+    query_result = query_runner.run_query(custom_query)
+
+    result = query_result.to_dict(orient="records") == expected_query_result
+
+    if result:
+        msg = "Success: data quality as expected"
+        details = None
+    else:
+        msg = "Fail: result for lasso query was not as expected, see details"
+        details = {
+            "query_result": query_result.to_dict(orient="records"),
+            "expected_query_result": expected_query_result,
+        }
+
+    expectation_response = ExpectationResponse(
+        expectation_input=expectation_input,
+        result=result,
+        msg=msg,
+        details=details,
+        sqlite_dataset=query_runner.inform_dataset_path(),
+    )
+
+    return expectation_response
+
+
+def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
+    query_runner: QueryRunner,
+    geometry: str,
+    expected_count: list,
+    entity_geometry_field: str = "geometry",
+    expectation_severity: str = "RaiseError",
+    **kwargs,
+):
+    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    custom_query = f"SELECT COUNT(*) as count FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
+
+    query_result = query_runner.run_query(custom_query)
+
+    result_count = query_result.to_dict(orient="records")[0]["count"]
+    result = result_count == expected_count
+
+    if result:
+        msg = "Success: data quality as expected"
+        details = None
+    else:
+        msg = "Fail: result count is not correct, see details"
+        details = {
+            "result_count": result_count,
+            "expected_count": expected_count,
+        }
+
+    expectation_response = ExpectationResponse(
+        expectation_input=expectation_input,
+        result=result,
+        msg=msg,
+        details=details,
+        sqlite_dataset=query_runner.inform_dataset_path(),
+    )
+
+    return expectation_response
+
+
+def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
+    query_runner: QueryRunner,
+    expected_count: list,
+    expectation_severity: str = "RaiseError",
+    **kwargs,
+):
+    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    custom_query = "SELECT COUNT(*) as count FROM entity;"
+
+    query_result = query_runner.run_query(custom_query)
+    result_count = query_result.to_dict(orient="records")[0]["count"]
+    result = result_count == expected_count
+
+    if result:
+        msg = "Success: data quality as expected"
+        details = None
+    else:
+        msg = "Fail: result count is not correct, see details"
+        details = {
+            "result_count": result_count,
+            "expected_count": expected_count,
+        }
+
+    expectation_response = ExpectationResponse(
+        expectation_input=expectation_input,
+        result=result,
+        msg=msg,
+        details=details,
+        sqlite_dataset=query_runner.inform_dataset_path(),
+    )
+
+    return expectation_response
