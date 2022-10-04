@@ -20,7 +20,7 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
     )
 
     run_path = os.path.join(results_path, run_directory)
-    os.mkdir(run_path)
+    os.makedirs(run_path)
 
     query_runner = QueryRunner(sqlite_dataset_path)
 
