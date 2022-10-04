@@ -14,8 +14,10 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
     if data_quality_suite_config is None:
         warnings.warn("No expectations provided in yaml file")
         return
-    
-    run_directory = os.path.join(now.strftime('%Y'),now.strftime('%m'),now.strftime('%d'))
+
+    run_directory = os.path.join(
+        now.strftime("%Y"), now.strftime("%m"), now.strftime("%d")
+    )
 
     run_path = os.path.join(results_path, run_directory)
     os.mkdir(run_path)
