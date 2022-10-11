@@ -201,6 +201,7 @@ def pipeline_command(
 @click.argument("collection", type=click.STRING)
 @click.argument("endpoint-url", type=click.STRING)
 @collection_dir
+@click.pass_context
 def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
     """
     followed by a sequence of optional name and value pairs including the following names:
