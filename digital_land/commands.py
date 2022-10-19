@@ -389,6 +389,7 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
             sys.exit(2)
     add_source_endpoint(entry, directory=collection_dir)
 
+
 def resource_from_path(path):
     return Path(path).stem
 
