@@ -2,8 +2,6 @@ services:
 
   ubuntu:
     build: .
-    volumes:
-      - .:/src
     stdin_open: true
     tty: true
 

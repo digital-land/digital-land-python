@@ -16,7 +16,6 @@ from digital_land.commands import (
     dataset_create,
     pipeline_run,
     collection_add_source,
-    build_datasette,
     expectations,
 )
 
@@ -216,15 +215,6 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
         {ctx.args[i]: ctx.args[i + 1] for i in range(0, len(ctx.args), 2)},
     )
     return collection_add_source(entry, collection, endpoint_url, collection_dir)
-
-
-@cli.command("build-datasette", short_help="build docker image for datasette")
-@click.option("--tag", "-t", default="data")
-@click.option("--data-dir", default="./var/cache")
-@click.option("--ext", default="sqlite3")
-@click.option("--options", default=None)
-def build_datasette_cmd(tag, data_dir, ext, options):
-    return build_datasette(tag, data_dir, ext, options)
 
 
 @cli.command("expectations", short_help="runs data quality expectations")

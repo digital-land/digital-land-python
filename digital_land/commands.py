@@ -12,7 +12,6 @@ import shapely
 
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
-from digital_land.datasette.docker import build_container
 from digital_land.log import DatasetResourceLog, IssueLog, ColumnFieldLog
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
@@ -389,20 +388,6 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
             logging.error(f"unrecognised argument '{key}'")
             sys.exit(2)
     add_source_endpoint(entry, directory=collection_dir)
-
-
-def build_datasette(tag, data_dir, ext, options):
-    datasets = [f"{d}" for d in Path(data_dir).rglob(f"*.{ext}")]
-    for dataset in datasets:
-        if not Path(dataset).exists():
-            print(f"{dataset} not found", file=sys.stderr)
-            sys.exit(1)
-    container_id, name = build_container(datasets, tag, options)
-    print("%s dataset successfully packaged" % len(datasets))
-    print(f"container_id: {container_id}")
-    if name:
-        print(f"name: {name}")
-
 
 def resource_from_path(path):
     return Path(path).stem
