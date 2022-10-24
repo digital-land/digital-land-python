@@ -20,6 +20,7 @@ def coltype(datatype):
         return "INTEGER"
     elif datatype == "json":
         return "JSON"
+    elif datatype ==
     else:
         return "TEXT"
 
@@ -59,6 +60,11 @@ class SqlitePackage(Package):
         self.connection.close()
 
     def create_table(self, table, fields, key_field=None, unique=None):
+        if table == 'entity':
+            geometry_fields=['geometry','point']
+        else:
+            geometry_fields = []
+
         self.execute(
             "CREATE TABLE %s (%s%s%s)"
             % (
@@ -72,7 +78,7 @@ class SqlitePackage(Package):
                             (" PRIMARY KEY" if field == key_field else ""),
                         )
                         for field in fields
-                        if not field.endswith("-geom")
+                        if not field.endswith("-geom") and field not in geometry_fields
                     ]
                 ),
                 "\n".join(
@@ -89,14 +95,28 @@ class SqlitePackage(Package):
                 ),
                 "" if not unique else ", UNIQUE(%s)" % (",".join(unique)),
             )
-        )
+        ) 
+        if "geometry-geom" in fields or "point-geom" in fields or geometry_fields != []:
+            self.spatialite()
 
-        if self._spatialite:
-            if "geometry-geom" in fields:
+            if "geometry" in fields or "":
+                self.execute(
+                    "SELECT AddGeometryColumn('%s', 'geometry', 4326, 'MULTIPOLYGON', 2);"
+                    % (table)
+                )
+
+            if "geometry-geom" in fields or "":
                 self.execute(
                     "SELECT AddGeometryColumn('%s', 'geometry_geom', 4326, 'MULTIPOLYGON', 2);"
                     % (table)
                 )
+
+            if "point" in fields:
+                self.execute(
+                    "SELECT AddGeometryColumn('%s', 'point', 4326, 'POINT', 2);"
+                    % (table)
+                )
+
             if "point-geom" in fields:
                 self.execute(
                     "SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);"
