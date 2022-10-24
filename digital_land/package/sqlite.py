@@ -151,6 +151,10 @@ class SqlitePackage(Package):
         if t == "JSON":
             if value == "{}":
                 return "NULL"
+        if field in ['geometry']:
+            if value =="":
+                return "NULL"
+            return f"GeomFromWkt({value})"
         return "'%s'" % value.replace("'", "''")
 
     def insert(self, table, fields, row, upsert=False):
