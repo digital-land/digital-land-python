@@ -60,7 +60,7 @@ class SqlitePackage(Package):
 
     def create_table(self, table, fields, key_field=None, unique=None):
         if table == 'entity':
-            geometry_fields=['geometry','point']
+            geometry_fields=['geometry']
         else:
             geometry_fields = []
 
@@ -109,11 +109,11 @@ class SqlitePackage(Package):
                     % (table)
                 )
 
-            if "point" in fields:
-                self.execute(
-                    "SELECT AddGeometryColumn('%s', 'point', 4326, 'POINT', 2);"
-                    % (table)
-                )
+            # if "point" in fields:
+            #     self.execute(
+            #         "SELECT AddGeometryColumn('%s', 'point', 4326, 'POINT', 2);"
+            #         % (table)
+            #     )
 
             if "point-geom" in fields:
                 self.execute(
