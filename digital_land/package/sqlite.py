@@ -27,7 +27,7 @@ def coltype(datatype):
 class SqlitePackage(Package):
     def __init__(self, *args, **kwargs):
         self.suffix = ".sqlite3"
-        self._spatialite = None
+        self.spatialite()
         self.join_tables = {}
         self.fields = {}
         super().__init__(*args, **kwargs)
@@ -96,7 +96,6 @@ class SqlitePackage(Package):
             )
         ) 
         if "geometry-geom" in fields or "point-geom" in fields or geometry_fields != []:
-            self.spatialite()
 
             if "geometry" in fields or "":
                 self.execute(
