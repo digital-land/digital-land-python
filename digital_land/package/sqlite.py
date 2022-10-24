@@ -20,7 +20,6 @@ def coltype(datatype):
         return "INTEGER"
     elif datatype == "json":
         return "JSON"
-    elif datatype ==
     else:
         return "TEXT"
 
