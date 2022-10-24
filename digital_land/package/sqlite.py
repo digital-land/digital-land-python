@@ -159,7 +159,7 @@ class SqlitePackage(Package):
 
     def insert(self, table, fields, row, upsert=False):
         fields = [field for field in fields if not field.endswith("-geom")]
-        self.execute(
+        sql = (
             """
             INSERT OR REPLACE INTO %s(%s)
             VALUES (%s)%s;
@@ -171,6 +171,9 @@ class SqlitePackage(Package):
                 " ON CONFLICT DO NOTHING " if upsert else "",
             )
         )
+        print(sql)
+        logging.warn(sql)
+        self.execute(sql)
 
     def load_table(self, table, fields, path=None):
         logging.info("loading %s from %s" % (table, path))
