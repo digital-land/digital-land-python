@@ -154,7 +154,7 @@ class SqlitePackage(Package):
         if field in ['geometry']:
             if value =="":
                 return "NULL"
-            return f"GeomFromWkt({value})"
+            return f"GeomFromText('{value}',4326)"
         return "'%s'" % value.replace("'", "''")
 
     def insert(self, table, fields, row, upsert=False):
