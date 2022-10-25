@@ -171,8 +171,6 @@ class SqlitePackage(Package):
                 " ON CONFLICT DO NOTHING " if upsert else "",
             )
         )
-        print(sql)
-        logging.warn(sql)
         self.execute(sql)
 
     def load_table(self, table, fields, path=None):
@@ -278,12 +276,6 @@ class SqlitePackage(Package):
                 self.execute(
                     "SELECT CreateSpatialIndex('%s', '%s');" % (colname(table), col)
                 )
-                # self.create_cursor()
-                # self.execute(
-                #     "UPDATE %s SET %s = GeomFromText(%s, 4326);"
-                #     % (colname(table), col, col[: -len("-geom")])
-                # )
-                # self.commit()
 
     def create_indexes(self):
         for table, index_fields in self.indexes.items():
