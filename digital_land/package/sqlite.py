@@ -253,11 +253,17 @@ class SqlitePackage(Package):
             self.commit()
 
     def create_index(self, table, fields, name=None):
+        if table == 'entity':
+            geometry_fields=['geometry']
+        else:
+            geometry_fields=[]
         if type(fields) is not list:
             fields = [fields]
-        cols = [colname(field) for field in fields if not field.endswith("-geom")]
+
+        cols = [colname(field) for field in fields if not field.endswith("-geom") and field not in geometry_fields]
         if not name:
             name = colname(table) + "_on_" + "__".join(cols) + "_index"
+
         if cols:
             logging.info("creating index %s" % (name))
             self.execute(
@@ -266,17 +272,18 @@ class SqlitePackage(Package):
             )
 
         if self._spatialite:
-            logging.info("creating spatial indexes %s" % (name))
-            for col in [colname(field) for field in fields if field.endswith("-geom")]:
+            
+            for col in [colname(field) for field in fields if field.endswith("-geom") or field in geometry_fields]:
+                logging.info("creating spatial indexes %s" % (col))
                 self.execute(
                     "SELECT CreateSpatialIndex('%s', '%s');" % (colname(table), col)
                 )
-                self.create_cursor()
-                self.execute(
-                    "UPDATE %s SET %s = GeomFromText(%s, 4326);"
-                    % (colname(table), col, col[: -len("-geom")])
-                )
-                self.commit()
+                # self.create_cursor()
+                # self.execute(
+                #     "UPDATE %s SET %s = GeomFromText(%s, 4326);"
+                #     % (colname(table), col, col[: -len("-geom")])
+                # )
+                # self.commit()
 
     def create_indexes(self):
         for table, index_fields in self.indexes.items():
