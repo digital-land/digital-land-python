@@ -6,6 +6,7 @@ import sys
 import json
 import logging
 from pathlib import Path
+import pandas as pd
 
 import geojson
 import shapely
@@ -39,6 +40,7 @@ from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
+import sqlite3
 
 
 def fetch(url, pipeline):
@@ -250,9 +252,17 @@ def dataset_create(
 
 
 def dataset_dump(input_path, output_path):
-    cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
-    logging.info(cmd)
-    os.system(cmd)
+    # cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
+    conn = sqlite3.connect(self.path)
+    conn.enable_load_extension(True)
+    conn.load_extension("mod_spatialite")
+    sql = """
+        SELECT entity, AsText(geometry) FROM entity;
+    """
+    df = pd.read_sql(sql,conn)
+    df.to_csv(output_path)
+    # logging.info(cmd)
+    # os.system(cmd)
 
 
 def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
