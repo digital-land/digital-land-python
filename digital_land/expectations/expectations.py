@@ -775,6 +775,7 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
 
     return expectation_response
 
+
 def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     query_runner: QueryRunner,
     expected_count: int,
@@ -796,9 +797,9 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     result = result_count == expected_count
 
     details = {
-            "result_count": result_count,
-            "expected_count": expected_count,
-        }
+        "result_count": result_count,
+        "expected_count": expected_count,
+    }
     if result:
         msg = "Success: data quality as expected"
     else:
