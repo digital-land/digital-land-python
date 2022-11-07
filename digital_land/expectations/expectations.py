@@ -651,6 +651,23 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
 
     return expectation_response
 
+def build_entity_select_statement(entity_fields,json_fields=None):
+    """
+    function to be used to build a select statement for the entity table 
+    in the dataset created via the dataset package. Specifically to help
+    pull out information stored in the json fields
+    """
+    if json_fields is not None:
+        json_sql_list = [
+            f"json_extract(json,'$.{field}') as '{field}'"
+            for field in json_fields
+        ]
+        fields = [*entity_fields, *json_sql_list]
+    else:
+        fields = entity_fields
+
+    select_statement = f"SELECT {','.join(fields)}"
+    return select_statement
 
 def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
@@ -674,7 +691,11 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     else:
         fields = returned_entity_fields
 
-    custom_query = f"SELECT {','.join(fields)} FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
+    custom_query = f"""
+        {build_entity_select_statement(returned_entity_fields,returned_json_fields)} 
+        FROM entity 
+        WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'))
+        ;"""
 
     query_result = query_runner.run_query(custom_query)
 
@@ -812,3 +833,78 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
         details=details,
         sqlite_dataset=query_runner.inform_dataset_path(),
     )
+
+    return expectation_response
+
+def build_entity_conditional_statement(field,value):
+    """
+    Function to produce conditional statements for the where clause of entity queries
+    """
+
+
+def build_entity_where_clause(filters):
+    """
+    Function to produce sql WHERE clause for the entity table given a dictionary of filters
+    """
+    possible_filters = ['organisation_entity','reference']
+    if filters.keys() not in possible_filters:
+        raise ValueError('unsupported filters being used')
+
+    for filter in filters.keys():
+        filter_values=filters[filter]
+        filter_conditions = []
+        if isinstance(filter_values, str) or isinstance(filter_values, int):
+            filter_conditions.append(f"{filter} = '{filter_values}'")
+        elif isinstance(filter_values,list):
+            filter_conditions.append(f"{filter} in ({','.join(filter_values)})")
+        else:
+            raise TypeError(f'{filter} must be either an int, str or a list')
+    
+    where_clause_sql= f"WHERE {' AND '.join(filter_conditions)}"
+
+    return where_clause_sql
+
+def expect_filtred_entities_to_be_as_predicted(
+    query_runner: QueryRunner,
+    expected_result: list,
+    returned_entity_fields,
+    returned_json_fields,
+    filters: dict,
+    expectation_severity: str = "RaiseError",
+    **kwargs,
+):
+    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    possible_filters = ['organisation_entity','reference']
+    if filters.keys() not in possible_filters:
+        raise ValueError('unsupported filters being used')
+
+    custom_query = f"""
+        {build_entity_select_statement(returned_entity_fields,returned_json_fields)} 
+        FROM entity 
+        {build_entity_where_clause(filters)}
+        ;
+    """
+
+    actual_result = query_runner.run_query(custom_query).to_dict(orient="records")
+    result = actual_result == expected_result
+
+    details = {
+        "actual_result": actual_result,
+        "expected_result": expected_result,
+    }
+    if result:
+        msg = "Success: data quality as expected"
+    else:
+        msg = "Fail: result count is not correct, see details"
+
+    expectation_response = ExpectationResponse(
+        expectation_input=expectation_input,
+        result=result,
+        msg=msg,
+        details=details,
+        sqlite_dataset=query_runner.inform_dataset_path(),
+    )
+
+    return expectation_response
