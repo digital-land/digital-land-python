@@ -203,6 +203,7 @@ class DatasetPackage(SqlitePackage):
                 colname(table),
                 ",".join([colname(field) for field in fields]),
                 ",".join(["%s" % self.colvalue(row, field) for field in fields]),
+                ",".join([colname(field) for field in conflict_fields])
                 ", ".join(["%s=excluded.%s" % (colname(field),colname(field)) for field in update_fields]),
                 colname(table)
             )
