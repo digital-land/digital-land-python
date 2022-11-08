@@ -4,7 +4,7 @@ import re
 import shapely.wkt
 from decimal import Decimal
 import logging
-from .sqlite import SqlitePackage,colname
+from .sqlite import SqlitePackage, colname
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +185,7 @@ class DatasetPackage(SqlitePackage):
         self.commit()
         self.disconnect()
 
-    def entry_date_upsert(self,table,fields,row,conflict_fields,update_fields):
+    def entry_date_upsert(self, table, fields, row, conflict_fields, update_fields):
         """
         Dataset specific upsert function that only replace values for more recent entry_dates.
         Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
@@ -204,8 +204,13 @@ class DatasetPackage(SqlitePackage):
                 ",".join([colname(field) for field in fields]),
                 ",".join(["%s" % self.colvalue(row, field) for field in fields]),
                 ",".join([colname(field) for field in conflict_fields]),
-                ", ".join(["%s=excluded.%s" % (colname(field),colname(field)) for field in update_fields]),
-                colname(table)
+                ", ".join(
+                    [
+                        "%s=excluded.%s" % (colname(field), colname(field))
+                        for field in update_fields
+                    ]
+                ),
+                colname(table),
             )
         )
 
@@ -214,10 +219,14 @@ class DatasetPackage(SqlitePackage):
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
-        fact_conflict_fields=['fact']
-        fact_update_fields = [field for field in fact_fields if field not in fact_conflict_fields]
+        fact_conflict_fields = ["fact"]
+        fact_update_fields = [
+            field for field in fact_fields if field not in fact_conflict_fields
+        ]
         for row in csv.DictReader(open(path, newline="")):
-            self.entry_date_upsert("fact", fact_fields, row,fact_conflict_fields,fact_update_fields)
+            self.entry_date_upsert(
+                "fact", fact_fields, row, fact_conflict_fields, fact_update_fields
+            )
             self.insert("fact-resource", fact_resource_fields, row, upsert=True)
 
     def load_column_fields(self, path, resource):
