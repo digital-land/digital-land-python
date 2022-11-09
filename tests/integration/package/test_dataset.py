@@ -2,7 +2,6 @@ import pytest
 import csv
 import os
 import urllib.request
-import logging
 import pandas as pd
 from pathlib import Path
 
@@ -13,11 +12,6 @@ from digital_land.organisation import Organisation
 
 @pytest.fixture
 def transformed_fact_resources():
-    # csv_path = os.path.join(tmp_path,'transformed.csv')
-    # csv header
-    fieldnames = ["entity", "entry-date", "fact", "field", "value"]
-
-    # csv data
     input_data = [
         {
             "entity": "44006677",
@@ -34,11 +28,6 @@ def transformed_fact_resources():
             "value": "Burghwallis",
         },
     ]
-
-    # with open(csv_path, 'w', encoding='UTF8', newline='') as f:
-    #     writer = csv.DictWriter(f, fieldnames=fieldnames)
-    #     writer.writeheader()
-    #     writer.writerows(rows)
 
     return input_data
 
@@ -64,10 +53,10 @@ def specification_dir(tmp_path_factory):
         "schema.csv",
         "schema-field.csv",
     ]
-    for csv in specification_csvs:
+    for specification_csv in specification_csvs:
         urllib.request.urlretrieve(
-            f"{source_url}/specification/main/specification/{csv}",
-            os.path.join(specification_dir, csv),
+            f"{source_url}/specification/main/specification/{specification_csv}",
+            os.path.join(specification_dir, specification_csv),
         )
 
     return specification_dir
