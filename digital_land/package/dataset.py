@@ -196,7 +196,7 @@ class DatasetPackage(SqlitePackage):
             INSERT INTO %s(%s)
             VALUES (%s)
             ON CONFLICT(%s) DO UPDATE SET %s
-            WHERE excluded.entry_date>%s.entry_date 
+            WHERE excluded.entry_date>%s.entry_date
             ;
             """
             % (
