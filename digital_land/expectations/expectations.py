@@ -810,7 +810,7 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     custom_query = f"""
         SELECT COUNT(*) as count 
         FROM entity 
-        WHERE organisation_entity in ({','.join(organisation_entities)});
+        WHERE organisation_entity in ({','.join(map(str,organisation_entities))});
     """
 
     query_result = query_runner.run_query(custom_query)
