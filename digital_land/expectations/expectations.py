@@ -675,7 +675,7 @@ def build_entity_select_statement(entity_fields=None,json_fields=None):
 def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
-    expected_query_result: list,
+    expected_result: list,
     entity_geometry_field: str = "geometry",
     returned_entity_fields: list = ["name"],
     returned_json_fields: list = None,
@@ -685,15 +685,6 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     expectation_name = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
-    if returned_json_fields is not None:
-        json_sql_list = [
-            f"json_extract(json,'$.{field}') as '{field}'"
-            for field in returned_json_fields
-        ]
-        fields = [*returned_entity_fields, *json_sql_list]
-    else:
-        fields = returned_entity_fields
-
     custom_query = f"""
         {build_entity_select_statement(returned_entity_fields,returned_json_fields)} 
         FROM entity 
@@ -702,7 +693,7 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
 
     query_result = query_runner.run_query(custom_query)
 
-    result = query_result.to_dict(orient="records") == expected_query_result
+    result = query_result.to_dict(orient="records") == expected_result
 
     if result:
         msg = "Success: data quality as expected"
@@ -711,7 +702,7 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
         msg = "Fail: result for lasso query was not as expected, see details"
         details = {
             "query_result": query_result.to_dict(orient="records"),
-            "expected_query_result": expected_query_result,
+            "expected_query_result": expected_result,
         }
 
     expectation_response = ExpectationResponse(
