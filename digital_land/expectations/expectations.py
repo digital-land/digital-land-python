@@ -864,7 +864,7 @@ def build_entity_where_clause(filters):
 
     return where_clause_sql
 
-def expect_filtred_entities_to_be_as_predicted(
+def expect_filtered_entities_to_be_as_predicted(
     query_runner: QueryRunner,
     expected_result: list,
     returned_entity_fields,
