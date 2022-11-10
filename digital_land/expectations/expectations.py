@@ -802,7 +802,7 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     expectation_input = locals()
 
     custom_query = f"""
-        SELECT COUNT(*) as count 
+        SELECT COUNT(*) as count
         FROM entity 
         WHERE organisation_entity in ({','.join(map(str,organisation_entities))});
     """
@@ -830,12 +830,6 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
 
     return expectation_response
 
-def build_entity_conditional_statement(field,value):
-    """
-    Function to produce conditional statements for the where clause of entity queries
-    """
-
-
 def build_entity_where_clause(filters):
     """
     Function to produce sql WHERE clause for the entity table given a dictionary of filters
@@ -844,8 +838,11 @@ def build_entity_where_clause(filters):
         filter_values=filters[filter]
         filter_conditions = []
         if isinstance(filter_values, str) or isinstance(filter_values, int):
+            filter_values = f'{filter_values}'.replace("'","''")
             filter_conditions.append(f"{filter} = '{filter_values}'")
         elif isinstance(filter_values,list):
+            filter_values = [filter_value.replace("'","''") for filter_value in filter_values]
+            filter_values = [f"'{filter_value}'" for filter_value in filter_values]
             filter_conditions.append(f"{filter} in ({','.join(filter_values)})")
         else:
             raise TypeError(f'{filter} must be either an int, str or a list')

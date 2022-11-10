@@ -12,7 +12,9 @@ from digital_land.expectations.expectations import (
     expect_values_in_field_to_be_within_range,
     expect_custom_query_result_to_be_as_predicted,
     expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings,
+    build_entity_where_clause
 )
+import logging
 
 # Shared testing resources
 tested_dataset = (
@@ -1085,3 +1087,9 @@ def test_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings_False3(
 
     assert not response.result
     assert response.msg == "Fail: found 5 records with unexpected domains, see details"
+
+def test_build_entity_where_clause_where_text_values_are_contained():
+    filters = {'reference':['DO.7','text']}
+    result = build_entity_where_clause(filters)
+    assert result == "WHERE reference in ('DO.7','text')"
+
