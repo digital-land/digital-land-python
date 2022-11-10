@@ -719,7 +719,7 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
 def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
-    expected_count: list,
+    expected_result: list,
     entity_geometry_field: str = "geometry",
     expectation_severity: str = "RaiseError",
     **kwargs,
@@ -731,8 +731,8 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
 
     query_result = query_runner.run_query(custom_query)
 
-    result_count = query_result.to_dict(orient="records")[0]["count"]
-    result = result_count == expected_count
+    actual_result = query_result.to_dict(orient="records")[0]["count"]
+    result = actual_result == expected_result
 
     if result:
         msg = "Success: data quality as expected"
@@ -740,8 +740,8 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
         details = {
-            "result_count": result_count,
-            "expected_count": expected_count,
+            "result_result": actual_result,
+            "expected_result": expected_result,
         }
 
     expectation_response = ExpectationResponse(
@@ -757,7 +757,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
 
 def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     query_runner: QueryRunner,
-    expected_count: list,
+    expected_result: list,
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
@@ -767,8 +767,8 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     custom_query = "SELECT COUNT(*) as count FROM entity;"
 
     query_result = query_runner.run_query(custom_query)
-    result_count = query_result.to_dict(orient="records")[0]["count"]
-    result = result_count == expected_count
+    actual_result = query_result.to_dict(orient="records")[0]["count"]
+    result = actual_result == expected_result
 
     if result:
         msg = "Success: data quality as expected"
@@ -776,8 +776,8 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
         details = {
-            "result_count": result_count,
-            "expected_count": expected_count,
+            "actual_result": actual_result,
+            "expected_result": expected_result,
         }
 
     expectation_response = ExpectationResponse(
@@ -793,7 +793,7 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
 
 def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     query_runner: QueryRunner,
-    expected_count: int,
+    expected_result: int,
     organisation_entities: list,
     expectation_severity: str = "RaiseError",
     **kwargs,
@@ -808,12 +808,12 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     """
 
     query_result = query_runner.run_query(custom_query)
-    result_count = query_result.to_dict(orient="records")[0]["count"]
-    result = result_count == expected_count
+    actual_result = query_result.to_dict(orient="records")[0]["count"]
+    result = actual_result == expected_result
 
     details = {
-        "result_count": result_count,
-        "expected_count": expected_count,
+        "actual_result": actual_result,
+        "expected_result": expected_result,
     }
     if result:
         msg = "Success: data quality as expected"
