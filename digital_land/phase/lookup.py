@@ -40,6 +40,23 @@ class LookupPhase(Phase):
 
             if prefix:
                 if not row.get(self.entity_field, ""):
+
+                    if (
+                        (
+                            self.entity_field == "entity"
+                            and self.lookup(prefix=prefix, entry_number=entry_number)
+                        )
+                        # TBD: fixup prefixes so this isn't needed ..
+                        # or by the organisation and the reference
+                        or self.lookup(
+                            prefix=prefix,
+                            organisation=organisation,
+                            reference=reference,
+                        )
+                    ) and self.organisation == 'local-authority:DNC':
+                        print(f'Original: {organisation},{reference}')
+                        print(f'Entity lookup {self.lookup(prefix=prefix, reference=reference)}')
+                    print()
                     row[self.entity_field] = (
                         # by the resource and row number
                         (
