@@ -651,12 +651,14 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
 
     return expectation_response
 
-def build_entity_select_statement(entity_fields,json_fields=None):
+def build_entity_select_statement(entity_fields=None,json_fields=None):
     """
     function to be used to build a select statement for the entity table 
     in the dataset created via the dataset package. Specifically to help
     pull out information stored in the json fields
     """
+    if entity_fields is None:
+        entity_fields = 'entity'
     if json_fields is not None:
         json_sql_list = [
             f"json_extract(json,'$.{field}') as '{field}'"
@@ -868,8 +870,8 @@ def expect_filtered_entities_to_be_as_predicted(
     query_runner: QueryRunner,
     expected_result: list,
     returned_entity_fields,
-    returned_json_fields,
     filters: dict,
+    returned_json_fields=None,
     expectation_severity: str = "RaiseError",
     **kwargs,
 ):
