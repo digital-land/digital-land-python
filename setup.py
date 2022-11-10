@@ -22,14 +22,13 @@ if sys.version_info > (3, 6):
 setup(
     name="digital-land",
     version=get_version(),
-    description="Python tools to collect and convert CSV "
-    "and other resources into a Digital Land dataset",
+    description="Data pipeline tools to collect data and process it into a dataset",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
-    author="MHCLG Digital Land Team",
-    author_email="DigitalLand@communities.gov.uk",
+    author="DLUHC Digital Land Team",
+    author_email="DigitalLand@levellingup.gov.uk",
     license="MIT",
-    url="https://github.com/digital-land/pipeline",
+    url="https://github.com/digital-land/digital-land-python",
     packages=find_packages(exclude="tests"),
     package_data={"digital-land": ["templates/*.html"]},
     include_package_data=True,
@@ -75,7 +74,7 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Database",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
 )
