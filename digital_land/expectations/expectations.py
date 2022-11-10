@@ -3,6 +3,7 @@ import pandas as pd
 from .core import QueryRunner, ExpectationResponse
 from math import inf
 
+import logging
 
 def expect_database_to_have_set_of_tables(
     query_runner: QueryRunner,
@@ -848,10 +849,6 @@ def build_entity_where_clause(filters):
     """
     Function to produce sql WHERE clause for the entity table given a dictionary of filters
     """
-    possible_filters = ['organisation_entity','reference']
-    if filters.keys() not in possible_filters:
-        raise ValueError('unsupported filters being used')
-
     for filter in filters.keys():
         filter_values=filters[filter]
         filter_conditions = []
@@ -879,7 +876,9 @@ def expect_filtered_entities_to_be_as_predicted(
     expectation_input = locals()
 
     possible_filters = ['organisation_entity','reference']
-    if filters.keys() not in possible_filters:
+    if any(filter not in possible_filters for filter in filters.keys()):
+        for filter in filters.keys():
+            logging.warning(filter not in possible_filters)
         raise ValueError('unsupported filters being used')
 
     custom_query = f"""
