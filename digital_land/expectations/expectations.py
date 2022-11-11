@@ -2,8 +2,13 @@ import inspect
 import pandas as pd
 from .core import QueryRunner, ExpectationResponse
 from math import inf
-
+from pathlib import Path
 import logging
+
+def get_file_name_without_extension(file_path):
+    name = Path(file_path).stem
+    return name
+
 
 def expect_database_to_have_set_of_tables(
     query_runner: QueryRunner,
@@ -680,9 +685,11 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     returned_entity_fields: list = ["name"],
     returned_json_fields: list = None,
     expectation_severity: str = "RaiseError",
+    name:str=None,
+    description:str=None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     custom_query = f"""
@@ -704,13 +711,18 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
             "query_result": query_result.to_dict(orient="records"),
             "expected_query_result": expected_result,
         }
+    data_path = query_runner.inform_dataset_path()
 
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation_function = expectation_function,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -722,9 +734,11 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     expected_result: list,
     entity_geometry_field: str = "geometry",
     expectation_severity: str = "RaiseError",
+    name:str = None,
+    description:str = None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     custom_query = f"SELECT COUNT(*) as count FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
@@ -743,13 +757,18 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
             "result_result": actual_result,
             "expected_result": expected_result,
         }
+    data_path = query_runner.inform_dataset_path()
 
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation_function = expectation_function,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -759,9 +778,11 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     query_runner: QueryRunner,
     expected_result: list,
     expectation_severity: str = "RaiseError",
+    name: str = None,
+    description: str = None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     custom_query = "SELECT COUNT(*) as count FROM entity;"
@@ -779,13 +800,19 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
             "actual_result": actual_result,
             "expected_result": expected_result,
         }
+    
+    data_path = query_runner.inform_dataset_path()
 
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation_function = expectation_function,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -796,9 +823,11 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     expected_result: int,
     organisation_entities: list,
     expectation_severity: str = "RaiseError",
+    name:str = None,
+    description:str = None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     custom_query = f"""
@@ -820,12 +849,18 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation_function = expectation_function,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -858,9 +893,11 @@ def expect_filtered_entities_to_be_as_predicted(
     filters: dict,
     returned_json_fields=None,
     expectation_severity: str = "RaiseError",
+    name=None,
+    description=None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     possible_filters = ['organisation_entity','reference']
@@ -888,12 +925,18 @@ def expect_filtered_entities_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation_function = expectation_function,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response

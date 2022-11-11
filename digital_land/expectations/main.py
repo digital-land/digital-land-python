@@ -3,44 +3,66 @@ from datetime import datetime
 from .expectations import *  # noqa
 import os
 import warnings
+import json
+import hashlib
 
 
-def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
+def run_expectation_suite(results_path, data_path, data_quality_yaml, results_format='json'):
 
     now = datetime.now()
-    data_quality_execution_time = now.strftime("%Y%m%d_%H%M%S")
-    data_quality_suite_config = config_parser(data_quality_yaml)
+    suite_execution_time = now.strftime("%Y%m%d_%H%M%S")
+    expectation_suite_config = config_parser(data_quality_yaml)
 
-    if data_quality_suite_config is None:
+    if expectation_suite_config is None:
         warnings.warn("No expectations provided in yaml file")
         return
 
-    run_directory = os.path.join(
+    suite_path = os.path.join(
         now.strftime("%Y"), now.strftime("%m"), now.strftime("%d")
     )
 
-    run_path = os.path.join(results_path, run_directory)
-    os.makedirs(run_path, exist_ok=True)
+    results_path = os.path.join(results_path, suite_path)
+    os.makedirs(suite_path, exist_ok=True)
 
-    query_runner = QueryRunner(sqlite_dataset_path)
+    query_runner = QueryRunner(data_path)
 
-    expectations = data_quality_suite_config.get("expectations", None)
+    expectations = expectation_suite_config.get("expectations", None)
 
     failed_expectation_with_error_severity = 0
 
+    # is format is json cannot add individual lines so collect all expectations as dicts then dump to json
+    if results_format == 'json':
+        expectations = []
+
+    result_status = 'success'
+    
+    # for csv can continue to add lines rather than store response so open csv file
     for expectation in expectations:
 
         arguments = {**expectation}
 
         response = run_expectation(
             query_runner=query_runner,
-            data_quality_execution_time=data_quality_execution_time,
+            suite_execution_time=suite_execution_time,
             **arguments,
         )
-        # print(response.to_json)
 
-        response.save_to_file(run_path)
+        if not expectation.result:
+            result_status == 'fail'
+
+        if results_format == 'json':
+            expectations.append(response.to_dict())
+            # response.save_to_file(run_path)
+
+        
+
         failed_expectation_with_error_severity += response.act_on_failure()
+
+    if results_format == 'json':
+        data_path_hash = hashlib.sha256(data_path.encode('UTF-8')).hexdigest()
+        file_name = f"{suite_execution_time}_{result_status}_{data_path_hash}.json"
+        with open(file_name, 'w') as f:
+            json.dump(expectations, f)
 
     if failed_expectation_with_error_severity > 0:
         raise DataQualityException(
@@ -48,5 +70,5 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
         )
 
 
-def run_expectation(query_runner: QueryRunner, expectation_name: str, **kwargs):
-    return globals()[expectation_name](query_runner=query_runner, **kwargs)
+def run_expectation(query_runner: QueryRunner, expectation_function: str, **kwargs):
+    return globals()[expectation_function](query_runner=query_runner, **kwargs)

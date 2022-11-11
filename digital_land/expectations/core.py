@@ -75,27 +75,31 @@ class ExpectationResponse:
     result: bool = None
     msg: str = None
     details: dict = None
-    sqlite_dataset: str = None
-    data_quality_execution_time: str = field(init=False)
+    data_name: str = None
+    data_path: str = None
+    name: str = None
+    description: str = None
+    expectation_function: str = None
+    suite_execution_time: str = field(init=False)
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"
 
         self.expectation_input.pop("query_runner")
 
-        check_for_kwards = self.expectation_input.get("kwargs", None)
-        if check_for_kwards:
-            data_quality_execution_time = check_for_kwards.get(
-                "data_quality_execution_time", None
+        check_for_kwargs = self.expectation_input.get("kwargs", None)
+        if check_for_kwargs:
+            suite_execution_time = check_for_kwargs.get(
+                "suite_execution_time", None
             )
         else:
-            data_quality_execution_time = None
+            suite_execution_time = None
 
-        if data_quality_execution_time:
-            self.data_quality_execution_time = data_quality_execution_time
+        if suite_execution_time:
+            self.suite_execution_time = suite_execution_time
         else:
             now = datetime.now()
-            self.data_quality_execution_time = now.strftime("%Y%m%d_%H%M%S")
+            self.suite_execution_time = now.strftime("%Y%m%d_%H%M%S")
 
     def save_to_file(self, dir_path: str):
         "Prepares a naming convention and saves the response to a provided path"
@@ -106,7 +110,7 @@ class ExpectationResponse:
             name_status = "fail"
 
         name_hash = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")[:-3]
-        file_name = f"{self.data_quality_execution_time}_{name_status}_{self.expectation_input['expectation_name']}_{name_hash}.json"
+        file_name = f"{self.suite_execution_time}_{name_status}_{self.expectation_input['expectation_name']}_{name_hash}.json"
 
         with open(os.path.join(dir_path, file_name), "w") as f:
             self_save_version = copy.deepcopy(self)
