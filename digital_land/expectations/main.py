@@ -5,6 +5,7 @@ import os
 import warnings
 import json
 import hashlib
+import logging
 
 
 def run_expectation_suite(results_path, data_path, data_quality_yaml, results_format='json'):
@@ -22,7 +23,7 @@ def run_expectation_suite(results_path, data_path, data_quality_yaml, results_fo
     )
 
     results_path = os.path.join(results_path, suite_path)
-    os.makedirs(suite_path, exist_ok=True)
+    os.makedirs(results_path, exist_ok=True)
 
     query_runner = QueryRunner(data_path)
 
@@ -47,21 +48,24 @@ def run_expectation_suite(results_path, data_path, data_quality_yaml, results_fo
             **arguments,
         )
 
+        logging.error(response)
+
         if not expectation.result:
             result_status == 'fail'
 
         if results_format == 'json':
             expectations.append(response.to_dict())
             # response.save_to_file(run_path)
-
         
 
         failed_expectation_with_error_severity += response.act_on_failure()
 
+    logging.error(expectations)
     if results_format == 'json':
         data_path_hash = hashlib.sha256(data_path.encode('UTF-8')).hexdigest()
         file_name = f"{suite_execution_time}_{result_status}_{data_path_hash}.json"
         with open(file_name, 'w') as f:
+            logging.error(file_name)
             json.dump(expectations, f)
 
     if failed_expectation_with_error_severity > 0:
