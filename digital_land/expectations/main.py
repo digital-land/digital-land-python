@@ -50,7 +50,7 @@ def run_expectation_suite(results_path, data_path, data_quality_yaml):
     file_name = f"{suite_execution_time}_{data_path_hash}.json"
     with open(os.path.join(results_path,file_name),'w') as f:
         fieldnames=[
-            'suite_execution_time'
+            'suite_execution_time',
             'name',
             'description',
             'expectation_function',
