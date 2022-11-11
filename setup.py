@@ -36,7 +36,6 @@ setup(
         "canonicaljson",
         "click",
         "cchardet",
-        "datasette",
         "esridump",
         "pandas",
         "pyproj",
@@ -46,8 +45,6 @@ setup(
         "openpyxl",
         "Shapely==1.8.0",  # Version locking till https://github.com/shapely/shapely/issues/1364 is fixed
         "SPARQLWrapper",
-        "pluggy",
-        "specification@git+https://github.com/digital-land/specification",
         "geojson",
         "spatialite",
         "pyyaml",
