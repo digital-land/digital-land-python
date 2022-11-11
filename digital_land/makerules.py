@@ -61,3 +61,7 @@ def pipeline_makerules(collection):
         print("\t$(build-dataset)")
         print("\ntransformed:: $(%s)" % (dataset_files_var))
         print("\ndataset:: $(%s)" % (dataset_var))
+
+    print("\n\nDATASETS=", end="")
+    for dataset in sorted(dataset_resource):
+        print("\\\n\t$(DATASET_DIR)%s.sqlite3" % (dataset), end="")
