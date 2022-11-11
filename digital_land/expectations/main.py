@@ -48,16 +48,18 @@ def run_expectation_suite(results_path, data_path, data_quality_yaml):
     
     data_path_hash = hashlib.sha256(data_path.encode('UTF-8')).hexdigest()
     file_name = f"{suite_execution_time}_{data_path_hash}.json"
-    with open(os.path.join(results_path,file_name)) as f:
-        fieldnames=['name',
-        'description',
-        'expectation_function',
-        'result',
-        'msg',
-        'details',
-        'data_name',
-        'data_path',
-        'expectation_input']
+    with open(os.path.join(results_path,file_name),'w') as f:
+        fieldnames=[
+            'name',
+            'description',
+            'expectation_function',
+            'result',
+            'msg',
+            'details',
+            'data_name',
+            'data_path',
+            'expectation_input'
+        ]
         dictwriter = DictWriter(f, fieldnames=fieldnames)
         dictwriter.writeheader()
         dictwriter.writerows(responses)
