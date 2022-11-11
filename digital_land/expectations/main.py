@@ -6,9 +6,10 @@ import warnings
 import json
 import hashlib
 import logging
+from csv import DictWriter
 
 
-def run_expectation_suite(results_path, data_path, data_quality_yaml, results_format='json'):
+def run_expectation_suite(results_path, data_path, data_quality_yaml):
 
     now = datetime.now()
     suite_execution_time = now.strftime("%Y%m%d_%H%M%S")
@@ -30,16 +31,9 @@ def run_expectation_suite(results_path, data_path, data_quality_yaml, results_fo
     expectations = expectation_suite_config.get("expectations", None)
 
     failed_expectation_with_error_severity = 0
-
-    # is format is json cannot add individual lines so collect all expectations as dicts then dump to json
-    if results_format == 'json':
-        expectations = []
-
-    result_status = 'success'
     
-    # for csv can continue to add lines rather than store response so open csv file
+    responses = []
     for expectation in expectations:
-
         arguments = {**expectation}
 
         response = run_expectation(
@@ -48,24 +42,34 @@ def run_expectation_suite(results_path, data_path, data_quality_yaml, results_fo
             **arguments,
         )
 
-        logging.error(response)
-
-        if not expectation.result:
-            result_status == 'fail'
-
-        if results_format == 'json':
-            expectations.append(response.to_dict())
-            # response.save_to_file(run_path)
-        
+        responses.append(response.to_dict())
 
         failed_expectation_with_error_severity += response.act_on_failure()
+    
+    data_path_hash = hashlib.sha256(data_path.encode('UTF-8')).hexdigest()
+    file_name = f"{suite_execution_time}_{data_path_hash}.json"
+    with open(os.path.join(results_path,file_name)) as f:
+        fieldnames=['name',
+        'description',
+        'expectation_function',
+        'result',
+        'msg',
+        'details',
+        'data_name',
+        'data_path',
+        'expectation_input']
+        dictwriter = DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerows(responses)
 
-    logging.error(expectations)
+        
+
+    logging.warning(expectations)
     if results_format == 'json':
         data_path_hash = hashlib.sha256(data_path.encode('UTF-8')).hexdigest()
-        file_name = f"{suite_execution_time}_{result_status}_{data_path_hash}.json"
+        file_name = f"{suite_execution_time}_{data_path_hash}.json"
         with open(file_name, 'w') as f:
-            logging.error(file_name)
+            logging.warning(file_name)
             json.dump(expectations, f)
 
     if failed_expectation_with_error_severity > 0:
