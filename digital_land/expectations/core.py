@@ -16,10 +16,13 @@ def transform_df_first_column_into_set(dataframe: pd.DataFrame) -> set:
 
 def config_parser(filepath: str):
     "Will parse a config file"
-    with open(filepath) as file:
-        config = yaml.load(file, Loader=yaml.FullLoader)
-        if config is not None:
-            config = dict(config)
+    try:
+        with open(filepath) as file:
+            config = yaml.load(file, Loader=yaml.FullLoader)
+            if config is not None:
+                config = dict(config)
+    except OSError:
+        return None
     return config
 
 
@@ -79,8 +82,9 @@ class ExpectationResponse:
     data_path: str = None
     name: str = None
     description: str = None
-    expectation_function: str = None
+    expectation: str = None
     suite_execution_time: str = field(init=False)
+    severity: str = None
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"
@@ -89,9 +93,7 @@ class ExpectationResponse:
 
         check_for_kwargs = self.expectation_input.get("kwargs", None)
         if check_for_kwargs:
-            suite_execution_time = check_for_kwargs.get(
-                "suite_execution_time", None
-            )
+            suite_execution_time = check_for_kwargs.get("suite_execution_time", None)
         else:
             suite_execution_time = None
 
@@ -124,7 +126,7 @@ class ExpectationResponse:
 
         if not self.result:
             warnings.warn(self.msg)
-            if self.expectation_input["expectation_severity"] == "RaiseError":
+            if self.expectation_severity == "RaiseError":
                 result = 1
 
         return result
