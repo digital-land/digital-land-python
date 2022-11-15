@@ -10,22 +10,22 @@ UNAME := $(shell uname)
 
 # install dependencies
 init::
-#ifndef GDAL
-#ifeq ($(UNAME),Darwin)
-#$(error GDAL tools not found in PATH)
-#endif
-#	sudo apt-get install gdal-bin
-#endif
-#ifndef SQLDIFF
-#ifeq ($(UNAME),Darwin)
-#$(error sqldiff not found in PATH)
-#endif
-#	sudo apt-get install sqlite3
-#endif
-#ifndef SPATIAL
-#ifeq ($(UNAME),Darwin)
-#$(error GDAL tools not found in PATH)
-#endif
-#	sudo apt-get install libsqlite3-mod-spatialite -y
-#endif
-#	pyproj sync --file uk_os_OSTN15_NTv2_OSGBtoETRS.tif -v
+ifndef GDAL
+ifeq ($(UNAME),Darwin)
+$(error GDAL tools not found in PATH)
+endif
+	sudo apt-get install gdal-bin
+endif
+ifndef SQLDIFF
+ifeq ($(UNAME),Darwin)
+$(error sqldiff not found in PATH)
+endif
+	sudo apt-get install sqlite3
+endif
+ifndef SPATIAL
+ifeq ($(UNAME),Darwin)
+$(error GDAL tools not found in PATH)
+endif
+	sudo apt-get install libsqlite3-mod-spatialite -y
+endif
+	pyproj sync --file uk_os_OSTN15_NTv2_OSGBtoETRS.tif -v
