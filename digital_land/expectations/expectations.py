@@ -827,7 +827,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     geometry: str,
     expected_result: list,
     entity_geometry_field: str = "geometry",
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
     name: str = None,
     description: str = None,
     **kwargs,
@@ -857,6 +857,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
         name=name,
         description=description,
         expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
@@ -871,7 +872,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
 def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     query_runner: QueryRunner,
     expected_result: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
     name: str = None,
     description: str = None,
     **kwargs,
@@ -901,6 +902,7 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
         name=name,
         description=description,
         expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
@@ -1005,6 +1007,7 @@ def expect_filtered_entities_to_be_as_predicted(
         name=name,
         description=description,
         expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
@@ -1106,7 +1109,6 @@ def count_entities(
     query_runner: QueryRunner,
     expected_result: list,
     filters: dict,
-    columns=None,
     severity: str = "RaiseError",
     name=None,
     description=None,
@@ -1114,7 +1116,7 @@ def count_entities(
 ):
     """
     Function which counts entities from the entity table in a sqlite file and compares against
-    the expected results
+    the expected result
 
     filters: provide a dictionary contain any filters to be applied to the dataset, geometry and point are converted
     """
@@ -1148,6 +1150,7 @@ def count_entities(
         name=name,
         description=description,
         expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
