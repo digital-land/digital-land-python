@@ -12,4 +12,3 @@ def csv_field_size_limit(field_size_limit=sys.maxsize):
 
 
 csv_field_size_limit()
-
