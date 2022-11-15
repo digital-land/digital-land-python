@@ -126,7 +126,7 @@ class ExpectationResponse:
 
         if not self.result:
             warnings.warn(self.msg)
-            if self.expectation_severity == "RaiseError":
+            if self.severity == "RaiseError":
                 result = 1
 
         return result
