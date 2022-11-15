@@ -856,7 +856,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     expectation_response = ExpectationResponse(
         name=name,
         description=description,
-        expectation_function=expectation_function,
+        expectation=expectation_function,
         result=result,
         msg=msg,
         details=details,
@@ -900,7 +900,7 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     expectation_response = ExpectationResponse(
         name=name,
         description=description,
-        expectation_function=expectation_function,
+        expectation=expectation_function,
         result=result,
         msg=msg,
         details=details,
