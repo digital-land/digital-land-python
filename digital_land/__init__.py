@@ -1,6 +1,5 @@
 import sys
 import csv
-import pluggy
 
 
 def csv_field_size_limit(field_size_limit=sys.maxsize):
@@ -14,4 +13,3 @@ def csv_field_size_limit(field_size_limit=sys.maxsize):
 
 csv_field_size_limit()
 
-hookimpl = pluggy.HookimplMarker("digital-land")
