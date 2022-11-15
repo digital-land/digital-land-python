@@ -33,6 +33,7 @@ setup(
     package_data={"digital-land": ["templates/*.html"]},
     include_package_data=True,
     install_requires=[
+        "datasette",
         "canonicaljson",
         "click",
         "cchardet",
