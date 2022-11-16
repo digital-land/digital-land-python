@@ -16,10 +16,13 @@ def transform_df_first_column_into_set(dataframe: pd.DataFrame) -> set:
 
 def config_parser(filepath: str):
     "Will parse a config file"
-    with open(filepath) as file:
-        config = yaml.load(file, Loader=yaml.FullLoader)
-        if config is not None:
-            config = dict(config)
+    try:
+        with open(filepath) as file:
+            config = yaml.load(file, Loader=yaml.FullLoader)
+            if config is not None:
+                config = dict(config)
+    except OSError:
+        return None
     return config
 
 
@@ -75,27 +78,30 @@ class ExpectationResponse:
     result: bool = None
     msg: str = None
     details: dict = None
-    sqlite_dataset: str = None
-    data_quality_execution_time: str = field(init=False)
+    data_name: str = None
+    data_path: str = None
+    name: str = None
+    description: str = None
+    expectation: str = None
+    entry_date: str = field(init=False)
+    severity: str = None
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"
 
         self.expectation_input.pop("query_runner")
 
-        check_for_kwards = self.expectation_input.get("kwargs", None)
-        if check_for_kwards:
-            data_quality_execution_time = check_for_kwards.get(
-                "data_quality_execution_time", None
-            )
+        check_for_kwargs = self.expectation_input.get("kwargs", None)
+        if check_for_kwargs:
+            entry_date = check_for_kwargs.get("entry_date", None)
         else:
-            data_quality_execution_time = None
+            entry_date = None
 
-        if data_quality_execution_time:
-            self.data_quality_execution_time = data_quality_execution_time
+        if entry_date:
+            self.entry_date = entry_date
         else:
             now = datetime.now()
-            self.data_quality_execution_time = now.strftime("%Y%m%d_%H%M%S")
+            self.entry_date = now.isoformat()
 
     def save_to_file(self, dir_path: str):
         "Prepares a naming convention and saves the response to a provided path"
@@ -106,7 +112,7 @@ class ExpectationResponse:
             name_status = "fail"
 
         name_hash = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")[:-3]
-        file_name = f"{self.data_quality_execution_time}_{name_status}_{self.expectation_input['expectation_name']}_{name_hash}.json"
+        file_name = f"{self.entry_date}_{name_status}_{self.expectation_input['expectation_name']}_{name_hash}.json"
 
         with open(os.path.join(dir_path, file_name), "w") as f:
             self_save_version = copy.deepcopy(self)
@@ -120,7 +126,7 @@ class ExpectationResponse:
 
         if not self.result:
             warnings.warn(self.msg)
-            if self.expectation_input["expectation_severity"] == "RaiseError":
+            if self.severity == "RaiseError":
                 result = 1
 
         return result

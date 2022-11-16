@@ -2,13 +2,22 @@ import inspect
 import pandas as pd
 from .core import QueryRunner, ExpectationResponse
 from math import inf
+from pathlib import Path
+import logging
+
+
+def get_file_name_without_extension(file_path):
+    name = Path(file_path).stem
+    return name
 
 
 def expect_database_to_have_set_of_tables(
     query_runner: QueryRunner,
     expected_tables_set: set,
     fail_if_found_more_than_expected: bool = False,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description=None,
+    name=None,
     **kwargs,
 ):
     """Receives a set with table names and checks if all of the tables
@@ -17,7 +26,7 @@ def expect_database_to_have_set_of_tables(
     to fail in cases where found more tables than expected change optional
     argument fail_if_found_more_than_expected to True
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     expected_tables_set = set(expected_tables_set)
 
@@ -41,12 +50,19 @@ def expect_database_to_have_set_of_tables(
             "found_tables": found_tables_set,
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -57,7 +73,9 @@ def expect_table_to_have_set_of_columns(
     table_name: str,
     expected_columns_set: set,
     fail_if_found_more_than_expected: bool = False,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description=None,
+    name=None,
     **kwargs,
 ):
     """Receives a table name and a set with column names and checks if all of
@@ -65,7 +83,7 @@ def expect_table_to_have_set_of_columns(
     if at least one is not found. It doesn't verify if additional columns are
     present in the table.
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     expected_columns_set = set(expected_columns_set)
 
@@ -90,12 +108,19 @@ def expect_table_to_have_set_of_columns(
             "found_columns": found_columns_set,
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -106,14 +131,16 @@ def expect_table_row_count_to_be_in_range(
     table_name: str,
     min_expected_row_count: int = 0,
     max_expected_row_count: int = inf,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description=None,
+    name=None,
     **kwargs,
 ):
     """Receives a table name and a min and max for row count. It returns True
     if the row count is within the range and False otherwise, inclusive of min
     and max.
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     sql_query = f"SELECT COUNT(*) AS row_count FROM {table_name};"
@@ -133,8 +160,19 @@ def expect_table_row_count_to_be_in_range(
             "max_expected": max_expected_row_count,
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input, result=result, msg=msg, details=details
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
+        result=result,
+        msg=msg,
+        details=details,
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -145,7 +183,9 @@ def expect_row_count_for_lookup_value_to_be_in_range(
     table_name: str,
     field_name: str,
     count_ranges_per_value: dict,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description=None,
+    name=None,
     **kwargs,
 ):
     """Receives a table name, a field name and a dictionary with row count
@@ -159,7 +199,7 @@ def expect_row_count_for_lookup_value_to_be_in_range(
     return True, if at least one of the counts is not inside the range it will
     return False
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     df_expected_counts_by_value = pd.DataFrame(count_ranges_per_value)
@@ -197,12 +237,19 @@ def expect_row_count_for_lookup_value_to_be_in_range(
         msg = f"Fail: table '{table_name}': one or more counts per lookup_value not in expected range see for more info see details"
         details = found_not_within_range.to_dict(orient="records")
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -214,7 +261,9 @@ def expect_field_values_to_be_within_set(
     field_name: str,
     expected_values_set: set,
     fail_if_not_found_entire_expected_set: bool = False,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description=None,
+    name=None,
     **kwargs,
 ):
     """Receives a table name, a field and a set expected values and
@@ -228,7 +277,7 @@ def expect_field_values_to_be_within_set(
     also return False in cases where a value of the expected set was not
     present in the table.
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     expected_values_set = set(expected_values_set)
 
@@ -253,12 +302,19 @@ def expect_field_values_to_be_within_set(
             "found_values": found_values_set,
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -268,7 +324,9 @@ def expect_values_for_field_to_be_unique(
     query_runner: QueryRunner,
     table_name: str,
     fields: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    name=None,
+    description=None,
     **kwargs,
 ):
     """Receives a table name, a field (or a set of fields) and checks
@@ -276,7 +334,7 @@ def expect_values_for_field_to_be_unique(
     Returns True if in the table there are not 2 rows with identical values
     for the field (or set of fields) and False otherwise.
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     str_fields = ",".join(fields)
@@ -293,12 +351,19 @@ def expect_values_for_field_to_be_unique(
         msg = f"Fail: duplicate values for the combined fields '{fields}' on table '{table_name}', see details"
         details = {"duplicates_found": found_duplicity.to_dict(orient="records")}
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -309,7 +374,9 @@ def expect_geoshapes_to_be_valid(
     table_name: str,
     shape_field: str,
     ref_fields: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description: str = None,
+    name: str = None,
     **kwargs,
 ):
     """Receives a table name, a shape field and an shape ref field (or set of)
@@ -317,7 +384,7 @@ def expect_geoshapes_to_be_valid(
     False if shapes are invalid and in the details returns ref for the shapes
     that were invalid (is_valid=0) or if shape parsing failed unknown(is_valid=-1).
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     str_ref_fields = ",".join(ref_fields)
@@ -336,12 +403,19 @@ def expect_geoshapes_to_be_valid(
         msg = f"Fail: {len(invalid_shapes)} invalid shapes found in field '{shape_field}' on table '{table_name}', see details"
         details = {"invalid_shapes": invalid_shapes.to_dict(orient="records")}
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -354,7 +428,9 @@ def expect_values_for_a_key_stored_in_json_are_within_a_set(
     json_key: str,
     expected_values_set: set,
     ref_fields: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description: str = None,
+    name: str = None,
     **kwargs,
 ):
     """Receives:
@@ -370,7 +446,7 @@ def expect_values_for_a_key_stored_in_json_are_within_a_set(
     One-sided: will not check if all expected values are found, only if all
     found values are within the expected
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     expected_values_set = set(expected_values_set)
 
@@ -395,12 +471,19 @@ def expect_values_for_a_key_stored_in_json_are_within_a_set(
         msg = f"Fail: found non-expected values for key '{json_key}' in field '{field}' on table '{table_name}', see details"
         details = {"non_expected_values": non_expected_values.to_dict(orient="records")}
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -412,7 +495,9 @@ def expect_keys_in_json_field_to_be_in_set_of_options(
     field_name: str,
     expected_keys_set: set,
     ref_fields: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    name=None,
+    description=None,
     **kwargs,
 ):
     """Receives a table name, a field name (of a field that has a JSON text
@@ -421,7 +506,7 @@ def expect_keys_in_json_field_to_be_in_set_of_options(
     One sided: will not check if all expected keys are found, only if all
     found are within the expected
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
     expected_keys_set = set(expected_keys_set)
 
@@ -452,12 +537,19 @@ def expect_keys_in_json_field_to_be_in_set_of_options(
             )
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -470,13 +562,15 @@ def expect_values_in_field_to_be_within_range(
     min_expected_value: int,
     max_expected_value: int,
     ref_fields: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description: str = None,
+    name: str = None,
     **kwargs,
 ):
     """Receives a table name, a field name checks the values found in the field
     are within the expected range
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     str_ref_fields = ",".join(ref_fields)
@@ -499,12 +593,19 @@ def expect_values_in_field_to_be_within_range(
             )
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -514,7 +615,9 @@ def expect_custom_query_result_to_be_as_predicted(
     query_runner: QueryRunner,
     custom_query: str,
     expected_query_result: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description=None,
+    name=None,
     **kwargs,
 ):
     """Receives a custom sqlite/spatialite query as string and a expected
@@ -528,7 +631,7 @@ def expect_custom_query_result_to_be_as_predicted(
     Returns True if the result for the query are as expected and False
     otherwise, with details.
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     query_result = query_runner.run_query(custom_query)
@@ -546,12 +649,19 @@ def expect_custom_query_result_to_be_as_predicted(
             "expected_query_result": expected_query_result,
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -564,7 +674,9 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
     json_key: str,
     list_of_domain_endings: list,
     ref_fields: list,
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    description: str = None,
+    name: str = None,
     **kwargs,
 ):
     """Looks at urls stored inside a json field within a given json_key:
@@ -578,7 +690,7 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
     NOTE: The domain here is all that was found between "http://" (or https://)
      and the first "/" after it.
     """
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     str_ref_fields = ",".join(ref_fields)
@@ -641,12 +753,19 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
                 )
             }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -655,30 +774,26 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
 def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
-    expected_query_result: list,
+    expected_result: list,
     entity_geometry_field: str = "geometry",
-    returned_entity_fields: list = ["name"],
-    returned_json_fields: list = None,
-    expectation_severity: str = "RaiseError",
+    columns: list = ["name"],
+    severity: str = "RaiseError",
+    name: str = None,
+    description: str = None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
-    if returned_json_fields is not None:
-        json_sql_list = [
-            f"json_extract(json,'$.{field}') as '{field}'"
-            for field in returned_json_fields
-        ]
-        fields = [*returned_entity_fields, *json_sql_list]
-    else:
-        fields = returned_entity_fields
-
-    custom_query = f"SELECT {','.join(fields)} FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
+    custom_query = f"""
+        {build_entity_select_statement(columns)}
+        FROM entity
+        WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'))
+        ;"""
 
     query_result = query_runner.run_query(custom_query)
 
-    result = query_result.to_dict(orient="records") == expected_query_result
+    result = query_result.to_dict(orient="records") == expected_result
 
     if result:
         msg = "Success: data quality as expected"
@@ -687,15 +802,21 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
         msg = "Fail: result for lasso query was not as expected, see details"
         details = {
             "query_result": query_result.to_dict(orient="records"),
-            "expected_query_result": expected_query_result,
+            "expected_query_result": expected_result,
         }
+    data_path = query_runner.inform_dataset_path()
 
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -704,20 +825,22 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
 def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     query_runner: QueryRunner,
     geometry: str,
-    expected_count: list,
+    expected_result: list,
     entity_geometry_field: str = "geometry",
-    expectation_severity: str = "RaiseError",
+    severity: str = "RaiseError",
+    name: str = None,
+    description: str = None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     custom_query = f"SELECT COUNT(*) as count FROM entity WHERE ST_Intersects(GeomFromText({entity_geometry_field}),GeomFromText('{geometry}'));"
 
     query_result = query_runner.run_query(custom_query)
 
-    result_count = query_result.to_dict(orient="records")[0]["count"]
-    result = result_count == expected_count
+    actual_result = query_result.to_dict(orient="records")[0]["count"]
+    result = actual_result == expected_result
 
     if result:
         msg = "Success: data quality as expected"
@@ -725,16 +848,22 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
         details = {
-            "result_count": result_count,
-            "expected_count": expected_count,
+            "result_result": actual_result,
+            "expected_result": expected_result,
         }
+    data_path = query_runner.inform_dataset_path()
 
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response
@@ -742,18 +871,20 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
 
 def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     query_runner: QueryRunner,
-    expected_count: list,
-    expectation_severity: str = "RaiseError",
+    expected_result: list,
+    severity: str = "RaiseError",
+    name: str = None,
+    description: str = None,
     **kwargs,
 ):
-    expectation_name = inspect.currentframe().f_code.co_name
+    expectation_function = inspect.currentframe().f_code.co_name
     expectation_input = locals()
 
     custom_query = "SELECT COUNT(*) as count FROM entity;"
 
     query_result = query_runner.run_query(custom_query)
-    result_count = query_result.to_dict(orient="records")[0]["count"]
-    result = result_count == expected_count
+    actual_result = query_result.to_dict(orient="records")[0]["count"]
+    result = actual_result == expected_result
 
     if result:
         msg = "Success: data quality as expected"
@@ -761,16 +892,333 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
         details = {
-            "result_count": result_count,
-            "expected_count": expected_count,
+            "actual_result": actual_result,
+            "expected_result": expected_result,
         }
 
+    data_path = query_runner.inform_dataset_path()
+
     expectation_response = ExpectationResponse(
-        expectation_input=expectation_input,
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
         result=result,
         msg=msg,
         details=details,
-        sqlite_dataset=query_runner.inform_dataset_path(),
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
+    )
+
+    return expectation_response
+
+
+def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
+    query_runner: QueryRunner,
+    expected_result: int,
+    organisation_entities: list,
+    severity: str = "RaiseError",
+    name: str = None,
+    description: str = None,
+    **kwargs,
+):
+    expectation_function = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    custom_query = f"""
+        SELECT COUNT(*) as count
+        FROM entity
+        WHERE organisation_entity in ({','.join(map(str,organisation_entities))});
+    """
+
+    query_result = query_runner.run_query(custom_query)
+    actual_result = query_result.to_dict(orient="records")[0]["count"]
+    result = actual_result == expected_result
+
+    details = {
+        "actual_result": actual_result,
+        "expected_result": expected_result,
+    }
+    if result:
+        msg = "Success: data quality as expected"
+    else:
+        msg = "Fail: result count is not correct, see details"
+
+    data_path = query_runner.inform_dataset_path()
+
+    expectation_response = ExpectationResponse(
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
+        result=result,
+        msg=msg,
+        details=details,
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
+    )
+
+    return expectation_response
+
+
+def expect_filtered_entities_to_be_as_predicted(
+    query_runner: QueryRunner,
+    expected_result: list,
+    columns=None,
+    filters: dict = None,
+    severity: str = "RaiseError",
+    name=None,
+    description=None,
+    **kwargs,
+):
+    expectation_function = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    possible_filters = ["organisation_entity", "reference"]
+    if any(filter not in possible_filters for filter in filters.keys()):
+        for filter in filters.keys():
+            logging.warning(filter not in possible_filters)
+        raise ValueError("unsupported filters being used")
+
+    custom_query = f"""
+        {build_entity_select_statement(columns)}
+        FROM entity
+        {build_entity_where_clause(filters)}
+        ;
+    """
+
+    actual_result = query_runner.run_query(custom_query).to_dict(orient="records")
+    result = actual_result == expected_result
+
+    details = {
+        "actual_result": actual_result,
+        "expected_result": expected_result,
+    }
+    if result:
+        msg = "Success: data quality as expected"
+    else:
+        msg = "Fail: result count is not correct, see details"
+
+    data_path = query_runner.inform_dataset_path()
+
+    expectation_response = ExpectationResponse(
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
+        result=result,
+        msg=msg,
+        details=details,
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
+    )
+
+    return expectation_response
+
+
+def build_entity_select_statement(columns):
+    """
+    function to be used to build a select statement for the entity table
+    in the dataset created via the dataset package. Specifically to help
+    pull out information stored in the json fields
+    """
+    possible_entity_columns = [
+        "dataset",
+        "end_date",
+        "entity",
+        "entry_date",
+        "geojson",
+        "geometry",
+        "json",
+        "name",
+        "organisation_entity",
+        "point",
+        "prefix",
+        "reference",
+        "start_date",
+        "typology",
+    ]
+
+    entity_columns = [col for col in columns if col in possible_entity_columns]
+    json_columns = [
+        f"json_extract(json,'$.{col}') as '{col}'"
+        for col in columns
+        if col not in possible_entity_columns
+    ]
+    final_columns = [*entity_columns, *json_columns]
+    select_statement = f"SELECT {','.join(final_columns)}"
+    return select_statement
+
+
+def build_entity_where_clause(filters):
+    """
+    Function to produce sql WHERE clause for the entity table given a dictionary of filters
+    """
+    possible_filters = [
+        "dataset",
+        "entity",
+        "geometry",
+        "json",
+        "name",
+        "organisation_entity",
+        "point",
+        "prefix",
+        "reference",
+        "typology",
+    ]
+
+    if any(filter not in possible_filters for filter in filters.keys()):
+        unsupported_filters = [
+            filter for filter in filters.keys() if filter not in possible_filters
+        ]
+        raise ValueError(
+            f'unsupported filters {",".join(unsupported_filters)} being used'
+        )
+
+    for filter in filters.keys():
+        filter_values = filters[filter]
+        filter_conditions = []
+        if filter in ["geometry", "point"]:
+            if isinstance(filter_values, str):
+                filter_conditions.append(
+                    f"ST_Intersects(GeomFromText({filter}),GeomFromText('{filter_values}'))"
+                )
+            else:
+                raise TypeError(f"{filter} value must be a single wkt as a string")
+        elif isinstance(filter_values, str) or isinstance(filter_values, int):
+            filter_values = f"{filter_values}".replace("'", "''")
+            filter_conditions.append(f"{filter} = '{filter_values}'")
+        elif isinstance(filter_values, list):
+            filter_values = [
+                filter_value.replace("'", "''") for filter_value in filter_values
+            ]
+            filter_values = [f"'{filter_value}'" for filter_value in filter_values]
+            filter_conditions.append(f"{filter} in ({','.join(filter_values)})")
+        else:
+            raise TypeError(f"{filter} must be either an int, str or a list")
+
+    where_clause_sql = f"WHERE {' AND '.join(filter_conditions)}"
+
+    return where_clause_sql
+
+
+def count_entities(
+    query_runner: QueryRunner,
+    expected_result: list,
+    filters: dict,
+    severity: str = "RaiseError",
+    name=None,
+    description=None,
+    **kwargs,
+):
+    """
+    Function which counts entities from the entity table in a sqlite file and compares against
+    the expected result
+
+    filters: provide a dictionary contain any filters to be applied to the dataset, geometry and point are converted
+    """
+
+    expectation_function = inspect.currentframe().f_code.co_name
+    expectation_input = locals()
+
+    custom_query = f"""
+        SELECT COUNT(*) as count
+        FROM entity
+        {build_entity_where_clause(filters)}
+        ;
+    """
+
+    query_result = query_runner.run_query(custom_query)
+    actual_result = query_result.to_dict(orient="records")[0]["count"]
+    result = actual_result == expected_result
+
+    details = {
+        "actual_result": actual_result,
+        "expected_result": expected_result,
+    }
+    if result:
+        msg = "Success: data quality as expected"
+    else:
+        msg = "Fail: result count is not correct, see details"
+
+    data_path = query_runner.inform_dataset_path()
+
+    expectation_response = ExpectationResponse(
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
+        result=result,
+        msg=msg,
+        details=details,
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
+    )
+
+    return expectation_response
+
+
+def compare_entities(
+    query_runner: QueryRunner,
+    expected_result: list,
+    filters: dict,
+    columns=None,
+    severity: str = "RaiseError",
+    name=None,
+    description=None,
+    **kwargs,
+):
+    """
+    Function to return a list of of entities which match the provided query
+
+    columns: a list of the columns which need to be returned
+    filters:
+    name: a human readable shorthand name for the expectation
+    description: a human readable description field for the expectation
+    """
+    expectation_function = inspect.currentframe().f_code.co_name
+    expectation_input = {
+        key: value
+        for key, value in locals().items()
+        if key not in ["name", "description", "expectation_severity"]
+    }
+
+    custom_query = f"""
+        {build_entity_select_statement(columns)}
+        FROM entity
+        {build_entity_where_clause(filters)}
+        ;
+    """
+
+    actual_result = query_runner.run_query(custom_query).to_dict(orient="records")
+    result = actual_result == expected_result
+
+    details = {
+        "actual_result": actual_result,
+        "expected_result": expected_result,
+    }
+    if result:
+        msg = "Success: data quality as expected"
+    else:
+        msg = "Fail: result is not correct, see details"
+
+    data_path = query_runner.inform_dataset_path()
+
+    expectation_response = ExpectationResponse(
+        name=name,
+        description=description,
+        expectation=expectation_function,
+        severity=severity,
+        result=result,
+        msg=msg,
+        details=details,
+        data_name=get_file_name_without_extension(data_path),
+        data_path=data_path,
+        expectation_input=expectation_input,
     )
 
     return expectation_response

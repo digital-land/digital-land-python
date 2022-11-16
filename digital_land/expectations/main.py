@@ -1,46 +1,61 @@
 from .core import QueryRunner, config_parser, DataQualityException
 from datetime import datetime
 from .expectations import *  # noqa
-import os
 import warnings
+from csv import DictWriter
 
 
-def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
+def run_expectation_suite(results_file_path, data_path, expectation_suite_yaml):
 
     now = datetime.now()
-    data_quality_execution_time = now.strftime("%Y%m%d_%H%M%S")
-    data_quality_suite_config = config_parser(data_quality_yaml)
+    entry_date = now.isoformat()
+    expectation_suite_config = config_parser(expectation_suite_yaml)
 
-    if data_quality_suite_config is None:
-        warnings.warn("No expectations provided in yaml file")
+    if expectation_suite_config is None:
+        warnings.warn(
+            "either empty yaml file being provided or no yaml file being found"
+        )
         return
 
-    run_directory = os.path.join(
-        now.strftime("%Y"), now.strftime("%m"), now.strftime("%d")
-    )
+    query_runner = QueryRunner(data_path)
 
-    run_path = os.path.join(results_path, run_directory)
-    os.makedirs(run_path, exist_ok=True)
-
-    query_runner = QueryRunner(sqlite_dataset_path)
-
-    expectations = data_quality_suite_config.get("expectations", None)
+    expectations = expectation_suite_config.get("expectations", None)
 
     failed_expectation_with_error_severity = 0
 
+    responses = []
     for expectation in expectations:
-
         arguments = {**expectation}
 
         response = run_expectation(
             query_runner=query_runner,
-            data_quality_execution_time=data_quality_execution_time,
+            entry_date=entry_date,
             **arguments,
         )
-        # print(response.to_json)
 
-        response.save_to_file(run_path)
+        responses.append(response.to_dict())
+
         failed_expectation_with_error_severity += response.act_on_failure()
+
+    # data_path_hash = hashlib.sha256(data_path.encode('UTF-8')).hexdigest()
+    # file_name = f"{suite_execution_time}_{data_path_hash}.json"
+    with open(results_file_path, "w") as f:
+        fieldnames = [
+            "entry_date",
+            "name",
+            "description",
+            "expectation",
+            "severity",
+            "result",
+            "msg",
+            "details",
+            "data_name",
+            "data_path",
+            "expectation_input",
+        ]
+        dictwriter = DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerows(responses)
 
     if failed_expectation_with_error_severity > 0:
         raise DataQualityException(
@@ -48,5 +63,5 @@ def run_dq_suite(results_path, sqlite_dataset_path, data_quality_yaml):
         )
 
 
-def run_expectation(query_runner: QueryRunner, expectation_name: str, **kwargs):
-    return globals()[expectation_name](query_runner=query_runner, **kwargs)
+def run_expectation(query_runner: QueryRunner, expectation: str, **kwargs):
+    return globals()[expectation](query_runner=query_runner, **kwargs)
