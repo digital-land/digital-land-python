@@ -8,7 +8,7 @@ from csv import DictWriter
 def run_expectation_suite(results_file_path, data_path, expectation_suite_yaml):
 
     now = datetime.now()
-    suite_execution_time = now.strftime("%Y%m%d_%H%M%S")
+    entry_date = now.isoformat()
     expectation_suite_config = config_parser(expectation_suite_yaml)
 
     if expectation_suite_config is None:
@@ -29,7 +29,7 @@ def run_expectation_suite(results_file_path, data_path, expectation_suite_yaml):
 
         response = run_expectation(
             query_runner=query_runner,
-            suite_execution_time=suite_execution_time,
+            entry_date=entry_date,
             **arguments,
         )
 
@@ -41,7 +41,7 @@ def run_expectation_suite(results_file_path, data_path, expectation_suite_yaml):
     # file_name = f"{suite_execution_time}_{data_path_hash}.json"
     with open(results_file_path, "w") as f:
         fieldnames = [
-            "suite_execution_time",
+            "entry_date",
             "name",
             "description",
             "expectation",
