@@ -9,6 +9,7 @@ import warnings
 import copy
 import os
 
+
 def transform_df_first_column_into_set(dataframe: pd.DataFrame) -> set:
     "Given a pd dataframe returns the first column as a python set"
     return set(dataframe.iloc[:, 0].unique())
@@ -73,12 +74,14 @@ class SeverityEnum(str, Enum):
     Enumeration for severity csv in specification, may need to be replaced in the future
     with a different mechanism to read from csv
     """
-    critical = 'critical'
-    error = 'error'
-    warning = 'warning'
-    notice = 'notice'
-    info = 'info'
-    debug = 'debug'
+
+    critical = "critical"
+    error = "error"
+    warning = "warning"
+    notice = "notice"
+    info = "info"
+    debug = "debug"
+
 
 # TODO write unit tests for this class
 @dataclass_json
@@ -144,6 +147,7 @@ class ExpectationResponse:
                 failure_count = 1
 
         return failure_count
+
 
 # expectation_input = {
 #         key: value

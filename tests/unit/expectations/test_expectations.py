@@ -36,7 +36,7 @@ def test_check_database_has_expected_tables_Success():
         "old_entity",
     }
 
-    result,msg,details = expect_database_to_have_set_of_tables(
+    result, msg, details = expect_database_to_have_set_of_tables(
         query_runner, expected_table_set, fail_if_found_more_than_expected=True
     )
 
@@ -57,7 +57,7 @@ def test_check_database_has_expected_tables_Success_with_fme_false():
         "old_entity",
     }
 
-    result,msg,details = expect_database_to_have_set_of_tables(
+    result, msg, details = expect_database_to_have_set_of_tables(
         query_runner, expected_table_set, fail_if_found_more_than_expected=False
     )
 
@@ -78,7 +78,7 @@ def test_check_database_has_expected_tables_Fail():
         "issue",
         "old_entity",
     }
-    result,msg,details = expect_database_to_have_set_of_tables(
+    result, msg, details = expect_database_to_have_set_of_tables(
         query_runner, expected_table_set, fail_if_found_more_than_expected=True
     )
 
@@ -124,7 +124,7 @@ def test_check_database_has_expected_tables_Fail_with_fme_false():
         "old_entity",
     }
 
-    result,msg,details= expect_database_to_have_set_of_tables(
+    result, msg, details = expect_database_to_have_set_of_tables(
         query_runner, expected_table_set, fail_if_found_more_than_expected=False
     )
 
@@ -143,7 +143,7 @@ def test_check_database_has_expected_tables_find_more_than_expected_fail():
         "old_entity",
     }
 
-    result,msg,details = expect_database_to_have_set_of_tables(
+    result, msg, details = expect_database_to_have_set_of_tables(
         query_runner, expected_table_set, fail_if_found_more_than_expected=True
     )
 
@@ -171,7 +171,7 @@ def test_check_table_has_expected_columns_Success():
         "prefix",
     }
 
-    result,msg,details = expect_table_to_have_set_of_columns(
+    result, msg, details = expect_table_to_have_set_of_columns(
         query_runner, table_name=table_name, expected_columns_set=expected_column_set
     )
 
@@ -200,7 +200,7 @@ def test_check_table_has_expected_columns_Fail():
         "organisation_entity",
         "prefix",
     }
-    result,msg,details = expect_table_to_have_set_of_columns(
+    result, msg, details = expect_table_to_have_set_of_columns(
         query_runner, table_name=table_name, expected_columns_set=expected_column_set
     )
 
@@ -227,7 +227,7 @@ def test_check_table_has_expected_columns_fail_if_find_more_than_expected_Fail()
         "organisation_entity",
         "prefix",
     }
-    result,msg,details = expect_table_to_have_set_of_columns(
+    result, msg, details = expect_table_to_have_set_of_columns(
         query_runner,
         table_name=table_name,
         expected_columns_set=expected_column_set,
@@ -258,7 +258,7 @@ def test_check_table_has_expected_columns_success_if_find_more_than_expected_Suc
         "organisation_entity",
         "prefix",
     }
-    result,msg,details = expect_table_to_have_set_of_columns(
+    result, msg, details = expect_table_to_have_set_of_columns(
         query_runner,
         table_name=table_name,
         expected_columns_set=expected_column_set,
@@ -275,7 +275,7 @@ def test_row_count_of_table_is_in_expected_range_Success():
     table_name = "entity"
     min_expected_row_count = 400
     max_expected_row_count = 500
-    result,msg,details = expect_table_row_count_to_be_in_range(
+    result, msg, details = expect_table_row_count_to_be_in_range(
         query_runner=query_runner,
         table_name=table_name,
         min_expected_row_count=min_expected_row_count,
@@ -292,7 +292,7 @@ def test_row_count_of_table_is_in_expected_range_Fail():
     table_name = "entity"
     min_expected_row_count = 200
     max_expected_row_count = 300
-    result,msg,details = expect_table_row_count_to_be_in_range(
+    result, msg, details = expect_table_row_count_to_be_in_range(
         query_runner=query_runner,
         table_name=table_name,
         min_expected_row_count=min_expected_row_count,
@@ -322,7 +322,7 @@ def test_row_count_grouped_by_field_Success2():
         {"lookup_value": "42114490", "min_row_count": 8, "max_row_count": 10},
     ]
 
-    result,msg,details = expect_row_count_for_lookup_value_to_be_in_range(
+    result, msg, details = expect_row_count_for_lookup_value_to_be_in_range(
         query_runner=query_runner,
         table_name=table_name,
         field_name=field_name,
@@ -343,7 +343,7 @@ def test_row_count_grouped_by_field_Fail():
         {"lookup_value": "42114490", "min_row_count": 6, "max_row_count": 8},
     ]
 
-    result,msg,details = expect_row_count_for_lookup_value_to_be_in_range(
+    result, msg, details = expect_row_count_for_lookup_value_to_be_in_range(
         query_runner=query_runner,
         table_name=table_name,
         field_name=field_name,
@@ -383,7 +383,7 @@ def test_check_field_values_within_expected_set_of_values_No_unexpected_value():
         "description",
     }
 
-    result,msg,details = expect_field_values_to_be_within_set(
+    result, msg, details = expect_field_values_to_be_within_set(
         query_runner,
         table_name,
         field_name,
@@ -412,7 +412,7 @@ def test_check_field_values_within_expected_set_of_values_One_unexpected_value()
         "description",
     }
 
-    result,msg,details = expect_field_values_to_be_within_set(
+    result, msg, details = expect_field_values_to_be_within_set(
         query_runner,
         table_name,
         field_name,
@@ -473,7 +473,7 @@ def test_check_field_values_within_expected_set_of_values_Not_found_entire_expec
         "description",
     }
 
-    result,msg,details = expect_field_values_to_be_within_set(
+    result, msg, details = expect_field_values_to_be_within_set(
         query_runner,
         table_name,
         field_name,
@@ -533,7 +533,7 @@ def test_check_field_values_within_expected_set_of_values_Entire_expected_set_fo
         "description",
     }
 
-    result,msg,details = expect_field_values_to_be_within_set(
+    result, msg, details = expect_field_values_to_be_within_set(
         query_runner,
         table_name,
         field_name,
@@ -552,7 +552,9 @@ def test_check_uniqueness_field_set_of_fields_True():
     table_name = "fact"
     fields = ["fact"]
 
-    result,msg,details = expect_values_for_field_to_be_unique(query_runner, table_name, fields)
+    result, msg, details = expect_values_for_field_to_be_unique(
+        query_runner, table_name, fields
+    )
 
     assert result
     assert msg == "Success: data quality as expected"
@@ -565,7 +567,9 @@ def test_check_uniqueness_field_set_of_fields_False():
     table_name = "fact"
     fields = ["field", "entry_date"]
 
-    result,msg,details = expect_values_for_field_to_be_unique(query_runner, table_name, fields)
+    result, msg, details = expect_values_for_field_to_be_unique(
+        query_runner, table_name, fields
+    )
 
     assert not result
     assert (
@@ -612,7 +616,7 @@ def test_check_geo_shapes_are_valid_True():
     shape_field = "geometry"
     ref_fields = ["entity"]
 
-    result,msg,details = expect_geoshapes_to_be_valid(
+    result, msg, details = expect_geoshapes_to_be_valid(
         query_runner, table_name, shape_field, ref_fields
     )
 
@@ -629,7 +633,7 @@ def test_check_geo_shapes_are_valid_False():
     shape_field = "geometry"
     ref_fields = ["entity"]
 
-    result,msg,details = expect_geoshapes_to_be_valid(
+    result, msg, details = expect_geoshapes_to_be_valid(
         query_runner, table_name, shape_field, ref_fields
     )
 
@@ -650,7 +654,7 @@ def test_check_json_values_for_key_within_expected_set_True():
 
     expected_values_set = {"I", "II", "III", "II*"}
 
-    result,msg,details = expect_values_for_a_key_stored_in_json_are_within_a_set(
+    result, msg, details = expect_values_for_a_key_stored_in_json_are_within_a_set(
         query_runner, table_name, field_name, json_key, expected_values_set, ref_fields
     )
 
@@ -667,7 +671,7 @@ def test_check_json_values_for_key_within_expected_set_False():
 
     expected_values_set = {"I", "II", "III"}
 
-    result,msg,details = expect_values_for_a_key_stored_in_json_are_within_a_set(
+    result, msg, details = expect_values_for_a_key_stored_in_json_are_within_a_set(
         query_runner, table_name, field_name, json_key, expected_values_set, ref_fields
     )
 
@@ -740,7 +744,7 @@ def test_check_json_values_for__not_found_key_False():
 
     expected_values_set = {"I", "II", "III", "II*"}
 
-    result,msg,details = expect_values_for_a_key_stored_in_json_are_within_a_set(
+    result, msg, details = expect_values_for_a_key_stored_in_json_are_within_a_set(
         query_runner, table_name, field_name, json_key, expected_values_set, ref_fields
     )
 
@@ -764,7 +768,7 @@ def test_check_json_keys_are_within_Expected_keys_set_True():
         "notes",
     }
 
-    result,msg,details = expect_keys_in_json_field_to_be_in_set_of_options(
+    result, msg, details = expect_keys_in_json_field_to_be_in_set_of_options(
         query_runner, table_name, field_name, expected_key_set, ref_fields
     )
 
@@ -779,7 +783,7 @@ def test_check_json_keys_are_within_Expected_keys_set_False():
     ref_fields = ["entity"]
     expected_key_set = {"listed-building-grade", "documentation-url", "description"}
 
-    result,msg,details = expect_keys_in_json_field_to_be_in_set_of_options(
+    result, msg, details = expect_keys_in_json_field_to_be_in_set_of_options(
         query_runner, table_name, field_name, expected_key_set, ref_fields
     )
 
@@ -799,7 +803,7 @@ def test_check_value_for_field_is_within_expected_range_True():
     max_expected_value = 1481085
     ref_fields = ["entity"]
 
-    result,msg,details = expect_values_in_field_to_be_within_range(
+    result, msg, details = expect_values_in_field_to_be_within_range(
         query_runner,
         table_name,
         field_name,
@@ -820,7 +824,7 @@ def test_check_value_for_field_is_within_expected_range_False():
     max_expected_value = 1300000
     ref_fields = ["entity"]
 
-    result,msg,details = expect_values_in_field_to_be_within_range(
+    result, msg, details = expect_values_in_field_to_be_within_range(
         query_runner,
         table_name,
         field_name,
@@ -889,7 +893,7 @@ def test_check_custom_query_expectataion_True():
         },
     ]
 
-    result,msg,details = expect_custom_query_result_to_be_as_predicted(
+    result, msg, details = expect_custom_query_result_to_be_as_predicted(
         query_runner, custom_query, expected_query_result
     )
 
@@ -922,14 +926,12 @@ def test_check_custom_query_expectataion_Fail():
         },
     ]
 
-    result,msg,details = expect_custom_query_result_to_be_as_predicted(
+    result, msg, details = expect_custom_query_result_to_be_as_predicted(
         query_runner, custom_query, expected_query_result
     )
 
     assert not result
-    assert (
-        msg == "Fail: result for custom query was not as expected, see details"
-    )
+    assert msg == "Fail: result for custom query was not as expected, see details"
     assert details == {
         "custom_query": "SELECT dataset, entity, typology, reference FROM entity WHERE reference IN (1090769,1090770,1090771,1090772)",
         "query_result": [
@@ -993,7 +995,11 @@ def test_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings_True():
     ref_fields = ["entity"]
     list_of_domain_endings = [".gov.uk", ".org.uk"]
 
-    result,msg,details = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
+    (
+        result,
+        msg,
+        details,
+    ) = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
         custom_query_runner,
         table_name,
         field_name,
@@ -1017,7 +1023,11 @@ def test_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings_False1(
     ref_fields = ["entity"]
     list_of_domain_endings = [".gov.uk", ".irg.uk"]
 
-    result,msg,details = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
+    (
+        result,
+        msg,
+        details,
+    ) = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
         custom_query_runner,
         table_name,
         field_name,
@@ -1042,7 +1052,11 @@ def test_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings_False2(
     ref_fields = ["entity"]
     list_of_domain_endings = [".gov.uk", ".org.uk"]
 
-    result,msg,details = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
+    (
+        result,
+        msg,
+        details,
+    ) = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
         custom_query_runner,
         table_name,
         field_name,
@@ -1073,7 +1087,11 @@ def test_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings_False3(
     ref_fields = ["entity"]
     list_of_domain_endings = [".gov.uk", ".org.uk"]
 
-    result,msg,details = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
+    (
+        result,
+        msg,
+        details,
+    ) = expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
         custom_query_runner,
         table_name,
         field_name,

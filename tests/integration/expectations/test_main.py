@@ -15,6 +15,7 @@ def test_run_expectation_suite_raises_warning(tmp_path):
         expectation_suite_yaml = os.path.join(tmp_path, "suite.yaml")
         run_expectation_suite(results_file_path, data_path, expectation_suite_yaml)
 
+
 @pytest.fixture
 def sqlite3_with_entity_table_path(tmp_path):
     dataset_path = os.path.join(tmp_path, "test.sqlite3")
@@ -42,7 +43,8 @@ def sqlite3_with_entity_table_path(tmp_path):
 
     return dataset_path
 
-def test_run_expectation_suite_success(tmp_path,sqlite3_with_entity_table_path):
+
+def test_run_expectation_suite_success(tmp_path, sqlite3_with_entity_table_path):
     # load data
     multipolygon = (
         "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
@@ -55,12 +57,22 @@ def test_run_expectation_suite_success(tmp_path,sqlite3_with_entity_table_path):
     )
     with spatialite.connect(sqlite3_with_entity_table_path) as con:
         test_data.to_sql("entity", con, if_exists="append", index=False)
-    
+
     # create yaml
     filters = {"geometry": "POINT(-0.460759538145794 52.94701402037683)"}
-    yaml_dict = {'expectations':[{'severity':'critical','name':'count entities','expectation':'count_entities','filters':filters,'expected_result':1}]}
-    with open(os.path.join(tmp_path,'suite.yaml'), 'w') as yaml_file: 
-        yaml.dump(yaml_dict,yaml_file)
+    yaml_dict = {
+        "expectations": [
+            {
+                "severity": "critical",
+                "name": "count entities",
+                "expectation": "count_entities",
+                "filters": filters,
+                "expected_result": 1,
+            }
+        ]
+    }
+    with open(os.path.join(tmp_path, "suite.yaml"), "w") as yaml_file:
+        yaml.dump(yaml_dict, yaml_file)
 
     # build inputs
     results_file_path = os.path.join(tmp_path, "results.csv")
@@ -70,16 +82,18 @@ def test_run_expectation_suite_success(tmp_path,sqlite3_with_entity_table_path):
 
     # get results
     actual = []
-    with open(os.path.join(tmp_path,'results.csv')) as file:
+    with open(os.path.join(tmp_path, "results.csv")) as file:
         reader = DictReader(file)
         for row in reader:
             actual.append(row)
 
     # check results true
-    assert actual[0]['result']
+    assert actual[0]["result"]
 
 
-def test_run_expectation_suite_fails_with_critical_failure(tmp_path,sqlite3_with_entity_table_path):
+def test_run_expectation_suite_fails_with_critical_failure(
+    tmp_path, sqlite3_with_entity_table_path
+):
     # load data
     multipolygon = (
         "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
@@ -92,12 +106,22 @@ def test_run_expectation_suite_fails_with_critical_failure(tmp_path,sqlite3_with
     )
     with spatialite.connect(sqlite3_with_entity_table_path) as con:
         test_data.to_sql("entity", con, if_exists="append", index=False)
-    
+
     # create yaml
     filters = {"geometry": "POINT(-0.460759538145794 52.94701402037683)"}
-    yaml_dict = {'expectations':[{'severity':'critical','name':'count entities','expectation':'count_entities','filters':filters,'expected_result':2}]}
-    with open(os.path.join(tmp_path,'suite.yaml'), 'w') as yaml_file: 
-        yaml.dump(yaml_dict,yaml_file)
+    yaml_dict = {
+        "expectations": [
+            {
+                "severity": "critical",
+                "name": "count entities",
+                "expectation": "count_entities",
+                "filters": filters,
+                "expected_result": 2,
+            }
+        ]
+    }
+    with open(os.path.join(tmp_path, "suite.yaml"), "w") as yaml_file:
+        yaml.dump(yaml_dict, yaml_file)
 
     # build inputs
     results_file_path = os.path.join(tmp_path, "results.csv")
@@ -110,4 +134,3 @@ def test_run_expectation_suite_fails_with_critical_failure(tmp_path,sqlite3_with
         assert False
     except DataQualityException:
         assert True
-

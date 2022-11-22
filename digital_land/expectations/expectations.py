@@ -6,7 +6,6 @@ from pathlib import Path
 import logging
 
 
-
 def expect_database_to_have_set_of_tables(
     query_runner: QueryRunner,
     expected_tables_set: set,
@@ -41,7 +40,7 @@ def expect_database_to_have_set_of_tables(
             "found_tables": found_tables_set,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_table_to_have_set_of_columns(
@@ -79,7 +78,7 @@ def expect_table_to_have_set_of_columns(
             "found_columns": found_columns_set,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_table_row_count_to_be_in_range(
@@ -110,7 +109,7 @@ def expect_table_row_count_to_be_in_range(
             "max_expected": max_expected_row_count,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_row_count_for_lookup_value_to_be_in_range(
@@ -166,7 +165,7 @@ def expect_row_count_for_lookup_value_to_be_in_range(
         msg = f"Fail: table '{table_name}': one or more counts per lookup_value not in expected range see for more info see details"
         details = found_not_within_range.to_dict(orient="records")
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_field_values_to_be_within_set(
@@ -211,7 +210,7 @@ def expect_field_values_to_be_within_set(
             "found_values": found_values_set,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_values_for_field_to_be_unique(
@@ -239,7 +238,7 @@ def expect_values_for_field_to_be_unique(
         msg = f"Fail: duplicate values for the combined fields '{fields}' on table '{table_name}', see details"
         details = {"duplicates_found": found_duplicity.to_dict(orient="records")}
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_geoshapes_to_be_valid(
@@ -271,7 +270,7 @@ def expect_geoshapes_to_be_valid(
         msg = f"Fail: {len(invalid_shapes)} invalid shapes found in field '{shape_field}' on table '{table_name}', see details"
         details = {"invalid_shapes": invalid_shapes.to_dict(orient="records")}
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_values_for_a_key_stored_in_json_are_within_a_set(
@@ -319,7 +318,7 @@ def expect_values_for_a_key_stored_in_json_are_within_a_set(
         msg = f"Fail: found non-expected values for key '{json_key}' in field '{field}' on table '{table_name}', see details"
         details = {"non_expected_values": non_expected_values.to_dict(orient="records")}
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_keys_in_json_field_to_be_in_set_of_options(
@@ -365,7 +364,7 @@ def expect_keys_in_json_field_to_be_in_set_of_options(
             )
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_values_in_field_to_be_within_range(
@@ -400,7 +399,7 @@ def expect_values_in_field_to_be_within_range(
             )
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_custom_query_result_to_be_as_predicted(
@@ -435,7 +434,7 @@ def expect_custom_query_result_to_be_as_predicted(
             "expected_query_result": expected_query_result,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
@@ -518,7 +517,7 @@ def expect_urls_stored_for_a_key_in_json_to_end_in_expected_domain_endings(
                 )
             }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
@@ -549,7 +548,7 @@ def expect_entities_to_intersect_given_geometry_to_be_as_predicted(
             "expected_query_result": expected_result,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
@@ -576,7 +575,7 @@ def expect_count_of_entities_to_intersect_given_geometry_to_be_as_predicted(
             "expected_result": expected_result,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
@@ -600,7 +599,7 @@ def expect_total_count_of_entities_in_dataset_to_be_as_predicted(
             "expected_result": expected_result,
         }
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
@@ -628,7 +627,7 @@ def expect_count_of_entities_in_given_organisations_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
 
-    return result,msg,details
+    return result, msg, details
 
 
 def expect_filtered_entities_to_be_as_predicted(
@@ -663,7 +662,7 @@ def expect_filtered_entities_to_be_as_predicted(
     else:
         msg = "Fail: result count is not correct, see details"
 
-    return result,msg,details
+    return result, msg, details
 
 
 def build_entity_select_statement(columns):
@@ -785,7 +784,7 @@ def count_entities(
     else:
         msg = "Fail: result count is not correct, see details"
 
-    return result,msg,details
+    return result, msg, details
 
 
 def compare_entities(
@@ -823,5 +822,4 @@ def compare_entities(
     else:
         msg = "Fail: result is not correct, see details"
 
-
-    return result,msg,details
+    return result, msg, details
