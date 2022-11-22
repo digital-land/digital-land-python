@@ -58,7 +58,7 @@ def test_expect_filtered_entities_to_be_as_predicted_runs_for_correct_input(
     filters = {"reference": "1"}
 
     # run expectation
-    expectation_response = expect_filtered_entities_to_be_as_predicted(
+    result,msg,details = expect_filtered_entities_to_be_as_predicted(
         query_runner=query_runner,
         columns=columns,
         expected_result=expected_result,
@@ -66,8 +66,8 @@ def test_expect_filtered_entities_to_be_as_predicted_runs_for_correct_input(
     )
 
     assert (
-        expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        result
+    ), f"Expectation Details: {details}"
 
 
 def test_expect_filtered_entities_to_be_as_predicted_fails(
@@ -88,7 +88,7 @@ def test_expect_filtered_entities_to_be_as_predicted_fails(
     filters = {"reference": "1"}
 
     # run expectation
-    expectation_response = expect_filtered_entities_to_be_as_predicted(
+    result,msg,details = expect_filtered_entities_to_be_as_predicted(
         query_runner=query_runner,
         expected_result=expected_result,
         columns=columns,
@@ -96,8 +96,8 @@ def test_expect_filtered_entities_to_be_as_predicted_fails(
     )
 
     assert (
-        not expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        not result
+    ), f"Expectation Details: {details}"
 
 
 def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_passes(
@@ -124,7 +124,7 @@ def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_passes(
     geometry = "POINT(-0.460759538145794 52.94701402037683)"
 
     # run expectation
-    expectation_response = (
+    result,msg,details = (
         expect_entities_to_intersect_given_geometry_to_be_as_predicted(
             query_runner=query_runner,
             expected_result=expected_result,
@@ -134,8 +134,8 @@ def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_passes(
     )
 
     assert (
-        expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        result
+    ), f"Expectation Details: {details}"
 
 
 def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_fails(
@@ -162,7 +162,7 @@ def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_fails(
     geometry = "POINT(-0.4581196580693358 52.947003722396005)"
 
     # run expectation
-    expectation_response = (
+    result,details,msg = (
         expect_entities_to_intersect_given_geometry_to_be_as_predicted(
             query_runner=query_runner,
             expected_result=expected_result,
@@ -172,8 +172,8 @@ def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_fails(
     )
 
     assert (
-        not expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        not result
+    ), f"Expectation Details: {details}"
 
 
 def test_count_entities_passes(sqlite3_with_entity_table_path):
@@ -196,13 +196,13 @@ def test_count_entities_passes(sqlite3_with_entity_table_path):
     filters = {"geometry": "POINT(-0.460759538145794 52.94701402037683)"}
 
     # run expectation
-    expectation_response = count_entities(
+    result,msg,details = count_entities(
         query_runner=query_runner, expected_result=expected_result, filters=filters
     )
 
     assert (
-        expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        result
+    ), f"Expectation Details: {details}"
 
 
 def test_count_entities_fails(sqlite3_with_entity_table_path):
@@ -225,13 +225,13 @@ def test_count_entities_fails(sqlite3_with_entity_table_path):
     filters = {"geometry": "POINT(-0.4581196580693358 52.947003722396005)"}
 
     # run expectation
-    expectation_response = count_entities(
+    result,msg,details = count_entities(
         query_runner=query_runner, expected_result=expected_result, filters=filters
     )
 
     assert (
-        not expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        not result
+    ), f"Expectation Details: {details}"
 
 
 def test_compare_entities_passes(sqlite3_with_entity_table_path):
@@ -255,7 +255,7 @@ def test_compare_entities_passes(sqlite3_with_entity_table_path):
     filters = {"geometry": "POINT(-0.460759538145794 52.94701402037683)"}
 
     # run expectation
-    expectation_response = compare_entities(
+    result,msg,details = compare_entities(
         query_runner=query_runner,
         expected_result=expected_result,
         columns=columns,
@@ -263,8 +263,8 @@ def test_compare_entities_passes(sqlite3_with_entity_table_path):
     )
 
     assert (
-        expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        result
+    ), f"Expectation Details: {details}"
 
 
 def test_compare_entities_fails(sqlite3_with_entity_table_path):
@@ -288,7 +288,7 @@ def test_compare_entities_fails(sqlite3_with_entity_table_path):
     filters = {"geometry": "POINT(-0.4581196580693358 52.947003722396005)"}
 
     # run expectation
-    expectation_response = compare_entities(
+    result,msg,details = compare_entities(
         query_runner=query_runner,
         expected_result=expected_result,
         columns=columns,
@@ -296,5 +296,5 @@ def test_compare_entities_fails(sqlite3_with_entity_table_path):
     )
 
     assert (
-        not expectation_response.result
-    ), f"Expectation Details: {expectation_response.details}"
+        not result
+    ), f"Expectation Details: {details}"
