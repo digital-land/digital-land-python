@@ -1,8 +1,9 @@
 import spatialite
 import pandas as pd
 import yaml
-from dataclasses import dataclass, field
+from pydantic.dataclasses import dataclass
 from dataclasses_json import dataclass_json
+from enum import Enum
 from datetime import datetime
 import warnings
 import copy
@@ -68,6 +69,20 @@ class QueryRunner:
             return results
 
 
+class SeverityEnum(str, Enum):
+    """
+    Enumeration for severity csv in specification, may need to be replaced in the future
+    with a different mechanism to read from csv
+    """
+
+    critical = "critical"
+    error = "error"
+    warning = "warning"
+    notice = "notice"
+    info = "info"
+    debug = "debug"
+
+
 # TODO write unit tests for this class
 @dataclass_json
 @dataclass
@@ -76,6 +91,7 @@ class ExpectationResponse:
 
     expectation_input: dict
     result: bool = None
+    severity: SeverityEnum = None
     msg: str = None
     details: dict = None
     data_name: str = None
@@ -83,13 +99,10 @@ class ExpectationResponse:
     name: str = None
     description: str = None
     expectation: str = None
-    entry_date: str = field(init=False)
-    severity: str = None
+    entry_date: str = None
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"
-
-        self.expectation_input.pop("query_runner")
 
         check_for_kwargs = self.expectation_input.get("kwargs", None)
         if check_for_kwargs:
@@ -120,13 +133,24 @@ class ExpectationResponse:
             f.write(self_save_version.to_json())
 
     def act_on_failure(self):
-        "Raises error if severity is RaiseError or shows warning if severity is LogWarning"
+        """
+        Returns 1 if severity is critical or 0 if severity is not critical
+        raises a warning for failed tests
+        Could be moved to expection suite class
+        """
 
-        result = 0
+        failure_count = 0
 
         if not self.result:
             warnings.warn(self.msg)
-            if self.severity == "RaiseError":
-                result = 1
+            if self.severity == "critical":
+                failure_count = 1
 
-        return result
+        return failure_count
+
+
+# expectation_input = {
+#         key: value
+#         for key, value in locals().items()
+#         if key not in ["name", "description", "expectation_severity"]
+#     }
