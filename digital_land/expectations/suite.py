@@ -3,7 +3,6 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 from csv import DictWriter
-import logging
 import os
 
 from digital_land.expectations.core import (
@@ -92,7 +91,7 @@ class DatasetExpectationSuite:
             responses = getattr(self, "responses", None)
 
         if responses:
-            if results_path == None:
+            if results_path is None:
                 results_path = self.results_file_path
             fieldnames = responses[0].__annotations__.keys()
             responses_as_dicts = [response.to_dict() for response in responses]

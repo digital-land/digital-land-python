@@ -5,7 +5,7 @@ import yaml
 from csv import DictReader
 
 from digital_land.expectations.suite import DatasetExpectationSuite
-from digital_land.expectations.core import ExpectationResponse, DataQualityException
+from digital_land.expectations.core import ExpectationResponse
 
 
 def test_config_parser_success(tmp_path):
@@ -47,7 +47,7 @@ def test_config_parser_no_file(tmp_path):
 
 def test_config_parser_empty_file(tmp_path):
 
-    with open(os.path.join(tmp_path, "expectations.yaml"), "w") as yaml_file:
+    with open(os.path.join(tmp_path, "expectations.yaml"), "w"):
         pass
 
     results_file_path = os.path.join(tmp_path, "results.csv")
