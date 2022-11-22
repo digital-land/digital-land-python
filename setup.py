@@ -50,7 +50,7 @@ setup(
         "spatialite",
         "pyyaml",
         "dataclasses-json",
-        "pydantic"
+        "pydantic",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
@@ -64,7 +64,7 @@ setup(
             "responses",
             "XlsxWriter",
             "wasabi",
-            "pytest-mock"
+            "pytest-mock",
         ]
         + maybe_black
     },

@@ -4,7 +4,7 @@ from digital_land.expectations.core import (
     transform_df_first_column_into_set,
     config_parser,
     QueryRunner,
-    ExpectationResponse
+    ExpectationResponse,
 )
 
 
@@ -110,23 +110,22 @@ def test_config_parser():
 
     assert result == expected_dictionary
 
+
 def test_ExpectationResponse__init__fails_validation():
     try:
         ExpectationResponse(
-            expectation_input= {'test':'test1'},
-            result = True,
-            severity = 'invalid_string',
-            msg = 'Success',
-            details = None,
-            data_name = 'test',
-            data_path = 'tes.sqlite3',
-            name = 'test',
-            description = None,
-            expectation = 'test',
-            entry_date = None,
+            expectation_input={"test": "test1"},
+            result=True,
+            severity="invalid_string",
+            msg="Success",
+            details=None,
+            data_name="test",
+            data_path="tes.sqlite3",
+            name="test",
+            description=None,
+            expectation="test",
+            entry_date=None,
         )
         assert False
     except pydantic.ValidationError:
         assert True
-
-
