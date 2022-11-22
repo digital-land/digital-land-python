@@ -1,5 +1,4 @@
 import pytest
-import logging
 from digital_land.expectations.suite import DatasetExpectationSuite
 from digital_land.expectations.core import DataQualityException
 

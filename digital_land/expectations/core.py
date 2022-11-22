@@ -1,7 +1,7 @@
 import spatialite
 import pandas as pd
 import yaml
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from enum import Enum
 from datetime import datetime
