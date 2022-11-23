@@ -832,7 +832,7 @@ def compare_column_values(
     """
 
     custom_query = f"""
-    SELECT t1.*
+    SELECT t1.old_entity, t1.entity, t1.status
     FROM {col_1['table']} AS t1
     INNER JOIN {col_2['table']} AS t2
     ON t1.{col_1['col']} = t2.{col_2['col']}
