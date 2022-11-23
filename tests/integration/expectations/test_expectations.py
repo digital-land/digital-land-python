@@ -9,6 +9,7 @@ from digital_land.expectations.expectations import (
     expect_entities_to_intersect_given_geometry_to_be_as_predicted,
     count_entities,
     compare_entities,
+    compare_column_values,
 )
 
 
@@ -286,3 +287,72 @@ def test_compare_entities_fails(sqlite3_with_entity_table_path):
     )
 
     assert not result, f"Expectation Details: {details}"
+
+
+@pytest.fixture
+def sqlite3_with_entity_and_old_entity_table_path(tmp_path):
+    dataset_path = os.path.join(tmp_path, "test.sqlite3")
+
+    create_table_sql = """
+        CREATE TABLE entity (
+            dataset TEXT,
+            end_date TEXT,
+            entity INTEGER PRIMARY KEY,
+            entry_date TEXT,
+            geojson JSON,
+            geometry TEXT,
+            json JSON,
+            name TEXT,
+            organisation_entity TEXT,
+            point TEXT,
+            prefix TEXT,
+            reference TEXT,
+            start_date TEXT,
+            typology TEXT
+        );
+    """
+    with spatialite.connect(dataset_path) as con:
+        con.execute(create_table_sql)
+
+    create_table_sql = """
+        CREATE TABLE old_entity (
+            end_date TEXT,
+            entity INTEGER,
+            entry_date TEXT,
+            notes TEXT,
+            old_entity TEXT PRIMARY KEY,
+            start_date TEXT,
+            status TEXT, FOREIGN KEY (entity) REFERENCES entity (entity)
+        )
+        ;
+    """
+    with spatialite.connect(dataset_path) as con:
+        con.execute(create_table_sql)
+
+    return dataset_path
+
+
+def test_compare_column_values_success(sqlite3_with_entity_and_old_entity_table_path):
+    test_entity_data = pd.DataFrame.from_dict(
+        {"entity": [1], "name": ["test1"], "reference": ["1"]}
+    )
+    test_old_entity_data = pd.DataFrame.from_dict(
+        {"old_entity": [2], "entity": [1], "status": ["310"]}
+    )
+    with spatialite.connect(sqlite3_with_entity_and_old_entity_table_path) as con:
+        test_entity_data.to_sql("entity", con, if_exists="append", index=False)
+        test_old_entity_data.to_sql("old_entity", con, if_exists="append", index=False)
+
+    query_runner = QueryRunner(sqlite3_with_entity_and_old_entity_table_path)
+    expected_result = []
+    col_1 = {"table": "old_entity", "col": "old_entity"}
+    col_2 = {"table": "entity", "col": "entity"}
+
+    result, msg, details = compare_column_values(
+        query_runner=query_runner,
+        expected_result=expected_result,
+        col_1=col_1,
+        col_2=col_2,
+    )
+
+    assert result

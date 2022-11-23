@@ -821,3 +821,30 @@ def compare_entities(
         msg = "Fail: result is not correct, see details"
 
     return result, msg, details
+
+
+def compare_column_values(
+    query_runner: QueryRunner, expected_result: list, col_1: dict, col_2: dict, **kwargs
+):
+    """
+    Function to compare the values of two columns, returns the rows from table
+    1 which intersect the given table 2 column
+    """
+
+    custom_query = f"""
+    SELECT t1.*
+    FROM {col_1['table']} AS t1
+    INNER JOIN {col_2['table']} AS t2
+    ON t1.{col_1['col']} = t2.{col_2['col']}
+    ;
+    """
+    actual_result = query_runner.run_query(custom_query).to_dict(orient="records")
+    result = actual_result == expected_result
+    details = {"actual_result": actual_result, "expected_result": expected_result}
+
+    if result:
+        msg = "Sucess"
+    else:
+        msg = "Fails"
+
+    return result, msg, details
