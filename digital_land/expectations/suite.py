@@ -89,8 +89,8 @@ class DatasetExpectationSuite:
     
     def validate_results_path(self,path,format):
         """ ensures path ends in the correct file format format"""
-        p = Path(path)
-        p.rename(p.with_suffix(f'.{format}'))
+        p = os.path.splitext(path)[0]
+        p = p + f'.{format}'
         return p
 
     def save_responses(self, responses=None, results_path=None, format ='csv'):
