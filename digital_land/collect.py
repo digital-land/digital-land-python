@@ -76,10 +76,8 @@ class Collector:
                 timeout=120,
                 verify=verify_ssl,
             )
-        except requests.exceptions.SSLError:
-            logging.warning("Retrying without certificate validation due to SSLError")
-            return self.get(url, log, False)
         except (
+            requests.exceptions.SSLError,
             requests.ConnectionError,
             requests.HTTPError,
             requests.Timeout,
