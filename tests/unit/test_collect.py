@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 
 import pytest
 import responses
-import requests
 
 from digital_land.collect import Collector, FetchStatus
 
@@ -71,24 +70,6 @@ def test_hash_failure(collector, prepared_response):
     status = collector.fetch("http://some.url", endpoint="http://other.url")
 
     assert status == FetchStatus.HASH_FAILURE
-
-# removed as We no longer retry for SSL, this test did not fully test SSL
-# only tested that function was run twice, unfortunately it didn't test that
-# the SSL disbaled function was working correctly
-# @responses.activate
-# def test_ssl_bad_cert(collector):
-#     url = "https://some.url.with.ssl.error"
-#     responses.add(responses.GET, url, body=requests.exceptions.SSLError())
-
-#     # Allow the request to work the second time. Unfortunately there is no
-#     # simple way to check that verify=False is passed to reqests.get
-#     responses.add(responses.GET, url, body="some data")
-
-#     status = collector.fetch(url)
-
-#     log = read_log(collector, url)
-#     assert status == FetchStatus.OK
-#     assert not log.get("ssl-verify", True)
 
 
 def read_log(collector, url):
