@@ -86,37 +86,37 @@ class DatasetExpectationSuite:
             raise DataQualityException(
                 "One or more expectations with severity RaiseError failed, see results for more details"
             )
-    
-    def validate_results_path(self,path,format):
-        """ ensures path ends in the correct file format format"""
+
+    def validate_results_path(self, path, format):
+        """ensures path ends in the correct file format format"""
         p = os.path.splitext(path)[0]
-        p = p + f'.{format}'
+        p = p + f".{format}"
         return p
 
-    def save_responses(self, responses=None, results_path=None, format ='csv'):
+    def save_responses(self, responses=None, results_path=None, format="csv"):
         if responses is None:
             responses = getattr(self, "responses", None)
 
         if responses:
             if results_path is None:
                 results_path = self.results_file_path
-            
-            results_path = self.validate_results_path(results_path,format)
+
+            results_path = self.validate_results_path(results_path, format)
             fieldnames = responses[0].__annotations__.keys()
             responses_as_dicts = [response.to_dict() for response in responses]
 
-
             os.makedirs(os.path.dirname(results_path), exist_ok=True)
             with open(results_path, "w") as f:
-                if format == 'csv':
+                if format == "csv":
                     dictwriter = DictWriter(f, fieldnames=fieldnames)
                     dictwriter.writeheader()
                     dictwriter.writerows(responses_as_dicts)
-                elif format == 'json':
-                    json.dump(responses_as_dicts,f)
+                elif format == "json":
+                    json.dump(responses_as_dicts, f)
                 else:
-                    raise ValueError(f'format must be csv or json and cannot be {format}')
-
+                    raise ValueError(
+                        f"format must be csv or json and cannot be {format}"
+                    )
 
     def act_on_critical_error(self, failed_expectation_with_error_severity=None):
         if failed_expectation_with_error_severity is None:
