@@ -11,4 +11,5 @@ def run_expectation_suite(results_file_path, data_path, expectation_suite_yaml):
     )
     expectation_suite.run_suite()
     expectation_suite.save_responses()
+    expectation_suite.save_responses(format="json")
     expectation_suite.act_on_critical_error()
