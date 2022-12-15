@@ -130,6 +130,7 @@ def pipeline_run(
     concats = pipeline.concatenations(resource)
     patches = pipeline.patches(resource=resource)
     lookups = pipeline.lookups(resource=resource)
+    redirect_lookups = pipeline.redirect_lookups()
     default_fields = pipeline.default_fields(resource=resource)
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
@@ -194,7 +195,7 @@ def pipeline_run(
             specification=specification,
         ),
         EntityPrefixPhase(dataset=dataset),
-        EntityLookupPhase(lookups),
+        EntityLookupPhase(lookups,redirect_lookups),
         SavePhase(
             default_output_path("harmonised", input_path),
             fieldnames=intermediate_fieldnames,

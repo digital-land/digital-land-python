@@ -24,8 +24,9 @@ class LookupPhase(Phase):
     lookup entity numbers by CURIE
     """
 
-    def __init__(self, lookups={}):
+    def __init__(self, lookups={},redirect_lookups={}):
         self.lookups = lookups
+        self.redirect_lookups = redirect_lookups
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
@@ -56,6 +57,9 @@ class LookupPhase(Phase):
                         # or by the CURIE
                         or self.lookup(prefix=prefix, reference=reference)
                     )
+                    if self.redirect_lookups
+                
+            
 
             yield block
 

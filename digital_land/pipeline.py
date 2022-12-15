@@ -39,6 +39,7 @@ class Pipeline:
         self.concat = {}
         self.migrate = {}
         self.lookup = {}
+        self.redirect_lookup = {}
 
         self.load_column()
         self.load_skip_patterns()
@@ -49,6 +50,7 @@ class Pipeline:
         self.load_combine_fields()
         self.load_migrate()
         self.load_lookup()
+        self.load_redirect_lookup()
         self.load_filter()
 
     def file_reader(self, filename):
@@ -160,6 +162,14 @@ class Pipeline:
                     organisation=organisation,
                 )
             ] = row["entity"]
+        
+    def load_redirect_lookup(self):
+        for row in self.file_reader("old_entity.csv"):
+            old_entity = row.get("old_entity","")
+            entity = row.get("entity","")
+            status = row.get("status","")
+            if old_entity and entity and status:
+                self.resource_lookup[old_entity] = {"entity":entity,"status":status}
 
     def filters(self, resource=""):
         d = self.filter.get("", {})
@@ -240,6 +250,9 @@ class Pipeline:
         if resource:
             d.update(self.lookup.get(resource, {}))
         return d
+    
+    def redirect_lookups(self):
+         return self.redirect_lookup
 
     def get_pipeline_callback(self):
         file = os.path.join(self.path, "pipeline-callback.py")
