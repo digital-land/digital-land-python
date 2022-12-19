@@ -57,8 +57,11 @@ class LookupPhase(Phase):
                         # or by the CURIE
                         or self.lookup(prefix=prefix, reference=reference)
                     )
-                    if self.redirect_lookups
-                
+                    if self.redirect_lookups:
+                        old_entity=row[self.entity_field]
+                        new_entity = self.redirect_lookups.get(old_entity,"")
+                        if new_entity:
+                            row[self.entity_field] = new_entity
             
 
             yield block
