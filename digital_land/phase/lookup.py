@@ -60,8 +60,8 @@ class LookupPhase(Phase):
                     if self.redirect_lookups:
                         old_entity=row[self.entity_field]
                         new_entity = self.redirect_lookups.get(old_entity,"")
-                        if new_entity:
-                            row[self.entity_field] = new_entity
+                        if new_entity and new_entity['status'] == '301':
+                            row[self.entity_field] = new_entity['entity']
             
 
             yield block
