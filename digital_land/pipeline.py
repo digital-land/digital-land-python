@@ -162,14 +162,14 @@ class Pipeline:
                     organisation=organisation,
                 )
             ] = row["entity"]
-        
+
     def load_redirect_lookup(self):
         for row in self.file_reader("old_entity.csv"):
-            old_entity = row.get("old_entity","")
-            entity = row.get("entity","")
-            status = row.get("status","")
+            old_entity = row.get("old_entity", "")
+            entity = row.get("entity", "")
+            status = row.get("status", "")
             if old_entity and entity and status:
-                self.resource_lookup[old_entity] = {"entity":entity,"status":status}
+                self.resource_lookup[old_entity] = {"entity": entity, "status": status}
 
     def filters(self, resource=""):
         d = self.filter.get("", {})
@@ -250,9 +250,9 @@ class Pipeline:
         if resource:
             d.update(self.lookup.get(resource, {}))
         return d
-    
+
     def redirect_lookups(self):
-         return self.redirect_lookup
+        return self.redirect_lookup
 
     def get_pipeline_callback(self):
         file = os.path.join(self.path, "pipeline-callback.py")

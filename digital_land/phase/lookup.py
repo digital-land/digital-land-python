@@ -24,7 +24,7 @@ class LookupPhase(Phase):
     lookup entity numbers by CURIE
     """
 
-    def __init__(self, lookups={},redirect_lookups={}):
+    def __init__(self, lookups={}, redirect_lookups={}):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
 
@@ -58,11 +58,10 @@ class LookupPhase(Phase):
                         or self.lookup(prefix=prefix, reference=reference)
                     )
                     if self.redirect_lookups:
-                        old_entity=row[self.entity_field]
-                        new_entity = self.redirect_lookups.get(old_entity,"")
-                        if new_entity and new_entity['status'] == '301':
-                            row[self.entity_field] = new_entity['entity']
-            
+                        old_entity = row[self.entity_field]
+                        new_entity = self.redirect_lookups.get(old_entity, "")
+                        if new_entity and new_entity["status"] == "301":
+                            row[self.entity_field] = new_entity["entity"]
 
             yield block
 

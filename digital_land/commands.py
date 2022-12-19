@@ -195,7 +195,7 @@ def pipeline_run(
             specification=specification,
         ),
         EntityPrefixPhase(dataset=dataset),
-        EntityLookupPhase(lookups,redirect_lookups),
+        EntityLookupPhase(lookups, redirect_lookups),
         SavePhase(
             default_output_path("harmonised", input_path),
             fieldnames=intermediate_fieldnames,
