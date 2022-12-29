@@ -1,6 +1,8 @@
 import re
 
+from ..config.lookups import LookUps
 from .phase import Phase
+
 
 
 # TBD: use same method as piperow normalise
@@ -24,12 +26,12 @@ class LookupPhase(Phase):
     lookup entity numbers by CURIE
     """
 
-    def __init__(self, lookups={}, redirect_lookups={}):
+    def __init__(self, lookups:LookUps, redirect_lookups={}):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
 
-    def lookup(self, **kwargs):
-        return self.lookups.get(key(**kwargs), "")
+    # def lookup(self, **kwargs):
+    #     return self.lookups.get(key(**kwargs), "")
 
     def process(self, stream):
         for block in stream:
@@ -45,11 +47,11 @@ class LookupPhase(Phase):
                         # by the resource and row number
                         (
                             self.entity_field == "entity"
-                            and self.lookup(prefix=prefix, entry_number=entry_number)
+                            and self.lookups.lookup(prefix=prefix, entry_number=entry_number)
                         )
                         # TBD: fixup prefixes so this isn't needed ..
                         # or by the organisation and the reference
-                        or self.lookup(
+                        or self.lookups.lookup(
                             prefix=prefix,
                             organisation=organisation,
                             reference=reference,

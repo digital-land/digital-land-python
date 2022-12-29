@@ -15,6 +15,7 @@ from digital_land.collection import Collection, resource_path
 from digital_land.log import DatasetResourceLog, IssueLog, ColumnFieldLog
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
+from digital_land.config.lookups import LookUps
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
@@ -129,7 +130,7 @@ def pipeline_run(
     columns = pipeline.columns(resource)
     concats = pipeline.concatenations(resource)
     patches = pipeline.patches(resource=resource)
-    lookups = pipeline.lookups(resource=resource)
+    lookups = LookUps(path=os.path.join(pipeline.path,'lookup.csv'))
     redirect_lookups = pipeline.redirect_lookups()
     default_fields = pipeline.default_fields(resource=resource)
     default_values = pipeline.default_values(endpoints=endpoints)
