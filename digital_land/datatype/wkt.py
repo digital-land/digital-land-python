@@ -64,8 +64,12 @@ def parse_wkt(value):
         first_point = geometry.coords[0]
     elif geometry.geom_type in ["Polygon"]:
         first_point = geometry.exterior.coords[0]
-    else:
+    elif geometry.geom_type in ["MultiPolygon"]:
         first_point = geometry.geoms[0].exterior.coords[0]
+    elif geometry.geom_type in ["MultiLineString"]:
+        first_point = geometry.geoms[0].coords[0]
+    else:
+        return None, "Unexpected geom type"
 
     x, y = first_point[:2]
 
