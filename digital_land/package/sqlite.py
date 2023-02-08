@@ -162,8 +162,9 @@ class SqlitePackage(Package):
         logging.info("loading %s from %s" % (table, path))
         for row in csv.DictReader(open(path, newline="")):
             for value in row[split_field].split(";"):
-                row[field] = value
-                self.insert(table, fields, row)
+                if value:
+                    row[field] = value
+                    self.insert(table, fields, row)
 
     def load(self):
         for table in self.tables:
