@@ -65,6 +65,7 @@ setup(
             "XlsxWriter",
             "wasabi",
             "pytest-mock",
+            "pre-commit",
         ]
         + maybe_black
     },
