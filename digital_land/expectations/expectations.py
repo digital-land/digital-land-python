@@ -851,7 +851,7 @@ def compare_column_values(
 
 
 def validate_wkt_values(
-    query_runner: QueryRunner, col: str, table: str, include_cols: list = None
+    query_runner: QueryRunner, col: str, table: str, include_cols: list = None, **kwargs
 ):
     """
     A function that checks a given column within a table contains valid WKT values by converting to to geometry
