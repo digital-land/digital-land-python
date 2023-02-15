@@ -848,3 +848,43 @@ def compare_column_values(
         msg = "Fails"
 
     return result, msg, details
+
+
+def validate_wkt_values(
+    query_runner: QueryRunner, col: str, table: str, include_cols: list = None
+):
+    """
+    A function that checks a given column within a table contains valid WKT values by converting to to geometry
+    and checking geometry is valid
+
+    Parameters:
+        query_runner (QueryRunner): an object that is used to send queries to the sqlite db
+        column (str): the name of the column containing the wkt to validate
+        table (str): the table that the column is contained in
+        include_col (list): a list of additional columns to include in output
+    """
+    if include_cols:
+        column_string = ",".join(include_cols)
+        column_string = (
+            f"{column_string}, ST_IsValidReason(GeomFromText({col})) as reason, {col}"
+        )
+    else:
+        column_string = f"ST_IsValidReason(GeomFromText({col})) as reason, {col}"
+
+    custom_query = f"""
+    SELECT {column_string}
+    FROM {table}
+    WHERE ST_IsValid(GeomFromText({col})) <> 1
+    ;
+    """
+
+    invalid_wkts = query_runner.run_query(custom_query).to_dict(orient="records")
+    result = not len(invalid_wkts) > 0
+    if result:
+        msg = "Sucess"
+    else:
+        msg = "Fails"
+
+    details = {"invalid_wkts": invalid_wkts}
+
+    return result, msg, details
