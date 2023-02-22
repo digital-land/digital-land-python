@@ -10,7 +10,6 @@ class PivotPhase(Phase):
         for block in stream:
             row = block["row"]
             for field, value in sorted(row.items()):
-
                 if field in ["entity"]:
                     continue
 

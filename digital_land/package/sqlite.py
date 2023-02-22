@@ -190,7 +190,6 @@ class SqlitePackage(Package):
             self.commit()
 
     def create_tables(self):
-
         for table in self.tables:
             fields = self.specification.schema[table]["fields"]
             key_field = table

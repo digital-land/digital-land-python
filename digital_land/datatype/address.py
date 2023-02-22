@@ -7,7 +7,6 @@ hyphen_re = re.compile(r"(\s*-\s*){1,}")
 
 class AddressDataType(DataType):
     def normalise(self, value, issues=None):
-
         # replace newlines and semi-colons with commas
         value = ", ".join(value.split("\n"))
         value = value.replace(";", ",")

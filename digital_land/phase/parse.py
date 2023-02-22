@@ -7,7 +7,6 @@ class ParsePhase(Phase):
     """
 
     def process(self, stream):
-
         try:
             block = next(stream)
         except StopIteration:
@@ -17,7 +16,6 @@ class ParsePhase(Phase):
         entry_number = 0
 
         for block in stream:
-
             block["row"] = dict(zip(fieldnames, block["line"]))
             del block["line"]
 
