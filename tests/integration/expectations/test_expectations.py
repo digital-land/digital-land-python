@@ -45,7 +45,6 @@ def sqlite3_with_entity_table_path(tmp_path):
 def test_expect_filtered_entities_to_be_as_predicted_runs_for_correct_input(
     sqlite3_with_entity_table_path,
 ):
-
     # load data
     test_data = pd.DataFrame.from_dict(
         {"entity": [1, 2], "name": ["test1", "test2"], "reference": ["1", "2"]}
@@ -73,7 +72,6 @@ def test_expect_filtered_entities_to_be_as_predicted_runs_for_correct_input(
 def test_expect_filtered_entities_to_be_as_predicted_fails(
     sqlite3_with_entity_table_path,
 ):
-
     # load data
     test_data = pd.DataFrame.from_dict(
         {"entity": [1, 2], "name": ["test1", "test2"], "reference": ["1", "2"]}
@@ -101,7 +99,6 @@ def test_expect_filtered_entities_to_be_as_predicted_fails(
 def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_passes(
     sqlite3_with_entity_table_path,
 ):
-
     # load test data
     multipolygon = (
         "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
@@ -139,7 +136,6 @@ def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_passes(
 def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_fails(
     sqlite3_with_entity_table_path,
 ):
-
     # load test data
     multipolygon = (
         "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
