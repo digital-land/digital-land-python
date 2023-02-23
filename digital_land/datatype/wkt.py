@@ -193,11 +193,16 @@ class WktDataType(DataType):
 
             _wkt = dump_wkt(geometry, precision=6)
             geometry = shapely.wkt.loads(_wkt)
-
-            geometry, issue = normalise_geometry(geometry)
-
-            if issue:
-                issues.log("invalid geometry", issue)
+            validity = False
+            i = 0
+            while i < 3 and not validity:
+                geometry, issue = normalise_geometry(geometry)
+                if issue:
+                    issues.log("invalid geometry", issue)
+                _wkt = dump_wkt(geometry)
+                geometry = shapely.wkt.loads(_wkt)
+                validity = geometry.is_valid
+                i += 1
 
         if not geometry:
             return default
