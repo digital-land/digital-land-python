@@ -199,6 +199,10 @@ class WktDataType(DataType):
                 geometry, issue = normalise_geometry(geometry)
                 if issue:
                     issues.log("invalid geometry", issue)
+
+                if not geometry:
+                    return default
+
                 _wkt = dump_wkt(geometry)
                 geometry = shapely.wkt.loads(_wkt)
                 validity = geometry.is_valid

@@ -11,3 +11,10 @@ def test_normalise_returns_valid_shape():
     output_wkt = WktDataType().normalise(input_wkt, issues=issue_log)
     output_geometry = shapely.wkt.loads(output_wkt)
     assert output_geometry.is_valid, explain_validity(output_geometry)
+
+
+def test_normalise_returns_empty_geometry():
+    input_wkt = "MULTIPOLYGON (((471419.04 240369.58,471418.996 240371.622,471419.0 240371.6,471419.04 240369.58)))"  # noqa: E501
+    issue_log = IssueLog()
+    output_wkt = WktDataType().normalise(input_wkt, issues=issue_log)
+    assert output_wkt == ""
