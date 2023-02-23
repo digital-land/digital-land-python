@@ -32,7 +32,6 @@ def collection_dir(tmp_path):
 
 
 def test_collect(endpoint_csv, collection_dir):
-
     args = [
         "collect",
         "--collection-dir",

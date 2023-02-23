@@ -22,7 +22,6 @@ def test_collection(
     # Pytest fixtures
     tmp_path,
 ):
-
     collection_save_csv(collection_dir)
 
     # Assert

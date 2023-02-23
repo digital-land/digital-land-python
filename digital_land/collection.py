@@ -194,13 +194,13 @@ class Collection:
 
             self.resource = CSVStore(Schema("resource"))
             self.resource.load(directory=directory)
-        except (FileNotFoundError):
+        except FileNotFoundError:
             self.load_log_items()
 
         try:
             self.old_resource = CSVStore(Schema("old-resource"))
             self.old_resource.load(directory=directory)
-        except (FileNotFoundError):
+        except FileNotFoundError:
             pass
 
     def resource_endpoints(self, resource):

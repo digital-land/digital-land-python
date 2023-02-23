@@ -10,6 +10,7 @@ from digital_land.expectations.expectations import (
     count_entities,
     compare_entities,
     compare_column_values,
+    validate_wkt_values,
 )
 
 
@@ -44,7 +45,6 @@ def sqlite3_with_entity_table_path(tmp_path):
 def test_expect_filtered_entities_to_be_as_predicted_runs_for_correct_input(
     sqlite3_with_entity_table_path,
 ):
-
     # load data
     test_data = pd.DataFrame.from_dict(
         {"entity": [1, 2], "name": ["test1", "test2"], "reference": ["1", "2"]}
@@ -72,7 +72,6 @@ def test_expect_filtered_entities_to_be_as_predicted_runs_for_correct_input(
 def test_expect_filtered_entities_to_be_as_predicted_fails(
     sqlite3_with_entity_table_path,
 ):
-
     # load data
     test_data = pd.DataFrame.from_dict(
         {"entity": [1, 2], "name": ["test1", "test2"], "reference": ["1", "2"]}
@@ -100,7 +99,6 @@ def test_expect_filtered_entities_to_be_as_predicted_fails(
 def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_passes(
     sqlite3_with_entity_table_path,
 ):
-
     # load test data
     multipolygon = (
         "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
@@ -138,7 +136,6 @@ def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_passes(
 def test_expect_entities_to_intersect_given_geometry_to_be_as_predicted_fails(
     sqlite3_with_entity_table_path,
 ):
-
     # load test data
     multipolygon = (
         "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
@@ -356,3 +353,31 @@ def test_compare_column_values_success(sqlite3_with_entity_and_old_entity_table_
     )
 
     assert result
+
+
+def test_validate_wkt_values_success(sqlite3_with_entity_table_path):
+    # load test data
+    multipolygon = (
+        "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
+        "-0.4614606467578964 52.94650314047493,"
+        "-0.4598136600343151 52.94695770522492,"
+        "-0.4610469722185172 52.947516855690964)))"
+    )
+    test_data = pd.DataFrame.from_dict(
+        {"entity": [1], "name": ["test1"], "geometry": [multipolygon]}
+    )
+    with spatialite.connect(sqlite3_with_entity_table_path) as con:
+        test_data.to_sql("entity", con, if_exists="append", index=False)
+
+    # build inputs
+    query_runner = QueryRunner(sqlite3_with_entity_table_path)
+
+    # run expectation
+    result, msg, details = validate_wkt_values(
+        query_runner=query_runner,
+        col="geometry",
+        table="entity",
+        include_cols=["entity"],
+    )
+
+    assert result, f"Expectation Details: {details}"

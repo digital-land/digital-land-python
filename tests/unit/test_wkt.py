@@ -238,14 +238,12 @@ def test_wkt_invalid_multipolygon_self_intersection_with_holes():
 
 
 def test_wkt_invalid_geometry_self_intersection_normalised():
-
     from tests.data.wkt import self_intersections_osgb_wkt
 
     wkt = WktDataType()
     issues = IssueLog()
 
     for wkt_geom in self_intersections_osgb_wkt:
-
         osgb_wkt = wkt.normalise(wkt_geom, issues=issues)
         assert osgb_wkt is not None
 
@@ -254,14 +252,12 @@ def test_wkt_invalid_geometry_self_intersection_normalised():
 
 
 def test_wkt_invalid_multipolygon_too_few_points_normalised():
-
     from tests.data.wkt import too_few_points_osgb_wkt
 
     wkt = WktDataType()
     issues = IssueLog()
 
     for wkt_geom in too_few_points_osgb_wkt:
-
         osgb_wkt = wkt.normalise(wkt_geom, issues=issues)
         assert osgb_wkt is not None
 

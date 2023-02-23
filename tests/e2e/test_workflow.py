@@ -72,7 +72,6 @@ def _source_csv(endpoint_url, collection_dir):
 
 @pytest.mark.skip(reason="test data is too contrived to be useful")
 def test_workflow(workspace):
-
     returncode, outs, errs = execute(
         [
             "digital-land",

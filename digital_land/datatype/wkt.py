@@ -175,7 +175,6 @@ class WktDataType(DataType):
         pass
 
     def normalise(self, value, default="", issues=None):
-
         if not value:
             return default
 
@@ -185,7 +184,6 @@ class WktDataType(DataType):
             issues.log(issue, "")
 
         if geometry:
-
             # Reduce precision prior to normalisation.
             # this prevents reintroduction of errors fixed by
             # normalisation process. This was happening in some

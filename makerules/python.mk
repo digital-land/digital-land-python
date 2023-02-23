@@ -25,7 +25,7 @@ test-e2e:
 	[ -d tests/e2e ] && python -m pytest tests/e2e
 
 coverage:
-	coverage run --source $(PACKAGE) -m py.test && coverage report
+	coverage run --source $(PACKAGE) -m pytest && coverage report
 
 coveralls:
 	py.test --cov $(PACKAGE) tests/ --cov-report=term --cov-report=html
