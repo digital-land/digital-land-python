@@ -138,7 +138,10 @@ def normalise_geometry(geometry, simplification=0.000005):
         return geometry, None
 
     # see https://gist.github.com/psd/0189bc66fd46e00a82df2acbc7e35c8a
-    geometry = geometry.simplify(simplification)
+    # don't want to simplify if it takes a valid shape and makes it invalid
+    simplification = geometry.simplify(simplification)
+    if not geometry.is_valid or simplification.is_valid:
+        geometry = simplification
 
     # check and resolve an invalid geometry
     # result may be a GeometryCollection containing points and lines
