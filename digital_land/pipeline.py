@@ -134,7 +134,6 @@ class Pipeline:
 
     def load_lookup(self):
         for row in self.file_reader("lookup.csv"):
-
             # migrate old lookup.csv files
             entry_number = row.get("entry-number", "")
             prefix = (

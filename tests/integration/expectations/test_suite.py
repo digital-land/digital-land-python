@@ -27,7 +27,6 @@ def test_config_parser_success(tmp_path):
 
 
 def test_config_parser_no_file(tmp_path):
-
     # set inputs
     results_file_path = os.path.join(tmp_path, "results.csv")
     data_path = os.path.join(tmp_path, "results.csv")
@@ -45,7 +44,6 @@ def test_config_parser_no_file(tmp_path):
 
 
 def test_config_parser_empty_file(tmp_path):
-
     with open(os.path.join(tmp_path, "expectations.yaml"), "w"):
         pass
 
@@ -148,7 +146,6 @@ def example_response():
 
 
 def test_save_responses_success(tmp_path, example_response):
-
     # set uputs
     responses = [example_response]
     results_file_path = os.path.join(tmp_path, "results/results.csv")

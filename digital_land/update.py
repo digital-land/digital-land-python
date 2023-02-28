@@ -16,7 +16,6 @@ def recalculate_source_hashes(collection):
 
 
 def add_source_endpoint(entry, directory=None, collection=None):
-
     if not collection:
         collection = Collection()
         collection.load()

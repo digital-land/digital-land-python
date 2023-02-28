@@ -38,7 +38,6 @@ from digital_land.command_arguments import (
 )
 @click.pass_context
 def cli(ctx, debug, dataset, pipeline_dir, specification_dir):
-
     ctx.ensure_object(dict)
 
     from digital_land.pipeline import Pipeline

@@ -8,7 +8,6 @@ wkt_part_2 = """MultiPolygon (((-2.24629398711633055 51.8682112320496671, -2.246
 
 
 def test_combined_wkt_normalised():
-
     combined = combine_geometries([wkt_part_1, wkt_part_2])
 
     wkt = WktDataType()

@@ -46,7 +46,6 @@ class OrganisationURIDataType(EnumDataType):
                     self.add_value(uri, dl_url.replace("-eng:", "-eng/"))
 
     def normalise(self, fieldvalue, issues=None):
-
         value = self.normalise_value(fieldvalue)
 
         if value in self.value:

@@ -47,7 +47,6 @@ class FactReferencePhase(EntityReferencePhase):
     """
 
     def process_row(self, row):
-
         prefix = row.get("prefix", "")
         reference = row.get("reference", "")
 

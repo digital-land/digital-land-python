@@ -16,7 +16,6 @@ class NormalisePhase(Phase):
     null_path = os.path.join(patch_dir, "null.csv")
 
     def __init__(self, skip_patterns=[], null_path=None):
-
         if null_path:
             self.null_path = null_path
 

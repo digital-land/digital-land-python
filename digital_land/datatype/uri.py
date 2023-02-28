@@ -4,7 +4,6 @@ from .datatype import DataType
 
 class URIDataType(DataType):
     def normalise(self, value, issues=None):
-
         # fix URI values with line-breaks and spaces
         uri = "".join(value.split())
 

@@ -5,7 +5,6 @@ all:: lint test coverage
 lint:: black-check flake8
 
 black-check:
-	black --diff .
 	black --check .
 
 black:
@@ -17,13 +16,13 @@ flake8:
 test:: test-unit test-integration test-e2e
 
 test-unit:
-	[ -d tests/unit ] && python -m pytest tests/unit --junitxml=.junitxml/unit.xml
+	[ -d tests/unit ] && python -m pytest tests/unit
 
 test-integration:
-	[ -d tests/integration ] && python -m pytest tests/integration --junitxml=.junitxml/integration.xml
+	[ -d tests/integration ] && python -m pytest tests/integration
 
 test-e2e:
-	[ -d tests/e2e ] && python -m pytest tests/e2e --junitxml=.junitxml/e2e.xml
+	[ -d tests/e2e ] && python -m pytest tests/e2e
 
 coverage:
 	coverage run --source $(PACKAGE) -m pytest && coverage report

@@ -64,8 +64,12 @@ def parse_wkt(value):
         first_point = geometry.coords[0]
     elif geometry.geom_type in ["Polygon"]:
         first_point = geometry.exterior.coords[0]
-    else:
+    elif geometry.geom_type in ["MultiPolygon"]:
         first_point = geometry.geoms[0].exterior.coords[0]
+    elif geometry.geom_type in ["MultiLineString"]:
+        first_point = geometry.geoms[0].coords[0]
+    else:
+        return None, "Unexpected geom type"
 
     x, y = first_point[:2]
 
@@ -134,7 +138,10 @@ def normalise_geometry(geometry, simplification=0.000005):
         return geometry, None
 
     # see https://gist.github.com/psd/0189bc66fd46e00a82df2acbc7e35c8a
-    geometry = geometry.simplify(simplification)
+    # don't want to simplify if it takes a valid shape and makes it invalid
+    simplification = geometry.simplify(simplification)
+    if not geometry.is_valid or simplification.is_valid:
+        geometry = simplification
 
     # check and resolve an invalid geometry
     # result may be a GeometryCollection containing points and lines
@@ -171,7 +178,6 @@ class WktDataType(DataType):
         pass
 
     def normalise(self, value, default="", issues=None):
-
         if not value:
             return default
 
@@ -181,7 +187,6 @@ class WktDataType(DataType):
             issues.log(issue, "")
 
         if geometry:
-
             # Reduce precision prior to normalisation.
             # this prevents reintroduction of errors fixed by
             # normalisation process. This was happening in some
@@ -191,11 +196,20 @@ class WktDataType(DataType):
 
             _wkt = dump_wkt(geometry, precision=6)
             geometry = shapely.wkt.loads(_wkt)
+            validity = False
+            i = 0
+            while i < 3 and not validity:
+                geometry, issue = normalise_geometry(geometry)
+                if issue:
+                    issues.log("invalid geometry", issue)
 
-            geometry, issue = normalise_geometry(geometry)
+                if not geometry:
+                    return default
 
-            if issue:
-                issues.log("invalid geometry", issue)
+                _wkt = dump_wkt(geometry)
+                geometry = shapely.wkt.loads(_wkt)
+                validity = geometry.is_valid
+                i += 1
 
         if not geometry:
             return default

@@ -18,7 +18,6 @@ def test_transform_first_col_into_set():
 
 
 def test_query_runner():
-
     tested_dataset = (
         "tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
     )
