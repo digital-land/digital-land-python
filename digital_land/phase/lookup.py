@@ -24,7 +24,8 @@ class LookupPhase(Phase):
     lookup entity numbers by CURIE
     """
 
-    def __init__(self, lookups={}, redirect_lookups={}):
+    def __init__(self, entity_field, lookups={}, redirect_lookups={}):
+        self.entity_field = entity_field
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
 
@@ -62,13 +63,17 @@ class LookupPhase(Phase):
                         new_entity = self.redirect_lookups.get(old_entity, "")
                         if new_entity and new_entity["status"] == "301":
                             row[self.entity_field] = new_entity["entity"]
+                        elif new_entity and new_entity["status"] == "410":
+                            row[self.entity_field] = ""
 
             yield block
 
 
 class EntityLookupPhase(LookupPhase):
-    entity_field = "entity"
+    def __init__(self, **kwargs):
+        super().__init__(entity_field="entity", **kwargs)
 
 
 class FactLookupPhase(LookupPhase):
-    entity_field = "reference-entity"
+    def __init__(self, **kwargs):
+        super().__init__(entity_field="reference-entity", **kwargs)
