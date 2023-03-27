@@ -224,3 +224,29 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
 def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     return expectations(results_path, sqlite_dataset_path, data_quality_yaml)
+
+
+@cli.command(
+    "debug-pipeline",
+    short_help="runs an org through the entire process including collection,pipeline and dataset",
+)
+@click.option(
+    "--organisation",
+    help="string representing the organisation, must match organisation name in source.csv",
+    required=True,
+)
+@click.option(
+    "--pipline",
+    help="name of the pipeline to be ran, should be equivalent to the dataset",
+    required=True,
+)
+@click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
+def debug_pipline(org, pipeline):
+    print(f"running process for organisation:{org} and pipeline: {pipeline}")
+    # identify relevant sources and enpoints
+    # collect data
+    # collection step, this will need to be a bit different
+    # pipeline step for loop for each of the files
+    # once files are loaded create the dataset
+    # run expectations? this made need to be made so only certain ones are ran as they may be specific to certain datasets
+    # end
