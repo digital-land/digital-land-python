@@ -17,6 +17,7 @@ from digital_land.commands import (
     pipeline_run,
     collection_add_source,
     expectations,
+    debug_pipeline,
 )
 
 from digital_land.command_arguments import (
@@ -236,17 +237,15 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     required=True,
 )
 @click.option(
-    "--pipline",
+    "--pipeline",
     help="name of the pipeline to be ran, should be equivalent to the dataset",
     required=True,
 )
-@click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
-def debug_pipline(org, pipeline):
-    print(f"running process for organisation:{org} and pipeline: {pipeline}")
-    # identify relevant sources and enpoints
-    # collect data
-    # collection step, this will need to be a bit different
-    # pipeline step for loop for each of the files
-    # once files are loaded create the dataset
-    # run expectations? this made need to be made so only certain ones are ran as they may be specific to certain datasets
-    # end
+@click.argument(
+    "endpoint-path",
+    type=click.Path(exists=True),
+    default="collection/endpoint.csv",
+)
+def debug_pipline(organisation, pipeline, endpoint_path):
+    debug_pipeline(organisation, pipeline, endpoint_path)
+    return
