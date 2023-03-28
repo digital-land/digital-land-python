@@ -62,6 +62,7 @@ class DatasetExpectationSuite:
             data_name=self.data_name,
             data_path=self.data_path,
             expectation_input={**expectation},
+            tags=expectation.get("tags", None),
         )
 
         return response
