@@ -441,7 +441,6 @@ def debug_pipeline(org, pipeline, endpoint_path, collection_dir):
                 plugin=plugin,
             )
 
-    # collect data
     # collection step, this will need to be a bit different
     # pipeline step for loop for each of the files
     # once files are loaded create the dataset
