@@ -401,26 +401,43 @@ def default_output_path(command, input_path):
 
 def debug_pipeline(org, pipeline, endpoint_path):
     print(f"running process for organisation:{org} and pipeline: {pipeline}")
-    # identify relevant sources and enpoints
+    # identify relevant sources and endpoints
     # read in relevant end points
     # organisation info is in the source csv, therefore to get the right enpoints we need to identify all of the relevant ones from source .csi
     endpoint_hashes = []
     for row in csv.DictReader(open(endpoint_path, newline="")):
-        if row["organisation"] == org and row["pipelines"] == pipeline:
+        if row["organisation"] == org and row["pipelines"] == pipeline.name:
             endpoint_hash = row["endpoint"]
             endpoint_hashes.append(endpoint_hash)
 
     # check length of hashes to see if there are relevant endpoints
     if len(endpoint_hashes) < 0:
         print("no enpoints need collecting")
+    else:
+        text = ",".join(endpoint_hashes)
+        print(f"endpoints found {text}")
 
+    # create a collector
+    collector = Collector(pipeline.name, collection_dir=None)
     # download endpoints
     for row in csv.DictReader(open(endpoint_path, newline="")):
         endpoint = row["endpoint"]
         if endpoint in endpoint_hashes:
             print(f"downloading {endpoint}")
-            # url = row["endpoint-url"]
-            # plugin = row.get("plugin", "")
+            endpoint = row["endpoint"]
+            url = row["endpoint-url"]
+            plugin = row.get("plugin", "")
+
+            # skip manually added files ..
+            if not url:
+                continue
+
+            collector.fetch(
+                url,
+                endpoint=endpoint,
+                end_date=row.get("end-date", ""),
+                plugin=plugin,
+            )
 
     # collect data
     # collection step, this will need to be a bit different

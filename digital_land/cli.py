@@ -228,8 +228,8 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
 
 
 @cli.command(
-    "debug-pipeline",
-    short_help="runs an org through the entire process including collection,pipeline and dataset",
+    "debug-contribution",
+    short_help="runs an org through the entire process including collector,pipeline and dataset",
 )
 @click.option(
     "--organisation",
@@ -246,6 +246,7 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     type=click.Path(exists=True),
     default="collection/endpoint.csv",
 )
-def debug_pipline(organisation, pipeline, endpoint_path):
-    debug_pipeline(organisation, pipeline, endpoint_path)
+@click.pass_context
+def run_debug_pipeline(ctx, organisation, endpoint_path):
+    debug_pipeline(organisation, ctx.obj["PIPELINE"], endpoint_path)
     return
