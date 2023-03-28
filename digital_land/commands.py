@@ -399,13 +399,15 @@ def default_output_path(command, input_path):
     return f"{directory}{command}/{resource_from_path(input_path)}.csv"
 
 
-def debug_pipeline(org, pipeline, endpoint_path):
-    print(f"running process for organisation:{org} and pipeline: {pipeline}")
+def debug_pipeline(org, pipeline, endpoint_path, collection_dir):
+    print(f"running process for organisation:{org} and pipeline: {pipeline.name}")
     # identify relevant sources and endpoints
     # read in relevant end points
     # organisation info is in the source csv, therefore to get the right enpoints we need to identify all of the relevant ones from source .csi
     endpoint_hashes = []
-    for row in csv.DictReader(open(endpoint_path, newline="")):
+    for row in csv.DictReader(
+        open(os.path.join(collection_dir, "source.csv"), newline="")
+    ):
         if row["organisation"] == org and row["pipelines"] == pipeline.name:
             endpoint_hash = row["endpoint"]
             endpoint_hashes.append(endpoint_hash)

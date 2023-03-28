@@ -27,6 +27,7 @@ from digital_land.command_arguments import (
     issue_dir,
     dataset_resource_dir,
     column_field_dir,
+    endpoint_path,
 )
 
 
@@ -236,17 +237,9 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     help="string representing the organisation, must match organisation name in source.csv",
     required=True,
 )
-@click.option(
-    "--pipeline",
-    help="name of the pipeline to be ran, should be equivalent to the dataset",
-    required=True,
-)
-@click.argument(
-    "endpoint-path",
-    type=click.Path(exists=True),
-    default="collection/endpoint.csv",
-)
+@endpoint_path
+@collection_dir
 @click.pass_context
-def run_debug_pipeline(ctx, organisation, endpoint_path):
-    debug_pipeline(organisation, ctx.obj["PIPELINE"], endpoint_path)
+def run_debug_pipeline(ctx, organisation, endpoint_path, collection_dir):
+    debug_pipeline(organisation, ctx.obj["PIPELINE"], endpoint_path, collection_dir)
     return
