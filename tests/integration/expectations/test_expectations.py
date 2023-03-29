@@ -197,6 +197,36 @@ def test_count_entities_passes(sqlite3_with_entity_table_path):
     assert result, f"Expectation Details: {details}"
 
 
+def test_count_entities_greater_than(sqlite3_with_entity_table_path):
+    # load test data
+    multipolygon = (
+        "MULTIPOLYGON(((-0.4610469722185172 52.947516855690964,"
+        "-0.4614606467578964 52.94650314047493,"
+        "-0.4598136600343151 52.94695770522492,"
+        "-0.4610469722185172 52.947516855690964)))"
+    )
+    test_data = pd.DataFrame.from_dict(
+        {"entity": [1], "name": ["test1"], "geometry": [multipolygon]}
+    )
+    with spatialite.connect(sqlite3_with_entity_table_path) as con:
+        test_data.to_sql("entity", con, if_exists="append", index=False)
+
+    # build inputs
+    query_runner = QueryRunner(sqlite3_with_entity_table_path)
+    expected_result = 0
+    filters = {"geometry": "POINT(-0.460759538145794 52.94701402037683)"}
+
+    # run expectation
+    result, msg, details = count_entities(
+        query_runner=query_runner,
+        expected_result=expected_result,
+        filters=filters,
+        assertion_rule="greater_than",
+    )
+
+    assert result, f"Expectation Details: {details}"
+
+
 def test_count_entities_fails(sqlite3_with_entity_table_path):
     # load test data
     multipolygon = (
