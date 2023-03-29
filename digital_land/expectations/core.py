@@ -100,6 +100,7 @@ class ExpectationResponse:
     description: str = None
     expectation: str = None
     entry_date: str = None
+    tags: dict = None
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"

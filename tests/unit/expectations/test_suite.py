@@ -51,6 +51,40 @@ def test_run_expectation_success(mocker, test_expectation_function):
     assert response.result
 
 
+def test_run_expectation_tags_are_included(mocker, test_expectation_function):
+    # set up mocking
+    class MockExpectationFunctions:
+        def __init__(self, test_expectation_function):
+            self.test_expectation_function = test_expectation_function
+
+    mocker.patch(
+        "digital_land.expectations.suite.expectations",
+        MockExpectationFunctions(test_expectation_function=test_expectation_function),
+    )
+    # set up class inputs
+    results_file_path = "result.csv"
+    data_path = "test/data.sqlite3"
+    expectation_suite_yaml = "expectations.yaml"
+    tags = {"local-auth": "MDW"}
+    # set up function input
+    expectation = {
+        "severity": "critical",
+        "name": "number 1 is bigger than number 2",
+        "expectation": "test_expectation_function",
+        "number_1": 5,
+        "number_2": 2,
+        "tags": tags,
+    }
+
+    suite = DatasetExpectationSuite(
+        results_file_path=results_file_path,
+        data_path=data_path,
+        expectation_suite_yaml=expectation_suite_yaml,
+    )
+    response = suite.run_expectation(expectation)
+    assert response.tags == tags
+
+
 def test_act_on_critical_error_raises_error():
     # set uputs
     results_file_path = "results/results.csv"
