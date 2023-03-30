@@ -1,3 +1,7 @@
+import os
+import pathlib
+import shutil
+
 import pytest
 
 from tests.e2e.debug_pipline.funcs.test_cli_debug_funcs \
@@ -47,6 +51,10 @@ def test_debug_pipeline_start(env_vars):
     print(f" endpoint_path: {env_vars['endpoint_path']}")
     print(f"collection_dir: {env_vars['collection_dir']}")
     print("========================================")
+
+    output_path = pathlib.Path("./collection")
+    if output_path.exists():
+        shutil.rmtree(output_path)
 
 
 def test_get_endpoints_info(env_vars):

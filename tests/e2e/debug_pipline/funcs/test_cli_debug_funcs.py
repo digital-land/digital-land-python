@@ -1,7 +1,7 @@
 import csv
 import os
 
-from tests.e2e.debug_pipline.helpers.collect import Collector
+from digital_land.collect import Collector, FetchStatus
 
 
 def get_endpoints_info(collection_dir):
@@ -79,7 +79,7 @@ def download_endpoints(pipeline_name, endpoint_path, endpoint_hashes):
             print(f"      with plugin: {plugin}")
             print("Downloading...")
             try:
-                collector.fetch(
+                status = collector.fetch(
                     url,
                     endpoint=endpoint,
                     end_date=row.get("end-date", ""),
@@ -89,7 +89,14 @@ def download_endpoints(pipeline_name, endpoint_path, endpoint_hashes):
                 return_value = True
             except:
                 return_value = None
+            finally:
+                if status == FetchStatus.FAILED:
+                    print(f"Download FAILED for: {url}")
+                    print(f"        with status: {status}")
+                else:
+                    print(f"Download SUCCESS for {url}")
 
+        return_value = True
         print("")
 
     return return_value
