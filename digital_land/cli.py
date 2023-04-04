@@ -241,5 +241,11 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
 @collection_dir
 @click.pass_context
 def run_debug_pipeline(ctx, organisation, endpoint_path, collection_dir):
-    debug_pipeline(organisation, ctx.obj["PIPELINE"], endpoint_path, collection_dir)
+    pipeline = ctx.obj["PIPELINE"]
+    dataset = ctx.obj["DATASET"]
+    specification = ctx.obj["SPECIFICATION"]
+
+    debug_pipeline(
+        organisation, dataset, pipeline, endpoint_path, collection_dir, specification
+    )
     return

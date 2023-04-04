@@ -399,7 +399,9 @@ def default_output_path(command, input_path):
     return f"{directory}{command}/{resource_from_path(input_path)}.csv"
 
 
-def debug_pipeline(org, pipeline, endpoint_path, collection_dir):
+def debug_pipeline(
+    org, dataset, pipeline, endpoint_path, collection_dir, specification
+):
     print(f"running process for organisation:{org} and pipeline: {pipeline.name}")
     # identify relevant sources and endpoints
     # read in relevant end points
@@ -442,7 +444,55 @@ def debug_pipeline(org, pipeline, endpoint_path, collection_dir):
             )
 
     # collection step, this will need to be a bit different
+    # remove previously created log.csv and resouorce.csv files
+    try:
+        os.remove(Path(collection_dir) / "log.csv")
+        os.remove(Path(collection_dir) / "resource.csv")
+    # seems unclear why we accept an error here, what happens if first line errors and second doesn't
+    except OSError:
+        pass
+
+    collection = Collection(name=None, directory=collection_dir)
+    collection.load()
+    #  no direct way to filter which logs/resources are save to the csv only built to do all at once
+    #  we manually filter the entries for logs/resources using the enpoint hashes made above to achieve this
+    for endpoint in endpoint_hashes:
+        log_entries = [
+            entry for entry in collection.log.entries if entry["endpoint"] == endpoint
+        ]
+        resource_entries = [
+            entry
+            for entry in collection.resource.entries
+            if entry["endpoints"] == endpoint
+        ]
+
+    collection.log.entries = log_entries
+    collection.resource.entries = resource_entries
+    collection.save_csv()
+
     # pipeline step for loop for each of the files
+    # define additiionial files
+    # for resource in resource_entries:
+    #     input_path = f"{collection_dir}/resource/{resource}"
+    #     output_path = f"transformed/{dataset}/{resource}.csv"
+    # update below with correct values
+    # pipeline_run(
+    #     dataset,
+    #     pipeline,
+    #     specification,
+    #     input_path,
+    #     output_path,
+    #     issue_dir=issue_dir,
+    #     column_field_dir=column_field_dir,
+    #     dataset_resource_dir=dataset_resource_dir,
+    #     organisation_path=organisation_path,
+    #     save_harmonised=save_harmonised,
+    #     endpoints=endpoints,
+    #     organisations=organisations,
+    #     entry_date=entry_date,
+    #     custom_temp_dir=custom_temp_dir,
+    # )
+
     # once files are loaded create the dataset
     # run expectations? this made need to be made so only certain ones are ran as they may be specific to certain datasets
     # end
