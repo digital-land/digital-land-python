@@ -127,11 +127,15 @@ class DatasetPackage(SqlitePackage):
         """load the old-entity table"""
 
         fields = self.specification.schema["old-entity"]["fields"]
+        entity_min = int(fields["entity-minimum"])
+        entity_max = int(fields["entity-maximum"])
         logging.info(f"loading old-entity from {path}")
         self.connect()
         self.create_cursor()
         for row in csv.DictReader(open(path, newline="")):
-            self.insert("old-entity", fields, row)
+            entity_id = int(row.get("old_entity"))
+            if entity_min <= entity_id <= entity_max:
+                self.insert("old-entity", fields, row)
         self.commit()
         self.disconnect()
 
