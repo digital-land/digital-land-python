@@ -27,6 +27,8 @@ class Specification:
         ):
             self.schema[row["dataset"]]["prefix"] = row["prefix"]
             self.schema[row["dataset"]]["typology"] = row["typology"]
+            self.schema[row["dataset"]]["entity-minimum"] = row["entity-minimum"]
+            self.schema[row["dataset"]]["entity-maximum"] = row["entity-maximum"]
 
         for row in csv.DictReader(
             open(f"{self.specification_dir}/schema-field.csv", newline="")
