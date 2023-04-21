@@ -400,7 +400,7 @@ def default_output_path(command, input_path):
 
 
 def debug_pipeline(
-    org, dataset, pipeline, endpoint_path, collection_dir, specification
+    org, dataset, pipeline, endpoint_path, collection_dir, specification, issue_dir
 ):
     print(f"running process for organisation:{org} and pipeline: {pipeline.name}")
     # identify relevant sources and endpoints
@@ -476,23 +476,41 @@ def debug_pipeline(
     #     input_path = f"{collection_dir}/resource/{resource}"
     #     output_path = f"transformed/{dataset}/{resource}.csv"
     # update below with correct values
-    # pipeline_run(
+    #     pipeline_run(
+    #         dataset,
+    #         pipeline,
+    #         specification,
+    #         input_path,
+    #         output_path,
+    #         issue_dir=issue_dir,
+    #         column_field_dir=column_field_dir,
+    #         dataset_resource_dir=dataset_resource_dir,
+    #         organisation_path=organisation_path,
+    #         save_harmonised=save_harmonised,
+    #         endpoints=endpoints,
+    #         organisations=organisations,
+    #         entry_date=entry_date,
+    #         custom_temp_dir=custom_temp_dir,
+    #     )
+
+    # # once files are loaded create the dataset
+    # def pipeline_run(
     #     dataset,
     #     pipeline,
     #     specification,
     #     input_path,
     #     output_path,
-    #     issue_dir=issue_dir,
-    #     column_field_dir=column_field_dir,
-    #     dataset_resource_dir=dataset_resource_dir,
-    #     organisation_path=organisation_path,
-    #     save_harmonised=save_harmonised,
-    #     endpoints=endpoints,
-    #     organisations=organisations,
-    #     entry_date=entry_date,
-    #     custom_temp_dir=custom_temp_dir,
+    #     collection_dir="./collection",  # TBD: remove, replaced by endpoints, organisations and entry_date
+    #     null_path=None,  # TBD: remove this
+    #     issue_dir=None,
+    #     organisation_path=None,
+    #     save_harmonised=False,
+    #     column_field_dir=None,
+    #     dataset_resource_dir=None,
+    #     custom_temp_dir=None,  # TBD: rename to "tmpdir"
+    #     endpoints=[],
+    #     organisations=[],
+    #     entry_date="",
     # )
-
-    # once files are loaded create the dataset
     # run expectations? this made need to be made so only certain ones are ran as they may be specific to certain datasets
     # end
