@@ -127,8 +127,8 @@ class DatasetPackage(SqlitePackage):
         """load the old-entity table"""
 
         fields = self.specification.schema["old-entity"]["fields"]
-        entity_min = int(fields["entity-minimum"])
-        entity_max = int(fields["entity-maximum"])
+        entity_min = self.specification.schema[self.dataset]["entity-minimum"]
+        entity_max = self.specification.schema[self.dataset]["entity-maximum"]
         logging.info(f"loading old-entity from {path}")
         self.connect()
         self.create_cursor()
