@@ -133,7 +133,7 @@ class DatasetPackage(SqlitePackage):
         self.connect()
         self.create_cursor()
         for row in csv.DictReader(open(path, newline="")):
-            entity_id = int(row.get("old_entity"))
+            entity_id = int(row.get("old-entity"))
             if entity_min <= entity_id <= entity_max:
                 self.insert("old-entity", fields, row)
         self.commit()
