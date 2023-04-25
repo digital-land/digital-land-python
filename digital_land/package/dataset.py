@@ -1,9 +1,11 @@
 import csv
 import json
-import re
-import shapely.wkt
-from decimal import Decimal
 import logging
+import re
+from decimal import Decimal
+
+import shapely.wkt
+
 from .sqlite import SqlitePackage, colname
 
 logger = logging.getLogger(__name__)
