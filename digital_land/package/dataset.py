@@ -132,7 +132,10 @@ class DatasetPackage(SqlitePackage):
         entity_min = self.specification.schema[self.dataset].get("entity-minimum")
         entity_max = self.specification.schema[self.dataset].get("entity-maximum")
         if entity_min is None or entity_max is None:
-            raise ValueError("Entity minimum and Entity maximum are not defined in the specification for ",self.dataset)
+            raise ValueError(
+                "Entity minimum and Entity maximum are not defined in the specification for ",
+                self.dataset,
+            )
         entity_min = int(entity_min)
         entity_max = int(entity_max)
         logging.info(f"loading old-entity from {path}")
