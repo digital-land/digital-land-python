@@ -1,7 +1,9 @@
 import csv
 import os
+from pathlib import Path
 
 from digital_land.collect import Collector, FetchStatus
+from digital_land.collection import Collection
 
 
 def get_endpoints_info(collection_dir):
@@ -100,4 +102,79 @@ def download_endpoints(pipeline_name, endpoint_path, endpoint_hashes):
         print("")
 
     return return_value
+
+
+def endpoint_collection(collection_dir, endpoint_hashes):
+    return_value = None
+
+    # remove previously created log.csv and resouorce.csv files
+    try:
+        os.remove(Path(collection_dir) / "log.csv")
+        os.remove(Path(collection_dir) / "resource.csv")
+    except FileNotFoundError as exc:
+        print("")
+        print(">>> INFO: endpoint_collection:", exc)
+    except OSError as exc:
+        print("")
+        print("ERROR: endpoint_collection:", exc)
+        return_value = None
+
+    collection = Collection(name=None, directory=collection_dir)
+    collection.load()
+
+    print("")
+    print("")
+    print(">>> Collection endpoint stats")
+    print("-----------------------------")
+    print(f"  Num source entries: {len(collection.source.entries)}")
+    print(f"  Num source records: {len(collection.source.records)}")
+    print("-----------------------------")
+    print(f"Num endpoint entries: {len(collection.endpoint.entries)}")
+    print(f"Num endpoint records: {len(collection.endpoint.records)}")
+    print("-----------------------------")
+    print(f"Num resource entries: {len(collection.resource.entries)}")
+    print(f"Num resource records: {len(collection.resource.records)}")
+    print("-----------------------------")
+    print(f"     Num log entries: {len(collection.log.entries)}")
+    print(f"     Num log records: {len(collection.log.records)}")
+
+    #  there is no direct way to filter which logs/resources are saved to the csv
+    #  this was originally built to do all collections at once
+    #  we now manually filter the entries for logs/resources using the endpoint hashes made above to achieve this
+    for endpoint in endpoint_hashes:
+        log_entries = [
+            entry for entry in collection.log.entries if entry["endpoint"] == endpoint
+        ]
+        resource_entries = [
+            entry for entry in collection.resource.entries if entry["endpoints"] == endpoint
+        ]
+
+    collection.log.entries = log_entries
+    collection.resource.entries = resource_entries
+    collection.save_csv()
+
+    print("")
+    print("")
+    print(">>> Items added to Collection")
+    print("-----------------------------")
+    print(f"Num resource entries: {len(collection.resource.entries)}")
+    print("-----------------------------")
+    print(f"     Num log entries: {len(collection.log.entries)}")
+
+    print(">>>>", collection.resource.entries)
+
+    return log_entries, resource_entries
+
+
+def run_collection_pipeline(collection_dir, pipeline_name, dataset_name, resource_entries, log_entries):
+    print("")
+
+    # for each of the files
+    # define additiionial files
+    for resource in resource_entries:
+        input_path = f"{collection_dir}resource/{resource['resource']}"
+        output_path = f"{collection_dir}transformed/{dataset_name}/{resource['resource']}.csv"
+
+        print(f">>> input_path: {input_path}")
+        print(f">>> output_path:{output_path}")
 

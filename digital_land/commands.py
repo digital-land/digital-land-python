@@ -471,7 +471,7 @@ def debug_pipeline(
     collection.save_csv()
 
     # pipeline step for loop for each of the files
-    # define additiionial files
+    # define additional files
     # for resource in resource_entries:
     #     input_path = f"{collection_dir}/resource/{resource}"
     #     output_path = f"transformed/{dataset}/{resource}.csv"
