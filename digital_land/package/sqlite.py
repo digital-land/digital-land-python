@@ -123,6 +123,16 @@ class SqlitePackage(Package):
             logging.info("Sqlite3 cmd: %s" % (cmd))
             sys.exit(3)
 
+    def executemany(self, cmd):
+        logger.debug(cmd)
+        try:
+            self.cursor.executemany(cmd)
+        except sqlite3.Error as error:
+            logging.error("Exception: %s" % (error.__class__))
+            logging.error("Sqlite3 error: %s" % (" ".join(error.args)))
+            logging.info("Sqlite3 cmd: %s" % (cmd))
+            sys.exit(3)
+
     def colvalue(self, row, field):
         value = str(row.get(field, ""))
         t = self.field_coltype(field)
