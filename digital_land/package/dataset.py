@@ -152,7 +152,7 @@ class DatasetPackage(SqlitePackage):
         """load the entity table from the fact table"""
         self.connect()
         self.create_cursor()
-        self.executemany(
+        self.execute(
             "select entity, field, value from fact"
             "  where value != ''"
             "  order by entity, field, entry_date"
