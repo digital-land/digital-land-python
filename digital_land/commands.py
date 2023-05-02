@@ -9,6 +9,7 @@ from pathlib import Path
 
 import geojson
 import shapely
+import urllib.request
 
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -400,7 +401,15 @@ def default_output_path(command, input_path):
 
 
 def debug_pipeline(
-    org, dataset, pipeline, endpoint_path, collection_dir, specification, issue_dir
+    org,
+    dataset,
+    pipeline,
+    endpoint_path,
+    collection_dir,
+    specification,
+    issue_dir,
+    column_field_dir,
+    dataset_resource_dir,
 ):
     print(f"running process for organisation:{org} and pipeline: {pipeline.name}")
     # identify relevant sources and endpoints
@@ -469,6 +478,32 @@ def debug_pipeline(
     collection.log.entries = log_entries
     collection.resource.entries = resource_entries
     collection.save_csv()
+
+    # print resource history this could be useful
+    print("Resource History")
+    print("start_date,end_date,resource")
+    for resource in resource_entries:
+        print(f"{resource['start-date']},{resource['end-date']},{resource['resource']}")
+
+    # download previously collected resources
+    collection = specification.dataset[dataset]["collection"]
+    for resource in resource_entries:
+        if not os.path.exists(f"collection/resource/{resource['resource']}"):
+            if not os.path.exists():
+                os.makedirs("collection/resource/")
+            files_url = "https://files.planning.data.gov.uk"
+            urllib.request.urlretrieve(
+                os.path.join(
+                    files_url,
+                    collection,
+                    "collection",
+                    "resource",
+                    resource["resource"],
+                ),
+                os.path.join("collection/resource", resource),
+            )
+
+            # download from files url
 
     # pipeline step for loop for each of the files
     # define additional files

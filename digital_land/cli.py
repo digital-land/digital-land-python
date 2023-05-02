@@ -250,7 +250,7 @@ def run_debug_pipeline(
     collection_dir,
     issue_dir,
     column_field_dir,
-    dataset_resoource_dir,
+    dataset_resource_dir,
 ):
     pipeline = ctx.obj["PIPELINE"]
     dataset = ctx.obj["DATASET"]
@@ -265,6 +265,6 @@ def run_debug_pipeline(
         specification,
         issue_dir,
         column_field_dir,
-        dataset_resoource_dir,
+        dataset_resource_dir,
     )
     return
