@@ -2,9 +2,22 @@ import csv
 
 
 class Specification:
-    def __init__(self, specification_dir=None):
-        self.schema = {}
-        self.field = {}
+    def __init__(
+        self,
+        specification_dir=None,
+        schema=None,
+        field=None,
+    ):
+        if schema is None:
+            self.schema = {}
+        else:
+            self.schema = schema
+
+        if field is None:
+            self.field = {}
+        else:
+            self.field = field
+
         if specification_dir:
             self.specification_dir = specification_dir
         else:

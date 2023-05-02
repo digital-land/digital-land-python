@@ -22,12 +22,15 @@ class Organisation:
     organisation_uri = {}
     organisation_lookup = {}
 
-    def __init__(self, organisation_path=None, pipeline_dir=None):
+    def __init__(self, organisation_path=None, pipeline_dir=None, organisation=None):
         if organisation_path:
             self.organisation_path = organisation_path
         if pipeline_dir:
             self.pipeline_patch_path = pipeline_dir / "patch.csv"
-        self.load_organisation()
+        if organisation is None:
+            self.load_organisation()
+        else:
+            self.organisation = organisation
 
     def load_organisation(self):
         for row in csv.DictReader(open(self.organisation_path)):

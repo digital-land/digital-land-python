@@ -4,9 +4,10 @@ import os
 import urllib.request
 import pandas as pd
 from pathlib import Path
-
+import sqlite3
 
 from digital_land.package.dataset import DatasetPackage
+from digital_land.package.package import Specification
 from digital_land.organisation import Organisation
 
 
@@ -80,6 +81,104 @@ def blank_patch_csv(tmp_path):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
     return patch_path
+
+
+def test_load_old_entities_entities_outside_of_range_are_removed(tmp_path):
+    # create custom specification to feed in
+    schema = {
+        "old-entity": {
+            "fields": [
+                "end-date",
+                "entity",
+                "entry-date",
+                "notes",
+                "old-entity",
+                "start-date",
+                "status",
+            ]
+        },
+        "conservation-area": {"entity-minimum": "1", "entity-maximum": "2"},
+        "entity": {"fields": []},
+    }
+    field = {
+        "end-date": {
+            "datatype": "datetime",
+        },
+        "entity": {
+            "datatype": "integer",
+        },
+        "entry-date": {"datatype": "datetime"},
+        "notes": {"datatype": "text"},
+        "old-entity": {
+            "datatype": "integer",
+        },
+        "start-date": {
+            "datatype": "datetime",
+        },
+        "status": {
+            "datatype": "string",
+        },
+    }
+
+    specification = Specification(schema=schema, field=field)
+    organisation = Organisation(organisation={})
+
+    # write data to csv as we only seem to load from csv
+    data = [
+        {
+            "end-date": "",
+            "entity": "",
+            "entry-date": "",
+            "notes": "",
+            "old-entity": "1",
+            "start-date": "",
+            "status": "410",
+        },
+        {
+            "end-date": "",
+            "entity": "",
+            "entry-date": "",
+            "notes": "",
+            "old-entity": "3",
+            "start-date": "",
+            "status": "410",
+        },
+    ]
+
+    old_entity_path = os.path.join(tmp_path, "old-entity.csv")
+    with open(old_entity_path, "w") as f:  # You will need 'wb' mode in Python 2.x
+        w = csv.DictWriter(f, data[0].keys())
+        w.writeheader()
+        w.writerows(data)
+
+    # create sqlite db
+    sqlite3_path = os.path.join(tmp_path, "test.sqlite3")
+
+    # create class on sqlite db with old_entity table in it
+    package = DatasetPackage(
+        "conservation-area",
+        organisation=organisation,
+        path=sqlite3_path,
+        specification=specification,
+    )
+    package.connect()
+    package.create_cursor()
+    package.create_table("old-entity", schema["old-entity"]["fields"], "old-entity")
+
+    # run load old_entity function from csv above
+    package.load_old_entities(old_entity_path)
+    package.disconnect()
+    # test entity out of range is not in sqlite
+    with sqlite3.connect(sqlite3_path) as con:
+        sql = """
+        SELECT * FROM old_entity;
+        """
+        cursor = con.execute(sql)
+        cols = [column[0] for column in cursor.description]
+        results = pd.DataFrame.from_records(data=cursor.fetchall(), columns=cols)
+
+    assert results["old_entity"].max() <= 2
+    assert results["old_entity"].min() >= 1
 
 
 def test_entry_date_upsert_uploads_newest_date(
