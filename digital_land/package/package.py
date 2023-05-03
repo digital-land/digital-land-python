@@ -2,9 +2,22 @@ import csv
 
 
 class Specification:
-    def __init__(self, specification_dir=None):
-        self.schema = {}
-        self.field = {}
+    def __init__(
+        self,
+        specification_dir=None,
+        schema=None,
+        field=None,
+    ):
+        if schema is None:
+            self.schema = {}
+        else:
+            self.schema = schema
+
+        if field is None:
+            self.field = {}
+        else:
+            self.field = field
+
         if specification_dir:
             self.specification_dir = specification_dir
         else:
@@ -27,6 +40,8 @@ class Specification:
         ):
             self.schema[row["dataset"]]["prefix"] = row["prefix"]
             self.schema[row["dataset"]]["typology"] = row["typology"]
+            self.schema[row["dataset"]]["entity-minimum"] = row["entity-minimum"]
+            self.schema[row["dataset"]]["entity-maximum"] = row["entity-maximum"]
 
         for row in csv.DictReader(
             open(f"{self.specification_dir}/schema-field.csv", newline="")
