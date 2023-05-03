@@ -68,7 +68,17 @@ class Pipeline:
 
     def load_column(self):
         for row in self.reader("column.csv"):
-            record = self.column.setdefault(row["resource"], {})
+            # record = self.column.setdefault(row["resource"], {})
+
+            resource = row.get('resource', "")
+            endpoint = row.get('endpoint', "")
+
+            if resource:
+                record = self.column.setdefault(resource, {})
+            elif endpoint:
+                record = self.column.setdefault(endpoint, {})
+            else:
+                record = self.column.setdefault("", {})
 
             # migrate column.csv
             row["column"] = row.get("column", "") or row["pattern"]
@@ -166,14 +176,17 @@ class Pipeline:
             d.update(self.filter.get(resource, {}))
         return d
 
-    def columns(self, resource=""):
+    def columns(self, resource="", endpoints=[]):
         general_columns = self.column.get("", {})
         if not resource:
             return general_columns
 
         resource_columns = self.column.get(resource, {})
+        for endpoint in endpoints:
+            endpoint_columns = endpoint_columns | self.column.get(endpoint, {})  # MM
 
-        result = resource_columns
+        # result = resource_columns
+        result = resource_columns | endpoint_columns  # MM
         for key in general_columns:
             if key in result:
                 continue
