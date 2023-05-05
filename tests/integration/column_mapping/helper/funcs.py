@@ -258,8 +258,10 @@ def prepare_data(data_src: str = ""):
     columns_data.to_csv(data_src, index=False)
 
 
-def process_pipeline(params: dict = {}):
+def process_pipeline(params=None):
 
+    if params is None:
+        params = {}
     resource = params["resource"]
     pipeline = params["pipeline"]
     endpoints = params["endpoints"]

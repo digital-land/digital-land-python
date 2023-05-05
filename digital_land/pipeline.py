@@ -174,7 +174,9 @@ class Pipeline:
             d.update(self.filter.get(resource, {}))
         return d
 
-    def columns(self, resource="", endpoints=[]):
+    def columns(self, resource="", endpoints=None):
+        if endpoints is None:
+            endpoints = []
         general_columns = self.column.get("", {})
         if not resource:
             return general_columns
@@ -220,7 +222,9 @@ class Pipeline:
             d[key] = value
         return d
 
-    def default_values(self, endpoints=[]):
+    def default_values(self, endpoints=None):
+        if endpoints is None:
+            endpoints = []
         config = self.default_value
         d = config.get("", {})
         for endpoint in endpoints:
@@ -228,7 +232,9 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def combine_fields(self, endpoints=[]):
+    def combine_fields(self, endpoints=None):
+        if endpoints is None:
+            endpoints = []
         config = self.combine_field
         d = config.get("", {})
         for endpoint in endpoints:
