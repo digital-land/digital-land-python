@@ -184,10 +184,10 @@ class Pipeline:
         resource_columns = self.column.get(resource, {})
         endpoint_columns = {}
         for endpoint in endpoints:
-            endpoint_columns = endpoint_columns | self.column.get(endpoint, {})
+            endpoint_columns = {**endpoint_columns, **self.column.get(endpoint, {})}
 
         if len(endpoint_columns) > 0:
-            result = resource_columns | endpoint_columns
+            result = {**resource_columns, **endpoint_columns}
         else:
             result = resource_columns
 
