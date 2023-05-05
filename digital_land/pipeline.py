@@ -186,7 +186,11 @@ class Pipeline:
         for endpoint in endpoints:
             endpoint_columns = endpoint_columns | self.column.get(endpoint, {})
 
-        result = resource_columns | endpoint_columns
+        if len(endpoint_columns) > 0:
+            result = resource_columns | endpoint_columns
+        else:
+            result = resource_columns
+
         for key in general_columns:
             if key in result:
                 continue
@@ -222,7 +226,7 @@ class Pipeline:
             d[key] = value
         return d
 
-    def default_values(self, endpoints=None):
+    def default_values(self, endpoints=[]):
         if endpoints is None:
             endpoints = []
         config = self.default_value
@@ -232,7 +236,7 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def combine_fields(self, endpoints=None):
+    def combine_fields(self, endpoints=[]):
         if endpoints is None:
             endpoints = []
         config = self.combine_field

@@ -49,6 +49,7 @@ def before_and_after_tests(tmp_path):
     yield
 
     # Teardown:
+    pass
 
 
 def test_required_external_asset_creation(env_vars):
