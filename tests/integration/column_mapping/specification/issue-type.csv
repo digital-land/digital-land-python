@@ -1,0 +1,24 @@
+issue-type,severity,name,description
+unknown entity,notice,Unknown entity,The entry needs an entity assigning before it will appear in the data.
+combined-value,info,Combined values,The field value has been constucted by combinining data from multiple different entries.
+invalid coordinates,error,Invalid coordinates,It was not possible to process the field as geospatial coordinates.
+invalid date,error,Invalid date,It was not possible to process the field as a date value.
+invalid decimal,error,Invalid decimal,It was not possible process the field as a decimal number.
+invalid integer,error,Invalid integer,It was not possible to process field as a an integer value.
+too small,error,Value too small,The number was less than the minimum value allowed for the field.
+too large,error,Value too large,The decimal value was greater than the maximum value allowed for the field.
+invalid flag,error,Invalid flag,It was not possible to process the field as a yes or no value.
+invalid URI,error,Invalid URI,It was not possible to process the field as a URI.
+invalid WKT,error,Invalid WKT,It was not possible to process the field as a WKT value.
+future entry-date,error,Future entry date,The entry-date cannot be in the future.
+default-field,info,Default field,The value has been taken from another field.
+default-value,info,Default value,The value has been derrived from other data.
+patch,warning,Patched value,The value has changed as a result of processing.
+WGS84 flipped,notice,WGS84 flipped,The latitude and logitude fields values have been exchanged.
+WGS84 out of bounds,error,WGS84 out of bounds,The geospatial coordinates are out of bounds.
+Mercator,warning,Mercator conversion,The geospatial data has been processed as Mercator coordinates.
+Mercator flipped,warning,Mercator flipped,The geospatial data has been processed as flipped Mercator coordinates.
+OSGB,info,OSGB conversion,The geospatial data has been processed as OSGB coordinates.
+OSGB flipped,warning,OSGB flipped,The latitude and logitude fields have been processed as flipped OSGB coordinates.
+removed URI prefix,info,Removed URI prefix,The URI value has been converted into a CURIE value.
+invalid geometry,error,Invalid geometry,An error was encountered processing the geometry.

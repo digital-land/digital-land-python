@@ -1,0 +1,7 @@
+severity,name,description
+critical,Critical,Unable to continue processing
+error,Error,Action is needed to resolve an issue
+warning,Warning,A potential issue
+notice,Notice,A condition requires attention
+info,Informational,Confirmation of processing
+debug,Debug,Detailed information of processing

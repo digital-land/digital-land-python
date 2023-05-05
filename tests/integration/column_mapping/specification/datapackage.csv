@@ -1,0 +1,13 @@
+datapackage,description,end-date,entry-date,name,start-date,text
+brownfield-land,Land that has been previously been developed,,,Brownfield land,,"* [project](https://digital-land.github.io/project/brownfield-sites/)
+* [guidance](https://www.gov.uk/government/publications/brownfield-land-registers-data-standard/publish-your-brownfield-land-data)
+* [policy](https://www.gov.uk/guidance/brownfield-land-registers)
+* [legislation](http://www.legislation.gov.uk/uksi/2017/403/contents/made)"
+developer-contributions,"Commitments to improving local community infrastructure such as Section 106 agreements, viability assessments, community infrastructure levies, and other planning obligations.",,,Developer contributions,,"* [project](https://digital-land.github.io/project/developer-contributions/)
+* [guidance](https://www.gov.uk/guidance/publish-your-developer-contributions-data)
+* [policy](https://www.gov.uk/guidance/planning-obligations)
+* [legislation](https://www.legislation.gov.uk/ukdsi/2019/9780111187449/regulation/9)"
+digital-land,"Collections, specifications, and other Digital Land project data.",,,Digital Land,,
+local-plans,"Local plans, Neighbourhood plans, and other development policies related to plan making.",,,Local plans,,"* [project](https://digital-land.github.io/project/local-plans/)
+* [policy](https://www.gov.uk/guidance/plan-making)"
+organisation,Local Planning Authorities and other organisations who keep and maintain data used by Digital Land.,,,Organisations,,

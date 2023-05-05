@@ -1,0 +1,7 @@
+provision-reason,name,description
+prospective,Prospective data,The organisation is responsible for data covered by this prospective specificaton
+expected,Expected data,The organisation should provide data as a member of the project developing the specification
+encouraged,Encouraged data,The organisation is encouraged to provide data to this standard
+statutory,Statutory data,The organisation has a statutory duty to provide data to this standard
+authoritative,Authoritative source,The organisation is the authoritative source of this data
+alternative,Alternative source,The organisation provides this data
