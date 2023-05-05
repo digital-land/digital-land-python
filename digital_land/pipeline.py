@@ -68,8 +68,6 @@ class Pipeline:
 
     def load_column(self):
         for row in self.reader("column.csv"):
-            # record = self.column.setdefault(row["resource"], {})
-
             resource = row.get('resource', "")
             endpoint = row.get('endpoint', "")
 
