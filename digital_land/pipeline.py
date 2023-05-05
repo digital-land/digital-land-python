@@ -174,7 +174,7 @@ class Pipeline:
             d.update(self.filter.get(resource, {}))
         return d
 
-    def columns(self, resource="", endpoints=None):
+    def columns(self, resource="", endpoints=[]):
         if endpoints is None:
             endpoints = []
         general_columns = self.column.get("", {})
