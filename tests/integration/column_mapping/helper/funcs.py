@@ -20,7 +20,7 @@ def get_columns_csv_data_all():
             "article-4-direction-area",
             "article-4-direction-area",
             "article-4-direction-area",
-            "article-4-direction-area"
+            "article-4-direction-area",
         ],
         "resource": [
             "",
@@ -37,7 +37,7 @@ def get_columns_csv_data_all():
             "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d",
             "",
             "",
-            ""
+            "",
         ],
         "endpoint": [
             "",
@@ -54,7 +54,7 @@ def get_columns_csv_data_all():
             "",
             "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
             "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
-            "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
+            "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
         ],
         "column": [
             "NAME",
@@ -71,7 +71,7 @@ def get_columns_csv_data_all():
             "More_information",
             "test_fiel",
             "dummy_fiel",
-            "silly_fiel"
+            "silly_fiel",
         ],
         "field": [
             "name",
@@ -88,8 +88,8 @@ def get_columns_csv_data_all():
             "res_field_three",
             "ep_field_one",
             "ep_field_two",
-            "ep_field_three"
-        ]
+            "ep_field_three",
+        ],
     }
 
 
@@ -107,7 +107,7 @@ def get_columns_csv_data_res():
             "article-4-direction-area",
             "article-4-direction-area",
             "article-4-direction-area",
-            "article-4-direction-area"
+            "article-4-direction-area",
         ],
         "resource": [
             "",
@@ -121,22 +121,9 @@ def get_columns_csv_data_res():
             "",
             "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d",
             "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d",
-            "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
+            "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d",
         ],
-        "endpoint": [
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
-        ],
+        "endpoint": ["", "", "", "", "", "", "", "", "", "", "", ""],
         "column": [
             "NAME",
             "LOCATION_1",
@@ -149,7 +136,7 @@ def get_columns_csv_data_res():
             "geography",
             "OBJECTID",
             "Article_4_Direction",
-            "More_information"
+            "More_information",
         ],
         "field": [
             "name",
@@ -163,8 +150,8 @@ def get_columns_csv_data_res():
             "reference",
             "res_field_one",
             "res_field_two",
-            "res_field_three"
-        ]
+            "res_field_three",
+        ],
     }
 
 
@@ -182,22 +169,9 @@ def get_columns_csv_data_eps():
             "article-4-direction-area",
             "article-4-direction-area",
             "article-4-direction-area",
-            "article-4-direction-area"
+            "article-4-direction-area",
         ],
-        "resource": [
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
-        ],
+        "resource": ["", "", "", "", "", "", "", "", "", "", "", ""],
         "endpoint": [
             "",
             "",
@@ -210,7 +184,7 @@ def get_columns_csv_data_eps():
             "",
             "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
             "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
-            "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
+            "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
         ],
         "column": [
             "NAME",
@@ -224,7 +198,7 @@ def get_columns_csv_data_eps():
             "geography",
             "test_fiel",
             "dummy_fiel",
-            "silly_fiel"
+            "silly_fiel",
         ],
         "field": [
             "name",
@@ -238,13 +212,12 @@ def get_columns_csv_data_eps():
             "reference",
             "ep_field_one",
             "ep_field_two",
-            "ep_field_three"
-        ]
+            "ep_field_three",
+        ],
     }
 
 
 def prepare_data(data_src: str = ""):
-
     data_selector = data_src.split("/")[-1].split(".")[0]
 
     if data_selector == "column_eps":
@@ -259,7 +232,6 @@ def prepare_data(data_src: str = ""):
 
 
 def process_pipeline(params=None):
-
     if params is None:
         params = {}
     resource = params["resource"]

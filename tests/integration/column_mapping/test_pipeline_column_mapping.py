@@ -17,25 +17,19 @@ def env_vars(tmp_path, request):
 
     target_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     dummy_endpoint = "abcde12345fghij67890abcde12345fghij67890abcde12345fghij67890abcd"
-    endpoints = [
-        dummy_endpoint,
-        target_endpoint,
-        dummy_endpoint[::-1]
-    ]
+    endpoints = [dummy_endpoint, target_endpoint, dummy_endpoint[::-1]]
 
     return {
         "endpoints": endpoints,
         "resource": "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d",
         "dataset_name": "article-4-direction-area",
-
         "column_all_csv": f"{tmp_path}/data/column_all.csv",
         "column_res_csv": f"{tmp_path}/data/column_res.csv",
         "column_eps_csv": f"{tmp_path}/data/column_eps.csv",
-
         "column_csv": f"{tmp_path}/pipeline/column.csv",
         "pipeline_dir": f"{tmp_path}/pipeline/",
         "specification_dir": f"{test_root}/tests/integration/column_mapping/specification/",
-        "output_dir": f"{tmp_path}/output/"
+        "output_dir": f"{tmp_path}/output/",
     }
 
 
@@ -60,8 +54,8 @@ def before_and_after_tests(tmp_path):
 def test_required_external_asset_creation(env_vars):
     columns_all_csv = env_vars["column_all_csv"]
     columns_csv = env_vars["column_csv"]
-    pipeline_dir = env_vars['pipeline_dir']
-    dataset = env_vars['dataset_name']
+    pipeline_dir = env_vars["pipeline_dir"]
+    dataset = env_vars["dataset_name"]
     resource = env_vars["resource"]
 
     # -- Arrange --
@@ -72,7 +66,7 @@ def test_required_external_asset_creation(env_vars):
     # create required components
     pipeline = Pipeline(pipeline_dir, dataset)
 
-    specification_dir = env_vars['specification_dir']
+    specification_dir = env_vars["specification_dir"]
     specification = Specification(specification_dir)
 
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
@@ -81,15 +75,15 @@ def test_required_external_asset_creation(env_vars):
     assert pipeline.name == dataset
     assert pipeline.dataset == dataset
 
-    assert len(specification.dataset) is not 0
-    assert len(specification.dataset_names) is not 0
-    assert len(specification.dataset_schema) is not 0
-    assert len(specification.datatype) is not 0
-    assert len(specification.datatype_names) is not 0
-    assert len(specification.field) is not 0
-    assert len(specification.field_names) is not 0
-    assert len(specification.field_schema) is not 0
-    assert len(specification.pipeline) is not 0
+    assert len(specification.dataset) != 0
+    assert len(specification.dataset_names) != 0
+    assert len(specification.dataset_schema) != 0
+    assert len(specification.datatype) != 0
+    assert len(specification.datatype_names) != 0
+    assert len(specification.field) != 0
+    assert len(specification.field_names) != 0
+    assert len(specification.field_schema) != 0
+    assert len(specification.pipeline) != 0
 
     assert column_field_log.dataset is dataset
     assert column_field_log.resource is resource
@@ -98,8 +92,8 @@ def test_required_external_asset_creation(env_vars):
 def test_all_resources_no_endpoints(env_vars):
     columns_res_csv = env_vars["column_res_csv"]
     columns_csv = env_vars["column_csv"]
-    pipeline_dir = env_vars['pipeline_dir']
-    dataset = env_vars['dataset_name']
+    pipeline_dir = env_vars["pipeline_dir"]
+    dataset = env_vars["dataset_name"]
     resource = env_vars["resource"]
     endpoints = env_vars["endpoints"]
     output_dir = env_vars["output_dir"]
@@ -111,7 +105,7 @@ def test_all_resources_no_endpoints(env_vars):
     # create required components
     pipeline = Pipeline(pipeline_dir, dataset)
 
-    specification_dir = env_vars['specification_dir']
+    specification_dir = env_vars["specification_dir"]
     specification = Specification(specification_dir)
 
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
@@ -123,7 +117,7 @@ def test_all_resources_no_endpoints(env_vars):
         "column_field_log": column_field_log,
         "endpoints": endpoints,
         "resource": resource,
-        "output_dir": output_dir
+        "output_dir": output_dir,
     }
     output = process_pipeline(params)
 
@@ -147,8 +141,8 @@ def test_all_resources_no_endpoints(env_vars):
 def test_all_endpoints_no_resources(env_vars):
     columns_eps_csv = env_vars["column_eps_csv"]
     columns_csv = env_vars["column_csv"]
-    pipeline_dir = env_vars['pipeline_dir']
-    dataset = env_vars['dataset_name']
+    pipeline_dir = env_vars["pipeline_dir"]
+    dataset = env_vars["dataset_name"]
     resource = env_vars["resource"]
     endpoints = env_vars["endpoints"]
     output_dir = env_vars["output_dir"]
@@ -160,7 +154,7 @@ def test_all_endpoints_no_resources(env_vars):
     # create required components
     pipeline = Pipeline(pipeline_dir, dataset)
 
-    specification_dir = env_vars['specification_dir']
+    specification_dir = env_vars["specification_dir"]
     specification = Specification(specification_dir)
 
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
@@ -172,7 +166,7 @@ def test_all_endpoints_no_resources(env_vars):
         "column_field_log": column_field_log,
         "endpoints": endpoints,
         "resource": resource,
-        "output_dir": output_dir
+        "output_dir": output_dir,
     }
     output = process_pipeline(params)
 
@@ -196,8 +190,8 @@ def test_all_endpoints_no_resources(env_vars):
 def test_resources_and_endpoints(tmp_path, env_vars):
     columns_all_csv = env_vars["column_all_csv"]
     columns_csv = env_vars["column_csv"]
-    pipeline_dir = env_vars['pipeline_dir']
-    dataset = env_vars['dataset_name']
+    pipeline_dir = env_vars["pipeline_dir"]
+    dataset = env_vars["dataset_name"]
     resource = env_vars["resource"]
     endpoints = env_vars["endpoints"]
     output_dir = env_vars["output_dir"]
@@ -209,7 +203,7 @@ def test_resources_and_endpoints(tmp_path, env_vars):
     # create required components
     pipeline = Pipeline(pipeline_dir, dataset)
 
-    specification_dir = env_vars['specification_dir']
+    specification_dir = env_vars["specification_dir"]
     specification = Specification(specification_dir)
 
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
@@ -221,7 +215,7 @@ def test_resources_and_endpoints(tmp_path, env_vars):
         "column_field_log": column_field_log,
         "endpoints": endpoints,
         "resource": resource,
-        "output_dir": output_dir
+        "output_dir": output_dir,
     }
     output = process_pipeline(params)
 
@@ -240,5 +234,3 @@ def test_resources_and_endpoints(tmp_path, env_vars):
     assert "ep_field_one" in output[0]["row"]
     assert "ep_field_two" in output[0]["row"]
     assert "ep_field_three" in output[0]["row"]
-
-
