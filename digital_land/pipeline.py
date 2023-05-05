@@ -182,11 +182,11 @@ class Pipeline:
             return general_columns
 
         resource_columns = self.column.get(resource, {})
+        endpoint_columns = {}
         for endpoint in endpoints:
-            endpoint_columns = endpoint_columns | self.column.get(endpoint, {})  # MM
+            endpoint_columns = endpoint_columns | self.column.get(endpoint, {})
 
-        # result = resource_columns
-        result = resource_columns | endpoint_columns  # MM
+        result = resource_columns | endpoint_columns
         for key in general_columns:
             if key in result:
                 continue
