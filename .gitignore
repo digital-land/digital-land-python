@@ -24,6 +24,4 @@ var
 pyrightconfig.json
 .idea
 .python-version
-tests/data/collection-*
-tests/data/pipeline-*
-tests/e2e/debug_pipeline/collection
+

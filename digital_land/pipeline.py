@@ -175,8 +175,6 @@ class Pipeline:
         return d
 
     def columns(self, resource="", endpoints=[]):
-        if endpoints is None:
-            endpoints = []
         general_columns = self.column.get("", {})
         if not resource:
             return general_columns
@@ -226,7 +224,7 @@ class Pipeline:
             d[key] = value
         return d
 
-    def default_values(self, endpoints=[]):
+    def default_values(self, endpoints=None):
         if endpoints is None:
             endpoints = []
         config = self.default_value
@@ -236,7 +234,7 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def combine_fields(self, endpoints=[]):
+    def combine_fields(self, endpoints=None):
         if endpoints is None:
             endpoints = []
         config = self.combine_field

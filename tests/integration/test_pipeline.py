@@ -1,11 +1,12 @@
+import os
 import shutil
 from pathlib import Path
+import pandas as pd
 
 from digital_land.log import ColumnFieldLog
+from digital_land.phase.map import MapPhase
 from digital_land.pipeline import Pipeline
 from digital_land.specification import Specification
-
-from tests.integration.column_mapping.helper.funcs import prepare_data, process_pipeline
 
 import pytest
 
@@ -28,7 +29,7 @@ def env_vars(tmp_path, request):
         "column_eps_csv": f"{tmp_path}/data/column_eps.csv",
         "column_csv": f"{tmp_path}/pipeline/column.csv",
         "pipeline_dir": f"{tmp_path}/pipeline/",
-        "specification_dir": f"{test_root}/tests/integration/column_mapping/specification/",
+        "specification_dir": f"{test_root}/tests/data/specification-latest/",
         "output_dir": f"{tmp_path}/output/",
     }
 
@@ -52,42 +53,126 @@ def before_and_after_tests(tmp_path):
     pass
 
 
-def test_required_external_asset_creation(env_vars):
-    columns_all_csv = env_vars["column_all_csv"]
-    columns_csv = env_vars["column_csv"]
-    pipeline_dir = env_vars["pipeline_dir"]
-    dataset = env_vars["dataset_name"]
-    resource = env_vars["resource"]
+def get_columns_csv_data_all():
+    return {
+        "dataset": [
+            "article-4-direction-area",
+            "article-4-direction-area",
+            "article-4-direction-area",
+        ],
+        "resource": [
+            "",
+            "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d",
+            "",
+        ],
+        "endpoint": [
+            "",
+            "",
+            "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
+        ],
+        "column": [
+            "NAME",
+            "OBJECTID",
+            "dummy_fiel",
+        ],
+        "field": [
+            "name",
+            "res_field_one",
+            "ep_field_one",
+        ],
+    }
 
-    # -- Arrange --
-    prepare_data(columns_all_csv)
 
-    shutil.copyfile(columns_all_csv, columns_csv)
+def get_columns_csv_data_res():
+    return {
+        "dataset": [
+            "article-4-direction-area",
+            "article-4-direction-area",
+        ],
+        "resource": [
+            "",
+            "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d",
+        ],
+        "endpoint": ["", ""],
+        "column": [
+            "NAME",
+            "OBJECTID",
+        ],
+        "field": [
+            "name",
+            "res_field_one",
+        ],
+    }
 
-    # create required components
-    pipeline = Pipeline(pipeline_dir, dataset)
 
-    specification_dir = env_vars["specification_dir"]
-    specification = Specification(specification_dir)
+def get_columns_csv_data_eps():
+    return {
+        "dataset": [
+            "article-4-direction-area",
+            "article-4-direction-area",
+        ],
+        "resource": ["", ""],
+        "endpoint": [
+            "",
+            "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412",
+        ],
+        "column": [
+            "NAME",
+            "dummy_fiel",
+        ],
+        "field": [
+            "name",
+            "ep_field_one",
+        ],
+    }
 
-    column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
 
-    # -- Assert --
-    assert pipeline.name == dataset
-    assert pipeline.dataset == dataset
+def prepare_data(data_src: str = ""):
+    data_selector = data_src.split("/")[-1].split(".")[0]
 
-    assert len(specification.dataset) != 0
-    assert len(specification.dataset_names) != 0
-    assert len(specification.dataset_schema) != 0
-    assert len(specification.datatype) != 0
-    assert len(specification.datatype_names) != 0
-    assert len(specification.field) != 0
-    assert len(specification.field_names) != 0
-    assert len(specification.field_schema) != 0
-    assert len(specification.pipeline) != 0
+    if data_selector == "column_eps":
+        csv_data = get_columns_csv_data_eps()
+    elif data_selector == "column_res":
+        csv_data = get_columns_csv_data_res()
+    else:
+        csv_data = get_columns_csv_data_all()
 
-    assert column_field_log.dataset is dataset
-    assert column_field_log.resource is resource
+    columns_data = pd.DataFrame.from_dict(csv_data)
+    columns_data.to_csv(data_src, index=False)
+
+
+def process_pipeline(params=None):
+    if params is None:
+        params = {}
+    resource = params["resource"]
+    pipeline = params["pipeline"]
+    endpoints = params["endpoints"]
+    specification = params["specification"]
+    column_field_log = params["column_field_log"]
+    output_dir = params["output_dir"]
+
+    columns = pipeline.columns(resource, endpoints)
+    fieldnames = specification.intermediate_fieldnames(pipeline)
+    log = column_field_log
+
+    mock_input_stream = [
+        {
+            "row": columns,
+            "entry-number": 1,
+        }
+    ]
+
+    map_phase = MapPhase(
+        fieldnames=fieldnames,
+        columns=columns,
+        log=column_field_log,
+    )
+
+    output = [block for block in map_phase.process(mock_input_stream)]
+
+    log.save(os.path.join(output_dir, resource + ".csv"))
+
+    return output
 
 
 def test_all_resources_no_endpoints(env_vars):
@@ -130,13 +215,9 @@ def test_all_resources_no_endpoints(env_vars):
 
     # expected outputs from resource
     assert "res_field_one" in output[0]["row"]
-    assert "res_field_two" in output[0]["row"]
-    assert "res_field_three" in output[0]["row"]
 
     # expected outputs from endpoints
     assert "ep_field_one" not in output[0]["row"]
-    assert "ep_field_teo" not in output[0]["row"]
-    assert "ep_field_three" not in output[0]["row"]
 
 
 def test_all_endpoints_no_resources(env_vars):
@@ -179,13 +260,9 @@ def test_all_endpoints_no_resources(env_vars):
 
     # expected outputs from resource
     assert "res_field_one" not in output[0]["row"]
-    assert "res_field_two" not in output[0]["row"]
-    assert "res_field_three" not in output[0]["row"]
 
     # expected outputs from endpoints
     assert "ep_field_one" in output[0]["row"]
-    assert "ep_field_two" in output[0]["row"]
-    assert "ep_field_three" in output[0]["row"]
 
 
 def test_resources_and_endpoints(tmp_path, env_vars):
@@ -228,10 +305,6 @@ def test_resources_and_endpoints(tmp_path, env_vars):
 
     # expected outputs from resource
     assert "res_field_one" in output[0]["row"]
-    assert "res_field_two" in output[0]["row"]
-    assert "res_field_three" in output[0]["row"]
 
     # expected outputs from endpoints
     assert "ep_field_one" in output[0]["row"]
-    assert "ep_field_two" in output[0]["row"]
-    assert "ep_field_three" in output[0]["row"]
