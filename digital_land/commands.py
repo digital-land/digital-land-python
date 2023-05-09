@@ -224,7 +224,13 @@ def pipeline_run(
 #  build dataset from processed resources
 #
 def dataset_create(
-    input_paths, output_path, organisation_path, pipeline, dataset, specification
+    input_paths,
+    output_path,
+    organisation_path,
+    pipeline,
+    dataset,
+    specification,
+    issue_dir="issues",
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
@@ -244,6 +250,15 @@ def dataset_create(
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
     if os.path.exists(old_entity_path):
         package.load_old_entities(old_entity_path)
+
+    issue_paths = os.path.join(issue_dir, dataset)
+    if os.path.exists(issue_paths):
+        for issue_path in os.listdir(issue_paths):
+            package.load_issues(issue_path)
+    else:
+        logging.warning(
+            "No directory for thiis dataset int he provided issue_directory"
+        )
 
     package.add_counts()
 
