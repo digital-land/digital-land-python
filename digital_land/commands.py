@@ -230,7 +230,7 @@ def dataset_create(
     pipeline,
     dataset,
     specification,
-    issue_dir="issues",
+    issue_dir="issue",
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
