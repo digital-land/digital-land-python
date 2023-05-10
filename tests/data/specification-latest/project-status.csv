@@ -1,7 +1,0 @@
-description,end-date,entry-date,name,project-status,start-date
-"Areas, impacting planning, where we believe there is useful data to find and publish.
-
-We will investigate each area to understand the users and their needs in the context of planning, and make sure any relevant data can be published and used by the BOPS and RIPA projects.",,,Backlog,backlog,
-"Projects that we have finished. These are time boxed projects that have a clear start and end, such as a discovery into a policy area.",,,Completed,completed,
-Projects we have started to investigate. We have begun understanding the planning related user needs and collecting data where data is being created.,,,In progress,in-progress,
-Projects we haved worked on that are ongoing. This means they are still ticking along in the background but they are not currently our primary focus.,,,Ongoing,ongoing,

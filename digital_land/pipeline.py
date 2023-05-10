@@ -184,10 +184,7 @@ class Pipeline:
         for endpoint in endpoints:
             endpoint_columns = {**endpoint_columns, **self.column.get(endpoint, {})}
 
-        if len(endpoint_columns) > 0:
-            result = {**resource_columns, **endpoint_columns}
-        else:
-            result = resource_columns
+        result = {**endpoint_columns, **resource_columns}
 
         for key in general_columns:
             if key in result:
