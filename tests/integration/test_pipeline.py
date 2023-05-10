@@ -2,16 +2,11 @@ import pandas as pd
 from digital_land.pipeline import Pipeline
 
 
-def get_csv_data_for_resources_and_endpoints(pipeline: str = "",
-                                             resource: str = "",
-                                             endpoint: str = ""):
-
+def get_csv_data_for_resources_and_endpoints(
+    pipeline: str = "", resource: str = "", endpoint: str = ""
+):
     return {
-        "dataset": [
-            pipeline,
-            pipeline,
-            pipeline
-        ],
+        "dataset": [pipeline, pipeline, pipeline],
         "resource": [
             "",
             resource,
@@ -36,46 +31,20 @@ def get_csv_data_for_resources_and_endpoints(pipeline: str = "",
 
 
 def get_csv_data_for_resources_only(pipeline: str = "", resource: str = ""):
-
     return {
-        "dataset": [
-            pipeline,
-            pipeline
-        ],
-        "resource": [
-            "",
-            resource
-        ],
-        "endpoint": [
-            "",
-            ""
-        ],
-        "column": [
-            "NAME",
-            "OBJECTID"
-        ],
-        "field": [
-            "name",
-            "res_field_one"
-        ],
+        "dataset": [pipeline, pipeline],
+        "resource": ["", resource],
+        "endpoint": ["", ""],
+        "column": ["NAME", "OBJECTID"],
+        "field": ["name", "res_field_one"],
     }
 
 
 def get_csv_data_for_endpoints_only(pipeline: str = "", endpoint: str = ""):
-
     return {
-        "dataset": [
-            pipeline,
-            pipeline
-        ],
-        "resource": [
-            "",
-            ""
-        ],
-        "endpoint": [
-            "",
-            endpoint
-        ],
+        "dataset": [pipeline, pipeline],
+        "resource": ["", ""],
+        "endpoint": ["", endpoint],
         "column": [
             "NAME",
             "dummy_fiel",
@@ -87,9 +56,9 @@ def get_csv_data_for_endpoints_only(pipeline: str = "", endpoint: str = ""):
     }
 
 
-def get_csv_data_with_resource_endpoint_clash_ep_first(pipeline: str = "",
-                                                       resource: str = "",
-                                                       endpoint: str = ""):
+def get_csv_data_with_resource_endpoint_clash_ep_first(
+    pipeline: str = "", resource: str = "", endpoint: str = ""
+):
     """
     This function generates data to produce a valid column.csv file with clashing definitions
     defined by resources and endpoints. The output file will have the endpoint column mapping
@@ -106,32 +75,20 @@ def get_csv_data_with_resource_endpoint_clash_ep_first(pipeline: str = "",
             pipeline,
             pipeline,
         ],
-        "resource": [
-            "",
-            "",
-            resource
-        ],
-        "endpoint": [
-            "",
-            endpoint,
-            ""
-        ],
+        "resource": ["", "", resource],
+        "endpoint": ["", endpoint, ""],
         "column": [
             "NAME",
             "REF",
             "REF",
         ],
-        "field": [
-            "name",
-            "ep_ref",
-            "res_ref"
-        ],
+        "field": ["name", "ep_ref", "res_ref"],
     }
 
 
-def get_csv_data_with_resource_endpoint_clash_res_first(pipeline: str = "",
-                                                        resource: str = "",
-                                                        endpoint: str = ""):
+def get_csv_data_with_resource_endpoint_clash_res_first(
+    pipeline: str = "", resource: str = "", endpoint: str = ""
+):
     """
     This function generates data to produce a valid column.csv file with clashing definitions
     defined by resources and endpoints. The output file will have the resource column mapping
@@ -147,26 +104,14 @@ def get_csv_data_with_resource_endpoint_clash_res_first(pipeline: str = "",
             pipeline,
             pipeline,
         ],
-        "resource": [
-            "",
-            resource,
-            ""
-        ],
-        "endpoint": [
-            "",
-            "",
-            endpoint
-        ],
+        "resource": ["", resource, ""],
+        "endpoint": ["", "", endpoint],
         "column": [
             "NAME",
             "REF",
             "REF",
         ],
-        "field": [
-            "name",
-            "res_ref",
-            "ep_ref"
-        ],
+        "field": ["name", "res_ref", "ep_ref"],
     }
 
 
@@ -180,7 +125,9 @@ def test_load_column_when_csv_contains_endpoints_and_resources(tmp_path):
     test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     # create the datasource file used by the Pipeline class
-    raw_data = get_csv_data_for_resources_and_endpoints(test_pipeline, test_resource, test_endpoint)
+    raw_data = get_csv_data_for_resources_and_endpoints(
+        test_pipeline, test_resource, test_endpoint
+    )
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -194,9 +141,9 @@ def test_load_column_when_csv_contains_endpoints_and_resources(tmp_path):
     assert test_resource in column_keys
     assert test_endpoint in column_keys
 
-    assert {'name': 'name'} in column_values
-    assert {'objectid': 'res_field_one'} in column_values
-    assert {'dummy_fiel': 'ep_field_one'} in column_values
+    assert {"name": "name"} in column_values
+    assert {"objectid": "res_field_one"} in column_values
+    assert {"dummy_fiel": "ep_field_one"} in column_values
 
 
 def test_load_column_when_csv_contains_only_resources(tmp_path):
@@ -222,9 +169,9 @@ def test_load_column_when_csv_contains_only_resources(tmp_path):
     assert test_resource in column_keys[1]
     assert test_endpoint not in column_keys
 
-    assert {'name': 'name'} in column_values
-    assert {'objectid': 'res_field_one'} in column_values
-    assert {'dummy_fiel': 'ep_field_one'} not in column_values
+    assert {"name": "name"} in column_values
+    assert {"objectid": "res_field_one"} in column_values
+    assert {"dummy_fiel": "ep_field_one"} not in column_values
 
 
 def test_load_column_when_csv_contains_only_endpoints(tmp_path):
@@ -250,9 +197,9 @@ def test_load_column_when_csv_contains_only_endpoints(tmp_path):
     assert test_endpoint in column_keys
     assert test_resource not in column_keys
 
-    assert {'name': 'name'} in column_values
-    assert {'dummy_fiel': 'ep_field_one'} in column_values
-    assert {'objectid': 'res_field_one'} not in column_values
+    assert {"name": "name"} in column_values
+    assert {"dummy_fiel": "ep_field_one"} in column_values
+    assert {"objectid": "res_field_one"} not in column_values
 
 
 def test_columns_when_csv_contains_endpoints_and_resources(tmp_path):
@@ -267,7 +214,9 @@ def test_columns_when_csv_contains_endpoints_and_resources(tmp_path):
     test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
-    raw_data = get_csv_data_for_resources_and_endpoints(test_pipeline, test_resource, test_endpoint)
+    raw_data = get_csv_data_for_resources_and_endpoints(
+        test_pipeline, test_resource, test_endpoint
+    )
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -352,7 +301,9 @@ def test_columns_when_csv_contains_clashing_entries_res_first(tmp_path):
     dummy_endpoint = "abcde12345fghij67890abcde12345fghij67890abcde12345fghij67890abcd"
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
-    raw_data = get_csv_data_with_resource_endpoint_clash_res_first(test_pipeline, test_resource, test_endpoint)
+    raw_data = get_csv_data_with_resource_endpoint_clash_res_first(
+        test_pipeline, test_resource, test_endpoint
+    )
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -385,7 +336,9 @@ def test_columns_when_csv_contains_clashing_entries_ep_first(tmp_path):
     dummy_endpoint = "abcde12345fghij67890abcde12345fghij67890abcde12345fghij67890abcd"
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
-    raw_data = get_csv_data_with_resource_endpoint_clash_ep_first(test_pipeline, test_resource, test_endpoint)
+    raw_data = get_csv_data_with_resource_endpoint_clash_ep_first(
+        test_pipeline, test_resource, test_endpoint
+    )
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -397,4 +350,3 @@ def test_columns_when_csv_contains_clashing_entries_ep_first(tmp_path):
     assert columns["name"] == "name"
     assert columns["ref"] == "res_ref"
     assert "ep_ref" not in columns
-
