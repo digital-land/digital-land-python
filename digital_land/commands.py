@@ -254,11 +254,9 @@ def dataset_create(
     issue_paths = os.path.join(issue_dir, dataset)
     if os.path.exists(issue_paths):
         for issue_path in os.listdir(issue_paths):
-            package.load_issues(issue_path)
+            package.load_issues(os.path.join(issue_paths, issue_path))
     else:
-        logging.warning(
-            "No directory for thiis dataset int he provided issue_directory"
-        )
+        logging.warning("No directory for this dataset in the provided issue_directory")
 
     package.add_counts()
 

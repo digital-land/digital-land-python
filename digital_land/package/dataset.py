@@ -253,12 +253,15 @@ class DatasetPackage(SqlitePackage):
             self.insert("column-field", fields, row)
 
     def load_issues(self, path):
+        self.connect()
+        self.create_cursor()
         fields = self.specification.schema["issue"]["fields"]
-
         logging.info(f"loading issues from {path}")
-
         for row in csv.DictReader(open(path, newline="")):
             self.insert("issue", fields, row)
+
+        self.commit()
+        self.disconnect()
 
     def load_dataset_resource(self, path, resource):
         fields = self.specification.schema["dataset-resource"]["fields"]
