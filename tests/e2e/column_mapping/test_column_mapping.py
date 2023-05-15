@@ -45,7 +45,7 @@ def get_pipeline_csv_data_with_resources_and_endpoints(
     }
 
 
-def copy_latest_specification_files_to(specification_dir: Path | None = None):
+def copy_latest_specification_files_to(specification_dir: Path):
     error_msg = "Failed to download specification files"
     if not specification_dir:
         pytest.fail(error_msg)
@@ -90,7 +90,7 @@ def copy_latest_specification_files_to(specification_dir: Path | None = None):
         pytest.fail(error_msg)
 
 
-def create_inputs_stream_from_dict(inputs: dict | None = None):
+def create_inputs_stream_from_dict(inputs: dict):
     separator = ","
     keys_str_list = separator.join(list(inputs.keys()))
     values_str_list = separator.join(list(inputs.values()))
@@ -98,7 +98,7 @@ def create_inputs_stream_from_dict(inputs: dict | None = None):
     return StringIO(f"{keys_str_list}\r\n{values_str_list}")
 
 
-def apply_pipeline_transforms(phases: list | None = None):
+def apply_pipeline_transforms(phases: list):
     error_msg_1 = "No phases were provided to apply transforms to."
 
     if not phases:
