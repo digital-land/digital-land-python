@@ -241,3 +241,104 @@ def test_entry_date_upsert_uploads_newest_date(
     ]
 
     assert actual_result == expected_result, "actual result does not match query"
+
+
+def test_load_issues_uploads_issues_from_csv(tmp_path):
+    # create custom specification to feed in
+    schema = {
+        "issue": {
+            "fields": [
+                "end-date",
+                "entry-date",
+                "entry-number",
+                "field",
+                "issue-type",
+                "line-number",
+                "dataset",
+                "resource",
+                "start-date",
+                "value",
+            ]
+        },
+        "conservation-area": {"entity-minimum": "1", "entity-maximum": "2"},
+        "entity": {"fields": []},
+    }
+    field = {
+        "end-date": {
+            "datatype": "datetime",
+        },
+        "entry-date": {"datatype": "datetime"},
+        "entry-number": {"datatype": "integer"},
+        "field": {"datatype": "string"},
+        "issue-type": {
+            "datatype": "string",
+        },
+        "line-number": {
+            "datatype": "datetime",
+        },
+        "dataset": {
+            "datatype": "string",
+        },
+        "resource": {
+            "datatype": "string",
+        },
+        "start-date": {
+            "datatype": "datetime",
+        },
+        "value": {
+            "datatype": "text",
+        },
+    }
+
+    specification = Specification(schema=schema, field=field)
+    organisation = Organisation(organisation={})
+
+    # write data to csv as we only seem to load from csv
+    data = [
+        {
+            "end-date": "",
+            "entry-date": "",
+            "entry-number": "1",
+            "field": "test",
+            "issue-type": "test",
+            "line-number": "2",
+            "dataset": "conservation-area",
+            "resource": "efdec",
+            "start-date": "",
+            "value": "test",
+        },
+    ]
+
+    issue_path = os.path.join(tmp_path, "efdec.csv")
+    with open(issue_path, "w") as f:  # You will need 'wb' mode in Python 2.x
+        w = csv.DictWriter(f, data[0].keys())
+        w.writeheader()
+        w.writerows(data)
+
+    # create sqlite db
+    sqlite3_path = os.path.join(tmp_path, "test.sqlite3")
+
+    # create class on sqlite db with old_entity table in it
+    package = DatasetPackage(
+        "conservation-area",
+        organisation=organisation,
+        path=sqlite3_path,
+        specification=specification,
+    )
+    package.connect()
+    package.create_cursor()
+    package.create_table("issue", schema["issue"]["fields"], "issue")
+
+    # run load old_entity function from csv above
+    package.load_issues(issue_path)
+    package.disconnect()
+    # test entity out of range is not in sqlite
+    with sqlite3.connect(sqlite3_path) as con:
+        sql = """
+        SELECT * FROM issue;
+        """
+        cursor = con.execute(sql)
+        cols = [column[0] for column in cursor.description]
+        results = pd.DataFrame.from_records(data=cursor.fetchall(), columns=cols)
+
+    assert len(results) > 0
