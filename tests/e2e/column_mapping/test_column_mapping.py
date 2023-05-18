@@ -8,8 +8,7 @@ from pathlib import Path
 from urllib.error import URLError
 
 from digital_land.commands import pipeline_run
-from digital_land.log import ColumnFieldLog, IssueLog
-from digital_land.organisation import Organisation
+from digital_land.log import ColumnFieldLog
 from digital_land.phase.map import MapPhase
 from digital_land.pipeline import Pipeline, run_pipeline
 from digital_land.specification import Specification
@@ -59,7 +58,9 @@ def test_dirs(tmp_path_factory):
     fields_df.to_csv(specification_dir / "field.csv", index=False)
 
     # data - collection
-    generate_test_collection_files(str(collection_dir), test_pipeline, test_resource, test_endpoint)
+    generate_test_collection_files(
+        str(collection_dir), test_pipeline, test_resource, test_endpoint
+    )
 
     return {
         "pipeline_dir": pipeline_dir,
@@ -159,12 +160,12 @@ def get_additional_field_csv_data(specification_dir: Path = None):
         "text": ["value", "value"],
         "typology": ["", ""],
         "uri-template": ["", ""],
-        "wikidata-property": ["", ""]
+        "wikidata-property": ["", ""],
     }
 
 
 def generate_test_collection_files(
-        collection_dir: str = "", pipeline: str = "", resource: str = "", endpoint: str = ""
+    collection_dir: str = "", pipeline: str = "", resource: str = "", endpoint: str = ""
 ):
     error_msg = "Failed to generate collection files"
 
@@ -370,7 +371,7 @@ def test_pipeline_run(test_dirs):
         custom_temp_dir=None,  # TBD: rename to "tmpdir"
         endpoints=test_endpoints,
         organisations=[],
-        entry_date=""
+        entry_date="",
     )
 
     # -- Asert --
@@ -386,5 +387,3 @@ def test_pipeline_run(test_dirs):
     assert "ep_field_one" in df["field"].values
     assert "res_field_one" in df["field"].values
     assert "start-date" in df["column"].values
-
-
