@@ -68,7 +68,15 @@ class Pipeline:
 
     def load_column(self):
         for row in self.reader("column.csv"):
-            record = self.column.setdefault(row["resource"], {})
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.column.setdefault(resource, {})
+            elif endpoint:
+                record = self.column.setdefault(endpoint, {})
+            else:
+                record = self.column.setdefault("", {})
 
             # migrate column.csv
             row["column"] = row.get("column", "") or row["pattern"]
@@ -166,14 +174,18 @@ class Pipeline:
             d.update(self.filter.get(resource, {}))
         return d
 
-    def columns(self, resource=""):
+    def columns(self, resource="", endpoints=[]):
         general_columns = self.column.get("", {})
         if not resource:
             return general_columns
 
         resource_columns = self.column.get(resource, {})
+        endpoint_columns = {}
+        for endpoint in endpoints:
+            endpoint_columns = {**endpoint_columns, **self.column.get(endpoint, {})}
 
-        result = resource_columns
+        result = {**endpoint_columns, **resource_columns}
+
         for key in general_columns:
             if key in result:
                 continue
@@ -209,7 +221,9 @@ class Pipeline:
             d[key] = value
         return d
 
-    def default_values(self, endpoints=[]):
+    def default_values(self, endpoints=None):
+        if endpoints is None:
+            endpoints = []
         config = self.default_value
         d = config.get("", {})
         for endpoint in endpoints:
@@ -217,7 +231,9 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def combine_fields(self, endpoints=[]):
+    def combine_fields(self, endpoints=None):
+        if endpoints is None:
+            endpoints = []
         config = self.combine_field
         d = config.get("", {})
         for endpoint in endpoints:

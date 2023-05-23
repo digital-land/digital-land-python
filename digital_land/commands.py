@@ -126,7 +126,7 @@ def pipeline_run(
 
     # load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource)
-    columns = pipeline.columns(resource)
+    columns = pipeline.columns(resource, endpoints=endpoints)
     concats = pipeline.concatenations(resource)
     patches = pipeline.patches(resource=resource)
     lookups = pipeline.lookups(resource=resource)
