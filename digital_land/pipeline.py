@@ -251,11 +251,15 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def concatenations(self, resource=None):
-        d = self.concat.get("", {})
+    def concatenations(self, resource=None, endpoints=[]):
+        result = self.concat.get("", {})
         if resource:
-            d.update(self.concat.get(resource, {}))
-        return d
+            result.update(self.concat.get(resource, {}))
+
+        for endpoint in endpoints:
+            result.update(self.concat.get(endpoint, {}))
+
+        return result
 
     def migrations(self):
         return self.migrate
