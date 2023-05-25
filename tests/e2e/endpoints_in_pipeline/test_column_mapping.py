@@ -32,17 +32,21 @@ def test_dirs(tmp_path_factory):
     :param tmp_path_factory:
     :return: dict of Path (directory paths)
     """
-
     # directories
-    pipeline_dir = tmp_path_factory.mktemp("pipeline", numbered=False)
+    try:
+        pipeline_dir = tmp_path_factory.mktemp("pipeline", numbered=False)
 
-    specification_dir = tmp_path_factory.mktemp("specification", numbered=False)
+        specification_dir = tmp_path_factory.mktemp("specification", numbered=False)
 
-    collection_dir = tmp_path_factory.mktemp("collection", numbered=False)
-    issues_log_dir = tmp_path_factory.mktemp("issues-log", numbered=False)
-    datasource_log_dir = tmp_path_factory.mktemp("datasource-log", numbered=False)
+        collection_dir = tmp_path_factory.mktemp("collection", numbered=False)
+        issues_log_dir = tmp_path_factory.mktemp("issues-log", numbered=False)
+        datasource_log_dir = tmp_path_factory.mktemp("datasource-log", numbered=False)
 
-    output_dir = tmp_path_factory.mktemp("output", numbered=False)
+        output_dir = tmp_path_factory.mktemp("output", numbered=False)
+    except FileExistsError:
+        # directories may exist from previous test suite runs
+        # it's ok to carry on
+        pass
 
     # data - pipeline
     raw_data = get_pipeline_csv_data_with_resources_and_endpoints(
