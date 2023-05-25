@@ -187,8 +187,6 @@ def get_additional_schema_field_csv_data(test_schema: str = ""):
 def generate_test_collection_files(
     collection_dir: str = "", pipeline: str = "", resource: str = "", endpoint: str = ""
 ):
-    error_msg = "Failed to generate collection files"
-
     collection_csv_list = [
         "endpoint.csv",
         "source.csv",
@@ -196,61 +194,57 @@ def generate_test_collection_files(
         f"{resource}.csv",
     ]
 
-    try:
-        for collection_csv in collection_csv_list:
-            if collection_csv == "endpoint.csv":
-                raw_data = {
-                    "endpoint": [endpoint],
-                    "endpoint-url": ["https://example.com/register/1.csv"],
-                    "start-date": ["2020-01-12"],
-                    "end-date": ["2020-02-01"],
-                }
+    for collection_csv in collection_csv_list:
+        if collection_csv == "endpoint.csv":
+            raw_data = {
+                "endpoint": [endpoint],
+                "endpoint-url": ["https://example.com/register/1.csv"],
+                "start-date": ["2020-01-12"],
+                "end-date": ["2020-02-01"],
+            }
 
-            if collection_csv == "source.csv":
-                raw_data = {
-                    "source": [""],
-                    "collection": ["test-collection"],
-                    "pipeline": [pipeline],
-                    "organisation": ["test-org"],
-                    "endpoint": [endpoint],
-                    "documentation-url": [""],
-                    "licence": [""],
-                    "attribution": [""],
-                    "start-date": [""],
-                    "end-date": [""],
-                }
+        if collection_csv == "source.csv":
+            raw_data = {
+                "source": [""],
+                "collection": ["test-collection"],
+                "pipeline": [pipeline],
+                "organisation": ["test-org"],
+                "endpoint": [endpoint],
+                "documentation-url": [""],
+                "licence": [""],
+                "attribution": [""],
+                "start-date": [""],
+                "end-date": [""],
+            }
 
-            if collection_csv == "resource.csv":
-                raw_data = {
-                    "resource": [resource],
-                    "bytes": [1234],
-                    "organisations": ["test-org"],
-                    "datasets": [pipeline],
-                    "endpoints": [endpoint],
-                    "res-col-one": ["res-col-val"],
-                    "ep-col-one": ["ep-col-val"],
-                    "start-date": ["2020-01-12"],
-                    "end-date": ["2020-02-01"],
-                }
+        if collection_csv == "resource.csv":
+            raw_data = {
+                "resource": [resource],
+                "bytes": [1234],
+                "organisations": ["test-org"],
+                "datasets": [pipeline],
+                "endpoints": [endpoint],
+                "res-col-one": ["res-col-val"],
+                "ep-col-one": ["ep-col-val"],
+                "start-date": ["2020-01-12"],
+                "end-date": ["2020-02-01"],
+            }
 
-            if collection_csv.startswith(resource):
-                raw_data = {
-                    "resource": [resource],
-                    "bytes": [1234],
-                    "organisations": ["test-org"],
-                    "datasets": [pipeline],
-                    "endpoints": [endpoint],
-                    "res-col-one": ["res-col-val"],
-                    "ep-col-one": ["ep-col-val"],
-                    "start-date": ["2020-01-12"],
-                    "end-date": ["2020-02-01"],
-                }
+        if collection_csv.startswith(resource):
+            raw_data = {
+                "resource": [resource],
+                "bytes": [1234],
+                "organisations": ["test-org"],
+                "datasets": [pipeline],
+                "endpoints": [endpoint],
+                "res-col-one": ["res-col-val"],
+                "ep-col-one": ["ep-col-val"],
+                "start-date": ["2020-01-12"],
+                "end-date": ["2020-02-01"],
+            }
 
-            columns_data = pd.DataFrame.from_dict(raw_data)
-            columns_data.to_csv(f"{collection_dir}/{collection_csv}", index=False)
-
-    except URLError:
-        pytest.fail(error_msg)
+        columns_data = pd.DataFrame.from_dict(raw_data)
+        columns_data.to_csv(f"{collection_dir}/{collection_csv}", index=False)
 
 
 def create_inputs_stream_from_dict(inputs: dict):
