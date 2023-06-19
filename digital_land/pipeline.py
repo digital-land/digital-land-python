@@ -118,7 +118,17 @@ class Pipeline:
 
     def load_concat(self):
         for row in self.reader("concat.csv"):
-            record = self.concat.setdefault(row["resource"], {})
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.concat.setdefault(resource, {})
+            elif endpoint:
+                record = self.concat.setdefault(endpoint, {})
+            else:
+                record = self.concat.setdefault("", {})
+
+            # record = self.concat.setdefault(row["resource"], {})
             record[row["field"]] = {
                 "fields": row["fields"].split(";"),
                 "separator": row["separator"],
@@ -241,11 +251,15 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def concatenations(self, resource=None):
-        d = self.concat.get("", {})
+    def concatenations(self, resource=None, endpoints=[]):
+        result = self.concat.get("", {})
         if resource:
-            d.update(self.concat.get(resource, {}))
-        return d
+            result.update(self.concat.get(resource, {}))
+
+        for endpoint in endpoints:
+            result.update(self.concat.get(endpoint, {}))
+
+        return result
 
     def migrations(self):
         return self.migrate
