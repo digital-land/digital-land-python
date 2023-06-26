@@ -14,6 +14,7 @@ schemas = {
             "entry-date",
             "start-date",
             "end-date",
+            "exception",
         ],
         "key": "endpoint",
     },

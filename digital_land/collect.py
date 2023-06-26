@@ -95,11 +95,12 @@ class Collector:
             log["status"] = str(response.status_code)
             log["request-headers"] = dict(response.request.headers)
             log["response-headers"] = dict(response.headers)
-
             if log["status"] == "200" and not response.headers.get(
                 "Content-Type", ""
             ).startswith("text/html"):
                 content = response.content
+            if log["status"] != "200":
+                log["exception"] = response.reason
 
         return log, content
 
