@@ -1,4 +1,4 @@
-bytes,content-type,elapsed,endpoint,resource,status,entry-date,start-date,end-date,exception
+bytes,content-type,elapsed,endpoint,resource,status,entry-date,start-date,end-date,error-message
 226497,application/zip,0.111,25763ee988ddbee9003f2dd58941c01b166e1a61e88b956f1f734c4dc4584021,efbdafb929921097a6e002188e281047bb4d512d40a8f88ade26cbb44118f0e3,200,2021-12-08T00:45:14.095210,,,
 1730355,application/json,0.703,2edd619184cc8fdfcebab5be89c7de2ccbe03c72c7b6f71361920e3cda55163d,72337bced0ee7e6f7ec339822e3ec1a55dbd02729a1df3747308ebdd49905868,200,2021-11-23T22:56:40.329925,,,
 11714,application/zip,0.099,7d33d185db7a5ba469da8f9e1d8d04a09f1a35650271282697d214e33dcd9fa1,e3a22838b44a3c1e594eee33788728a6366caef066690e5fb9fd91e46e74bac1,200,2021-12-08T00:45:14.095210,,,
