@@ -86,7 +86,7 @@ class Collector:
             requests.exceptions.ChunkedEncodingError,
         ) as exception:
             logging.warning(exception)
-            log["error-message"] = type(exception).__name__
+            log["exception"] = type(exception).__name__
             response = None
 
         content = None
@@ -100,7 +100,7 @@ class Collector:
             ).startswith("text/html"):
                 content = response.content
             if log["status"] != "200":
-                log["error-message"] = response.reason
+                log["exception"] = response.reason
 
         return log, content
 
