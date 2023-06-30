@@ -99,8 +99,6 @@ class Collector:
                 "Content-Type", ""
             ).startswith("text/html"):
                 content = response.content
-            if log["status"] != "200":
-                log["exception"] = response.reason
 
         return log, content
 
