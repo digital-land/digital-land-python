@@ -17,6 +17,7 @@ from digital_land.commands import (
     pipeline_run,
     collection_add_source,
     expectations,
+    debug_pipeline,
 )
 
 from digital_land.command_arguments import (
@@ -26,6 +27,7 @@ from digital_land.command_arguments import (
     issue_dir,
     dataset_resource_dir,
     column_field_dir,
+    endpoint_path,
 )
 
 
@@ -224,3 +226,45 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
 def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     return expectations(results_path, sqlite_dataset_path, data_quality_yaml)
+
+
+@cli.command(
+    "debug-contribution",
+    short_help="runs an org through the entire process including collector,pipeline and dataset",
+)
+@click.option(
+    "--organisation",
+    help="string representing the organisation, must match organisation name in source.csv",
+    required=True,
+)
+@endpoint_path
+@issue_dir
+@column_field_dir
+@dataset_resource_dir
+@collection_dir
+@click.pass_context
+def run_debug_pipeline(
+    ctx,
+    organisation,
+    endpoint_path,
+    collection_dir,
+    issue_dir,
+    column_field_dir,
+    dataset_resource_dir,
+):
+    pipeline = ctx.obj["PIPELINE"]
+    dataset = ctx.obj["DATASET"]
+    specification = ctx.obj["SPECIFICATION"]
+
+    debug_pipeline(
+        organisation,
+        dataset,
+        pipeline,
+        endpoint_path,
+        collection_dir,
+        specification,
+        issue_dir,
+        column_field_dir,
+        dataset_resource_dir,
+    )
+    return

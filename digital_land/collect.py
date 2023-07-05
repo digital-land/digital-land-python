@@ -34,6 +34,7 @@ class Collector:
     log_dir = "collection/log/"
 
     def __init__(self, dataset="", collection_dir=None):
+        # TODO do we need to defin this here?
         self.dataset = dataset
         if collection_dir:
             self.resource_dir = collection_dir / "resource/"

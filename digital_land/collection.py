@@ -66,7 +66,16 @@ class LogStore(ItemStore):
 
     def check_item_path(self, item, path):
         m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
-        (date, endpoint) = m.groups()
+
+        # This regex method is not compatible with running Tests on Windows
+        # Added an alternate method that is cross-platform
+        if m is None:
+            file_path = Path(path)
+            file_path_parts = file_path.parts
+            date = file_path_parts[len(file_path_parts) - 2]
+            endpoint = file_path.stem
+        else:
+            (date, endpoint) = m.groups()
 
         if not item.get("entry-date", "").startswith(date):
             logging.warning(

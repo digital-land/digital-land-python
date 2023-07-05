@@ -9,6 +9,7 @@ from pathlib import Path
 
 import geojson
 import shapely
+import urllib.request
 
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -410,3 +411,154 @@ def resource_from_path(path):
 def default_output_path(command, input_path):
     directory = "" if command in ["harmonised", "transformed"] else "var/"
     return f"{directory}{command}/{resource_from_path(input_path)}.csv"
+
+
+def debug_pipeline(
+    org,
+    dataset,
+    pipeline,
+    endpoint_path,
+    collection_dir,
+    specification,
+    issue_dir,
+    column_field_dir,
+    dataset_resource_dir,
+):
+    print(f"running process for organisation:{org} and pipeline: {pipeline.name}")
+    # identify relevant sources and endpoints
+    # read in relevant end points
+    # organisation info is in the source csv, therefore to get the right enpoints we need to identify all of the relevant ones from source .csi
+    endpoint_hashes = []
+    for row in csv.DictReader(
+        open(os.path.join(collection_dir, "source.csv"), newline="")
+    ):
+        if row["organisation"] == org and row["pipelines"] == pipeline.name:
+            endpoint_hash = row["endpoint"]
+            endpoint_hashes.append(endpoint_hash)
+
+    # check length of hashes to see if there are relevant endpoints
+    if len(endpoint_hashes) < 0:
+        print("no enpoints need collecting")
+    else:
+        text = ",".join(endpoint_hashes)
+        print(f"endpoints found {text}")
+
+    # create a collector
+    collector = Collector(pipeline.name, collection_dir=None)
+    # download endpoints
+    for row in csv.DictReader(open(endpoint_path, newline="")):
+        endpoint = row["endpoint"]
+        if endpoint in endpoint_hashes:
+            print(f"downloading {endpoint}")
+            endpoint = row["endpoint"]
+            url = row["endpoint-url"]
+            plugin = row.get("plugin", "")
+
+            # skip manually added files ..
+            if not url:
+                continue
+
+            collector.fetch(
+                url,
+                endpoint=endpoint,
+                end_date=row.get("end-date", ""),
+                plugin=plugin,
+            )
+
+    # collection step, this will need to be a bit different
+    # remove previously created log.csv and resouorce.csv files
+    try:
+        os.remove(Path(collection_dir) / "log.csv")
+        os.remove(Path(collection_dir) / "resource.csv")
+    # seems unclear why we accept an error here, what happens if first line errors and second doesn't
+    except OSError:
+        pass
+
+    collection = Collection(name=None, directory=collection_dir)
+    collection.load()
+    #  no direct way to filter which logs/resources are save to the csv only built to do all at once
+    #  we manually filter the entries for logs/resources using the enpoint hashes made above to achieve this
+    for endpoint in endpoint_hashes:
+        log_entries = [
+            entry for entry in collection.log.entries if entry["endpoint"] == endpoint
+        ]
+        resource_entries = [
+            entry
+            for entry in collection.resource.entries
+            if entry["endpoints"] == endpoint
+        ]
+
+    collection.log.entries = log_entries
+    collection.resource.entries = resource_entries
+    collection.save_csv()
+
+    # print resource history this could be useful
+    print("Resource History")
+    print("start_date,end_date,resource")
+    for resource in resource_entries:
+        print(f"{resource['start-date']},{resource['end-date']},{resource['resource']}")
+
+    # download previously collected resources
+    collection = specification.dataset[dataset]["collection"]
+    for resource in resource_entries:
+        if not os.path.exists(f"collection/resource/{resource['resource']}"):
+            if not os.path.exists():
+                os.makedirs("collection/resource/")
+            files_url = "https://files.planning.data.gov.uk"
+            urllib.request.urlretrieve(
+                os.path.join(
+                    files_url,
+                    collection,
+                    "collection",
+                    "resource",
+                    resource["resource"],
+                ),
+                os.path.join("collection/resource", resource),
+            )
+
+            # download from files url
+
+    # pipeline step for loop for each of the files
+    # define additional files
+    # for resource in resource_entries:
+    #     input_path = f"{collection_dir}/resource/{resource}"
+    #     output_path = f"transformed/{dataset}/{resource}.csv"
+    # update below with correct values
+    #     pipeline_run(
+    #         dataset,
+    #         pipeline,
+    #         specification,
+    #         input_path,
+    #         output_path,
+    #         issue_dir=issue_dir,
+    #         column_field_dir=column_field_dir,
+    #         dataset_resource_dir=dataset_resource_dir,
+    #         organisation_path=organisation_path,
+    #         save_harmonised=save_harmonised,
+    #         endpoints=endpoints,
+    #         organisations=organisations,
+    #         entry_date=entry_date,
+    #         custom_temp_dir=custom_temp_dir,
+    #     )
+
+    # # once files are loaded create the dataset
+    # def pipeline_run(
+    #     dataset,
+    #     pipeline,
+    #     specification,
+    #     input_path,
+    #     output_path,
+    #     collection_dir="./collection",  # TBD: remove, replaced by endpoints, organisations and entry_date
+    #     null_path=None,  # TBD: remove this
+    #     issue_dir=None,
+    #     organisation_path=None,
+    #     save_harmonised=False,
+    #     column_field_dir=None,
+    #     dataset_resource_dir=None,
+    #     custom_temp_dir=None,  # TBD: rename to "tmpdir"
+    #     endpoints=[],
+    #     organisations=[],
+    #     entry_date="",
+    # )
+    # run expectations? this made need to be made so only certain ones are ran as they may be specific to certain datasets
+    # end
