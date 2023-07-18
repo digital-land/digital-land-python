@@ -403,6 +403,21 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
     add_source_endpoint(entry, directory=collection_dir)
 
 
+def add_endpoints_and_lookups(ctx):
+    from digital_land.utils.add_endpoints_utils import (
+        clean_create_task_dirs,
+        create_source_and_endpoint_entries,
+        collect_resources
+    )
+
+    # TODO backup existing source.csv & endpoint.csv and start from clean file to reduce
+    #  the number of collections performed
+
+    clean_create_task_dirs(ctx)
+    create_source_and_endpoint_entries(ctx)
+    collect_resources(ctx)
+
+
 def resource_from_path(path):
     return Path(path).stem
 

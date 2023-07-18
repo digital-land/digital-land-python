@@ -1,5 +1,7 @@
 import logging
 import sys
+from pathlib import Path
+
 import click
 
 from collections import defaultdict
@@ -17,6 +19,7 @@ from digital_land.commands import (
     pipeline_run,
     collection_add_source,
     expectations,
+    add_endpoints_and_lookups,
 )
 
 from digital_land.command_arguments import (
@@ -224,3 +227,20 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
 def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     return expectations(results_path, sqlite_dataset_path, data_quality_yaml)
+
+
+@cli.command("add-endpoint-and-lookups")
+@click.argument("csv-path", nargs=1, type=click.Path())
+@collection_dir
+@click.pass_context
+def add_endpoint_and_lookups_cmd(ctx, csv_path, collection_dir):
+
+    csv_file_path = Path(csv_path)
+    if not csv_file_path.is_file():
+        logging.error("no csv file was provided")
+        sys.exit(2)
+
+    ctx.obj["COLLECTION_DIR"] = Path(collection_dir)
+    ctx.obj["CSV_FILE_PATH"] = csv_file_path
+
+    return add_endpoints_and_lookups(ctx)
