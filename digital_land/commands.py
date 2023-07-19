@@ -414,6 +414,7 @@ def add_endpoints_and_lookups(ctx):
         task_create_source_and_endpoint_entries,
         task_collect_resources,
         task_populate_resource_and_log_csvs,
+        task_generate_lookup_entries,
         task_postprocess
     )
 
@@ -422,6 +423,7 @@ def add_endpoints_and_lookups(ctx):
     task_create_source_and_endpoint_entries(ctx)
     task_collect_resources(ctx)
     task_populate_resource_and_log_csvs(ctx)
+    task_generate_lookup_entries(ctx)
 
     task_postprocess(ctx)
 
