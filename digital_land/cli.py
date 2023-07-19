@@ -234,7 +234,13 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
 @collection_dir
 @click.pass_context
 def add_endpoint_and_lookups_cmd(ctx, csv_path, collection_dir):
-
+    """
+    adds new resources to the collection, based on records in csv_path
+    :param ctx:
+    :param csv_path:
+    :param collection_dir:
+    :return:
+    """
     csv_file_path = Path(csv_path)
     if not csv_file_path.is_file():
         logging.error("no csv file was provided")

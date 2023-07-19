@@ -1,42 +1,27 @@
 import logging
 import os
 import shutil
-from collections import defaultdict
-
 import pandas as pd
 import urllib
 
+from collections import defaultdict
 from datetime import datetime
+from digital_land.collection import Collection, ResourceLogStore
+from digital_land.commands import collect
+from digital_land.phase.phase import Phase
+from digital_land.schema import Schema
+from digital_land.store.item import ItemStore
+from digital_land.update import add_source_endpoint
+from digital_land.register import hash_value
+from digital_land.phase.lookup import key
 from pathlib import Path
 from urllib.error import URLError
 
-from digital_land.collection import Collection
-from digital_land.commands import collect
-from digital_land.schema import Schema
-from digital_land.update import add_source_endpoint
 
-
-def collection_add_source(entry, collection, endpoint_url, collection_dir):
-    """
-    followed by a sequence of optional name and value pairs including the following names:
-    "attribution", "licence", "pipelines", "status", "plugin",
-    "parameters", "start-date", "end-date"
-    """
-    entry["collection"] = collection.name
-    entry["endpoint-url"] = endpoint_url
-    allowed_names = set(
-        list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
-    )
-
-    for key in entry.keys():
-        if key not in allowed_names:
-            logging.error(f"unrecognised argument '{key}'")
-            continue
-
-    add_source_endpoint(entry, directory=collection_dir, collection=collection)
-
-
-def clean_create_task_dirs(ctx):
+# =====================================================================
+# Main Process Tasks
+# =====================================================================
+def task_preprocess(ctx):
     """
     preparatory steps to tidy up previous runs,
     and populate the context
@@ -51,20 +36,7 @@ def clean_create_task_dirs(ctx):
     log_dir = collection_dir / "log"
     organisation_dir = root_coll_dir / "organisation"
     tmp_dir = root_coll_dir / "tmp"
-
-    # clean up previous run data
-    if organisation_dir.is_dir():
-        shutil.rmtree(organisation_dir)
-    if tmp_dir.is_dir():
-        shutil.rmtree(tmp_dir)
-
-    try:
-        os.mkdir(organisation_dir)
-        os.mkdir(tmp_dir)
-        os.mkdir(datasource_log_dir)
-        os.mkdir(log_dir)
-    except OSError as exc:
-        pass
+    collection_resource_dir = collection_dir / "resource"
 
     ctx.obj["PIPELINE_DIR"] = Path(ctx.obj["PIPELINE"].path)
     ctx.obj["DATASOURCE_LOG_DIR"] = datasource_log_dir
@@ -72,15 +44,33 @@ def clean_create_task_dirs(ctx):
     ctx.obj["LOG_DIR"] = log_dir
     ctx.obj["ORGANISATION_DIR"] = organisation_dir
     ctx.obj["TMP_DIR"] = tmp_dir
+    ctx.obj["COLLECTION_RESOURCE_DIR"] = collection_resource_dir
+
+    # clean up previous run data
+    preprocess_collection_csvs(ctx)
+
+    if log_dir.is_dir():
+        shutil.rmtree(log_dir)
+    if organisation_dir.is_dir():
+        shutil.rmtree(organisation_dir)
+
+    try:
+        os.mkdir(log_dir)
+        os.mkdir(organisation_dir)
+        os.mkdir(tmp_dir)
+    except OSError as exc:
+        pass
 
 
-def create_source_and_endpoint_entries(ctx):
+def task_create_source_and_endpoint_entries(ctx):
     """
-    appends entries to both source.csv and endpoints.csv
+    appends entries to both source.csv and endpoints.csv from
+    the records in the csv at csv_file_path
     :param ctx:
     :return:
     """
 
+    # read and process each record in the csv at csv_file_path
     csv_file_path = ctx.obj["CSV_FILE_PATH"]
 
     cols = [
@@ -99,6 +89,7 @@ def create_source_and_endpoint_entries(ctx):
     )
 
     collection = Collection()
+    ctx.obj["COLLECTION"] = collection
 
     for idx, row in csv_file_df.iterrows():
         param_dataset = row["dataset"]
@@ -168,7 +159,7 @@ def create_source_and_endpoint_entries(ctx):
         print(f"        param_start_date:{param_start_date}")
 
 
-def collect_resources(ctx):
+def task_collect_resources(ctx):
     """
     using existing functionality to create a collector and retrieve remote resources
     :param ctx:
@@ -183,3 +174,232 @@ def collect_resources(ctx):
         collection_dir_str,
         pipeline,
     )
+
+
+def task_populate_resource_and_log_csvs(ctx):
+    collection = ctx.obj["COLLECTION"]
+    collection_dir = ctx.obj["COLLECTION_DIR"]
+
+    logs_path = collection_dir / "log/*/"
+    collection = load_log_items(collection, log_directory=logs_path)
+
+    collection.log.save_csv(directory=collection.directory)
+    collection.resource.save_csv(directory=collection.directory)
+
+
+def task_postprocess(ctx):
+    postprocess_collection_csvs(ctx)
+
+
+# =====================================================================
+# Supporting functions and classes
+# =====================================================================
+def collection_add_source(entry, collection, endpoint_url, collection_dir):
+    """
+    creates entries in source and endpoint csvs, using the info in entry
+    followed by a sequence of optional name and value pairs including the following names:
+    "attribution", "licence", "pipelines", "status", "plugin",
+    "parameters", "start-date", "end-date"
+    """
+    entry["collection"] = collection.name
+    entry["endpoint-url"] = endpoint_url
+    allowed_names = set(
+        list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
+    )
+
+    for key in entry.keys():
+        if key not in allowed_names:
+            logging.error(f"unrecognised argument '{key}'")
+            continue
+
+    add_source_endpoint(entry, directory=collection_dir, collection=collection)
+
+
+def preprocess_collection_csvs(ctx):
+    """
+    backup existing source.csv & endpoint.csv and remove entries in each.
+    starting from clean files reduces the number of collections performed
+    :return:
+    """
+
+    source_csv_path = ctx.obj["COLLECTION_DIR"] / "source.csv"
+    source_csv_backup_path = ctx.obj["COLLECTION_DIR"] / "source.csv.bak"
+    endpoint_csv_path = ctx.obj["COLLECTION_DIR"] / "endpoint.csv"
+    endpoint_csv_backup_path = ctx.obj["COLLECTION_DIR"] / "endpoint.csv.bak"
+
+    # remove existing backups
+    for file in [source_csv_backup_path, endpoint_csv_backup_path]:
+        try:
+            os.remove(file)
+        except FileNotFoundError:
+            continue
+
+    # create new backups
+    if source_csv_path.is_file():
+        shutil.copyfile(source_csv_path, source_csv_backup_path)
+
+    if endpoint_csv_path.is_file():
+        shutil.copyfile(endpoint_csv_path, endpoint_csv_backup_path)
+
+    # create empty source and endpoint csvs
+    with open(source_csv_path, "r") as file:
+        source_csv_header = file.readline()
+    with open(endpoint_csv_path, "r") as file:
+        endpoint_csv_header = file.readline()
+
+    with open(source_csv_path, "w") as file:
+        file.write(f"{source_csv_header}\n")
+    with open(endpoint_csv_path, "w") as file:
+        file.write(f"{endpoint_csv_header}\n")
+
+
+def postprocess_collection_csvs(ctx):
+    """
+    clean up files and folders that do not get typically get checked in to
+    source control.
+    NOTE: by-pass this routine if you wish to inspect the final process output
+    files
+    :param ctx:
+    :return:
+    """
+    tmp_dir = ctx.obj["TMP_DIR"]
+    collection_resource_dir = ctx.obj["COLLECTION_RESOURCE_DIR"]
+
+    if tmp_dir.is_dir():
+        shutil.rmtree(tmp_dir)
+    if collection_resource_dir.is_dir():
+        shutil.rmtree(collection_resource_dir)
+
+    # TODO
+    print(">>> TODO: postprocess_collection_csvs")
+
+
+def load_log_items(collection: Collection, directory=None, log_directory=None):
+    collection.log = CollectionLogStore(Schema("log"))
+    collection.log.load(directory=log_directory)
+
+    collection.resource = ResourceLogStore(Schema("resource"))
+    collection.resource.load(
+        log=collection.log, source=collection.source, directory=directory
+    )
+
+    return collection
+
+
+class CollectionLogStore(ItemStore):
+
+    def load_item(self, path):
+        item = super().load_item(path)
+        item = item.copy()
+
+        # migrate content-type and bytes fields
+        h = item.get("response-headers", {})
+        if "content-type" not in item:
+            item["content-type"] = h.get("Content-Type", "")
+        if "bytes" not in item:
+            item["bytes"] = h.get("Content-Length", "")
+
+        # migrate datetime to entry-date field
+        if "datetime" in item:
+            if "entry-date" not in item:
+                item["entry-date"] = item["datetime"]
+            del item["datetime"]
+
+        # migrate url to endpoint-url field
+        if "url" in item:
+            if "endpoint-url" not in item:
+                item["endpoint-url"] = item["url"]
+            del item["url"]
+
+        # default the endpoint value
+        if "endpoint" not in item:
+            item["endpoint"] = hash_value(item["endpoint-url"])
+        self.check_item_path(item, path)
+
+        return item
+
+    def save_item(self, item, path):
+        del item["endpoint"]
+        return super().save_item(item)
+
+    def check_item_path(self, item, in_path):
+        # m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
+        # (date, endpoint) = m.groups()
+        path = Path(in_path)
+        date = path.parts[-2]
+        endpoint = path.parts[-1].split(".")[0]
+
+        if not item.get("entry-date", "").startswith(date):
+            logging.warning(
+                "incorrect date in path %s for entry-date %s"
+                % (path, item["entry-date"])
+            )
+
+        # print(item["url"], hash_value(item["url"]))
+        if endpoint != item["endpoint"]:
+            logging.warning(
+                "incorrect endpoint in path %s expected %s" % (path, item["endpoint"])
+            )
+
+
+class EntityNumGen:
+    def __init__(self, entity_num_state: dict = None):
+        self.entity_num_state = entity_num_state
+
+    def next(self):
+        current = self.entity_num_state["current"]
+        new_current = current + 1
+
+        if new_current > self.entity_num_state["range_max"]:
+            new_current = self.entity_num_state["range_min"]
+
+        if new_current < self.entity_num_state["range_min"]:
+            new_current = self.entity_num_state["range_min"]
+
+        self.entity_num_state["current"] = new_current
+
+        return new_current
+
+
+# print all lookups that aren't found will need to read through all files
+class PrintLookupPhase(Phase):
+    def __init__(self, lookups={}, entity_num_gen=None):
+        self.lookups = lookups
+        self.entity_field = "entity"
+        self.entity_num_gen = entity_num_gen
+
+    def lookup(self, **kwargs):
+        return self.lookups.get(key(**kwargs), "")
+
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
+            entry_number = block["entry-number"]
+            prefix = row.get("prefix", "")
+            reference = row.get("reference", "")
+            organisation = row.get("organisation", "")
+            if prefix:
+                if not row.get(self.entity_field, ""):
+                    entity = (
+                        # by the resource and row number
+                            (
+                                    self.entity_field == "entity"
+                                    and self.lookup(prefix=prefix, entry_number=entry_number)
+                            )
+                            # TBD: fixup prefixes so this isn't needed ..
+                            # or by the organisation and the reference
+                            or self.lookup(
+                                prefix=prefix,
+                                organisation=organisation,
+                                reference=reference,
+                            )
+                    )
+
+            if not entity:
+                if self.entity_num_gen:
+                    print(f"{prefix},,{organisation},{reference},{self.entity_num_gen.next()}")
+                else:
+                    print(f"{prefix},,{organisation},{reference}")
+
+            yield block
+
