@@ -77,7 +77,7 @@ def task_preprocess(ctx):
         os.mkdir(log_dir)
         os.mkdir(organisation_dir)
         os.mkdir(tmp_dir)
-    except OSError as exc:
+    except OSError:
         pass
 
 
@@ -143,14 +143,22 @@ def task_create_source_and_endpoint_entries(ctx):
 
         # prepare row for processing
         entry_ctx = [
-            "collection", param_dataset,
-            "organisation", param_organisation_name,
-            "licence", param_reference,
-            "attribution", param_reference,
-            "documentation-url", param_documentation_url,
-            "start-date", str_date_fmt,
-            "end-date", "",
-            "pipelines", param_dataset,
+            "collection",
+            param_dataset,
+            "organisation",
+            param_organisation_name,
+            "licence",
+            param_reference,
+            "attribution",
+            param_reference,
+            "documentation-url",
+            param_documentation_url,
+            "start-date",
+            str_date_fmt,
+            "end-date",
+            "",
+            "pipelines",
+            param_dataset,
         ]
         entry = defaultdict(
             str,
@@ -165,17 +173,7 @@ def task_create_source_and_endpoint_entries(ctx):
             collection.load()
 
         if type(param_endpoint_url) == str:
-            collection_add_source(
-                entry, collection, param_endpoint_url, collection_dir
-            )
-
-        print("")
-        print(f"           param_dataset:{param_dataset}")
-        print(f"      param_endpoint_url:{param_endpoint_url}")
-        print(f" param_documentation_url:{param_documentation_url}")
-        print(f" param_organisation_name:{param_organisation_name}")
-        print(f"         param_reference:{param_reference}")
-        print(f"        param_start_date:{param_start_date}")
+            collection_add_source(entry, collection, param_endpoint_url, collection_dir)
 
 
 def task_collect_resources(ctx):
@@ -237,18 +235,19 @@ def task_generate_lookup_entries(ctx):
 
         entity_num_gen = EntityNumGen(entity_num_state=entity_num_state)
 
-        # create and initialise entity number generator
         print("")
         print("======================================================================")
         print("New Lookups")
         print("======================================================================")
 
+        # generate the lookup entries for each new resource
         dataset_resource_map = collection.dataset_resource_map()
+        all_lookup_entries = []
         for dataset in dataset_resource_map:
             for resource in dataset_resource_map[dataset]:
                 resource_file_path = collection_resource_dir / resource
 
-                get_resource_unidentified_lookups(
+                resource_lookups = get_resource_unidentified_lookups(
                     input_path=resource_file_path,
                     dataset=dataset,
                     organisations=collection.resource_organisations(resource),
@@ -259,6 +258,21 @@ def task_generate_lookup_entries(ctx):
                     entity_num_gen=entity_num_gen,
                 )
 
+                all_lookup_entries += resource_lookups
+
+        ctx.obj["NEW_LOOKUPS"] = all_lookup_entries
+
+
+def task_update_lookup_csv(ctx):
+    new_lookups = ctx.obj["NEW_LOOKUPS"]
+    lookup_csv_path = ctx.obj["PIPELINE_DIR"] / "lookup.csv"
+
+    # create new backups
+    if lookup_csv_path.is_file():
+        with open(lookup_csv_path, "a") as file:
+            for line in new_lookups:
+                file.write(f"{line[0]}\n")
+
 
 def task_postprocess(ctx):
     postprocess_collection_csvs(ctx)
@@ -268,7 +282,6 @@ def task_postprocess(ctx):
 # Supporting functions and classes
 # =====================================================================
 class CollectionLogStore(ItemStore):
-
     def load_item(self, path):
         item = super().load_item(path)
         item = item.copy()
@@ -348,6 +361,7 @@ class PrintLookupPhase(Phase):
         self.lookups = lookups
         self.entity_field = "entity"
         self.entity_num_gen = entity_num_gen
+        self.new_lookup_entries = []
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
@@ -358,14 +372,16 @@ class PrintLookupPhase(Phase):
             entry_number = block["entry-number"]
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
+            if "," in reference:
+                reference = f'"{reference}"'
             organisation = row.get("organisation", "")
             if prefix:
                 if not row.get(self.entity_field, ""):
                     entity = (
                         # by the resource and row number
                         (
-                                self.entity_field == "entity"
-                                and self.lookup(prefix=prefix, entry_number=entry_number)
+                            self.entity_field == "entity"
+                            and self.lookup(prefix=prefix, entry_number=entry_number)
                         )
                         # TBD: fixup prefixes so this isn't needed ..
                         # or by the organisation and the reference
@@ -377,11 +393,10 @@ class PrintLookupPhase(Phase):
                     )
 
             if not entity:
-                if self.entity_num_gen:
-                    # if prefix and organisation and reference:
-                    print(f"{prefix},,{organisation},{reference},{self.entity_num_gen.next()}")
-                else:
-                    print(f"{prefix},,{organisation},{reference}")
+                if prefix and organisation and reference:
+                    new_entry = f"{prefix},,{organisation},{reference},{self.entity_num_gen.next()}"
+                    self.new_lookup_entries.append([new_entry])
+                    print(new_entry)
 
             yield block
 
@@ -399,9 +414,9 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
         list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
     )
 
-    for key in entry.keys():
-        if key not in allowed_names:
-            logging.error(f"unrecognised argument '{key}'")
+    for entry_key in entry.keys():
+        if entry_key not in allowed_names:
+            logging.error(f"unrecognised argument '{entry_key}'")
             continue
 
     add_source_endpoint(entry, directory=collection_dir, collection=collection)
@@ -458,6 +473,17 @@ def postprocess_collection_csvs(ctx):
     collection_resource_dir = ctx.obj["COLLECTION_RESOURCE_DIR"]
     organisation_dir = ctx.obj["ORGANISATION_DIR"]
 
+    source_csv_path = ctx.obj["COLLECTION_DIR"] / "source.csv"
+    source_csv_backup_path = ctx.obj["COLLECTION_DIR"] / "source.csv.bak"
+    source_csv_tmp_path = ctx.obj["COLLECTION_DIR"] / "source.csv.tmp"
+    endpoint_csv_path = ctx.obj["COLLECTION_DIR"] / "endpoint.csv"
+    endpoint_csv_backup_path = ctx.obj["COLLECTION_DIR"] / "endpoint.csv.bak"
+    endpoint_csv_tmp_path = ctx.obj["COLLECTION_DIR"] / "endpoint.csv.tmp"
+
+    log_csv_path = ctx.obj["COLLECTION_DIR"] / "log.csv"
+    resource_csv_path = ctx.obj["COLLECTION_DIR"] / "resource.csv"
+
+    # clean up directories
     if tmp_dir.is_dir():
         shutil.rmtree(tmp_dir)
     if collection_resource_dir.is_dir():
@@ -465,10 +491,35 @@ def postprocess_collection_csvs(ctx):
     if organisation_dir.is_dir():
         shutil.rmtree(organisation_dir)
 
+    # merge existing source.csv and endpoint.csv entries with new ones
+    try:
+        os.remove(log_csv_path)
+        os.remove(resource_csv_path)
 
-    # TODO
-    print("")
-    print(">>> TODO: postprocess_collection_csvs")
+        os.rename(source_csv_path, source_csv_tmp_path)
+        os.rename(endpoint_csv_path, endpoint_csv_tmp_path)
+
+        os.rename(source_csv_backup_path, source_csv_path)
+        os.rename(endpoint_csv_backup_path, endpoint_csv_path)
+
+        with open(source_csv_tmp_path, "r") as tmp_file, open(
+            source_csv_path, "a"
+        ) as file:
+            tmp_file.readline()
+            for line in tmp_file:
+                file.write(line)
+
+        with open(endpoint_csv_tmp_path, "r") as tmp_file, open(
+            endpoint_csv_path, "a"
+        ) as file:
+            tmp_file.readline()
+            for line in tmp_file:
+                file.write(line)
+
+        os.remove(source_csv_tmp_path)
+        os.remove(endpoint_csv_tmp_path)
+    except OSError:
+        pass
 
 
 def load_log_items(collection: Collection, directory=None, log_directory=None):
@@ -512,7 +563,7 @@ def copy_latest_organisation_files_to(organisation_dir: Path):
 
 
 def get_entity_number_state(
-        dataset: str = None, pipeline_dir: Path = None, specification_dir: Path = None
+    dataset: str = None, pipeline_dir: Path = None, specification_dir: Path = None
 ):
     if not dataset:
         return None
@@ -548,15 +599,15 @@ def get_entity_number_state(
 
 
 def get_resource_unidentified_lookups(
-        input_path=None,
-        dataset=None,
-        organisations=[],
-        pipeline=None,
-        specification=None,
-        tmp_dir=None,
-        org_csv_path=None,
-        entity_num_gen=None):
-
+    input_path=None,
+    dataset=None,
+    organisations=[],
+    pipeline=None,
+    specification=None,
+    tmp_dir=None,
+    org_csv_path=None,
+    entity_num_gen=None,
+):
     if not (pipeline or specification or dataset or input_path):
         error_msg = "Failed to perform lookups for resource"
         raise Exception(error_msg)
@@ -604,7 +655,10 @@ def get_resource_unidentified_lookups(
     organisation = Organisation(org_csv_path, Path(pipeline.path))
 
     # print lookups phase
-    flookups = pipeline.lookups()
+    pipeline_lookups = pipeline.lookups()
+    print_lookup_phase = PrintLookupPhase(
+        lookups=pipeline_lookups, entity_num_gen=entity_num_gen
+    )
 
     run_pipeline(
         ConvertPhase(
@@ -648,5 +702,7 @@ def get_resource_unidentified_lookups(
             specification=specification,
         ),
         EntityPrefixPhase(dataset=dataset),
-        PrintLookupPhase(lookups=flookups, entity_num_gen=entity_num_gen)
+        print_lookup_phase,
     )
+
+    return print_lookup_phase.new_lookup_entries
