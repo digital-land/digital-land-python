@@ -53,7 +53,6 @@ def task_preprocess(ctx):
     datasource_log_dir = root_coll_dir / "log"
     issues_log_dir = root_coll_dir / "log"
     log_dir = collection_dir / "log"
-    organisation_dir = root_coll_dir / "organisation"
     tmp_dir = root_coll_dir / "tmp"
     collection_resource_dir = collection_dir / "resource"
 
@@ -61,7 +60,6 @@ def task_preprocess(ctx):
     ctx.obj["DATASOURCE_LOG_DIR"] = datasource_log_dir
     ctx.obj["ISSUES_LOG_DIR"] = issues_log_dir
     ctx.obj["LOG_DIR"] = log_dir
-    ctx.obj["ORGANISATION_DIR"] = organisation_dir
     ctx.obj["TMP_DIR"] = tmp_dir
     ctx.obj["COLLECTION_RESOURCE_DIR"] = collection_resource_dir
 
@@ -70,12 +68,9 @@ def task_preprocess(ctx):
 
     if log_dir.is_dir():
         shutil.rmtree(log_dir)
-    if organisation_dir.is_dir():
-        shutil.rmtree(organisation_dir)
 
     try:
         os.mkdir(log_dir)
-        os.mkdir(organisation_dir)
         os.mkdir(tmp_dir)
     except OSError:
         pass
@@ -222,45 +217,41 @@ def task_generate_lookup_entries(ctx):
     specification_dir = ctx.obj["SPECIFICATION_DIR"]
     tmp_dir = ctx.obj["TMP_DIR"]
 
-    # get organisation.csv
-    copy_successful = copy_latest_organisation_files_to(organisation_dir)
+    # create and initialise entity number generator
+    entity_num_state = get_entity_number_state(
+        dataset=dataset_name,
+        pipeline_dir=pipeline_dir,
+        specification_dir=specification_dir,
+    )
 
-    if copy_successful:
-        # create and initialise entity number generator
-        entity_num_state = get_entity_number_state(
-            dataset=dataset_name,
-            pipeline_dir=pipeline_dir,
-            specification_dir=specification_dir,
-        )
+    entity_num_gen = EntityNumGen(entity_num_state=entity_num_state)
 
-        entity_num_gen = EntityNumGen(entity_num_state=entity_num_state)
+    print("")
+    print("======================================================================")
+    print("New Lookups")
+    print("======================================================================")
 
-        print("")
-        print("======================================================================")
-        print("New Lookups")
-        print("======================================================================")
+    # generate the lookup entries for each new resource
+    dataset_resource_map = collection.dataset_resource_map()
+    all_lookup_entries = []
+    for dataset in dataset_resource_map:
+        for resource in dataset_resource_map[dataset]:
+            resource_file_path = collection_resource_dir / resource
 
-        # generate the lookup entries for each new resource
-        dataset_resource_map = collection.dataset_resource_map()
-        all_lookup_entries = []
-        for dataset in dataset_resource_map:
-            for resource in dataset_resource_map[dataset]:
-                resource_file_path = collection_resource_dir / resource
+            resource_lookups = get_resource_unidentified_lookups(
+                input_path=resource_file_path,
+                dataset=dataset,
+                organisations=collection.resource_organisations(resource),
+                pipeline=pipeline,
+                specification=specification,
+                tmp_dir=tmp_dir.absolute(),
+                org_csv_path=(organisation_dir / "organisation.csv").absolute(),
+                entity_num_gen=entity_num_gen,
+            )
 
-                resource_lookups = get_resource_unidentified_lookups(
-                    input_path=resource_file_path,
-                    dataset=dataset,
-                    organisations=collection.resource_organisations(resource),
-                    pipeline=pipeline,
-                    specification=specification,
-                    tmp_dir=tmp_dir.absolute(),
-                    org_csv_path=(organisation_dir / "organisation.csv").absolute(),
-                    entity_num_gen=entity_num_gen,
-                )
+            all_lookup_entries += resource_lookups
 
-                all_lookup_entries += resource_lookups
-
-        ctx.obj["NEW_LOOKUPS"] = all_lookup_entries
+    ctx.obj["NEW_LOOKUPS"] = all_lookup_entries
 
 
 def task_update_lookup_csv(ctx):
@@ -471,7 +462,6 @@ def postprocess_collection_csvs(ctx):
     """
     tmp_dir = ctx.obj["TMP_DIR"]
     collection_resource_dir = ctx.obj["COLLECTION_RESOURCE_DIR"]
-    organisation_dir = ctx.obj["ORGANISATION_DIR"]
 
     source_csv_path = ctx.obj["COLLECTION_DIR"] / "source.csv"
     source_csv_backup_path = ctx.obj["COLLECTION_DIR"] / "source.csv.bak"
@@ -488,8 +478,6 @@ def postprocess_collection_csvs(ctx):
         shutil.rmtree(tmp_dir)
     if collection_resource_dir.is_dir():
         shutil.rmtree(collection_resource_dir)
-    if organisation_dir.is_dir():
-        shutil.rmtree(organisation_dir)
 
     # merge existing source.csv and endpoint.csv entries with new ones
     try:

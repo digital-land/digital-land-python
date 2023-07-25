@@ -232,11 +232,14 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
 @cli.command("add-endpoint-and-lookups")
 @click.argument("csv-path", nargs=1, type=click.Path())
 @collection_dir
+@organisation_path
 @click.option(
     "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
 )
 @click.pass_context
-def add_endpoint_and_lookups_cmd(ctx, csv_path, collection_dir, specification_dir):
+def add_endpoint_and_lookups_cmd(
+    ctx, csv_path, collection_dir, specification_dir, organisation_path
+):
     """
     adds new resources to the collection, based on records in csv_path
     :param ctx:
@@ -252,5 +255,6 @@ def add_endpoint_and_lookups_cmd(ctx, csv_path, collection_dir, specification_di
     ctx.obj["COLLECTION_DIR"] = Path(collection_dir)
     ctx.obj["CSV_FILE_PATH"] = Path(csv_file_path)
     ctx.obj["SPECIFICATION_DIR"] = Path(specification_dir)
+    ctx.obj["ORGANISATION_DIR"] = Path(organisation_path)
 
     return add_endpoints_and_lookups(ctx)
