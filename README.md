@@ -83,7 +83,8 @@ python dependencies required by digital-land-python
 -s [SPECIFICATION-DIR] \
 add-endpoint-and-lookups \
 [CSV-PATH/new_endpoints.csv] \
--c [COLL-DIR]/collection
+-c [COLL-DIR]/collection \
+-o [ORGANISATION-DIR]
 ```
 
 #### 5. check assigned entities are normal
