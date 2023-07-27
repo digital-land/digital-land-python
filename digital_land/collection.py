@@ -1,10 +1,12 @@
+import hashlib
 import logging
 import re
+
 from datetime import datetime
 from pathlib import Path
 
 from .makerules import pipeline_makerules
-from .register import hash_value
+from .register import hash_value, Item
 from .schema import Schema
 from .store.csv import CSVStore
 from .store.item import ItemStore
@@ -155,6 +157,10 @@ class Collection:
     def __init__(self, name=None, directory=collection_directory):
         self.name = name
         self.directory = directory
+        self.validate = self.Validate()
+        self.new_sources = []
+        self.new_endpoints = []
+        self.new_lookups = []
 
     def load_log_items(self, directory=None, log_directory=None):
         if not log_directory:
@@ -254,3 +260,194 @@ class Collection:
                         dataset_resource.setdefault(dataset, set())
                         dataset_resource[dataset].add(resource)
         return dataset_resource
+
+    @staticmethod
+    def format_date(date_val) -> str:
+        if type(date_val) is datetime:
+            str_date_fmt = date_val.strftime("%Y-%m-%d")
+        elif type(date_val) is int:
+            param_start_date_str = str(date_val)
+            param_start_date_dt = datetime.strptime(param_start_date_str, "%Y%m%d")
+            if type(param_start_date_dt) is datetime:
+                str_date_fmt = param_start_date_dt.strftime("%Y-%m-%d")
+        else:
+            str_date_fmt = datetime.now().strftime("%Y-%m-%d")
+
+        return str_date_fmt
+
+    def add_source_endpoint(self, entry: dict = None, endpoint_url: str = None):
+        if not entry:
+            return
+        if not endpoint_url:
+            return
+
+        entry["collection"] = self.name
+        entry["endpoint-url"] = endpoint_url
+
+        # check that entry contains allowed columns names
+        allowed_names = set(
+            list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
+        )
+
+        for entry_key in entry.keys():
+            if entry_key not in allowed_names:
+                logging.error(f"unrecognised argument '{entry_key}'")
+                continue
+
+        # add entries to source and endpoint csvs
+        entry["endpoint"] = hash_value(entry["endpoint-url"])
+
+        self.add_endpoint(entry)
+        self.add_source(entry)
+
+        self.recalculate_source_hashes()
+        self.save_csv()
+
+    def add_source(self, entry: dict = None):
+        item = Item(
+            {
+                "source": entry.get("source", ""),
+                "collection": entry["collection"],
+                "pipelines": entry.get("pipelines", entry["collection"]),
+                "organisation": entry.get("organisation", ""),
+                "endpoint": entry["endpoint"],
+                "documentation-url": entry.get("documentation-url", ""),
+                "licence": entry.get("licence", ""),
+                "attribution": entry.get("attribution", ""),
+                "entry-date": self.entry_date(entry),
+                "start-date": self.start_date(entry),
+                "end-date": self.end_date(entry),
+            }
+        )
+
+        if self.validate.source_entry(item):
+            self.source.add_entry(item)
+            self.new_sources.append(item)
+
+    def add_endpoint(self, entry: dict = None):
+        item = Item(
+            {
+                "endpoint": entry["endpoint"],
+                "endpoint-url": entry["endpoint-url"],
+                "plugin": entry.get("plugin", ""),
+                "parameters": entry.get("parameters", ""),
+                "entry-date": self.entry_date(entry),
+                "start-date": self.start_date(entry),
+                "end-date": self.end_date(entry),
+            }
+        )
+
+        if self.validate.endpoint_entry(item):
+            self.endpoint.add_entry(item)
+            self.new_endpoints.append(item)
+
+    def recalculate_source_hashes(self):
+        for entry in self.source.entries:
+            key = "%s|%s|%s" % (
+                entry["collection"],
+                entry["organisation"],
+                entry["endpoint"],
+            )
+            entry["source"] = hashlib.md5(key.encode()).hexdigest()
+
+    def start_date(self, entry):
+        if entry.get("start-date", ""):
+            return datetime.strptime(entry["start-date"], "%Y-%m-%d").date()
+        return ""
+
+    def end_date(self, entry):
+        if entry.get("end-date", ""):
+            return datetime.strptime(entry["end-date"], "%Y-%m-%d").date()
+        return ""
+
+    def entry_date(self, entry):
+        return entry.get(
+            "entry-date", datetime.utcnow().strftime("%Y-%m-%dT%H:%H:%M:%SZ")
+        )
+
+    class Validate:
+        """
+        This validator class provides a centralised place to perform
+        checks against fields used during the collection process
+        """
+
+        def __init__(self):
+            pass
+
+        @staticmethod
+        def endpoint_url(endpoint_val: str = None) -> bool:
+            """
+            Checks whether the supplied parameter is valid according to
+            business rules
+            :param endpoint_val:
+            :return: Boolean
+            """
+            if not endpoint_val:
+                return False
+            if type(endpoint_val) is float:
+                return False
+
+            return True
+
+        @staticmethod
+        def organisation_name(org_name_val: str = None) -> bool:
+            """
+            Checks whether the supplied parameter is valid according to
+            business rules
+            :param org_name_val:
+            :return: Boolean
+            """
+            if not org_name_val:
+                return False
+            if type(org_name_val) is float:
+                return False
+
+            return True
+
+        @staticmethod
+        def reference(ref_val: str = None) -> bool:
+            """
+            Checks whether the supplied parameter is valid according to
+            business rules
+            :return: Boolean
+            """
+            if not ref_val:
+                return False
+            if type(ref_val) is float:
+                return False
+
+            return True
+
+        @staticmethod
+        def source_entry(source_item: Item = None) -> bool:
+            """
+            Checks whether the supplied parameter is valid according to
+            business rules
+            :return: Boolean
+            """
+            if not source_item:
+                return False
+            if not source_item["collection"]:
+                return False
+            if not source_item["organisation"]:
+                return False
+            if not source_item["endpoint"]:
+                return False
+
+            return True
+
+        @staticmethod
+        def endpoint_entry(endpoint_item: Item = None) -> bool:
+            """
+            Checks whether the supplied parameter is valid according to
+            business rules
+            :return: Boolean
+            """
+            if not endpoint_item:
+                return False
+            if not endpoint_item["endpoint"]:
+                return False
+            if not endpoint_item["endpoint-url"]:
+                return False
+
+            return True
