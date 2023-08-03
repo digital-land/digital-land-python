@@ -1,4 +1,6 @@
 import shapely.wkt
+import json
+from shapely.geometry import shape
 from shapely.errors import WKTReadingError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
@@ -58,7 +60,11 @@ def parse_wkt(value):
     try:
         geometry = shapely.wkt.loads(value)
     except WKTReadingError:
-        return None, "invalid WKT"
+        try:
+            geometry = shapely.wkt.loads(shape(json.loads(value)).wkt)
+            return geometry, "invalid type geojson"
+        except Exception:
+            return None, "invalid WKT"
 
     if geometry.geom_type in ["Point", "LineString"]:
         first_point = geometry.coords[0]
