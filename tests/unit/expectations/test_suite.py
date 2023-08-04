@@ -40,8 +40,6 @@ def test_run_expectation_success(mocker, test_expectation_function):
         "expectation": "test_expectation_function",
         "number_1": 5,
         "number_2": 2,
-        "description": "",
-        "tags": {},
     }
 
     suite = DatasetExpectationSuite(
@@ -75,7 +73,6 @@ def test_run_expectation_tags_are_included(mocker, test_expectation_function):
         "expectation": "test_expectation_function",
         "number_1": 5,
         "number_2": 2,
-        "description": "",
         "tags": tags,
     }
 

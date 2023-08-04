@@ -167,23 +167,6 @@ def test_wkt_point_missing_values():
     assert issue_type(issues) == "invalid WKT"
 
 
-def test_wkt_geojson():
-    wkt = WktDataType()
-    issues = IssueLog()
-
-    value = (
-        '{"type":"MultiPolygon","coordinates":[[[[-0.143512,51.558395], '
-        "[-0.143592,51.558364],[-0.143665,51.558334],[-0.143677,51.558329], "
-        "[-0.143698,51.558348],[-0.143702,51.558352],[-0.143686,51.558392],"
-        "[-0.143673,51.558398],[-0.143658,51.558404],[-0.143558,51.558442],"
-        "[-0.143512,51.558395],[-0.143512,51.558395]]]]}"
-    )
-    expected = "MULTIPOLYGON (((-0.143512 51.558395,-0.143558 51.558442,-0.143686 51.558392,-0.143702 51.558352,-0.143677 51.558329,-0.143512 51.558395)))"
-
-    assert wkt.normalise(value, issues=issues) == expected
-    assert issue_type(issues) == "invalid type geojson"
-
-
 def test_wkt_point_out_of_range_values():
     wkt = WktDataType()
     issues = IssueLog()

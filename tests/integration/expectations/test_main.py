@@ -68,8 +68,6 @@ def test_run_expectation_suite_success(tmp_path, sqlite3_with_entity_table_path)
                 "expectation": "count_entities",
                 "filters": filters,
                 "expected_result": 1,
-                "description": "",
-                "tags": {},
             }
         ]
     }
@@ -119,8 +117,6 @@ def test_run_expectation_suite_fails_with_critical_failure(
                 "expectation": "count_entities",
                 "filters": filters,
                 "expected_result": 2,
-                "description": "",
-                "tags": {},
             }
         ]
     }
