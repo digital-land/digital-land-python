@@ -87,6 +87,8 @@ def test_run_expectation_suite(mocker, tmp_path, test_expectation_function):
                 "expectation": "test_expectation_function",
                 "number_1": 5,
                 "number_2": 2,
+                "description": "",
+                "tags": {},
             }
         ]
     }
@@ -134,13 +136,13 @@ def example_response():
         result=True,
         severity="critical",
         msg="Success",
-        details=None,
+        details={},
         data_name="test",
         data_path="test.sqlite3",
         name="number 1 is bigger than number 2",
-        description=None,
+        description="",
         expectation="test_expectation_function",
-        entry_date=None,
+        entry_date="",
     )
     return response
 
