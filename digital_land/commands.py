@@ -23,7 +23,11 @@ from digital_land.phase.dump import DumpPhase
 from digital_land.phase.factor import FactorPhase
 from digital_land.phase.filter import FilterPhase
 from digital_land.phase.harmonise import HarmonisePhase
-from digital_land.phase.lookup import EntityLookupPhase, FactLookupPhase
+from digital_land.phase.lookup import (
+    EntityLookupPhase,
+    FactLookupPhase,
+    PrintLookupPhase,
+)
 from digital_land.phase.map import MapPhase
 from digital_land.phase.migrate import MigratePhase
 from digital_land.phase.normalise import NormalisePhase
@@ -35,9 +39,10 @@ from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrunePhase
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.save import SavePhase
-from digital_land.pipeline import run_pipeline
+from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
+from .register import hash_value
 
 
 def fetch(url, pipeline):
@@ -411,21 +416,143 @@ def add_endpoints_and_lookups(ctx):
     """
     from digital_land.utils.add_endpoints_utils import (
         task_preprocess,
-        task_create_source_and_endpoint_entries,
-        task_collect_resources,
-        task_populate_resource_and_log_csvs,
+        # task_create_source_and_endpoint_entries,
+        # task_collect_resources,
+        # task_populate_resource_and_log_csvs,
         task_generate_lookup_entries,
-        task_postprocess,
+        # task_postprocess,
     )
 
+    # removed because I'm not sure what it was doing that we couldn't add here is we need to
     task_preprocess(ctx)
 
-    task_create_source_and_endpoint_entries(ctx)
-    task_collect_resources(ctx)
-    task_populate_resource_and_log_csvs(ctx)
-    task_generate_lookup_entries(ctx)
+    #  removed this function and brought remaining contents here, I reduced the amount if was doing
+    # by increasing the amount handled by the collection and the classes it contains
+    # task_create_source_and_endpoint_entries(ctx)
+    csv_file_path = ctx.obj["CSV_FILE_PATH"]
+    collection_dir = ctx.obj["COLLECTION_DIR"].absolute()
 
-    task_postprocess(ctx)
+    expected_cols = [
+        "pipelines",
+        "organisation",
+        "name",
+        "documentation-url",
+        "endpoint-url",
+        "start-date",
+    ]
+    # need to get collection name from somewhere
+    collection = Collection(name="add this in", directory=collection_dir)
+    collection.load()
+
+    # read and process each record of the new endpoints csv at csv_file_path
+    line_number = 2
+    with open(csv_file_path) as new_endpoints_file:
+        reader = csv.DictReader(new_endpoints_file)
+        csv_columns = reader.fieldnames
+
+        # validate the columns
+        for expected_col in expected_cols:
+            if expected_col not in csv_columns:
+                raise Exception(f"required column ({expected_col}) not found in csv")
+
+        # this is not perfect we should riase validation errors in our code and below should include a try and except statement
+        endpoints = []
+        for row in reader:
+            collection.add_source_endpoint(row)
+            endpoint = {
+                "endpoint-url": row["endpoint-url"],
+                "endpoint": hash_value(row["endpoint-url"]),
+                "end-date": row.get("end-date", ""),
+                "plugin": row.get("plugin"),
+            }
+            endpoints.append(endpoint)
+            line_number += 1
+        # all endpoints have been added successfully
+        collection.save_csv()
+
+    # endpoints have been added now lets collect the resources using the endpoint information
+    collector = Collector("not used", collection_dir)
+    # I might bring the new endpoints back I think it could work quite well but I figured I'd try without it first
+    for endpoint in endpoints:
+        collector.fetch(
+            endpoint["endpoint-url"],
+            endpoint["endpoint"],
+            endpoint["end-date"],
+            endpoint["plugin"],
+        )
+    # reduced to 7 lines above so removed the need to get a separate function
+    # task_collect_resources(ctx)
+
+    # I'm assuming we do thisto get the most recent resources we can replace this with the method function
+    # task_populate_resource_and_log_csvs(ctx)
+    collection.load_log_items()
+
+    # we've made it to the final step this may need more drastic changes to our code base
+    task_generate_lookup_entries(ctx)
+    pipeline_dir = ctx.obj["PIPELINE_DIR"]
+    # pipeline won't come from ctx, we'll be running multiple pipelines
+    # pipeline = ctx.obj["PIPELINE"]
+    # dataset_name = pipeline.name
+    #  already have collection
+    # collection = ctx.obj["COLLECTION"]
+    #  can be extracted from collection
+    # collection_resource_dir = ctx.obj["COLLECTION_RESOURCE_DIR"]
+    organisation_dir = ctx.obj["ORGANISATION_DIR"]
+
+    # don't need both of the below
+    specification = ctx.obj["SPECIFICATION"]
+    # specification_dir = ctx.obj["SPECIFICATION_DIR"]
+
+    # do need
+    tmp_dir = ctx.obj["TMP_DIR"]
+
+    # this calls for interaction with lookups and for us to revisit it let's play with a lookups class
+    # I've made a brief one to trial out although this should be done in some sort of loop
+    lookups = Lookups(pipeline_dir)
+    # entity_num_gen = EntityNumGen()
+    # entity_num_gen.load_entity_state(
+    #     dataset=dataset_name,
+    #     pipeline_dir=pipeline_dir,
+    #     specification_dir=specification_dir,
+    # )
+
+    print("")
+    print("======================================================================")
+    print("New Lookups")
+    print("======================================================================")
+
+    # generate the lookup entries for each new resource
+    dataset_resource_map = collection.dataset_resource_map()
+    new_lookups = []
+    #  use a different loop we are searching for the specific resources that we have downloaded
+    for dataset in dataset_resource_map:
+        for resource in dataset_resource_map[dataset]:
+            resource_endpoints = collection.resource_endpoints(resource)
+            # this is too complicated aha
+            if any(
+                endpoint in [new_endpoint["endpoint"] for new_endpoint in endpoints]
+                for endpoint in resource_endpoints
+            ):
+                resource_file_path = Path(collection_dir) / "resource" / resource
+                # annoyingly will need to re-establish pipeline each time as it's dataset specific
+                pipeline = Pipeline(pipeline_dir, dataset)
+                resource_lookups = get_resource_unidentified_lookups(
+                    input_path=resource_file_path,
+                    dataset=dataset,
+                    organisations=collection.resource_organisations(resource),
+                    pipeline=pipeline,
+                    specification=specification,
+                    tmp_dir=tmp_dir.absolute(),
+                    org_csv_path=(organisation_dir / "organisation.csv").absolute(),
+                )
+
+                new_lookups.append(resource_lookups)
+
+    # save new lookups to file
+    for new_lookup in new_lookups:
+        lookups.validate_entry(new_lookup)
+        lookups.add_entry(new_lookup)
+    lookups.save_csv()
 
 
 def resource_from_path(path):
@@ -435,3 +562,110 @@ def resource_from_path(path):
 def default_output_path(command, input_path):
     directory = "" if command in ["harmonised", "transformed"] else "var/"
     return f"{directory}{command}/{resource_from_path(input_path)}.csv"
+
+
+def get_resource_unidentified_lookups(
+    input_path,
+    dataset,
+    pipeline=None,
+    organisations=[],
+    specification=None,
+    tmp_dir=None,
+    org_csv_path=None,
+):
+    if not (pipeline or specification or dataset or input_path):
+        error_msg = "Failed to perform lookups for resource"
+        raise Exception(error_msg)
+
+    # convert phase inputs
+    resource = resource_from_path(input_path)
+    dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
+    custom_temp_dir = tmp_dir  # './var'
+
+    print("")
+    print("----------------------------------------------------------------------")
+    print(f">>> organisations:{organisations}")
+    print(f">>> resource:{resource}")
+    print("----------------------------------------------------------------------")
+
+    # normalise phase inputs
+    skip_patterns = pipeline.skip_patterns(resource)
+    null_path = None
+
+    # concat field phase
+    concats = pipeline.concatenations(resource)
+    column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
+
+    # map phase
+    intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
+    columns = pipeline.columns(resource)
+
+    # patch phase
+    patches = pipeline.patches(resource=resource)
+
+    # harmonize phase
+    issue_log = IssueLog(dataset=dataset, resource=resource)
+
+    # default phase
+    default_fields = pipeline.default_fields(resource=resource)
+    default_values = pipeline.default_values(endpoints=[])
+
+    if len(organisations) == 1:
+        default_values["organisation"] = organisations[0]
+
+    # migrate phase
+    schema = specification.pipeline[pipeline.name]["schema"]
+
+    # organisation phase
+    organisation = Organisation(org_csv_path, Path(pipeline.path))
+
+    # print lookups phase
+    pipeline_lookups = pipeline.lookups()
+    print_lookup_phase = PrintLookupPhase(lookups=pipeline_lookups)
+
+    run_pipeline(
+        ConvertPhase(
+            path=input_path,
+            dataset_resource_log=dataset_resource_log,
+            custom_temp_dir=custom_temp_dir,
+        ),
+        NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+        ParsePhase(),
+        ConcatFieldPhase(concats=concats, log=column_field_log),
+        MapPhase(
+            fieldnames=intermediate_fieldnames,
+            columns=columns,
+            log=column_field_log,
+        ),
+        FilterPhase(filters=pipeline.filters(resource)),
+        PatchPhase(
+            issues=issue_log,
+            patches=patches,
+        ),
+        HarmonisePhase(
+            specification=specification,
+            issues=issue_log,
+        ),
+        DefaultPhase(
+            default_fields=default_fields,
+            default_values=default_values,
+            issues=issue_log,
+        ),
+        # TBD: move migrating columns to fields to be immediately after map
+        # this will simplify harmonisation and remove intermediate_fieldnames
+        # but effects brownfield-land and other pipelines which operate on columns
+        MigratePhase(
+            fields=specification.schema_field[schema],
+            migrations=pipeline.migrations(),
+        ),
+        OrganisationPhase(organisation=organisation),
+        FieldPrunePhase(fields=specification.current_fieldnames(schema)),
+        EntityReferencePhase(
+            dataset=dataset,
+            specification=specification,
+        ),
+        EntityPrefixPhase(dataset=dataset),
+        print_lookup_phase,
+    )
+
+    return print_lookup_phase.new_lookup_entries

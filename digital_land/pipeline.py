@@ -3,6 +3,7 @@ import csv
 import functools
 import importlib.util
 import logging
+from pathlib import Path
 
 from .phase.map import normalise
 from .phase.lookup import key as lookup_key
@@ -289,3 +290,55 @@ class Pipeline:
         chain = self.compose(phases)
         for row in chain(input_path):
             pass
+
+
+class Lookups:
+    def __init__(self, directory=None) -> None:
+        self.directory = directory or "pipeline"
+        self.lookups_path = Path(directory) / "lookup.csv"
+        self.entries = []
+
+    def add_entry(self, entry):
+        self.entries.append(entry)
+
+    def load_csv(self, lookups_path=None):
+        """
+        load in lookups as df, not when we process pipeline but useful for other analysis
+        """
+        lookups_path = lookups_path or self.lookups_path
+        reader = csv.DictReader(open(lookups_path, newline=""))
+        for row in reader:
+            self.add_entry(row)
+
+    def get_max_entity(self, prefix):
+        return max(
+            [
+                int(entry["entity"])
+                for entry in self.entries
+                if entry["prefix"] == prefix
+            ]
+        )
+
+    def save_csv(self, lookups_path=None, entries=None):
+        path = lookups_path or self.lookups_path
+
+        if entries is None:
+            entries = self.entries
+
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        logging.debug("saving %s" % (path))
+        f = open(path, "w", newline="")
+        writer = csv.DictWriter(
+            f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
+        )
+        writer.writeheader()
+        for entry in entries:
+            writer.writerow(entry)
+
+    @staticmethod
+    def validate_entry(entry):
+        expected_fields = ["prefix", "organisation", "reference"]
+        for field in expected_fields:
+            # ensures minimum expected fields exist and are not empty strings
+            if not entry.get(field, ""):
+                raise ValueError()

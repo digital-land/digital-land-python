@@ -39,3 +39,49 @@ class CSVStore(MemoryStore):
 
     def save(self, *args, **kwargs):
         self.save_csv(*args, **kwargs)
+
+    #  I think your right about validators, it should be a separate class that this one just calls this will help with making it a static method if
+    # we need to
+    @staticmethod
+    def endpoint_url(endpoint_val: str = None) -> bool:
+        """
+        Checks whether the supplied parameter is valid according to
+        business rules
+        :param endpoint_val:
+        :return: Boolean
+        """
+        if not endpoint_val:
+            return False
+        if type(endpoint_val) is float:
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_organisation(org_name_val: str = None) -> bool:
+        """
+        Checks whether the supplied parameter is valid according to
+        business rules
+        :param org_name_val:
+        :return: Boolean
+        """
+        if not org_name_val:
+            return False
+        if type(org_name_val) is float:
+            return False
+
+        return True
+
+    @staticmethod
+    def reference(ref_val: str = None) -> bool:
+        """
+        Checks whether the supplied parameter is valid according to
+        business rules
+        :return: Boolean
+        """
+        if not ref_val:
+            return False
+        if type(ref_val) is float:
+            return False
+
+        return True

@@ -4,32 +4,33 @@ import os
 import shutil
 import pandas as pd
 
-from collections import defaultdict
+# from collections import defaultdict
 
 from digital_land.collect import Collector
 from digital_land.collection import Collection, ResourceLogStore
-from digital_land.commands import resource_from_path
-from digital_land.log import DatasetResourceLog, ColumnFieldLog, IssueLog
 
-from digital_land.phase.concat import ConcatFieldPhase
-from digital_land.phase.convert import ConvertPhase
-from digital_land.phase.default import DefaultPhase
-from digital_land.phase.filter import FilterPhase
-from digital_land.phase.harmonise import HarmonisePhase
-from digital_land.phase.lookup import key
-from digital_land.phase.map import MapPhase
-from digital_land.phase.migrate import MigratePhase
-from digital_land.phase.normalise import NormalisePhase
-from digital_land.phase.organisation import OrganisationPhase
-from digital_land.phase.parse import ParsePhase
-from digital_land.phase.patch import PatchPhase
-from digital_land.phase.phase import Phase
-from digital_land.phase.prefix import EntityPrefixPhase
-from digital_land.phase.prune import FieldPrunePhase
-from digital_land.phase.reference import EntityReferencePhase
+# from digital_land.commands import resource_from_path
+# from digital_land.log import DatasetResourceLog, ColumnFieldLog, IssueLog
 
-from digital_land.pipeline import run_pipeline
-from digital_land.organisation import Organisation
+# from digital_land.phase.concat import ConcatFieldPhase
+# from digital_land.phase.convert import ConvertPhase
+# from digital_land.phase.default import DefaultPhase
+# from digital_land.phase.filter import FilterPhase
+# from digital_land.phase.harmonise import HarmonisePhase
+# from digital_land.phase.lookup import key
+# from digital_land.phase.map import MapPhase
+# from digital_land.phase.migrate import MigratePhase
+# from digital_land.phase.normalise import NormalisePhase
+# from digital_land.phase.organisation import OrganisationPhase
+# from digital_land.phase.parse import ParsePhase
+# from digital_land.phase.patch import PatchPhase
+# from digital_land.phase.phase import Phase
+# from digital_land.phase.prefix import EntityPrefixPhase
+# from digital_land.phase.prune import FieldPrunePhase
+# from digital_land.phase.reference import EntityReferencePhase
+
+# from digital_land.pipeline import run_pipeline
+# from digital_land.organisation import Organisation
 from digital_land.schema import Schema
 from digital_land.store.item import ItemStore
 from digital_land.register import hash_value
@@ -72,6 +73,8 @@ def task_preprocess(ctx):
         pass
 
 
+# I removed a lot from this function, after looking at what's left I lifted it and moved it to the main function
+# removed this.
 def task_create_source_and_endpoint_entries(ctx):
     """
     appends entries to both source.csv and endpoints.csv from
@@ -84,19 +87,21 @@ def task_create_source_and_endpoint_entries(ctx):
     collection_dir = ctx.obj["COLLECTION_DIR"].absolute()
 
     expected_cols = [
-        "dataset",
+        "pipelines",
         "organisation",
         "name",
         "documentation-url",
         "endpoint-url",
         "start-date",
     ]
-
-    collection = Collection()
+    # need to get collection name from somewhere
+    collection = Collection(name="add this in", directory=collection_dir)
     ctx.obj["COLLECTION"] = collection
 
-    collection.name = ctx.obj["DATASET"]
-    collection.directory = collection_dir
+    # moved name and directory to class initialisation the collection name is not the same as the dataset. We probably need to
+    # get rid of it completely but let's not figure that out today
+    # collection.name = ctx.obj["DATASET"]
+    # collection.directory = collection_dir
     collection.load()
 
     # read and process each record of the new endpoints csv at csv_file_path
@@ -111,52 +116,65 @@ def task_create_source_and_endpoint_entries(ctx):
                 raise Exception(f"required column ({expected_col}) not found in csv")
 
         for row in reader:
-            param_dataset = row["dataset"]
-            param_endpoint_url = row["endpoint-url"]
-            param_documentation_url = row["documentation-url"]
-            param_organisation_name = row["organisation"]
-            param_reference = row["name"]
-            param_start_date = row["start-date"]
+            # not sure we need to define all of these as individual parameters
+            # param_dataset = row["dataset"]
+            # param_endpoint_url = row["endpoint-url"]
+            # param_documentation_url = row["documentation-url"]
+            # param_organisation_name = row["organisation"]
+            # param_reference = row["name"]
+            # param_start_date = row["start-date"]
 
-            if not ctx.obj["PIPELINE"].name:
-                ctx.obj["PIPELINE"].name = param_dataset
+            # we may need to add this back in somehow. to enable this function to add data for multiple datasets
+            # if not ctx.obj["PIPELINE"].name:
+            #     ctx.obj["PIPELINE"].name = param_dataset
 
             # validate csv file data
-            if not collection.validate.organisation_name(param_organisation_name):
-                err_msg = f"ERROR: line {line_number} - organisation name ({param_organisation_name}) is not valid"
-                logging.error(err_msg)
-                raise ValueError(err_msg)
-            if not collection.validate.reference(param_reference):
-                err_msg = f"ERROR: line {line_number} - reference ({param_reference}) is not valid"
-                logging.error(err_msg)
-                raise ValueError(err_msg)
-            if not collection.validate.endpoint_url(param_endpoint_url):
-                err_msg = f"ERROR: line {line_number} - endpoint ({param_endpoint_url}) is not valid"
-                logging.error(err_msg)
-                raise ValueError(err_msg)
+            # this validation can happen when adding the entry
+            # if not collection.validate.organisation_name(param_organisation_name):
+            #     err_msg = f"ERROR: line {line_number} - organisation name ({param_organisation_name}) is not valid"
+            #     logging.error(err_msg)
+            #  perhaps we should figure out how to get the validators to raise the value error
+            #     raise ValueError(err_msg)
+            # not too sure what the name is? as far as I can see it's not used anywhere
+            # if not collection.validate.reference(param_reference):
+            #     err_msg = f"ERROR: line {line_number} - reference ({param_reference}) is not valid"
+            #     logging.error(err_msg)
+            #     raise ValueError(err_msg)
+            #  all these validations are the same and can all be done somewhere else
+            # if not collection.validate.endpoint_url(param_endpoint_url):
+            #     err_msg = f"ERROR: line {line_number} - endpoint ({param_endpoint_url}) is not valid"
+            #     logging.error(err_msg)
+            #     raise ValueError(err_msg)
 
             # transform date format
-            str_date_fmt = collection.format_date(param_start_date)
+            # an be called when data is added
+            # str_date_fmt = collection.format_date(param_start_date)
 
-            # prepare row for processing
-            entry = defaultdict(str)
-            entry["collection"] = param_dataset
-            entry["organisation"] = param_organisation_name
-            entry["licence"] = param_reference
-            entry["attribution"] = param_reference
-            entry["documentation-url"] = param_documentation_url
-            entry["start-date"] = str_date_fmt
-            entry["end-date"] = ""
-            entry["pipelines"] = param_dataset
+            # prepare row for processing assuming that the column check passed earlier (our minimum columsn needed)
+            # we can pass the whole lot in
+            # entry = defaultdict(str)
+            # entry["collection"] = param_dataset
+            # entry["organisation"] = param_organisation_name
+            # entry["licence"] = param_reference
+            # entry["attribution"] = param_reference
+            # entry["documentation-url"] = param_documentation_url
+            # entry["start-date"] = str_date_fmt
+            # entry["end-date"] = ""
+            # entry["pipelines"] = param_dataset
 
             # process valid row entries
-            collection.add_source_endpoint(entry, param_endpoint_url)
+            collection.add_source_endpoint(row)
 
             line_number += 1
+        # all endpoints have been added successfully
+        collection.save_csv()
 
     return
 
 
+# this looks pretty good, again I'm going to move it all to the command. I think althought the command might
+# get pretty long it will make the code easier for others to see and again encourage to hide more of code in
+# methods which hopefully can be used elsewhere
 def task_collect_resources(ctx):
     collection = ctx.obj["COLLECTION"]
     pipeline = ctx.obj["PIPELINE"]
@@ -178,6 +196,8 @@ def task_collect_resources(ctx):
         )
 
 
+# I don't think we need to do this in this process or do we? I suppose we could use it to check all of the added endpoints
+# were downloaded? I have removed for now
 def task_populate_resource_and_log_csvs(ctx):
     collection = ctx.obj["COLLECTION"]
     logs_path = ctx.obj["COLLECTION_DIR"] / "log/*/"
@@ -194,6 +214,8 @@ def task_populate_resource_and_log_csvs(ctx):
     collection.resource.save_csv(directory=collection.directory)
 
 
+#  I have taken this and moved it to commands inside the general function, by moving everything to one place
+#  we can review complexities and pissibly lookto simplify then where possible
 def task_generate_lookup_entries(ctx):
     """
     uses the dataset entity ID ranges declared in specification, and collected
@@ -202,22 +224,23 @@ def task_generate_lookup_entries(ctx):
     :return:
     """
 
-    pipeline_dir = ctx.obj["PIPELINE_DIR"]
-    pipeline = ctx.obj["PIPELINE"]
-    dataset_name = pipeline.name
-    collection = ctx.obj["COLLECTION"]
-    collection_resource_dir = ctx.obj["COLLECTION_RESOURCE_DIR"]
-    organisation_dir = ctx.obj["ORGANISATION_DIR"]
-    specification = ctx.obj["SPECIFICATION"]
-    specification_dir = ctx.obj["SPECIFICATION_DIR"]
-    tmp_dir = ctx.obj["TMP_DIR"]
+    # pipeline_dir = ctx.obj["PIPELINE_DIR"]
+    # pipeline = ctx.obj["PIPELINE"]
+    # dataset_name = pipeline.name
+    # collection = ctx.obj["COLLECTION"]
+    # collection_resource_dir = ctx.obj["COLLECTION_RESOURCE_DIR"]
+    # organisation_dir = ctx.obj["ORGANISATION_DIR"]
+    # specification = ctx.obj["SPECIFICATION"]
+    # specification_dir = ctx.obj["SPECIFICATION_DIR"]
+    # tmp_dir = ctx.obj["TMP_DIR"]
 
-    entity_num_gen = EntityNumGen()
-    entity_num_gen.load_entity_state(
-        dataset=dataset_name,
-        pipeline_dir=pipeline_dir,
-        specification_dir=specification_dir,
-    )
+    # # this calls for interaction with lookups and for us to revisit it let's play with a lookups class
+    # entity_num_gen = EntityNumGen()
+    # entity_num_gen.load_entity_state(
+    #     dataset=dataset_name,
+    #     pipeline_dir=pipeline_dir,
+    #     specification_dir=specification_dir,
+    # )
 
     print("")
     print("======================================================================")
@@ -225,32 +248,33 @@ def task_generate_lookup_entries(ctx):
     print("======================================================================")
 
     # generate the lookup entries for each new resource
-    dataset_resource_map = collection.dataset_resource_map()
-    for dataset in dataset_resource_map:
-        for resource in dataset_resource_map[dataset]:
-            resource_file_path = collection_resource_dir / resource
+    # dataset_resource_map = collection.dataset_resource_map()
+    # for dataset in dataset_resource_map:
+    #     for resource in dataset_resource_map[dataset]:
+    #         resource_file_path = collection_resource_dir / resource
 
-            resource_lookups = get_resource_unidentified_lookups(
-                input_path=resource_file_path,
-                dataset=dataset,
-                organisations=collection.resource_organisations(resource),
-                pipeline=pipeline,
-                specification=specification,
-                tmp_dir=tmp_dir.absolute(),
-                org_csv_path=(organisation_dir / "organisation.csv").absolute(),
-                entity_num_gen=entity_num_gen,
-            )
+    #         # resource_lookups = get_resource_unidentified_lookups(
+    #         #     input_path=resource_file_path,
+    #         #     dataset=dataset,
+    #         #     organisations=collection.resource_organisations(resource),
+    #         #     pipeline=pipeline,
+    #         #     specification=specification,
+    #         #     tmp_dir=tmp_dir.absolute(),
+    #         #     org_csv_path=(organisation_dir / "organisation.csv").absolute(),
+    #         #     entity_num_gen=entity_num_gen,
+    #         # )
 
-            collection.new_lookups += resource_lookups
+    #         collection.new_lookups += resource_lookups
 
-    # save new lookups to file
-    lookup_csv_path = ctx.obj["PIPELINE_DIR"] / "lookup.csv"
-    if lookup_csv_path.is_file():
-        with open(lookup_csv_path, "a") as file:
-            for line in collection.new_lookups:
-                file.write(f"{line[0]}\n")
+    # # save new lookups to file
+    # lookup_csv_path = ctx.obj["PIPELINE_DIR"] / "lookup.csv"
+    # if lookup_csv_path.is_file():
+    #     with open(lookup_csv_path, "a") as file:
+    #         for line in collection.new_lookups:
+    #             file.write(f"{line[0]}\n")
 
 
+#  again not needed
 def task_postprocess(ctx):
     postprocess_collection_csvs(ctx)
 
@@ -258,6 +282,7 @@ def task_postprocess(ctx):
 # =====================================================================
 # Supporting functions and classes
 # =====================================================================
+#  I have also removed this but itwas unclear what it was doing but all the methods should be in collection or the logs it already has
 class CollectionLogStore(ItemStore):
     def load_item(self, path):
         item = super().load_item(path)
@@ -313,6 +338,7 @@ class CollectionLogStore(ItemStore):
             )
 
 
+#  I have removed the need for the below by incorperating it's function into the lookups class
 class EntityNumGen:
     def __init__(self, entity_num_state: dict = None):
         if not entity_num_state:
@@ -338,6 +364,8 @@ class EntityNumGen:
 
         return new_current
 
+    # big parts of this are done by the specification already
+    # other parts to me look like operations on the lookup csv which to me calls for us to work on the pipeline class
     def load_entity_state(
         self,
         dataset: str = None,
@@ -388,51 +416,52 @@ class EntityNumGen:
 
 
 # print all lookups that aren't found will need to read through all files
-class PrintLookupPhase(Phase):
-    def __init__(self, lookups={}, entity_num_gen=None):
-        self.lookups = lookups
-        self.entity_field = "entity"
-        self.entity_num_gen = entity_num_gen
-        self.new_lookup_entries = []
+# moved into the phase.lookup folder
+# class PrintLookupPhase(Phase):
+#     def __init__(self, lookups={}, entity_num_gen=None):
+#         self.lookups = lookups
+#         self.entity_field = "entity"
+#         self.entity_num_gen = entity_num_gen
+#         self.new_lookup_entries = []
 
-    def lookup(self, **kwargs):
-        return self.lookups.get(key(**kwargs), "")
+#     def lookup(self, **kwargs):
+#         return self.lookups.get(key(**kwargs), "")
 
-    def process(self, stream):
-        for block in stream:
-            row = block["row"]
-            entry_number = block["entry-number"]
-            prefix = row.get("prefix", "")
-            reference = row.get("reference", "")
-            if "," in reference:
-                reference = f'"{reference}"'
-            organisation = row.get("organisation", "")
-            if prefix:
-                if not row.get(self.entity_field, ""):
-                    entity = (
-                        # by the resource and row number
-                        (
-                            self.entity_field == "entity"
-                            and self.lookup(prefix=prefix, entry_number=entry_number)
-                        )
-                        # TBD: fixup prefixes so this isn't needed ..
-                        # or by the organisation and the reference
-                        or self.lookup(
-                            prefix=prefix,
-                            organisation=organisation,
-                            reference=reference,
-                        )
-                    )
+#     def process(self, stream):
+#         for block in stream:
+#             row = block["row"]
+#             entry_number = block["entry-number"]
+#             prefix = row.get("prefix", "")
+#             reference = row.get("reference", "")
+#             if "," in reference:
+#                 reference = f'"{reference}"'
+#             organisation = row.get("organisation", "")
+#             if prefix:
+#                 if not row.get(self.entity_field, ""):
+#                     entity = (
+#                         # by the resource and row number
+#                         (
+#                             self.entity_field == "entity"
+#                             and self.lookup(prefix=prefix, entry_number=entry_number)
+#                         )
+#                         # TBD: fixup prefixes so this isn't needed ..
+#                         # or by the organisation and the reference
+#                         or self.lookup(
+#                             prefix=prefix,
+#                             organisation=organisation,
+#                             reference=reference,
+#                         )
+#                     )
 
-            if not entity:
-                if prefix and organisation and reference:
-                    new_entry = f"{prefix},,{organisation},{reference},{self.entity_num_gen.next()}"
-                    self.new_lookup_entries.append([new_entry])
-                    print(new_entry)
+#             if not entity:
+#                 if prefix and organisation and reference:
+#                     new_entry = f"{prefix},,{organisation},{reference},{self.entity_num_gen.next()}"
+#                     self.new_lookup_entries.append([new_entry])
+#                     print(new_entry)
 
-            yield block
+#             yield block
 
-
+# not sure this is needed
 def postprocess_collection_csvs(ctx):
     """
     clean up files and folders that do not typically get checked-in to
@@ -462,111 +491,112 @@ def postprocess_collection_csvs(ctx):
         pass
 
 
-def get_resource_unidentified_lookups(
-    input_path=None,
-    dataset=None,
-    organisations=[],
-    pipeline=None,
-    specification=None,
-    tmp_dir=None,
-    org_csv_path=None,
-    entity_num_gen=None,
-):
-    if not (pipeline or specification or dataset or input_path):
-        error_msg = "Failed to perform lookups for resource"
-        raise Exception(error_msg)
+#  moved to commands, not sure if it's the best place for it but for now it will do
+# def get_resource_unidentified_lookups(
+#     input_path=None,
+#     dataset=None,
+#     organisations=[],
+#     pipeline=None,
+#     specification=None,
+#     tmp_dir=None,
+#     org_csv_path=None,
+#     entity_num_gen=None,
+# ):
+#     if not (pipeline or specification or dataset or input_path):
+#         error_msg = "Failed to perform lookups for resource"
+#         raise Exception(error_msg)
 
-    # convert phase inputs
-    resource = resource_from_path(input_path)
-    dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
-    custom_temp_dir = tmp_dir  # './var'
+#     # convert phase inputs
+#     resource = resource_from_path(input_path)
+#     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
+#     custom_temp_dir = tmp_dir  # './var'
 
-    print("")
-    print("----------------------------------------------------------------------")
-    print(f">>> organisations:{organisations}")
-    print(f">>> resource:{resource}")
-    print("----------------------------------------------------------------------")
+#     print("")
+#     print("----------------------------------------------------------------------")
+#     print(f">>> organisations:{organisations}")
+#     print(f">>> resource:{resource}")
+#     print("----------------------------------------------------------------------")
 
-    # normalise phase inputs
-    skip_patterns = pipeline.skip_patterns(resource)
-    null_path = None
+#     # normalise phase inputs
+#     skip_patterns = pipeline.skip_patterns(resource)
+#     null_path = None
 
-    # concat field phase
-    concats = pipeline.concatenations(resource)
-    column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
+#     # concat field phase
+#     concats = pipeline.concatenations(resource)
+#     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
 
-    # map phase
-    intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
-    columns = pipeline.columns(resource)
+#     # map phase
+#     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
+#     columns = pipeline.columns(resource)
 
-    # patch phase
-    patches = pipeline.patches(resource=resource)
+#     # patch phase
+#     patches = pipeline.patches(resource=resource)
 
-    # harmonize phase
-    issue_log = IssueLog(dataset=dataset, resource=resource)
+#     # harmonize phase
+#     issue_log = IssueLog(dataset=dataset, resource=resource)
 
-    # default phase
-    default_fields = pipeline.default_fields(resource=resource)
-    default_values = pipeline.default_values(endpoints=[])
+#     # default phase
+#     default_fields = pipeline.default_fields(resource=resource)
+#     default_values = pipeline.default_values(endpoints=[])
 
-    if len(organisations) == 1:
-        default_values["organisation"] = organisations[0]
+#     if len(organisations) == 1:
+#         default_values["organisation"] = organisations[0]
 
-    # migrate phase
-    schema = specification.pipeline[pipeline.name]["schema"]
+#     # migrate phase
+#     schema = specification.pipeline[pipeline.name]["schema"]
 
-    # organisation phase
-    organisation = Organisation(org_csv_path, Path(pipeline.path))
+#     # organisation phase
+#     organisation = Organisation(org_csv_path, Path(pipeline.path))
 
-    # print lookups phase
-    pipeline_lookups = pipeline.lookups()
-    print_lookup_phase = PrintLookupPhase(
-        lookups=pipeline_lookups, entity_num_gen=entity_num_gen
-    )
+#     # print lookups phase
+#     pipeline_lookups = pipeline.lookups()
+#     print_lookup_phase = PrintLookupPhase(
+#         lookups=pipeline_lookups, entity_num_gen=entity_num_gen
+#     )
 
-    run_pipeline(
-        ConvertPhase(
-            path=input_path,
-            dataset_resource_log=dataset_resource_log,
-            custom_temp_dir=custom_temp_dir,
-        ),
-        NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
-        ParsePhase(),
-        ConcatFieldPhase(concats=concats, log=column_field_log),
-        MapPhase(
-            fieldnames=intermediate_fieldnames,
-            columns=columns,
-            log=column_field_log,
-        ),
-        FilterPhase(filters=pipeline.filters(resource)),
-        PatchPhase(
-            issues=issue_log,
-            patches=patches,
-        ),
-        HarmonisePhase(
-            specification=specification,
-            issues=issue_log,
-        ),
-        DefaultPhase(
-            default_fields=default_fields,
-            default_values=default_values,
-            issues=issue_log,
-        ),
-        # TBD: move migrating columns to fields to be immediately after map
-        # this will simplify harmonisation and remove intermediate_fieldnames
-        # but effects brownfield-land and other pipelines which operate on columns
-        MigratePhase(
-            fields=specification.schema_field[schema],
-            migrations=pipeline.migrations(),
-        ),
-        OrganisationPhase(organisation=organisation),
-        FieldPrunePhase(fields=specification.current_fieldnames(schema)),
-        EntityReferencePhase(
-            dataset=dataset,
-            specification=specification,
-        ),
-        EntityPrefixPhase(dataset=dataset),
-        print_lookup_phase,
-    )
+#     run_pipeline(
+#         ConvertPhase(
+#             path=input_path,
+#             dataset_resource_log=dataset_resource_log,
+#             custom_temp_dir=custom_temp_dir,
+#         ),
+#         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+#         ParsePhase(),
+#         ConcatFieldPhase(concats=concats, log=column_field_log),
+#         MapPhase(
+#             fieldnames=intermediate_fieldnames,
+#             columns=columns,
+#             log=column_field_log,
+#         ),
+#         FilterPhase(filters=pipeline.filters(resource)),
+#         PatchPhase(
+#             issues=issue_log,
+#             patches=patches,
+#         ),
+#         HarmonisePhase(
+#             specification=specification,
+#             issues=issue_log,
+#         ),
+#         DefaultPhase(
+#             default_fields=default_fields,
+#             default_values=default_values,
+#             issues=issue_log,
+#         ),
+#         # TBD: move migrating columns to fields to be immediately after map
+#         # this will simplify harmonisation and remove intermediate_fieldnames
+#         # but effects brownfield-land and other pipelines which operate on columns
+#         MigratePhase(
+#             fields=specification.schema_field[schema],
+#             migrations=pipeline.migrations(),
+#         ),
+#         OrganisationPhase(organisation=organisation),
+#         FieldPrunePhase(fields=specification.current_fieldnames(schema)),
+#         EntityReferencePhase(
+#             dataset=dataset,
+#             specification=specification,
+#         ),
+#         EntityPrefixPhase(dataset=dataset),
+#         print_lookup_phase,
+#     )
 
-    return print_lookup_phase.new_lookup_entries
+#     return print_lookup_phase.new_lookup_entries
