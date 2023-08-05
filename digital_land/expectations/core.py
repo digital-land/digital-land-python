@@ -94,7 +94,7 @@ class ExpectationResponse:
     result: bool = None
     severity: SeverityEnum = None
     msg: str = None
-    details: dict = None
+    details: Optional[dict] = None
     data_name: str = None
     data_path: str = None
     name: str = None
