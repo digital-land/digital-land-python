@@ -42,3 +42,22 @@ def test_normalise_maintains_number_of_holes(input_wkt):
         output_count += len(geom.interiors)
 
     assert input_count == output_count
+
+
+def test_normalise_geojson_provided():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    value = (
+        '{"type":"MultiPolygon","coordinates":[[[[-0.143512,51.558395], '
+        "[-0.143592,51.558364],[-0.143665,51.558334],[-0.143677,51.558329], "
+        "[-0.143698,51.558348],[-0.143702,51.558352],[-0.143686,51.558392],"
+        "[-0.143673,51.558398],[-0.143658,51.558404],[-0.143558,51.558442],"
+        "[-0.143512,51.558395],[-0.143512,51.558395]]]]}"
+    )
+    expected = "MULTIPOLYGON (((-0.143512 51.558395,-0.143558 51.558442,-0.143686 51.558392,-0.143702 51.558352,-0.143677 51.558329,-0.143512 51.558395)))"
+
+    actual = wkt.normalise(value, issues=issues)
+    assert actual == expected
+    assert len(issues.rows) == 1, "more than 1 issues being generated"
+    assert issues.rows[0]["issue-type"] == "invalid type geojson"
