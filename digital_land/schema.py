@@ -65,6 +65,16 @@ schemas = {
         ],
         "key": "old-resource",
     },
+    "lookup": {
+        "key": "lookup",
+        "fields": [
+            "prefix",
+            "resource",
+            "organisation",
+            "reference",
+            "entity",
+        ],
+    },
 }
 
 

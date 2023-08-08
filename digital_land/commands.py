@@ -433,7 +433,7 @@ def add_endpoints_and_lookups(ctx):
     collection_dir = ctx.obj["COLLECTION_DIR"].absolute()
 
     expected_cols = [
-        "pipelines",
+        # "pipelines",
         "organisation",
         "name",
         "documentation-url",
@@ -441,7 +441,8 @@ def add_endpoints_and_lookups(ctx):
         "start-date",
     ]
     # need to get collection name from somewhere
-    collection = Collection(name="add this in", directory=collection_dir)
+    dataset_name = ctx.obj["DATASET"]
+    collection = Collection(name=dataset_name, directory=collection_dir)
     collection.load()
 
     # read and process each record of the new endpoints csv at csv_file_path
@@ -475,10 +476,10 @@ def add_endpoints_and_lookups(ctx):
     # I might bring the new endpoints back I think it could work quite well but I figured I'd try without it first
     for endpoint in endpoints:
         collector.fetch(
-            endpoint["endpoint-url"],
-            endpoint["endpoint"],
-            endpoint["end-date"],
-            endpoint["plugin"],
+            url=endpoint["endpoint-url"],
+            endpoint=endpoint["endpoint"],
+            end_date=endpoint["end-date"],
+            plugin=endpoint["plugin"],
         )
     # reduced to 7 lines above so removed the need to get a separate function
     # task_collect_resources(ctx)
@@ -488,7 +489,7 @@ def add_endpoints_and_lookups(ctx):
     collection.load_log_items()
 
     # we've made it to the final step this may need more drastic changes to our code base
-    task_generate_lookup_entries(ctx)
+    # task_generate_lookup_entries(ctx)
     pipeline_dir = ctx.obj["PIPELINE_DIR"]
     # pipeline won't come from ctx, we'll be running multiple pipelines
     # pipeline = ctx.obj["PIPELINE"]
@@ -509,12 +510,14 @@ def add_endpoints_and_lookups(ctx):
     # this calls for interaction with lookups and for us to revisit it let's play with a lookups class
     # I've made a brief one to trial out although this should be done in some sort of loop
     lookups = Lookups(pipeline_dir)
-    # entity_num_gen = EntityNumGen()
-    # entity_num_gen.load_entity_state(
-    #     dataset=dataset_name,
-    #     pipeline_dir=pipeline_dir,
-    #     specification_dir=specification_dir,
-    # )
+    lookups.load_csv()
+
+    pipeline_ens = lookups.entity_num_gen.state
+    pipeline_ens["current"] = lookups.get_max_entity(collection.name)
+    pipeline_ens["range_min"] = specification.get_dataset_entity_min(collection.name)
+    pipeline_ens["range_max"] = specification.get_dataset_entity_max(collection.name)
+
+    lookups.entity_num_gen.state = pipeline_ens
 
     print("")
     print("======================================================================")
@@ -550,8 +553,10 @@ def add_endpoints_and_lookups(ctx):
 
     # save new lookups to file
     for new_lookup in new_lookups:
-        lookups.validate_entry(new_lookup)
-        lookups.add_entry(new_lookup)
+        for idx, entry in enumerate(new_lookup):
+            lookups.validate_entry(entry[0])
+            lookups.add_entry(entry[0])
+
     lookups.save_csv()
 
 

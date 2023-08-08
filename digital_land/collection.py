@@ -67,9 +67,12 @@ class LogStore(ItemStore):
         del item["endpoint"]
         return super().save_item(item)
 
-    def check_item_path(self, item, path):
-        m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
-        (date, endpoint) = m.groups()
+    def check_item_path(self, item, in_path):
+        # m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
+        # (date, endpoint) = m.groups()
+        path = Path(in_path)
+        date = path.parts[-2]
+        endpoint = path.parts[-1].split(".")[0]
 
         if not item.get("entry-date", "").startswith(date):
             logging.warning(
@@ -292,7 +295,7 @@ class Collection:
         self.resource.save_csv(directory=directory)
 
     def load(self, directory=None):
-        directory = directory or self.directory
+        directory = directory or self.dir
 
         # moved to top
         # self.source = CSVStore(Schema("source"))
@@ -420,6 +423,16 @@ class Collection:
         # add entries to source and endpoint csvs changed this just to add to the stores but not to save to csv
         # hash_value should be added in the functions beow
         entry["endpoint"] = hash_value(entry["endpoint-url"])
+
+        if not entry.get("end-date"):
+            entry["end-date"] = ""
+
+        # entry["end-date"] = entry.get("end-date", "")
+
+        if not entry.get("pipelines"):
+            entry["pipelines"] = entry["collection"]
+
+        # entry["pipelines"] = entry.get("pipelines", entry["collection"])
 
         self.add_endpoint(entry)
         self.add_source(entry)

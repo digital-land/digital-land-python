@@ -137,7 +137,7 @@ class Collector:
         start = timer()
 
         # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
-        if plugin == "":
+        if not plugin:
             log, content = self.get(url, log)
         elif plugin == "arcgis":
             log, content = arcgis_get(self, url, log)

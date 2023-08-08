@@ -201,3 +201,15 @@ class Specification:
 
     def field_prefix(self, field):
         return self.field[field].get("prefix", "") or field
+
+    def get_dataset_entity_min(self, dataset):
+        if dataset:
+            return self.dataset[dataset]["entity-minimum"]
+        else:
+            return 0
+
+    def get_dataset_entity_max(self, dataset):
+        if dataset:
+            return self.dataset[dataset]["entity-maximum"]
+        else:
+            return 100
