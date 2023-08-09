@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import re
 
 from datetime import datetime
 from pathlib import Path
@@ -79,12 +78,16 @@ class LogStore(ItemStore):
                 "incorrect date in path %s for entry-date %s"
                 % (path, item["entry-date"])
             )
+            return False
 
         # print(item["url"], hash_value(item["url"]))
         if endpoint != item["endpoint"]:
             logging.warning(
                 "incorrect endpoint in path %s expected %s" % (path, item["endpoint"])
             )
+            return False
+
+        return True
 
 
 # a register of resources constructed from the log register

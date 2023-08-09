@@ -356,7 +356,6 @@ class Lookups:
                 raise ValueError()
 
     class EntityNumGen:
-
         def __init__(self, entity_num_state: dict = None):
             if not entity_num_state:
                 entity_num_state = {

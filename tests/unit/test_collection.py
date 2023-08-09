@@ -1,5 +1,6 @@
-from digital_land.register import hash_value
-from digital_land.collection import Collection
+from digital_land.register import hash_value, Item
+from digital_land.collection import Collection, LogStore
+from digital_land.schema import Schema
 
 test_collection_dir = "tests/data/collection"
 
@@ -43,3 +44,36 @@ def test_collection():
     assert collection.resource_organisations(
         "ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf"
     ) == ["organisation:2"]
+
+
+def test_check_item_path():
+    """
+    check_item_path of LogStore was changed from being Linux/Unix specific,
+    to being cross-platform friendly - by use of Path
+    The method was also changed to return a boolean, to make it easier to Test
+    """
+
+    test_file_dir = "tests/data/collection/log/2020-02-12/"
+    test_file_name = (
+        "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e.json"
+    )
+
+    expected_endpoint = (
+        "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e"
+    )
+    unexpected_endpoint = "ABCDE"
+
+    test_file_path = test_file_dir + test_file_name
+    test_file = open(test_file_path).read()
+    item = Item()
+    item.unpack(test_file)
+
+    log_store = LogStore(Schema("log"))
+
+    # Good data test
+    item["endpoint"] = expected_endpoint
+    assert log_store.check_item_path(item, test_file_path) is True
+
+    # Bad data test
+    item["endpoint"] = unexpected_endpoint
+    assert log_store.check_item_path(item, test_file_path) is False

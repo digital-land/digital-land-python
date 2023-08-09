@@ -416,19 +416,10 @@ def add_endpoints_and_lookups(ctx):
     """
     from digital_land.utils.add_endpoints_utils import (
         task_preprocess,
-        # task_create_source_and_endpoint_entries,
-        # task_collect_resources,
-        # task_populate_resource_and_log_csvs,
-        task_generate_lookup_entries,
-        # task_postprocess,
     )
 
-    # removed because I'm not sure what it was doing that we couldn't add here is we need to
     task_preprocess(ctx)
 
-    #  removed this function and brought remaining contents here, I reduced the amount if was doing
-    # by increasing the amount handled by the collection and the classes it contains
-    # task_create_source_and_endpoint_entries(ctx)
     csv_file_path = ctx.obj["CSV_FILE_PATH"]
     collection_dir = ctx.obj["COLLECTION_DIR"].absolute()
 
@@ -440,6 +431,7 @@ def add_endpoints_and_lookups(ctx):
         "endpoint-url",
         "start-date",
     ]
+
     # need to get collection name from somewhere
     dataset_name = ctx.obj["DATASET"]
     collection = Collection(name=dataset_name, directory=collection_dir)
@@ -468,11 +460,13 @@ def add_endpoints_and_lookups(ctx):
             }
             endpoints.append(endpoint)
             line_number += 1
+
         # all endpoints have been added successfully
         collection.save_csv()
 
     # endpoints have been added now lets collect the resources using the endpoint information
-    collector = Collector("not used", collection_dir)
+    collector = Collector(dataset_name, collection_dir)
+
     # I might bring the new endpoints back I think it could work quite well but I figured I'd try without it first
     for endpoint in endpoints:
         collector.fetch(
@@ -481,34 +475,16 @@ def add_endpoints_and_lookups(ctx):
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
         )
-    # reduced to 7 lines above so removed the need to get a separate function
-    # task_collect_resources(ctx)
 
-    # I'm assuming we do thisto get the most recent resources we can replace this with the method function
-    # task_populate_resource_and_log_csvs(ctx)
     collection.load_log_items()
 
-    # we've made it to the final step this may need more drastic changes to our code base
-    # task_generate_lookup_entries(ctx)
     pipeline_dir = ctx.obj["PIPELINE_DIR"]
-    # pipeline won't come from ctx, we'll be running multiple pipelines
-    # pipeline = ctx.obj["PIPELINE"]
-    # dataset_name = pipeline.name
-    #  already have collection
-    # collection = ctx.obj["COLLECTION"]
-    #  can be extracted from collection
-    # collection_resource_dir = ctx.obj["COLLECTION_RESOURCE_DIR"]
     organisation_dir = ctx.obj["ORGANISATION_DIR"]
 
-    # don't need both of the below
     specification = ctx.obj["SPECIFICATION"]
-    # specification_dir = ctx.obj["SPECIFICATION_DIR"]
 
-    # do need
     tmp_dir = ctx.obj["TMP_DIR"]
 
-    # this calls for interaction with lookups and for us to revisit it let's play with a lookups class
-    # I've made a brief one to trial out although this should be done in some sort of loop
     lookups = Lookups(pipeline_dir)
     lookups.load_csv()
 
@@ -527,6 +503,7 @@ def add_endpoints_and_lookups(ctx):
     # generate the lookup entries for each new resource
     dataset_resource_map = collection.dataset_resource_map()
     new_lookups = []
+
     #  use a different loop we are searching for the specific resources that we have downloaded
     for dataset in dataset_resource_map:
         for resource in dataset_resource_map[dataset]:
