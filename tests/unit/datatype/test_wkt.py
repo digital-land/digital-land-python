@@ -97,3 +97,14 @@ def test_normalise_geometrycollection_provided():
     actual = wkt.normalise(value, issues=issues)
     assert actual == expected
     assert len(issues.rows) == 0
+
+
+def test_invalid_geometry_type_throws_correct_error():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    value = "LINEARRING(0 0, 1 1, 1 0, 0 0)"
+
+    assert wkt.normalise(value, issues=issues) == ""
+    assert len(issues.rows) == 1, "more than 1 issues being generated"
+    assert issues.rows[0]["issue-type"] == "Unexpected geom type"
