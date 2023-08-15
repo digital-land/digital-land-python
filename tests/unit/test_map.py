@@ -37,3 +37,41 @@ def test_map_headers_column_clash():
     m = MapPhase(["One"], {"une": "One", "ein": "One"})
     output = TestPipeline(m, "une,ein\r\n1,2\r\n")
     assert output == "One\r\n1\r\n"
+
+
+def test_map_empty_geometry_column():
+    m = MapPhase(
+        [
+            "categories",
+            "conservation-area",
+            "documentation-url",
+            "end-date",
+            "entity",
+            "entry-date",
+            "geometry",
+            "legislation",
+            "name",
+            "notes",
+            "organisation",
+            "point",
+            "prefix",
+            "reference",
+            "start-date",
+        ],
+        {
+            "wkt": "geometry",
+            "documenturl": "documentation-url",
+            "url": "documentation-url",
+        },
+    )
+    output = TestPipeline(
+        m,
+        "categories,conservation-area,documentation-url,end-date,entity,"
+        "entry-date,WKT,legislation,name,notes,organisation,point,prefix,"
+        "reference,start-date,geometry\r\n,,,,,,MULTIPOLYGON(),,,,,,,,,,\r\n",
+    )
+    assert (
+        output == "categories,conservation-area,documentation-url,end-date,entity,"
+        "entry-date,geometry,legislation,name,notes,organisation,point,prefix,"
+        "reference,start-date\r\n,,,,,,MULTIPOLYGON(),,,,,,,,\r\n"
+    )
