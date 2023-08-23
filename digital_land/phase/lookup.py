@@ -2,7 +2,6 @@ import re
 
 from .phase import Phase
 
-
 # TBD: use same method as piperow normalise
 normalise_pattern = re.compile(r"[^a-z0-9-]")
 
@@ -102,7 +101,6 @@ class PrintLookupPhase(Phase):
                             reference=reference,
                         )
                     )
-
             if not entity:
                 if prefix and organisation and reference:
                     new_lookup = {
@@ -110,8 +108,6 @@ class PrintLookupPhase(Phase):
                         "organisation": organisation,
                         "reference": reference,
                     }
-                    new_lookup_text = f"{prefix},,{organisation},{reference}"
                     self.new_lookup_entries.append([new_lookup])
-                    print(new_lookup_text)
 
             yield block

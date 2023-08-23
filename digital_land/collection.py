@@ -163,27 +163,27 @@ class SourceStore(CSVStore):
     def __init__(self, schema=Schema("source")):
         super().__init__(schema=schema)
 
-    def add_entry(self, entry):
-        item = Item(
-            {
-                "source": entry.get("source", ""),
-                "collection": entry["collection"],
-                "pipelines": entry.get("pipelines", entry["collection"]),
-                "organisation": entry.get("organisation", ""),
-                "endpoint": entry["endpoint"],
-                "documentation-url": entry.get("documentation-url", ""),
-                "licence": entry.get("licence", ""),
-                "attribution": entry.get("attribution", ""),
-                "entry-date": self.entry_date(entry),
-                "start-date": self.start_date(entry),
-                "end-date": self.end_date(entry),
-            }
-        )
+    # def add_entry(self, entry):
+    #     item = Item(
+    #         {
+    #             "source": entry.get("source", ""),
+    #             "collection": entry["collection"],
+    #             "pipelines": entry.get("pipelines", entry["collection"]),
+    #             "organisation": entry.get("organisation", ""),
+    #             "endpoint": entry["endpoint"],
+    #             "documentation-url": entry.get("documentation-url", ""),
+    #             "licence": entry.get("licence", ""),
+    #             "attribution": entry.get("attribution", ""),
+    #             "entry-date": self.entry_date(entry),
+    #             "start-date": self.start_date(entry),
+    #             "end-date": self.end_date(entry),
+    #         }
+    #     )
 
-        if self.validate_entry(item):
-            super().add_entry(item)
-            # the below is a good idea but I'm not too sure on how best to implement
-            # self.new_sources.append(item)
+    #     if self.validate_entry(item):
+    #         super().add_entry(item)
+    # the below is a good idea but I'm not too sure on how best to implement
+    # self.new_sources.append(item)
 
     @staticmethod
     def validate_entry(source_item: Item = None) -> bool:
@@ -196,7 +196,10 @@ class SourceStore(CSVStore):
             return False
         if not source_item["collection"]:
             return False
-        if not source_item["organisation"]:
+        if (
+            not source_item["organisation"]
+            and type(source_item["organisation"]) is not str
+        ):
             return False
         if not source_item["endpoint"]:
             return False
@@ -207,23 +210,23 @@ class SourceStore(CSVStore):
 class EndpointStore(CSVStore):
     def __init__(self, schema=Schema("endpoint")):
         super().__init__(schema=schema)
+        # self.new_endpoints=[]
 
-    def add_entry(self, entry):
-        item = Item(
-            {
-                "endpoint": entry["endpoint"],
-                "endpoint-url": entry["endpoint-url"],
-                "plugin": entry.get("plugin", ""),
-                "parameters": entry.get("parameters", ""),
-                "entry-date": self.entry_date(entry),
-                "start-date": self.start_date(entry),
-                "end-date": self.end_date(entry),
-            }
-        )
-
-        if self.validate.endpoint_entry(item):
-            self.endpoint.add_entry(item)
-            self.new_endpoints.append(item)
+    # def add_entry(self, entry):
+    # item = Item(
+    #     {
+    #         "endpoint": entry["endpoint"],
+    #         "endpoint-url": entry["endpoint-url"],
+    #         "plugin": entry.get("plugin", ""),
+    #         "parameters": entry.get("parameters", ""),
+    #         "entry-date": self.entry_date(entry),
+    #         "start-date": self.start_date(entry),
+    #         "end-date": self.end_date(entry),
+    #     }
+    # )
+    # if self.validate_entry(item):
+    #     self.add_entry(item)
+    #     self.new_endpoints.append(item)
 
     @staticmethod
     def validate_entry(endpoint_item: Item) -> bool:
@@ -236,7 +239,10 @@ class EndpointStore(CSVStore):
             return False
         if not endpoint_item["endpoint"]:
             return False
-        if not endpoint_item["endpoint-url"]:
+        if (
+            not endpoint_item["endpoint-url"]
+            and type(endpoint_item["endpoint-url"]) is not str
+        ):
             return False
 
         return True
@@ -247,23 +253,16 @@ class Collection:
     def __init__(self, name=None, directory=DEFAULT_COLLECTION_DIR):
         self.name = name
 
-        # let's move all directory variable set up to the top of the class
-        # setting default directories here in one place makes the code easier to read
-        # shortened directory to dir less typing
-        # setting log_dir here means same log_dir default is used across class rather than setting it where neccessary
-        self.dir = directory
+        # setting relevant directory variables
+        self.dir = Path(directory)
         self.log_dir = Path(directory) / "log/*/"
 
         # define the set of classes up front again easier to read
         self.log = LogStore(Schema("log"))
         self.resource = ResourceLogStore(Schema("resource"))
         self.old_resource = CSVStore(Schema("old-resource"))
-
-        # following on from the comments below I have added some extra intermediate classes
-        # for source and endpoint, bfore we merge we can investigate possible shifting/generalising their functionality to the CSVStore class
-        # but given that this may be difficult for now I haven't
-        self.source = CSVStore(Schema("source"))
-        self.endpoint = CSVStore(Schema("endpoint"))
+        self.source = SourceStore()
+        self.endpoint = EndpointStore()
 
         #  michael's new variables
         # self.validate = self.Validate()
@@ -272,26 +271,23 @@ class Collection:
         # self.new_lookups = []
 
     def load_log_items(self, directory=None, log_directory=None):
+        """
+        Method to load the log store and resource store from log items instead of csvs. used when csvs don't exist
+        or new log items have been created by running a collector
+        """
         directory = directory or self.dir
         log_directory = log_directory = self.log_dir
 
         logging.info("loading log files")
-        #  moved to top of class
-        # self.log = LogStore(Schema("log"))
         self.log.load(directory=log_directory)
 
         logging.info("indexing resources")
-        # moved to top of class
-        # self.resource = ResourceLogStore(Schema("resource"))
         self.resource.load(log=self.log, source=self.source, directory=directory)
 
     def save_csv(self, directory=None):
-        logging.info("saving csv")
-        # use consistent method for setting optional variables in class
         directory = directory or self.dir
-        # if not directory:
-        #     directory = self.directory
 
+        logging.info("saving csv")
         self.endpoint.save_csv(directory=directory)
         self.source.save_csv(directory=directory)
         self.log.save_csv(directory=directory)
@@ -299,35 +295,18 @@ class Collection:
 
     def load(self, directory=None):
         directory = directory or self.dir
-
-        # moved to top
-        # self.source = CSVStore(Schema("source"))
         self.source.load(directory=directory)
-
-        # moved to top
-        # self.endpoint = CSVStore(Schema("endpoint"))
         self.endpoint.load(directory=directory)
 
+        # attempts to load log store and resource store from csv first, if either file isn't found it'll load them from log items
         try:
-            # moved to top (also worth noting that log was being used to store two separate things a CSVSotre and a LogSotre
-            # this feels like an inconsistent method to me and is very unreadable as depending on the order of functions
-            # triggered self.log represents different things it's worth noting that Logstore can use many of the methods of csv store
-            # self.log = CSVStore(Schema("log"))
-            # now we are always defining self.log as a log store this changes the behaviour of the load method below
-            # so we replace this with the relevant function from the logstore class
-            # self.log.load(directory=directory)
             self.log.load_csv(directory=directory)
-
-            # same as above where the type of class has changed let's address this and again use consistent classes
-            # self.resource = CSVStore(Schema("resource"))
-            # self.resource.load(directory=directory)
             self.resource.load_csv(directory=directory)
         except FileNotFoundError:
             self.load_log_items()
 
+        # attempts to load in old-resources if the file exists, many use cases won't have any
         try:
-            # move to top
-            # self.old_resource = CSVStore(Schema("old-resource"))
             self.old_resource.load(directory=directory)
         except FileNotFoundError:
             pass
@@ -400,21 +379,12 @@ class Collection:
 
     # endpoint-url should be included in the entry not to sure why it would be seperate?
     def add_source_endpoint(self, entry: dict):
-        # you can just make the arguement not optional (an arg not a kwarg) and it will throw an error
-        # if not entry:
-        #     return
-        # if not endpoint_url:
-        #     return
         if not entry.get("collection"):
             entry["collection"] = self.name
-        # again endpoint-url can come from the entry
-        # entry["endpoint-url"] = endpoint_url
 
         # check that entry contains allowed columns names
         allowed_names = set(
-            # list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
-            list(self.endpoint.schema.fieldnames)
-            + list(self.source.schema.fieldnames)
+            list(self.endpoint.schema.fieldnames) + list(self.source.schema.fieldnames)
         )
 
         # do we care if there are extra columns? we only really care if they're missing the ones we need I suppose it can't hurt
@@ -432,9 +402,6 @@ class Collection:
 
         # entry["end-date"] = entry.get("end-date", "")
 
-        if not entry.get("pipelines"):
-            entry["pipelines"] = entry["collection"]
-
         # entry["pipelines"] = entry.get("pipelines", entry["collection"])
 
         self.add_endpoint(entry)
@@ -444,53 +411,39 @@ class Collection:
         #  I argue that we shouldn't save it to the csv here. otherwise it makes it hard
         # self.save_csv()
 
-    # while having a method to add a source to the collection isn't the worst idea I would suggest
-    # expanding the functionality of the CSVSore to handle the bulk of it. This means that the class representing endpoints
-    # or sources could be used outside of the collection class to achieve the same thing
-    # the collection class is am wrapper for the set of underlying classes
-    # modularising this wrap means that it may be easier to unit test
-    # changed definition so argument isn't optional
-    # def add_source(self, entry: dict = None):
     def add_source(self, entry: dict):
-        # item = Item(
-        #     {
-        #         "source": entry.get("source", ""),
-        #         "collection": entry["collection"],
-        #         "pipelines": entry.get("pipelines", entry["collection"]),
-        #         "organisation": entry.get("organisation", ""),
-        #         "endpoint": entry["endpoint"],
-        #         "documentation-url": entry.get("documentation-url", ""),
-        #         "licence": entry.get("licence", ""),
-        #         "attribution": entry.get("attribution", ""),
-        #         "entry-date": self.entry_date(entry),
-        #         "start-date": self.start_date(entry),
-        #         "end-date": self.end_date(entry),
-        #     }
-        # )
+        item = Item(
+            {
+                "source": entry.get("source", ""),
+                "collection": entry["collection"],
+                "pipelines": entry.get("pipelines", entry["collection"]),
+                "organisation": entry.get("organisation", ""),
+                "endpoint": entry["endpoint"],
+                "documentation-url": entry.get("documentation-url", ""),
+                "licence": entry.get("licence", ""),
+                "attribution": entry.get("attribution", ""),
+                "entry-date": self.entry_date(entry),
+                "start-date": self.start_date(entry),
+                "end-date": self.end_date(entry),
+            }
+        )
+        if self.source.validate_entry(item):
+            self.source.add_entry(entry)
 
-        # if self.validate.source_entry(item):
-        #     self.source.add_entry(item)
-        #     self.new_sources.append(item)
-        self.source.add_entry(entry)
-
-    #
     def add_endpoint(self, entry: dict):
-        # item = Item(
-        #     {
-        #         "endpoint": entry["endpoint"],
-        #         "endpoint-url": entry["endpoint-url"],
-        #         "plugin": entry.get("plugin", ""),
-        #         "parameters": entry.get("parameters", ""),
-        #         "entry-date": self.entry_date(entry),
-        #         "start-date": self.start_date(entry),
-        #         "end-date": self.end_date(entry),
-        #     }
-        # )
-
-        # if self.validate.endpoint_entry(item):
-        #     self.endpoint.add_entry(item)
-        #     self.new_endpoints.append(item)
-        self.endpoint.add_entry(entry)
+        endpoint_entry = Item(
+            {
+                "endpoint": entry["endpoint"],
+                "endpoint-url": entry["endpoint-url"],
+                "plugin": entry.get("plugin", ""),
+                "parameters": entry.get("parameters", ""),
+                "entry-date": self.entry_date(entry),
+                "start-date": self.start_date(entry),
+                "end-date": self.end_date(entry),
+            }
+        )
+        if self.endpoint.validate_entry(endpoint_entry):
+            self.endpoint.add_entry(endpoint_entry)
 
     def recalculate_source_hashes(self):
         for entry in self.source.entries:
@@ -515,79 +468,3 @@ class Collection:
         return entry.get(
             "entry-date", datetime.utcnow().strftime("%Y-%m-%dT%H:%H:%M:%SZ")
         )
-
-        # while having a class structure for validattions could be a good idea we already have something akin to this in the datatype
-        # module before creating something new we should look at using that where possible. For now I have added these into the new proposed
-        # structure above we may be able to generalise and pull in code from datatypes later
-        # class Validate:
-        """
-        This validator class provides a centralised place to perform
-        checks against fields used during the collection process
-        """
-        # do you need an init function if it does nothing?
-        # def __init__(self):
-        #     pass
-
-        # moved to csv store so any class can use it to validate a url
-        # @staticmethod
-        # def endpoint_url(endpoint_val: str = None) -> bool:
-        #     """
-        #     Checks whether the supplied parameter is valid according to
-        #     business rules
-        #     :param endpoint_val:
-        #     :return: Boolean
-        #     """
-        #     if not endpoint_val:
-        #         return False
-        #     if type(endpoint_val) is float:
-        #         return False
-
-        #     return True
-
-        # moved to csv store so any class can use it to validate a url
-        # @staticmethod
-        # def organisation_name(org_name_val: str = None) -> bool:
-        #     """
-        #     Checks whether the supplied parameter is valid according to
-        #     business rules
-        #     :param org_name_val:
-        #     :return: Boolean
-        #     """
-        #     if not org_name_val:
-        #         return False
-        #     if type(org_name_val) is float:
-        #         return False
-
-        #     return True
-
-        # not convinced the naming is appropriate but I've moved it to the CSV store class for now
-        # @staticmethod
-        # def reference(ref_val: str = None) -> bool:
-        #     """
-        #     Checks whether the supplied parameter is valid according to
-        #     business rules
-        #     :return: Boolean
-        #     """
-        #     if not ref_val:
-        #         return False
-        #     if type(ref_val) is float:
-        #         return False
-
-        #     return True
-
-        # moved into endpoint store class
-        # @staticmethod
-        # def endpoint_entry(endpoint_item: Item = None) -> bool:
-        #     """
-        #     Checks whether the supplied parameter is valid according to
-        #     business rules
-        #     :return: Boolean
-        #     """
-        #     if not endpoint_item:
-        #         return False
-        #     if not endpoint_item["endpoint"]:
-        #         return False
-        #     if not endpoint_item["endpoint-url"]:
-        #         return False
-
-        #     return True

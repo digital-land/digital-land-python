@@ -229,16 +229,23 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     return expectations(results_path, sqlite_dataset_path, data_quality_yaml)
 
 
+# edit to add collection_name in
 @cli.command("add-endpoint-and-lookups")
 @click.argument("csv-path", nargs=1, type=click.Path())
+@click.argument("collection-name", nargs=1, type=click.Path())
 @collection_dir
 @organisation_path
 @click.option(
     "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
 )
-@click.pass_context
+@click.option("--pipeline-dir", "-p", type=click.Path(exists=True), default="pipeline/")
 def add_endpoint_and_lookups_cmd(
-    ctx, csv_path, collection_dir, specification_dir, organisation_path
+    csv_path,
+    collection_name,
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    organisation_path,
 ):
     """
     adds new resources to the collection, based on records in csv_path
@@ -252,9 +259,11 @@ def add_endpoint_and_lookups_cmd(
         logging.error("no csv file was provided")
         sys.exit(2)
 
-    ctx.obj["COLLECTION_DIR"] = Path(collection_dir)
-    ctx.obj["CSV_FILE_PATH"] = Path(csv_file_path)
-    ctx.obj["SPECIFICATION_DIR"] = Path(specification_dir)
-    ctx.obj["ORGANISATION_DIR"] = Path(organisation_path)
-
-    return add_endpoints_and_lookups(ctx)
+    return add_endpoints_and_lookups(
+        csv_file_path,
+        collection_name,
+        collection_dir,
+        pipeline_dir,
+        specification_dir,
+        organisation_path,
+    )

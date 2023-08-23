@@ -24,7 +24,6 @@ class HarmonisePhase(Phase):
     def process(self, stream):
         for block in stream:
             row = block["row"]
-
             self.issues.resource = block["resource"]
             self.issues.line_number = block["line-number"]
             self.issues.entry_number = block["entry-number"]
@@ -68,6 +67,5 @@ class HarmonisePhase(Phase):
                 o["wikipedia"] = row["wikipedia"].replace(
                     "https://en.wikipedia.org/wiki/", ""
                 )
-
             block["row"] = o
             yield block

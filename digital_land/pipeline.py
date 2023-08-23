@@ -293,13 +293,39 @@ class Pipeline:
             pass
 
 
+class EntityNumGen:
+    def __init__(self, entity_num_state: dict = None):
+        if not entity_num_state:
+            entity_num_state = {
+                "range_min": 0,
+                "range_max": 100,
+                "current": 0,
+            }
+
+        self.state = entity_num_state
+
+    def next(self):
+        current = self.state["current"]
+        new_current = current + 1
+
+        if new_current > int(self.state["range_max"]):
+            new_current = int(self.state["range_min"])
+
+        if new_current < int(self.state["range_min"]):
+            new_current = int(self.state["range_min"])
+
+        self.state["current"] = new_current
+
+        return new_current
+
+
 class Lookups:
     def __init__(self, directory=None) -> None:
         self.directory = directory or "pipeline"
         self.lookups_path = Path(directory) / "lookup.csv"
         self.entries = []
         self.schema = Schema("lookup")
-        self.entity_num_gen = self.EntityNumGen()
+        self.entity_num_gen = EntityNumGen()
 
     def add_entry(self, entry):
         self.entries.append(entry)
@@ -355,27 +381,4 @@ class Lookups:
             if not entry.get(field, ""):
                 raise ValueError()
 
-    class EntityNumGen:
-        def __init__(self, entity_num_state: dict = None):
-            if not entity_num_state:
-                entity_num_state = {
-                    "range_min": 0,
-                    "range_max": 100,
-                    "current": 0,
-                }
-
-            self.state = entity_num_state
-
-        def next(self):
-            current = self.state["current"]
-            new_current = current + 1
-
-            if new_current > int(self.state["range_max"]):
-                new_current = int(self.state["range_min"])
-
-            if new_current < int(self.state["range_min"]):
-                new_current = int(self.state["range_min"])
-
-            self.state["current"] = new_current
-
-            return new_current
+    # I'm not sure we need this class or if we do it should be an iterator then can be used to iterate through entity numbers by dataset

@@ -1,7 +1,11 @@
 #!/usr/bin/env -S pytest -svv
-from csv import DictReader
+import csv
+import os
+import pytest
+import canonicaljson
 
 from digital_land.commands import collection_save_csv
+from digital_land.collection import Collection
 
 
 def _get_filename_without_suffix_from_path(path):
@@ -30,7 +34,7 @@ def test_collection(
     expected_resource_csv = populated_collection_dir_results.joinpath("resource.csv")
     expected_log_csv = populated_collection_dir_results.joinpath("log.csv")
     with actual_log_csv.open() as log_file:
-        log_csv = DictReader(log_file)
+        log_csv = csv.DictReader(log_file)
         logs = list(log_csv)
         assert {log["endpoint"] for log in logs} == set(
             _get_filename_without_suffix_from_path(path)
@@ -38,19 +42,183 @@ def test_collection(
         )
 
         with actual_resource_csv.open() as resource_file:
-            resource_csv = DictReader(resource_file)
+            resource_csv = csv.DictReader(resource_file)
             assert {log["resource"] for log in logs} == {
                 resource["resource"] for resource in resource_csv
             }
 
     with actual_log_csv.open() as actual, expected_log_csv.open() as expected:
-        actual_dict_reader = DictReader(actual)
-        expected_dict_reader = DictReader(expected)
+        actual_dict_reader = csv.DictReader(actual)
+        expected_dict_reader = csv.DictReader(expected)
         assert actual_dict_reader.fieldnames == expected_dict_reader.fieldnames
         assert list(actual_dict_reader) == list(expected_dict_reader)
 
     with actual_resource_csv.open() as actual, expected_resource_csv.open() as expected:
-        actual_dict_reader = DictReader(actual)
-        expected_dict_reader = DictReader(expected)
+        actual_dict_reader = csv.DictReader(actual)
+        expected_dict_reader = csv.DictReader(expected)
         assert actual_dict_reader.fieldnames == expected_dict_reader.fieldnames
         assert list(actual_dict_reader) == list(expected_dict_reader)
+
+
+@pytest.fixture
+def test_collection_with_log_and_resource(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoint = {
+        "endpoint": "test",
+        "endpoint-url": "test.com",
+        "parameters": "",
+        "plugin": "",
+        "entry-date": "2019-01-01",
+        "start-date": "2019-01-01",
+        "end-date": "",
+    }
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoint.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(endpoint)
+
+    source = {
+        "source": "test1",
+        "attribution": "",
+        "collection": "test",
+        "documentation-url": "testing.com",
+        "endpoint": "test",
+        "licence": "test",
+        "organisation": "test-org",
+        "pipelines": "test",
+        "entry-date": "2019-01-01",
+        "start-date": "2019-01-01",
+        "end-date": "",
+    }
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=source.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(source)
+
+    log = {
+        "bytes": "2",
+        "content-type": "",
+        "elapsed": "0.5",
+        "endpoint": "test",
+        "resource": "test",
+        "status": "200",
+        "entry-date": "2019-01-01",
+        "start-date": "2019-01-01",
+        "end-date": "",
+        "exception": "",
+    }
+
+    with open(os.path.join(collection_dir, "log.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=log.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(log)
+
+    resource = {
+        "resource": "test",
+        "bytes": "2",
+        "organisations": "test",
+        "datasets": "test",
+        "endpoints": "test",
+        "start-date": "2019-01-01",
+        "end-date": "",
+    }
+
+    with open(os.path.join(collection_dir, "resource.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=resource.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(resource)
+
+    return collection_dir
+
+
+def test_collection_load_all_csvs_present(test_collection_with_log_and_resource):
+    collection = Collection(directory=test_collection_with_log_and_resource)
+    collection.load()
+
+    assert len(collection.log.entries) > 0
+    assert len(collection.resource.entries) > 0
+    assert len(collection.source.entries) > 0
+    assert len(collection.endpoint.entries) > 0
+
+
+@pytest.fixture
+def test_collection_without_log_and_resource_csvs(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoint = {
+        "endpoint": "test",
+        "endpoint-url": "test.com",
+        "parameters": "",
+        "plugin": "",
+        "entry-date": "2019-01-01",
+        "start-date": "2019-01-01",
+        "end-date": "",
+    }
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoint.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(endpoint)
+
+    source = {
+        "source": "test1",
+        "attribution": "",
+        "collection": "test",
+        "documentation-url": "testing.com",
+        "endpoint": "test",
+        "licence": "test",
+        "organisation": "test-org",
+        "pipelines": "test",
+        "entry-date": "2019-01-01",
+        "start-date": "2019-01-01",
+        "end-date": "",
+    }
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=source.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(source)
+
+    raw_log = {
+        "elapsed": "0.5",
+        "endpoint-url": "test.com",
+        "endpoint": "test",
+        "entry-date": "2019-01-01T12:26:55.952257",
+        "request-headers": {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
+            "User-Agent": "DLUHC Digital Land",
+        },
+        "resource": "test",
+        "response-headers": {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        "ssl-verify": "true",
+        "status": "200",
+    }
+
+    log_dir = os.path.join(collection_dir, "log")
+    path = os.path.join(log_dir, "2019-01-01", "test.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        data = canonicaljson.encode_canonical_json(raw_log)
+        with open(path, "wb") as f:
+            f.write(data)
+
+    return collection_dir
+
+
+def test_collection_load_resource_and_logs_from_log_items(
+    test_collection_without_log_and_resource_csvs,
+):
+    collection = Collection(directory=test_collection_without_log_and_resource_csvs)
+    collection.load()
+
+    assert len(collection.log.entries) > 0
+    assert len(collection.resource.entries) > 0
+    assert len(collection.source.entries) > 0
+    assert len(collection.endpoint.entries) > 0
