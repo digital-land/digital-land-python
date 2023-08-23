@@ -324,7 +324,7 @@ class Collection:
         return self.resource.records[resource][-1]["organisations"].split(";")
 
     def resource_path(self, resource):
-        return resource_path(resource, self.directory)
+        return resource_path(resource, self.dir)
 
     def pipeline_makerules(self):
         pipeline_makerules(self)
