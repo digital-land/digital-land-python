@@ -230,7 +230,7 @@ def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
 
 
 # edit to add collection_name in
-@cli.command("add-endpoint-and-lookups")
+@cli.command("add-endpoints-and-lookups")
 @click.argument("csv-path", nargs=1, type=click.Path())
 @click.argument("collection-name", nargs=1, type=click.Path())
 @collection_dir
