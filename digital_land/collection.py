@@ -255,7 +255,6 @@ class Collection:
 
         # setting relevant directory variables
         self.dir = Path(directory)
-        self.log_dir = Path(directory) / "log/*/"
 
         # define the set of classes up front again easier to read
         self.log = LogStore(Schema("log"))
@@ -276,7 +275,7 @@ class Collection:
         or new log items have been created by running a collector
         """
         directory = directory or self.dir
-        log_directory = log_directory = self.log_dir
+        log_directory = log_directory or Path(directory) / "log/*/"
 
         logging.info("loading log files")
         self.log.load(directory=log_directory)
@@ -303,7 +302,7 @@ class Collection:
             self.log.load_csv(directory=directory)
             self.resource.load_csv(directory=directory)
         except FileNotFoundError:
-            self.load_log_items()
+            self.load_log_items(directory=directory)
 
         # attempts to load in old-resources if the file exists, many use cases won't have any
         try:

@@ -143,6 +143,15 @@ def test_collection_load_all_csvs_present(test_collection_with_log_and_resource)
     assert len(collection.source.entries) > 0
     assert len(collection.endpoint.entries) > 0
 
+    # repeat but set directory in method
+    collection = Collection()
+    collection.load(directory=test_collection_with_log_and_resource)
+
+    assert len(collection.log.entries) > 0
+    assert len(collection.resource.entries) > 0
+    assert len(collection.source.entries) > 0
+    assert len(collection.endpoint.entries) > 0
+
 
 @pytest.fixture
 def test_collection_without_log_and_resource_csvs(tmp_path):
@@ -217,6 +226,15 @@ def test_collection_load_resource_and_logs_from_log_items(
 ):
     collection = Collection(directory=test_collection_without_log_and_resource_csvs)
     collection.load()
+
+    assert len(collection.log.entries) > 0
+    assert len(collection.resource.entries) > 0
+    assert len(collection.source.entries) > 0
+    assert len(collection.endpoint.entries) > 0
+
+    # repeat but with directory specificaied in function
+    collection = Collection()
+    collection.load(directory=test_collection_without_log_and_resource_csvs)
 
     assert len(collection.log.entries) > 0
     assert len(collection.resource.entries) > 0

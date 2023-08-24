@@ -31,7 +31,6 @@ def test_collection():
     assert record[2]["start-date"] == "2020-01-12"
     assert record[3]["start-date"] == "2020-01-12"
     assert record[3]["end-date"] == "2020-02-01"
-
     collection.load_log_items(directory=test_collection_dir)
 
     resources = collection.resource.records
