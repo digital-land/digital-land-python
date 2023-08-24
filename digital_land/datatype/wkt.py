@@ -1,4 +1,7 @@
 import shapely.wkt
+import json
+import logging
+from shapely.geometry import shape
 from shapely.errors import WKTReadingError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
@@ -7,7 +10,7 @@ from shapely.validation import explain_validity, make_valid
 from pyproj import Transformer
 from pyproj.transformer import TransformerGroup
 from .datatype import DataType
-import logging
+from shapely.ops import unary_union
 
 
 # use PyProj to transform coordinates between systems
@@ -58,7 +61,11 @@ def parse_wkt(value):
     try:
         geometry = shapely.wkt.loads(value)
     except WKTReadingError:
-        return None, "invalid WKT"
+        try:
+            geometry = shapely.wkt.loads(shape(json.loads(value)).wkt)
+            return geometry, "invalid type geojson"
+        except Exception:
+            return None, "invalid WKT"
 
     if geometry.geom_type in ["Point", "LineString"]:
         first_point = geometry.coords[0]
@@ -68,6 +75,12 @@ def parse_wkt(value):
         first_point = geometry.geoms[0].exterior.coords[0]
     elif geometry.geom_type in ["MultiLineString"]:
         first_point = geometry.geoms[0].coords[0]
+    elif geometry.geom_type in ["GeometryCollection"]:
+        first_geometry = geometry.geoms[0]
+        if first_geometry.geom_type in ["MultiPolygon"]:
+            first_point = first_geometry.geoms[0].exterior.coords[0]
+        else:
+            return None, "Unexpected geom type within GeometryCollection"
     else:
         return None, "Unexpected geom type"
 
@@ -126,6 +139,8 @@ def make_multipolygon(geometry):
             elif geom.geom_type == "MultiPolygon":
                 for polygon in geom.geoms:
                     polygons.append(polygon)
+            elif geom.geom_type == "GeometryCollection":
+                polygons = unary_union(geometry)
             else:
                 logging.info(f"skipping {geom.geom_type}")
         return MultiPolygon(polygons)

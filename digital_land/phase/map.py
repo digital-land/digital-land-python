@@ -73,7 +73,10 @@ class MapPhase(Phase):
                 if headers[header] == "IGNORE":
                     continue
 
-                o[headers[header]] = row.get(header, "")
+                value = row.get(header)
+
+                if value is not None and value != "":
+                    o[headers[header]] = value
 
             for header in self.normalised_fieldnames.values():
                 if header not in o:
