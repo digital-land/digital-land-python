@@ -305,7 +305,6 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         flattened_field_names = set(spec_field_names).difference(set(reader_fieldnames))
         # Make sure we put flattened fieldnames last
         field_names = reader_fieldnames + sorted(list(flattened_field_names))
-        logging.warning(field_names)
 
         writer = csv.DictWriter(write_file, fieldnames=field_names)
         writer.writeheader()
@@ -318,7 +317,6 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             kebab_case_row = dict(
                 [(key.replace("_", "-"), val) for key, val in row.items()]
             )
-            logging.warning(kebab_case_row)
             writer.writerow(kebab_case_row)
             entities.append(kebab_case_row)
 
