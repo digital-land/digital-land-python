@@ -3,9 +3,11 @@ import csv
 import functools
 import importlib.util
 import logging
+from pathlib import Path
 
 from .phase.map import normalise
 from .phase.lookup import key as lookup_key
+from .schema import Schema
 
 
 def chain_phases(phases):
@@ -289,3 +291,94 @@ class Pipeline:
         chain = self.compose(phases)
         for row in chain(input_path):
             pass
+
+
+class EntityNumGen:
+    def __init__(self, entity_num_state: dict = None):
+        if not entity_num_state:
+            entity_num_state = {
+                "range_min": 0,
+                "range_max": 100,
+                "current": 0,
+            }
+
+        self.state = entity_num_state
+
+    def next(self):
+        current = self.state["current"]
+        new_current = current + 1
+
+        if new_current > int(self.state["range_max"]):
+            new_current = int(self.state["range_min"])
+
+        if new_current < int(self.state["range_min"]):
+            new_current = int(self.state["range_min"])
+
+        self.state["current"] = new_current
+
+        return new_current
+
+
+class Lookups:
+    def __init__(self, directory=None) -> None:
+        self.directory = directory or "pipeline"
+        self.lookups_path = Path(directory) / "lookup.csv"
+        self.entries = []
+        self.schema = Schema("lookup")
+        self.entity_num_gen = EntityNumGen()
+
+    def add_entry(self, entry):
+        self.entries.append(entry)
+
+    def load_csv(self, lookups_path=None):
+        """
+        load in lookups as df, not when we process pipeline but useful for other analysis
+        """
+        lookups_path = lookups_path or self.lookups_path
+        reader = csv.DictReader(open(lookups_path, newline=""))
+        for row in reader:
+            self.add_entry(row)
+
+    def get_max_entity(self, prefix):
+        if len(self.entries) == 0:
+            ret_val = 0
+        else:
+            ret_val = max(
+                [
+                    int(entry["entity"])
+                    for entry in self.entries
+                    if entry["prefix"] == prefix
+                ]
+            )
+        return ret_val
+
+    def save_csv(self, lookups_path=None, entries=None):
+        path = lookups_path or self.lookups_path
+
+        if entries is None:
+            entries = self.entries
+
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        logging.debug("saving %s" % (path))
+        f = open(path, "w", newline="")
+        writer = csv.DictWriter(
+            f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
+        )
+        writer.writeheader()
+        for idx, entry in enumerate(entries):
+            if not entry:
+                continue
+            else:
+                if not entry.get("entity"):
+                    entry["entity"] = self.entity_num_gen.next()
+                writer.writerow(entry)
+
+    @staticmethod
+    def validate_entry(entry):
+        expected_fields = ["prefix", "organisation", "reference"]
+        for field in expected_fields:
+            # ensures minimum expected fields exist and are not empty strings
+            if not entry.get(field, ""):
+                raise ValueError()
+
+    # I'm not sure we need this class or if we do it should be an iterator then can be used to iterate through entity numbers by dataset

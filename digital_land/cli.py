@@ -1,5 +1,7 @@
 import logging
 import sys
+from pathlib import Path
+
 import click
 
 from collections import defaultdict
@@ -17,6 +19,7 @@ from digital_land.commands import (
     pipeline_run,
     collection_add_source,
     expectations,
+    add_endpoints_and_lookups,
 )
 
 from digital_land.command_arguments import (
@@ -224,3 +227,43 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
 def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
     return expectations(results_path, sqlite_dataset_path, data_quality_yaml)
+
+
+# edit to add collection_name in
+@cli.command("add-endpoints-and-lookups")
+@click.argument("csv-path", nargs=1, type=click.Path())
+@click.argument("collection-name", nargs=1, type=click.Path())
+@collection_dir
+@organisation_path
+@click.option(
+    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
+)
+@click.option("--pipeline-dir", "-p", type=click.Path(exists=True), default="pipeline/")
+def add_endpoint_and_lookups_cmd(
+    csv_path,
+    collection_name,
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    organisation_path,
+):
+    """
+    adds new resources to the collection, based on records in csv_path
+    :param ctx:
+    :param csv_path:
+    :param collection_dir:
+    :return:
+    """
+    csv_file_path = Path(csv_path)
+    if not csv_file_path.is_file():
+        logging.error("no csv file was provided")
+        sys.exit(2)
+
+    return add_endpoints_and_lookups(
+        csv_file_path,
+        collection_name,
+        collection_dir,
+        pipeline_dir,
+        specification_dir,
+        organisation_path,
+    )

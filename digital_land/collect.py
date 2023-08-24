@@ -10,6 +10,7 @@ import os
 from datetime import datetime
 from enum import Enum
 from timeit import default_timer as timer
+from pathlib import Path
 
 import canonicaljson
 import requests
@@ -36,8 +37,8 @@ class Collector:
     def __init__(self, dataset="", collection_dir=None):
         self.dataset = dataset
         if collection_dir:
-            self.resource_dir = collection_dir / "resource/"
-            self.log_dir = collection_dir / "log/"
+            self.resource_dir = Path(collection_dir) / "resource/"
+            self.log_dir = Path(collection_dir) / "log/"
         self.session = requests.Session()
         self.session.mount("file:", FileAdapter())
         self.endpoint = {}
@@ -136,7 +137,7 @@ class Collector:
         start = timer()
 
         # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
-        if plugin == "":
+        if not plugin:
             log, content = self.get(url, log)
         elif plugin == "arcgis":
             log, content = arcgis_get(self, url, log)

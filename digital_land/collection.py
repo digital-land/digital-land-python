@@ -1,22 +1,24 @@
+import hashlib
 import logging
-import re
+
 from datetime import datetime
 from pathlib import Path
 
 from .makerules import pipeline_makerules
-from .register import hash_value
+from .register import hash_value, Item
 from .schema import Schema
 from .store.csv import CSVStore
 from .store.item import ItemStore
 
-collection_directory = "./collection"
+# rename and change variable
+DEFAULT_COLLECTION_DIR = "./collection"
 
 
 def isodate(s):
     return datetime.fromisoformat(s).strftime("%Y-%m-%d")
 
 
-def resource_path(resource, directory=collection_directory):
+def resource_path(resource, directory=DEFAULT_COLLECTION_DIR):
     return Path(directory) / "resource" / resource
 
 
@@ -64,27 +66,34 @@ class LogStore(ItemStore):
         del item["endpoint"]
         return super().save_item(item)
 
-    def check_item_path(self, item, path):
-        m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
-        (date, endpoint) = m.groups()
+    def check_item_path(self, item, in_path):
+        # m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
+        # (date, endpoint) = m.groups()
+        path = Path(in_path)
+        date = path.parts[-2]
+        endpoint = path.parts[-1].split(".")[0]
 
         if not item.get("entry-date", "").startswith(date):
             logging.warning(
                 "incorrect date in path %s for entry-date %s"
                 % (path, item["entry-date"])
             )
+            return False
 
         # print(item["url"], hash_value(item["url"]))
         if endpoint != item["endpoint"]:
             logging.warning(
                 "incorrect endpoint in path %s expected %s" % (path, item["endpoint"])
             )
+            return False
+
+        return True
 
 
 # a register of resources constructed from the log register
 class ResourceLogStore(CSVStore):
     def load(
-        self, log: LogStore, source: CSVStore, directory: str = collection_directory
+        self, log: LogStore, source: CSVStore, directory: str = DEFAULT_COLLECTION_DIR
     ):
         """
         Rebuild resource.csv file from the log store
@@ -150,55 +159,153 @@ class ResourceLogStore(CSVStore):
             )
 
 
+class SourceStore(CSVStore):
+    def __init__(self, schema=Schema("source")):
+        super().__init__(schema=schema)
+
+    # def add_entry(self, entry):
+    #     item = Item(
+    #         {
+    #             "source": entry.get("source", ""),
+    #             "collection": entry["collection"],
+    #             "pipelines": entry.get("pipelines", entry["collection"]),
+    #             "organisation": entry.get("organisation", ""),
+    #             "endpoint": entry["endpoint"],
+    #             "documentation-url": entry.get("documentation-url", ""),
+    #             "licence": entry.get("licence", ""),
+    #             "attribution": entry.get("attribution", ""),
+    #             "entry-date": self.entry_date(entry),
+    #             "start-date": self.start_date(entry),
+    #             "end-date": self.end_date(entry),
+    #         }
+    #     )
+
+    #     if self.validate_entry(item):
+    #         super().add_entry(item)
+    # the below is a good idea but I'm not too sure on how best to implement
+    # self.new_sources.append(item)
+
+    @staticmethod
+    def validate_entry(source_item: Item = None) -> bool:
+        """
+        Checks whether the supplied parameter is valid according to
+        business rules
+        :return: Boolean
+        """
+        if not source_item:
+            return False
+        if not source_item["collection"]:
+            return False
+        if (
+            not source_item["organisation"]
+            and type(source_item["organisation"]) is not str
+        ):
+            return False
+        if not source_item["endpoint"]:
+            return False
+
+        return True
+
+
+class EndpointStore(CSVStore):
+    def __init__(self, schema=Schema("endpoint")):
+        super().__init__(schema=schema)
+        # self.new_endpoints=[]
+
+    # def add_entry(self, entry):
+    # item = Item(
+    #     {
+    #         "endpoint": entry["endpoint"],
+    #         "endpoint-url": entry["endpoint-url"],
+    #         "plugin": entry.get("plugin", ""),
+    #         "parameters": entry.get("parameters", ""),
+    #         "entry-date": self.entry_date(entry),
+    #         "start-date": self.start_date(entry),
+    #         "end-date": self.end_date(entry),
+    #     }
+    # )
+    # if self.validate_entry(item):
+    #     self.add_entry(item)
+    #     self.new_endpoints.append(item)
+
+    @staticmethod
+    def validate_entry(endpoint_item: Item) -> bool:
+        """
+        Checks whether the supplied parameter is valid according to
+        business rules
+        :return: Boolean
+        """
+        if not endpoint_item:
+            return False
+        if not endpoint_item["endpoint"]:
+            return False
+        if (
+            not endpoint_item["endpoint-url"]
+            and type(endpoint_item["endpoint-url"]) is not str
+        ):
+            return False
+
+        return True
+
+
 # expected this will be based on a Datapackage class
 class Collection:
-    def __init__(self, name=None, directory=collection_directory):
+    def __init__(self, name=None, directory=DEFAULT_COLLECTION_DIR):
         self.name = name
-        self.directory = directory
+
+        # setting relevant directory variables
+        self.dir = Path(directory)
+
+        # define the set of classes up front again easier to read
+        self.log = LogStore(Schema("log"))
+        self.resource = ResourceLogStore(Schema("resource"))
+        self.old_resource = CSVStore(Schema("old-resource"))
+        self.source = SourceStore()
+        self.endpoint = EndpointStore()
+
+        #  michael's new variables
+        # self.validate = self.Validate()
+        # self.new_sources = []
+        # self.new_endpoints = []
+        # self.new_lookups = []
 
     def load_log_items(self, directory=None, log_directory=None):
-        if not log_directory:
-            directory = directory or self.directory
-            log_directory = Path(directory) / "log/*/"
+        """
+        Method to load the log store and resource store from log items instead of csvs. used when csvs don't exist
+        or new log items have been created by running a collector
+        """
+        directory = directory or self.dir
+        log_directory = log_directory or Path(directory) / "log/*/"
 
         logging.info("loading log files")
-        self.log = LogStore(Schema("log"))
         self.log.load(directory=log_directory)
 
         logging.info("indexing resources")
-        self.resource = ResourceLogStore(Schema("resource"))
         self.resource.load(log=self.log, source=self.source, directory=directory)
 
     def save_csv(self, directory=None):
-        logging.info("saving csv")
-        if not directory:
-            directory = self.directory
+        directory = directory or self.dir
 
+        logging.info("saving csv")
         self.endpoint.save_csv(directory=directory)
         self.source.save_csv(directory=directory)
         self.log.save_csv(directory=directory)
         self.resource.save_csv(directory=directory)
 
     def load(self, directory=None):
-        directory = directory or self.directory
-
-        self.source = CSVStore(Schema("source"))
+        directory = directory or self.dir
         self.source.load(directory=directory)
-
-        self.endpoint = CSVStore(Schema("endpoint"))
         self.endpoint.load(directory=directory)
 
+        # attempts to load log store and resource store from csv first, if either file isn't found it'll load them from log items
         try:
-            self.log = CSVStore(Schema("log"))
-            self.log.load(directory=directory)
-
-            self.resource = CSVStore(Schema("resource"))
-            self.resource.load(directory=directory)
+            self.log.load_csv(directory=directory)
+            self.resource.load_csv(directory=directory)
         except FileNotFoundError:
-            self.load_log_items()
+            self.load_log_items(directory=directory)
 
+        # attempts to load in old-resources if the file exists, many use cases won't have any
         try:
-            self.old_resource = CSVStore(Schema("old-resource"))
             self.old_resource.load(directory=directory)
         except FileNotFoundError:
             pass
@@ -216,7 +323,7 @@ class Collection:
         return self.resource.records[resource][-1]["organisations"].split(";")
 
     def resource_path(self, resource):
-        return resource_path(resource, self.directory)
+        return resource_path(resource, self.dir)
 
     def pipeline_makerules(self):
         pipeline_makerules(self)
@@ -254,3 +361,109 @@ class Collection:
                         dataset_resource.setdefault(dataset, set())
                         dataset_resource[dataset].add(resource)
         return dataset_resource
+
+    @staticmethod
+    def format_date(date_val) -> str:
+        if type(date_val) is datetime:
+            str_date_fmt = date_val.strftime("%Y-%m-%d")
+        elif type(date_val) is int:
+            param_start_date_str = str(date_val)
+            param_start_date_dt = datetime.strptime(param_start_date_str, "%Y%m%d")
+            if type(param_start_date_dt) is datetime:
+                str_date_fmt = param_start_date_dt.strftime("%Y-%m-%d")
+        else:
+            str_date_fmt = datetime.now().strftime("%Y-%m-%d")
+
+        return str_date_fmt
+
+    # endpoint-url should be included in the entry not to sure why it would be seperate?
+    def add_source_endpoint(self, entry: dict):
+        if not entry.get("collection"):
+            entry["collection"] = self.name
+
+        # check that entry contains allowed columns names
+        allowed_names = set(
+            list(self.endpoint.schema.fieldnames) + list(self.source.schema.fieldnames)
+        )
+
+        # do we care if there are extra columns? we only really care if they're missing the ones we need I suppose it can't hurt
+        for entry_key in entry.keys():
+            if entry_key not in allowed_names:
+                logging.error(f"unrecognised argument '{entry_key}'")
+                continue
+
+        # add entries to source and endpoint csvs changed this just to add to the stores but not to save to csv
+        # hash_value should be added in the functions beow
+        entry["endpoint"] = hash_value(entry["endpoint-url"])
+
+        if not entry.get("end-date"):
+            entry["end-date"] = ""
+
+        # entry["end-date"] = entry.get("end-date", "")
+
+        # entry["pipelines"] = entry.get("pipelines", entry["collection"])
+
+        self.add_endpoint(entry)
+        self.add_source(entry)
+
+        self.recalculate_source_hashes()
+        #  I argue that we shouldn't save it to the csv here. otherwise it makes it hard
+        # self.save_csv()
+
+    def add_source(self, entry: dict):
+        item = Item(
+            {
+                "source": entry.get("source", ""),
+                "collection": entry["collection"],
+                "pipelines": entry.get("pipelines", entry["collection"]),
+                "organisation": entry.get("organisation", ""),
+                "endpoint": entry["endpoint"],
+                "documentation-url": entry.get("documentation-url", ""),
+                "licence": entry.get("licence", ""),
+                "attribution": entry.get("attribution", ""),
+                "entry-date": self.entry_date(entry),
+                "start-date": self.start_date(entry),
+                "end-date": self.end_date(entry),
+            }
+        )
+        if self.source.validate_entry(item):
+            self.source.add_entry(entry)
+
+    def add_endpoint(self, entry: dict):
+        endpoint_entry = Item(
+            {
+                "endpoint": entry["endpoint"],
+                "endpoint-url": entry["endpoint-url"],
+                "plugin": entry.get("plugin", ""),
+                "parameters": entry.get("parameters", ""),
+                "entry-date": self.entry_date(entry),
+                "start-date": self.start_date(entry),
+                "end-date": self.end_date(entry),
+            }
+        )
+        if self.endpoint.validate_entry(endpoint_entry):
+            self.endpoint.add_entry(endpoint_entry)
+
+    def recalculate_source_hashes(self):
+        for entry in self.source.entries:
+            key = "%s|%s|%s" % (
+                entry["collection"],
+                entry["organisation"],
+                entry["endpoint"],
+            )
+            entry["source"] = hashlib.md5(key.encode()).hexdigest()
+
+    def start_date(self, entry):
+        if entry.get("start-date", ""):
+            return datetime.strptime(entry["start-date"], "%Y-%m-%d").date()
+        return ""
+
+    def end_date(self, entry):
+        if entry.get("end-date", ""):
+            return datetime.strptime(entry["end-date"], "%Y-%m-%d").date()
+        return ""
+
+    def entry_date(self, entry):
+        return entry.get(
+            "entry-date", datetime.utcnow().strftime("%Y-%m-%dT%H:%H:%M:%SZ")
+        )
