@@ -67,8 +67,6 @@ class LogStore(ItemStore):
         return super().save_item(item)
 
     def check_item_path(self, item, in_path):
-        # m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
-        # (date, endpoint) = m.groups()
         path = Path(in_path)
         date = path.parts[-2]
         endpoint = path.parts[-1].split(".")[0]
@@ -80,7 +78,6 @@ class LogStore(ItemStore):
             )
             return False
 
-        # print(item["url"], hash_value(item["url"]))
         if endpoint != item["endpoint"]:
             logging.warning(
                 "incorrect endpoint in path %s expected %s" % (path, item["endpoint"])
@@ -163,28 +160,6 @@ class SourceStore(CSVStore):
     def __init__(self, schema=Schema("source")):
         super().__init__(schema=schema)
 
-    # def add_entry(self, entry):
-    #     item = Item(
-    #         {
-    #             "source": entry.get("source", ""),
-    #             "collection": entry["collection"],
-    #             "pipelines": entry.get("pipelines", entry["collection"]),
-    #             "organisation": entry.get("organisation", ""),
-    #             "endpoint": entry["endpoint"],
-    #             "documentation-url": entry.get("documentation-url", ""),
-    #             "licence": entry.get("licence", ""),
-    #             "attribution": entry.get("attribution", ""),
-    #             "entry-date": self.entry_date(entry),
-    #             "start-date": self.start_date(entry),
-    #             "end-date": self.end_date(entry),
-    #         }
-    #     )
-
-    #     if self.validate_entry(item):
-    #         super().add_entry(item)
-    # the below is a good idea but I'm not too sure on how best to implement
-    # self.new_sources.append(item)
-
     @staticmethod
     def validate_entry(source_item: Item = None) -> bool:
         """
@@ -210,23 +185,6 @@ class SourceStore(CSVStore):
 class EndpointStore(CSVStore):
     def __init__(self, schema=Schema("endpoint")):
         super().__init__(schema=schema)
-        # self.new_endpoints=[]
-
-    # def add_entry(self, entry):
-    # item = Item(
-    #     {
-    #         "endpoint": entry["endpoint"],
-    #         "endpoint-url": entry["endpoint-url"],
-    #         "plugin": entry.get("plugin", ""),
-    #         "parameters": entry.get("parameters", ""),
-    #         "entry-date": self.entry_date(entry),
-    #         "start-date": self.start_date(entry),
-    #         "end-date": self.end_date(entry),
-    #     }
-    # )
-    # if self.validate_entry(item):
-    #     self.add_entry(item)
-    #     self.new_endpoints.append(item)
 
     @staticmethod
     def validate_entry(endpoint_item: Item) -> bool:
@@ -262,12 +220,6 @@ class Collection:
         self.old_resource = CSVStore(Schema("old-resource"))
         self.source = SourceStore()
         self.endpoint = EndpointStore()
-
-        #  michael's new variables
-        # self.validate = self.Validate()
-        # self.new_sources = []
-        # self.new_endpoints = []
-        # self.new_lookups = []
 
     def load_log_items(self, directory=None, log_directory=None):
         """
@@ -399,16 +351,10 @@ class Collection:
         if not entry.get("end-date"):
             entry["end-date"] = ""
 
-        # entry["end-date"] = entry.get("end-date", "")
-
-        # entry["pipelines"] = entry.get("pipelines", entry["collection"])
-
         self.add_endpoint(entry)
         self.add_source(entry)
 
         self.recalculate_source_hashes()
-        #  I argue that we shouldn't save it to the csv here. otherwise it makes it hard
-        # self.save_csv()
 
     def add_source(self, entry: dict):
         item = Item(
@@ -455,12 +401,12 @@ class Collection:
 
     def start_date(self, entry):
         if entry.get("start-date", ""):
-            return datetime.strptime(entry["start-date"], "%Y-%m-%d").date()
+            return self.format_date(entry["start-date"])
         return ""
 
     def end_date(self, entry):
         if entry.get("end-date", ""):
-            return datetime.strptime(entry["end-date"], "%Y-%m-%d").date()
+            return self.format_date(entry["end-date"])
         return ""
 
     def entry_date(self, entry):

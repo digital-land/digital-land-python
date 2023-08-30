@@ -347,7 +347,7 @@ class Lookups:
                 [
                     int(entry["entity"])
                     for entry in self.entries
-                    if entry["prefix"] == prefix
+                    if (entry["prefix"] == prefix) and (entry.get("entity", None))
                 ]
             )
         return ret_val
