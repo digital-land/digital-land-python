@@ -136,6 +136,22 @@ def organisation_csv(tmp_path):
 def pipeline_dir(tmp_path):
     pipeline_dir = os.path.join(tmp_path, "pipeline")
     os.makedirs(pipeline_dir, exist_ok=True)
+
+    # create lookups
+    row = {
+        "prefix": "ancient-woodland",
+        "resource": "",
+        "organisation": "local-authority-eng:ABC",
+        "reference": "ABC_0001",
+        "entity": "1234567",
+    }
+    fieldnames = row.keys()
+
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
     return pipeline_dir
 
 
@@ -160,7 +176,7 @@ def test_add_batch_of_endpoints_command_success_lookups_required(
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.request.headers = {"test": "test"}
-    mock_response.headers = {"terst": "test"}
+    mock_response.headers = {"test": "test"}
     mock_response.content = csv_content
     mocker.patch(
         "requests.Session.get",
@@ -187,8 +203,8 @@ def test_add_batch_of_endpoints_command_success_lookups_required(
     assert len(collection.log.entries) > 0
 
     # test lookups have been added correctly, including
-    lookup_path = os.path.join(pipeline_dir, "lookup.csv")
-    lookups = Lookups(lookup_path)
+    # lookup_path = os.path.join(pipeline_dir, "lookup.csv")
+    lookups = Lookups(pipeline_dir)
     lookups.load_csv()
     assert len(lookups.entries) > 0
     for entry in lookups.entries:
@@ -206,7 +222,7 @@ def test_add_batch_of_endpoints_cli_success_lookups_required(
     mock_resource,
 ):
     """
-    same test as above but incorperate running the command
+    same test as above but incorporate running the command
     the check that cli to command function works appropriately
     """
 
@@ -217,7 +233,7 @@ def test_add_batch_of_endpoints_cli_success_lookups_required(
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.request.headers = {"test": "test"}
-    mock_response.headers = {"terst": "test"}
+    mock_response.headers = {"test": "test"}
     mock_response.content = csv_content
     mocker.patch(
         "requests.Session.get",
