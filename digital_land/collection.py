@@ -351,6 +351,9 @@ class Collection:
         if not entry.get("end-date"):
             entry["end-date"] = ""
 
+        if not entry.get("entry-date"):
+            entry["entry-date"] = datetime.now().strftime("%Y-%m-%d")
+
         self.add_endpoint(entry)
         self.add_source(entry)
 

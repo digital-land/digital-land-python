@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 import os
 import csv
@@ -236,6 +238,15 @@ def test_command_add_endpoints_and_lookups_success_lookups_required(
         for expected_key in ["organisation", "prefix", "entity", "reference"]:
             assert entry.get(expected_key, None) is not None
 
+    expected_entry_date = datetime.now().strftime("%Y-%m-%d")
+    for source in collection.source.entries:
+        assert source.get("entry-date", None) is not None
+        assert source.get("entry-date", None) == expected_entry_date
+
+    for endpoint in collection.endpoint.entries:
+        assert endpoint.get("entry-date", None) is not None
+        assert endpoint.get("entry-date", None) == expected_entry_date
+
 
 def test_command_add_endpoints_and_lookups_failure_incorrect_dataset(
     wrong_endpoint_url_csv,
@@ -340,14 +351,8 @@ def test_cli_add_endpoints_and_lookups_cmd_success_return_code(
     assert result.exit_code == 0, f"{result.stdout}"
 
 
-# unit/integratino tests to add
-# lookups get max entity where pipeline exists
-# lookups get max entity where pipeline doesn't spec provided
-# lookups get max entity where spec included
-
 # adding endpoint requirements
-# entry date is calculated if not included
 # start date should be provided
-# adding source requiremnts
+# adding source requirements
 
 # passing both Path and strs for directory structures
