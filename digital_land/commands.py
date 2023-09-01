@@ -479,9 +479,6 @@ def add_endpoints_and_lookups(
     # reload log items
     collection.load_log_items()
 
-    # all endpoints have been added successfully
-    collection.save_csv()
-
     # load specification
     specification = Specification(specification_dir)
 
@@ -525,13 +522,14 @@ def add_endpoints_and_lookups(
     lookups.load_csv()
     for new_lookup in new_lookups:
         for idx, entry in enumerate(new_lookup):
-            lookups.validate_entry(entry[0])
             lookups.add_entry(entry[0])
 
     # save edited csvs
     max_entity_num = lookups.get_max_entity(pipeline_name)
     lookups.entity_num_gen.state["current"] = max_entity_num
     lookups.entity_num_gen.state["range_max"] = max_entity_num + 9999
+
+    collection.save_csv()
     lookups.save_csv()
 
 
@@ -553,11 +551,6 @@ def get_resource_unidentified_lookups(
     tmp_dir=None,
     org_csv_path=None,
 ):
-    # removed below and replaced by adding arguements above
-    # if not (specification or dataset or input_path):
-    #     error_msg = "Failed to perform lookups for resource"
-    #     raise Exception(error_msg)
-
     # convert phase inputs
     # could alter resource_from_path to file from path and promote to a utils folder
     resource = resource_from_path(input_path)

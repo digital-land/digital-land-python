@@ -328,6 +328,7 @@ class Lookups:
         self.entity_num_gen = EntityNumGen()
 
     def add_entry(self, entry):
+        self.validate_entry(entry)
         self.entries.append(entry)
 
     def load_csv(self, lookups_path=None):
@@ -373,12 +374,22 @@ class Lookups:
                     entry["entity"] = self.entity_num_gen.next()
                 writer.writerow(entry)
 
-    @staticmethod
-    def validate_entry(entry):
+    # @staticmethod
+    def validate_entry(self, entry):
         expected_fields = ["prefix", "organisation", "reference"]
         for field in expected_fields:
             # ensures minimum expected fields exist and are not empty strings
             if not entry.get(field, ""):
                 raise ValueError()
+
+        if len(self.entries) > 0:
+            existing_prefixes = len(
+                [1 for item in self.entries if item["prefix"] == entry["prefix"]]
+            )
+
+            if existing_prefixes == 0:
+                raise ValueError(
+                    f"ERROR: {entry['prefix']} is not expected dataset for this pipeline"
+                )
 
     # I'm not sure we need this class or if we do it should be an iterator then can be used to iterate through entity numbers by dataset

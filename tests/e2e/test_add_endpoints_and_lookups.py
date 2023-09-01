@@ -42,6 +42,30 @@ def endpoint_url_csv(tmp_path):
 
 
 @pytest.fixture
+def wrong_endpoint_url_csv(tmp_path):
+    """
+    Writes the minimum data needed to add an endpoint for a single row and returns the file_path.
+    This variant creates a csv with the wrong pipeline for the collection
+    """
+    new_endpoints_csv_path = os.path.join(tmp_path, "new_endpoints.csv")
+    row = {
+        "endpoint-url": "https://www.example.com",  # mock this we're just going to assume that it returns data
+        "documentation-url": "https://www.example.com",
+        "organisation": "government-organisation:D1342",
+        "start-date": "2023-08-10",
+        "plugin": "",
+        "pipelines": "brownfield-land",
+    }
+    fieldnames = row.keys()
+    with open(new_endpoints_csv_path, "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    return new_endpoints_csv_path
+
+
+@pytest.fixture
 def mock_resource(tmp_path):
     data = {"reference": "1", "value": "test"}
     mock_csv_path = Path(tmp_path, "mock_csv.csv")
@@ -155,7 +179,7 @@ def pipeline_dir(tmp_path):
     return pipeline_dir
 
 
-def test_add_batch_of_endpoints_command_success_lookups_required(
+def test_command_add_endpoints_and_lookups_success_lookups_required(
     endpoint_url_csv,
     collection_dir,
     pipeline_dir,
@@ -203,16 +227,71 @@ def test_add_batch_of_endpoints_command_success_lookups_required(
     assert len(collection.log.entries) > 0
 
     # test lookups have been added correctly, including
-    # lookup_path = os.path.join(pipeline_dir, "lookup.csv")
     lookups = Lookups(pipeline_dir)
     lookups.load_csv()
+
     assert len(lookups.entries) > 0
+
     for entry in lookups.entries:
         for expected_key in ["organisation", "prefix", "entity", "reference"]:
             assert entry.get(expected_key, None) is not None
 
 
-def test_add_batch_of_endpoints_cli_success_lookups_required(
+def test_command_add_endpoints_and_lookups_failure_incorrect_dataset(
+    wrong_endpoint_url_csv,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mocker,
+    mock_resource,
+):
+    """
+    Test what happens when a csv file with the wrong pipeline is used with
+    the test collection.
+    """
+
+    with open(mock_resource, "r", encoding="utf-8") as f:
+        csv_content = f.read().encode("utf-8")
+
+    collection_name = "testing"
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.request.headers = {"test": "test"}
+    mock_response.headers = {"test": "test"}
+    mock_response.content = csv_content
+    mocker.patch(
+        "requests.Session.get",
+        return_value=mock_response,
+    )
+
+    with pytest.raises(ValueError) as value_err:
+        add_endpoints_and_lookups(
+            csv_file_path=wrong_endpoint_url_csv,
+            collection_name=collection_name,
+            collection_dir=Path(collection_dir),
+            specification_dir=specification_dir,
+            organisation_path=organisation_path,
+            pipeline_dir=pipeline_dir,
+        )
+
+    expected_exception = (
+        "ERROR: brownfield-land is not expected dataset for this pipeline"
+    )
+    assert str(value_err.value) == expected_exception
+
+    # test no endpoints or sources have been added
+    # multiple exceptions will be thrown when loading a Collection at this point
+    # due to the absence of the dynamically created files
+    collection = Collection(name=collection_name, directory=collection_dir)
+    with pytest.raises(Exception):
+        collection.load()
+
+    assert len(collection.source.entries) == 0
+    assert len(collection.endpoint.entries) == 0
+
+
+def test_cli_add_endpoints_and_lookups_cmd_success_return_code(
     endpoint_url_csv,
     collection_dir,
     pipeline_dir,
