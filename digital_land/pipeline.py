@@ -380,7 +380,7 @@ class Lookups:
         for field in expected_fields:
             # ensures minimum expected fields exist and are not empty strings
             if not entry.get(field, ""):
-                raise ValueError()
+                raise ValueError(f"ERROR: expected {field} not found in lookup entry")
 
         if len(self.entries) > 0:
             existing_prefixes = len(
