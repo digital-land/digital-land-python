@@ -50,7 +50,7 @@ Development requires Python 3.6.2 or later, we recommend using a [virtual enviro
 
     make init
     make
-    python -m digital-land --help
+    python -m digital_land --help
 
 
 ## Commands Guide
