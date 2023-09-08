@@ -6,11 +6,21 @@ class OrganisationPhase(Phase):
     lookup the organisation
     """
 
-    def __init__(self, organisation={}):
+    def __init__(self, issues=None, organisation={}):
         self.organisation = organisation
+        self.issues = issues
 
     def process(self, stream):
         for block in stream:
             row = block["row"]
+            if self.issues:
+                self.issues.resource = block["resource"]
+                self.issues.line_number = block["line-number"]
+                self.issues.entry_number = block["entry-number"]
+
             row["organisation"] = self.organisation.lookup(row["organisation"])
+            if not row["organisation"]:
+                self.issues.log_issue(
+                    "organisation", "missing organisation", row["organisation"]
+                )
             yield block

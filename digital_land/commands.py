@@ -193,7 +193,7 @@ def pipeline_run(
             fields=specification.schema_field[schema],
             migrations=pipeline.migrations(),
         ),
-        OrganisationPhase(organisation=organisation),
+        OrganisationPhase(organisation=organisation, issue_log=issue_log),
         FieldPrunePhase(fields=specification.current_fieldnames(schema)),
         EntityReferencePhase(
             dataset=dataset,
