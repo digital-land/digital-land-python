@@ -327,8 +327,17 @@ class Lookups:
         self.schema = Schema("lookup")
         self.entity_num_gen = EntityNumGen()
 
-    def add_entry(self, entry):
-        self.validate_entry(entry)
+    def add_entry(self, entry, is_new_entry=True):
+        """
+        is_new_entry is an addition to allow for backward compatibility.
+        Older lookups may not be valid in accordance with the current
+        minimal column requirements
+        :param entry:
+        :param is_new_entry:
+        :return:
+        """
+        if is_new_entry:
+            self.validate_entry(entry)
         self.entries.append(entry)
 
     def load_csv(self, lookups_path=None):
@@ -338,7 +347,7 @@ class Lookups:
         lookups_path = lookups_path or self.lookups_path
         reader = csv.DictReader(open(lookups_path, newline=""))
         for row in reader:
-            self.add_entry(row)
+            self.add_entry(row, is_new_entry=False)
 
     def get_max_entity(self, prefix):
         if len(self.entries) == 0:
