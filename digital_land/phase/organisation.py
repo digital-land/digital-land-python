@@ -6,7 +6,7 @@ class OrganisationPhase(Phase):
     lookup the organisation
     """
 
-    def __init__(self, issues=None, organisation={}):
+    def __init__(self, organisation={}, issues=None):
         self.organisation = organisation
         self.issues = issues
 

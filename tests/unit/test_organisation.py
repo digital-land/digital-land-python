@@ -61,7 +61,7 @@ def test_process_with_valid_organisation():
             }
         }
     ]
-    organisationPhase = OrganisationPhase(issues=None, organisation=organisation)
+    organisationPhase = OrganisationPhase(organisation=organisation, issues=None)
     output = [block for block in organisationPhase.process(input_stream)]
     assert output[0]["row"]["organisation"] == "local-authority-eng:LBH"
 
@@ -82,6 +82,6 @@ def test_process_with_missing_organisation():
             "entry-number": 2,
         }
     ]
-    organisationPhase = OrganisationPhase(issues=issues, organisation=organisation)
+    organisationPhase = OrganisationPhase(organisation=organisation, issues=issues)
     output = [block for block in organisationPhase.process(input_stream)]
     assert output[0]["row"]["organisation"] == ""
