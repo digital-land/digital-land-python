@@ -1,4 +1,6 @@
 from digital_land.organisation import Organisation
+from digital_land.phase.organisation import OrganisationPhase
+from digital_land.log import IssueLog
 
 
 def test_organisation_lookup():
@@ -45,4 +47,41 @@ def test_organisation_lookup():
     )
 
     assert organisation.lookup("E07000068") == "local-authority-eng:BRW"
+
+
+def test_process_with_valid_organisation():
+    organisation = Organisation(
+        organisation_path="tests/data/listed-building/organisation.csv"
+    )
     assert organisation.lookup("Lambeth") == "local-authority-eng:LBH"
+    input_stream = [
+        {
+            "row": {
+                "organisation": "Lambeth",
+            }
+        }
+    ]
+    organisationPhase = OrganisationPhase(issues=None, organisation=organisation)
+    output = [block for block in organisationPhase.process(input_stream)]
+    assert output[0]["row"]["organisation"] == "local-authority-eng:LBH"
+
+
+def test_process_with_missing_organisation():
+    organisation = Organisation(
+        organisation_path="tests/data/listed-building/organisation.csv"
+    )
+    assert organisation.lookup("Borchester") == ""
+    issues = IssueLog(dataset="brownfield-land", resource="1")
+    input_stream = [
+        {
+            "row": {
+                "organisation": "Borchester",
+            },
+            "resource": "1",
+            "line-number": 1,
+            "entry-number": 2,
+        }
+    ]
+    organisationPhase = OrganisationPhase(issues=issues, organisation=organisation)
+    output = [block for block in organisationPhase.process(input_stream)]
+    assert output[0]["row"]["organisation"] == ""
