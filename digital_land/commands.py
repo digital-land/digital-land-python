@@ -443,7 +443,6 @@ def add_endpoints_and_lookups(
     collection.load()
 
     # read and process each record of the new endpoints csv at csv_file_path
-    line_number = 2
     with open(csv_file_path) as new_endpoints_file:
         reader = csv.DictReader(new_endpoints_file)
         csv_columns = reader.fieldnames
@@ -456,15 +455,14 @@ def add_endpoints_and_lookups(
         # this is not perfect we should riase validation errors in our code and below should include a try and except statement
         endpoints = []
         for row in reader:
-            collection.add_source_endpoint(row)
-            endpoint = {
-                "endpoint-url": row["endpoint-url"],
-                "endpoint": hash_value(row["endpoint-url"]),
-                "end-date": row.get("end-date", ""),
-                "plugin": row.get("plugin"),
-            }
-            endpoints.append(endpoint)
-            line_number += 1
+            if collection.add_source_endpoint(row):
+                endpoint = {
+                    "endpoint-url": row["endpoint-url"],
+                    "endpoint": hash_value(row["endpoint-url"]),
+                    "end-date": row.get("end-date", ""),
+                    "plugin": row.get("plugin"),
+                }
+                endpoints.append(endpoint)
 
     # endpoints have been added now lets collect the resources using the endpoint information
     collector = Collector(collection_dir=collection_dir)

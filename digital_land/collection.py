@@ -205,6 +205,29 @@ class EndpointStore(CSVStore):
 
         return True
 
+    def is_not_duplicate(self, endpoint_item: Item) -> bool:
+        """
+        check if given endpoint already exists
+        :param endpoint_item:
+        :return:
+        """
+        existing_entries = len(
+            [
+                1
+                for item in self.entries
+                if item["endpoint"] == endpoint_item["endpoint"]
+                and item["endpoint-url"] == endpoint_item["endpoint-url"]
+                and item["plugin"] == endpoint_item["plugin"]
+                and item["start-date"] == endpoint_item["start-date"]
+            ]
+        )
+
+        if existing_entries > 0:
+            print(f">>> INFO: endpoint already exists - {endpoint_item['endpoint']}")
+            return False
+
+        return True
+
 
 # expected this will be based on a Datapackage class
 class Collection:
@@ -329,7 +352,13 @@ class Collection:
         return str_date_fmt
 
     # endpoint-url should be included in the entry not to sure why it would be seperate?
-    def add_source_endpoint(self, entry: dict):
+    def add_source_endpoint(self, entry: dict) -> bool:
+        """
+        adds entries to teh endpoint and source csvs, if validation
+        checks pass.
+        :param entry:
+        :return: Boolean value indicating if entries were added successfully
+        """
         if not entry.get("collection"):
             entry["collection"] = self.name
 
@@ -354,10 +383,13 @@ class Collection:
         if not entry.get("entry-date"):
             entry["entry-date"] = datetime.now().strftime("%Y-%m-%d")
 
-        self.add_endpoint(entry)
-        self.add_source(entry)
+        if not self.add_endpoint(entry):
+            return False
 
+        self.add_source(entry)
         self.recalculate_source_hashes()
+
+        return True
 
     def add_source(self, entry: dict):
         item = Item(
@@ -378,7 +410,7 @@ class Collection:
         if self.source.validate_entry(item):
             self.source.add_entry(entry)
 
-    def add_endpoint(self, entry: dict):
+    def add_endpoint(self, entry: dict) -> bool:
         endpoint_entry = Item(
             {
                 "endpoint": entry["endpoint"],
@@ -390,8 +422,13 @@ class Collection:
                 "end-date": self.end_date(entry),
             }
         )
+
         if self.endpoint.validate_entry(endpoint_entry):
-            self.endpoint.add_entry(endpoint_entry)
+            if self.endpoint.is_not_duplicate(endpoint_entry):
+                self.endpoint.add_entry(endpoint_entry)
+                return True
+
+        return False
 
     def recalculate_source_hashes(self):
         for entry in self.source.entries:
