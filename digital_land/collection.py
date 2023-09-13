@@ -223,7 +223,7 @@ class EndpointStore(CSVStore):
         )
 
         if existing_entries > 0:
-            print(f">>> INFO: endpoint already exists - {endpoint_item['endpoint']}")
+            # print(f">>> INFO: endpoint already exists - {endpoint_item['endpoint']}")
             return False
 
         return True
