@@ -1,7 +1,7 @@
 import shapely.wkt
 import json
 import logging
-from shapely.geometry import shape
+from shapely.geometry import shape, Point
 from shapely.errors import WKTReadingError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
@@ -47,6 +47,19 @@ def within_england(x, y):
     return x > -7.0 and x < 2.5 and y > 49.5 and y < 56.0
 
 
+def within_boundary(x, y, boundary):
+    if not boundary:
+        return within_england(x, y)
+    return boundary.contains(Point(x, y))
+
+
+def osgb_within_boundary(x, y, boundary):
+    if not boundary:
+        return osgb_within_england(x, y)
+    _x, _y = osgb_to_wgs84.transform(x, y)
+    return boundary.contains(Point(_x, _y))
+
+
 # check if NW of the SE corner of the Irish Sea
 # https://gridreferencefinder.com/?gr=SC7000000000
 def osgb_within_england(x, y):
@@ -57,7 +70,7 @@ def flip(x, y, z=None):
     return tuple(filter(None, [y, x, z]))
 
 
-def parse_wkt(value):
+def parse_wkt(value, boundary):
     try:
         geometry = shapely.wkt.loads(value)
     except WKTReadingError:
@@ -85,35 +98,36 @@ def parse_wkt(value):
         return None, "Unexpected geom type"
 
     x, y = first_point[:2]
+    boundary_issue_info = "custom boundary" if boundary else "England"
 
     if degrees_like(x, y):
-        if within_england(x, y):
+        if within_boundary(x, y, boundary):
             return geometry, None
 
-        if within_england(y, x):
+        if within_boundary(y, x, boundary):
             return transform(flip, geometry), "WGS84 flipped"
 
-        return None, "WGS84 out of bounds"
+        return None, "WGS84 out of bounds of " + boundary_issue_info
 
     if easting_northing_like(x, y):
-        if osgb_within_england(x, y):
+        if osgb_within_boundary(x, y, boundary):
             return transform(osgb_to_wgs84.transform, geometry), "OSGB"
 
-        if osgb_within_england(y, x):
+        if osgb_within_boundary(y, x, boundary):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
             return geometry, "OSGB flipped"
 
-        return None, "OSGB out of bounds"
+        return None, "OSGB out of bounds of " + boundary_issue_info
 
     if metres_like(x, y):
         _x, _y = mercator_to_wgs84.transform(x, y)
-        if within_england(_x, _y):
+        if within_boundary(_x, _y):
             return transform(mercator_to_wgs84.transform, geometry), "Mercator"
 
     if metres_like(y, x):
         _x, _y = mercator_to_wgs84.transform(y, x)
-        if within_england(_x, _y):
+        if within_boundary(_x, _y):
             geometry = transform(flip, geometry)
             geometry = transform(mercator_to_wgs84.transform, geometry)
             return geometry, "Mercator flipped"
@@ -192,11 +206,23 @@ class WktDataType(DataType):
     def __init__(self):
         pass
 
-    def normalise(self, value, default="", issues=None):
+    def normalise(self, value, default="", issues=None, boundary=None):
         if not value:
             return default
 
-        geometry, issue = parse_wkt(value)
+        if boundary:
+            try:
+                boundary_wkt = shapely.wkt.loads(boundary)
+                if boundary_wkt.geom_type in ["Polygon", "Multipolygon"]:
+                    boundary = boundary_wkt
+                else:
+                    issues.log("Boundary must be of type Polygon or MultiPolygon", "")
+                    boundary = None
+            except WKTReadingError:
+                issues.log("Error reading boundary, must be a WKT", "")
+                boundary = None
+
+        geometry, issue = parse_wkt(value, boundary)
 
         if issue:
             issues.log(issue, "")

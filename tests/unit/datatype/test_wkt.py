@@ -108,3 +108,70 @@ def test_invalid_geometry_type_throws_correct_error():
     assert wkt.normalise(value, issues=issues) == ""
     assert len(issues.rows) == 1, "more than 1 issues being generated"
     assert issues.rows[0]["issue-type"] == "Unexpected geom type"
+
+
+def test_invalid_boundary_geometry_type_throws_error():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    value = "POINT(0 0)"
+    boundary = "POINT(0 0)"
+    assert wkt.normalise(value, issues=issues, boundary=boundary) == ""
+    assert (
+        issues.rows[0]["issue-type"]
+        == "Boundary must be of type Polygon or MultiPolygon"
+    )
+
+
+def test_invalid_boundary_type_throws_error():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    value = "POINT(0 0)"
+    boundary = "String"
+    assert wkt.normalise(value, issues=issues, boundary=boundary) == ""
+    assert issues.rows[0]["issue-type"] == "Error reading boundary, must be a WKT"
+
+
+def test_boundary_provided_point_within():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    boundary = "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))"
+    input_wkt = "POINT (0.5 0.5)"
+
+    wkt.normalise(input_wkt, issues=issues, boundary=boundary)
+    assert len(issues.rows) == 0
+
+
+def test_boundary_provided_point_not_within():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    boundary = "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))"
+    input_wkt = "POINT (2 2)"
+
+    wkt.normalise(input_wkt, issues=issues, boundary=boundary)
+    assert len(issues.rows) == 1
+    assert issues.rows[0]["issue-type"] == "WGS84 out of bounds of custom boundary"
+
+
+def test_no_boundary_point_within_england():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    input_wkt = "POINT (-0.436088 52.149388)"
+
+    wkt.normalise(input_wkt, issues=issues)
+    assert len(issues.rows) == 0
+
+
+def test_no_boundary_point_not_within_england():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    input_wkt = "POINT (5 55)"
+
+    wkt.normalise(input_wkt, issues=issues)
+    assert len(issues.rows) == 1
+    assert issues.rows[0]["issue-type"] == "WGS84 out of bounds of England"
