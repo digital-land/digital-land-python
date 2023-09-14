@@ -45,3 +45,4 @@ def test_organisation_lookup():
     )
 
     assert organisation.lookup("E07000068") == "local-authority-eng:BRW"
+    assert organisation.lookup("Lambeth") == "local-authority-eng:LBH"
