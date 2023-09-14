@@ -265,7 +265,7 @@ def test_wkt_invalid_multipolygon_too_few_points_normalised():
         assert geometry.is_valid
 
 
-def test_custom_boundary_provided_osgb_point_within():
+def test_custom_boundary_provided_wgs84_point_within():
     wkt = WktDataType()
     issues = IssueLog()
 
@@ -276,7 +276,7 @@ def test_custom_boundary_provided_osgb_point_within():
     assert len(issues.rows) == 0
 
 
-def test_custom_boundary_provided_osgb_point_not_within():
+def test_custom_boundary_provided_wgs84_point_not_within():
     wkt = WktDataType()
     issues = IssueLog()
 
