@@ -53,6 +53,13 @@ def within_boundary(x, y, boundary):
     return boundary.contains(Point(x, y))
 
 
+def osgb_within_boundary(x, y, boundary):
+    if not boundary:
+        return osgb_within_england(x, y)
+    _x, _y = osgb_to_wgs84.transform(x, y)
+    return boundary.contains(Point(_x, _y))
+
+
 # check if NW of the SE corner of the Irish Sea
 # https://gridreferencefinder.com/?gr=SC7000000000
 def osgb_within_england(x, y):
@@ -103,11 +110,10 @@ def parse_wkt(value, boundary):
         return None, "WGS84 out of bounds of " + boundary_issue_info
 
     if easting_northing_like(x, y):
-        _x, _y = osgb_to_wgs84.transform(x, y)
-        if within_boundary(_x, _y, boundary):
+        if osgb_within_boundary(x, y, boundary):
             return transform(osgb_to_wgs84.transform, geometry), "OSGB"
 
-        if within_boundary(_y, _x, boundary):
+        if osgb_within_boundary(y, x, boundary):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
             return geometry, "OSGB flipped"
@@ -121,7 +127,7 @@ def parse_wkt(value, boundary):
 
     if metres_like(y, x):
         _x, _y = mercator_to_wgs84.transform(y, x)
-        if within_boundary(_x, _y):
+        if within_boundary(_x, _y, boundary):
             geometry = transform(flip, geometry)
             geometry = transform(mercator_to_wgs84.transform, geometry)
             return geometry, "Mercator flipped"

@@ -82,10 +82,10 @@ def test_wkt_point_wgs84_out_of_range():
     issues = IssueLog()
 
     assert wkt.normalise("POINT (0.0 0.0)", issues=issues) == ""
-    assert issue_type(issues) == "WGS84 out of bounds"
+    assert issue_type(issues) == "WGS84 out of bounds of England"
 
     assert wkt.normalise("POINT (0.0 48.1)", issues=issues) == ""
-    assert issue_type(issues) == "WGS84 out of bounds"
+    assert issue_type(issues) == "WGS84 out of bounds of England"
 
 
 def test_wkt_point_northings_eastings():
@@ -263,3 +263,26 @@ def test_wkt_invalid_multipolygon_too_few_points_normalised():
 
         geometry = shapely.wkt.loads(osgb_wkt)
         assert geometry.is_valid
+
+
+def test_custom_boundary_provided_osgb_point_within():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    boundary = "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))"
+    input_wkt = "POINT (0.5 0.5)"
+
+    wkt.normalise(input_wkt, issues=issues, boundary=boundary)
+    assert len(issues.rows) == 0
+
+
+def test_custom_boundary_provided_osgb_point_not_within():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    boundary = "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))"
+    input_wkt = "POINT (2 2)"
+
+    wkt.normalise(input_wkt, issues=issues, boundary=boundary)
+    assert len(issues.rows) == 1
+    assert issues.rows[0]["issue-type"] == "WGS84 out of bounds of custom boundary"
