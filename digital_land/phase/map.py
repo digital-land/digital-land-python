@@ -6,8 +6,13 @@ from .phase import Phase
 normalise_pattern = re.compile(r"[^a-z0-9-_]")
 
 
+def replace_underscores(name: str):
+    return name.replace("_", "-")
+
+
 def normalise(name):
-    return re.sub(normalise_pattern, "", name.lower())
+    new_name = replace_underscores(name)
+    return re.sub(normalise_pattern, "", new_name.lower())
 
 
 class MapPhase(Phase):
@@ -18,7 +23,9 @@ class MapPhase(Phase):
 
     def __init__(self, fieldnames, columns={}, log=None):
         self.columns = columns
-        self.normalised_fieldnames = {normalise(f): f for f in fieldnames}
+        self.normalised_fieldnames = {
+            normalise(f): replace_underscores(f) for f in fieldnames
+        }
         if not log:
             log = ColumnFieldLog()
         self.log = log

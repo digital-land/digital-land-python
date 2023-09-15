@@ -75,3 +75,46 @@ def test_map_empty_geometry_column():
         "entry-date,geometry,legislation,name,notes,organisation,point,prefix,"
         "reference,start-date\r\n,,,,,,MULTIPOLYGON(),,,,,,,,\r\n"
     )
+
+
+def test_map_underscores_to_hyphens_not_in_specification():
+    """
+    This tests for successful mapping of resource columns not
+    present in the specification schema fields
+    :return:
+    """
+    fieldnames = ["Organisation_Label", "PermissionDate", "SiteNameAddress"]
+    columns = {"address": "SiteNameAddress", "ownership": "OwnershipStatus"}
+
+    m = MapPhase(fieldnames, columns)
+    output = TestPipeline(
+        m, "Organisation_Label,PermissionDate\r\ncol-1-val,col-2-val\r\n"
+    )
+    assert (
+        output
+        == "Organisation-Label,PermissionDate,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
+    )
+
+
+def test_map_underscores_to_hyphens_in_specification():
+    """
+    This tests for successful mapping of resource columns that are
+    present in the specification schema fields
+    :return:
+    """
+    fieldnames = ["Organisation_Label", "end_date", "SiteNameAddress"]
+    columns = {
+        "organisation-label": "Organisation-Label",
+        "end-date": "end-date",
+        "ownership": "OwnershipStatus",
+    }
+
+    m = MapPhase(fieldnames, columns)
+    output = TestPipeline(
+        m, "Organisation_Label,end_date,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
+    )
+
+    assert (
+        output
+        == "Organisation-Label,SiteNameAddress,end-date\r\ncol-1-val,,col-2-val\r\n"
+    )
