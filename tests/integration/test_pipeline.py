@@ -24,8 +24,8 @@ def get_test_column_csv_data_with_resources_and_endpoints(
         ],
         "field": [
             "name",
-            "res_field_one",
-            "ep_field_one",
+            "res-field-one",
+            "ep-field-one",
         ],
     }
 
@@ -131,8 +131,8 @@ def test_load_column_when_csv_contains_endpoints_and_resources(tmp_path):
     assert test_endpoint in column_keys
 
     assert {"name": "name"} in column_values
-    assert {"objectid": "res_field_one"} in column_values
-    assert {"dummy_fiel": "ep_field_one"} in column_values
+    assert {"objectid": "res-field-one"} in column_values
+    assert {"dummy-fiel": "ep-field-one"} in column_values
 
 
 def test_load_concat_when_csv_contains_endpoints_and_resources(tmp_path):
@@ -205,8 +205,8 @@ def test_columns_when_csv_contains_endpoints_and_resources(tmp_path):
 
     # -- Asert --
     assert columns["name"] == "name"
-    assert columns["objectid"] == "res_field_one"
-    assert columns["dummy_fiel"] == "ep_field_one"
+    assert columns["objectid"] == "res-field-one"
+    assert columns["dummy-fiel"] == "ep-field-one"
 
 
 def test_columns_when_csv_contains_clashing_entries_res_first(tmp_path):
