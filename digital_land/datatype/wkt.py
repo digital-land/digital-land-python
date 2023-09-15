@@ -213,7 +213,7 @@ class WktDataType(DataType):
         if boundary:
             try:
                 boundary_wkt = shapely.wkt.loads(boundary)
-                if boundary_wkt.geom_type in ["Polygon", "Multipolygon"]:
+                if boundary_wkt.geom_type in ["Polygon", "MultiPolygon"]:
                     boundary = boundary_wkt
                 else:
                     issues.log("Boundary must be of type Polygon or MultiPolygon", "")
