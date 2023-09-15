@@ -1,6 +1,8 @@
 #!/usr/bin/env -S py.test -svv
+import pytest
 
 from digital_land.pipeline import Pipeline
+from digital_land.pipeline import Lookups
 
 
 def test_columns():
@@ -93,3 +95,150 @@ def test_migrate():
     p = Pipeline("tests/data/pipeline", "pipeline-one")
     migrations = p.migrations()
     assert migrations == {"field-one": "FieldOne"}
+
+
+def test_lookups_get_max_entity_success():
+    """
+    test entity num generation functionality
+    :return:
+    """
+
+    pipeline_name = "ancient-woodland"
+    lookups = Lookups("")
+    max_entity_num = lookups.get_max_entity(pipeline_name)
+
+    assert max_entity_num == 0
+
+    entry = {
+        "prefix": "ancient-woodland",
+        "resource": "",
+        "organisation": "government-organisation:D1342",
+        "reference": "1",
+        "entity": "12344",
+    }
+    lookups.entries.append(entry)
+    expected_entity_num = 12344
+
+    assert lookups.get_max_entity(pipeline_name) == expected_entity_num
+
+    max_entity_num = lookups.get_max_entity(pipeline_name)
+    lookups.entity_num_gen.state["current"] = max_entity_num
+    lookups.entity_num_gen.state["range_max"] = max_entity_num + 10
+    expected_entity_num = 12345
+
+    assert lookups.entity_num_gen.next() == expected_entity_num
+
+
+def test_lookups_validate_entry_success():
+    """
+    test csv validate_entry functionality
+    :return:
+    """
+    lookups = Lookups("")
+
+    entry = {
+        "prefix": "ancient-woodland",
+        "resource": "",
+        "organisation": "government-organisation:D1342",
+        "reference": "1",
+        "entity": "",
+    }
+
+    lookups.validate_entry(entry)
+
+
+def test_lookups_validate_entry_failure():
+    """
+    test csv validate_entry functionality for various errors
+    :return:
+    """
+    lookups = Lookups("")
+    invalid_entries = [
+        {},
+        {
+            "prefix": "",
+        },
+        {
+            "prefix": "",
+            "organisation": "",
+        },
+        {
+            "prefix": "",
+            "organisation": "",
+            "reference": "",
+        },
+        {
+            "prefix": "",
+            "resource": "",
+            "organisation": "",
+            "reference": "",
+            "entity": "",
+        },
+    ]
+
+    for entry in invalid_entries:
+        with pytest.raises(ValueError):
+            lookups.validate_entry(entry)
+
+    expected_length = 0
+    assert len(lookups.entries) == expected_length
+
+
+def test_lookups_add_entry_success():
+    """
+    test csv add_entry functionality
+    :return:
+    """
+    lookups = Lookups("")
+
+    expected_length = 0
+    assert len(lookups.entries) == expected_length
+
+    entry = {
+        "prefix": "ancient-woodland",
+        "resource": "",
+        "organisation": "government-organisation:D1342",
+        "reference": "1",
+        "entity": "",
+    }
+
+    lookups.add_entry(entry)
+    expected_length = 1
+    assert len(lookups.entries) == expected_length
+
+
+def test_lookups_add_entry_failure():
+    """
+    test csv add_entry functionality for validation errors
+    :return:
+    """
+    lookups = Lookups("")
+    invalid_entries = [
+        {},
+        {
+            "prefix": "",
+        },
+        {
+            "prefix": "",
+            "organisation": "",
+        },
+        {
+            "prefix": "",
+            "organisation": "",
+            "reference": "",
+        },
+        {
+            "prefix": "",
+            "resource": "",
+            "organisation": "",
+            "reference": "",
+            "entity": "",
+        },
+    ]
+
+    for entry in invalid_entries:
+        with pytest.raises(ValueError):
+            lookups.add_entry(entry)
+
+    expected_length = 0
+    assert len(lookups.entries) == expected_length
