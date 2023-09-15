@@ -29,6 +29,10 @@ osgb_to_wgs84 = Transformer.from_crs(27700, 4326, always_xy=True)
 # https://epsg.io/4326
 mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
+DEFAULT_BOUNDARY = shapely.wkt.loads(
+    "POLYGON ((-7.0 49.5, 2.5 49.5, 2.5 56.0, -7.0 56.0, -7.0 49.5))"
+)
+
 
 def degrees_like(x, y):
     return x > -60.0 and x < 60.0 and y > -60.0 and y < 60.0
@@ -40,30 +44,6 @@ def easting_northing_like(x, y):
 
 def metres_like(x, y):
     return y > 6000000.0 and y < 10000000.0
-
-
-# bounding box check
-def within_england(x, y):
-    return x > -7.0 and x < 2.5 and y > 49.5 and y < 56.0
-
-
-def within_boundary(x, y, boundary):
-    if not boundary:
-        return within_england(x, y)
-    return boundary.contains(Point(x, y))
-
-
-def osgb_within_boundary(x, y, boundary):
-    if not boundary:
-        return osgb_within_england(x, y)
-    _x, _y = osgb_to_wgs84.transform(x, y)
-    return boundary.contains(Point(_x, _y))
-
-
-# check if NW of the SE corner of the Irish Sea
-# https://gridreferencefinder.com/?gr=SC7000000000
-def osgb_within_england(x, y):
-    return not (x < 270000.0 and y > 400000.0)
 
 
 def flip(x, y, z=None):
@@ -98,22 +78,25 @@ def parse_wkt(value, boundary):
         return None, "Unexpected geom type"
 
     x, y = first_point[:2]
-    boundary_issue_info = "custom boundary" if boundary else "England"
+    boundary_issue_info = (
+        "England" if (boundary == DEFAULT_BOUNDARY) else "custom boundary"
+    )
 
     if degrees_like(x, y):
-        if within_boundary(x, y, boundary):
+        if boundary.contains(Point(x, y)):
             return geometry, None
 
-        if within_boundary(y, x, boundary):
+        if boundary.contains(Point(y, x)):
             return transform(flip, geometry), "WGS84 flipped"
 
         return None, "WGS84 out of bounds of " + boundary_issue_info
 
     if easting_northing_like(x, y):
-        if osgb_within_boundary(x, y, boundary):
+        _x, _y = osgb_to_wgs84.transform(x, y)
+        if boundary.contains(Point(_x, _y)):
             return transform(osgb_to_wgs84.transform, geometry), "OSGB"
-
-        if osgb_within_boundary(y, x, boundary):
+        _x, _y = osgb_to_wgs84.transform(y, x)
+        if boundary.contains(Point(_x, _y)):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
             return geometry, "OSGB flipped"
@@ -122,12 +105,12 @@ def parse_wkt(value, boundary):
 
     if metres_like(x, y):
         _x, _y = mercator_to_wgs84.transform(x, y)
-        if within_boundary(_x, _y, boundary):
+        if boundary.contains(Point(_x, _y)):
             return transform(mercator_to_wgs84.transform, geometry), "Mercator"
 
     if metres_like(y, x):
         _x, _y = mercator_to_wgs84.transform(y, x)
-        if within_boundary(_x, _y, boundary):
+        if boundary.contains(Point(_x, _y)):
             geometry = transform(flip, geometry)
             geometry = transform(mercator_to_wgs84.transform, geometry)
             return geometry, "Mercator flipped"
@@ -217,10 +200,12 @@ class WktDataType(DataType):
                     boundary = boundary_wkt
                 else:
                     issues.log("Boundary must be of type Polygon or MultiPolygon", "")
-                    boundary = None
+                    boundary = DEFAULT_BOUNDARY
             except WKTReadingError:
                 issues.log("Error reading boundary, must be a WKT", "")
-                boundary = None
+                boundary = DEFAULT_BOUNDARY
+        else:
+            boundary = DEFAULT_BOUNDARY
 
         geometry, issue = parse_wkt(value, boundary)
 
