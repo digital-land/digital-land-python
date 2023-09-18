@@ -131,7 +131,7 @@ def test_lookups_get_max_entity_success():
 
 def test_lookups_validate_entry_success():
     """
-    test csv validate_entry functionality
+    test validate_entry functionality
     :return:
     """
     lookups = Lookups("")
@@ -144,7 +144,9 @@ def test_lookups_validate_entry_success():
         "entity": "",
     }
 
-    lookups.validate_entry(entry)
+    expected_result = True
+    actual_result = lookups.validate_entry(entry)
+    assert actual_result == expected_result
 
 
 def test_lookups_validate_entry_failure():
@@ -186,7 +188,7 @@ def test_lookups_validate_entry_failure():
 
 def test_lookups_add_entry_success():
     """
-    test csv add_entry functionality
+    test add_entry functionality
     :return:
     """
     lookups = Lookups("")
@@ -209,7 +211,7 @@ def test_lookups_add_entry_success():
 
 def test_lookups_add_entry_failure():
     """
-    test csv add_entry functionality for validation errors
+    test add_entry functionality for validation errors
     :return:
     """
     lookups = Lookups("")
