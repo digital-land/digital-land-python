@@ -37,4 +37,3 @@ def test_map_headers_column_clash():
     m = MapPhase(["One"], {"une": "One", "ein": "One"})
     output = TestPipeline(m, "une,ein\r\n1,2\r\n")
     assert output == "One\r\n1\r\n"
-
