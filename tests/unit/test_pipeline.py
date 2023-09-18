@@ -209,38 +209,32 @@ def test_lookups_add_entry_success():
     assert len(lookups.entries) == expected_length
 
 
-def test_lookups_add_entry_failure():
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {},
+        {"prefix": ""},
+        {"prefix": "", "organisation": ""},
+        {"prefix": "", "organisation": "", "reference": ""},
+        {"prefix": "", "organisation": "", "reference": "", "entity": ""},
+        {
+            "prefix": "",
+            "organisation": "",
+            "reference": "",
+            "entity": "",
+            "resource": "",
+        },
+    ],
+)
+def test_lookups_add_entry_failure(entry):
     """
     test add_entry functionality for validation errors
     :return:
     """
     lookups = Lookups("")
-    invalid_entries = [
-        {},
-        {
-            "prefix": "",
-        },
-        {
-            "prefix": "",
-            "organisation": "",
-        },
-        {
-            "prefix": "",
-            "organisation": "",
-            "reference": "",
-        },
-        {
-            "prefix": "",
-            "resource": "",
-            "organisation": "",
-            "reference": "",
-            "entity": "",
-        },
-    ]
 
-    for entry in invalid_entries:
-        with pytest.raises(ValueError):
-            lookups.add_entry(entry)
+    with pytest.raises(ValueError):
+        lookups.add_entry(entry)
 
     expected_length = 0
     assert len(lookups.entries) == expected_length
