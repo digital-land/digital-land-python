@@ -77,7 +77,7 @@ def test_map_empty_geometry_column():
     )
 
 
-def test_map_underscores_to_hyphens_not_in_specification():
+def test_map_column_names_with_underscores_when_column_not_in_specification():
     """
     This tests for successful mapping of resource columns not
     present in the specification schema fields
@@ -96,7 +96,7 @@ def test_map_underscores_to_hyphens_not_in_specification():
     )
 
 
-def test_map_underscores_to_hyphens_in_specification():
+def test_map_column_names_with_underscores_when_column_in_specification():
     """
     This tests for successful mapping of resource columns that are
     present in the specification schema fields
