@@ -1,5 +1,41 @@
+import pytest
+import os
+import csv
+
 import pandas as pd
 from digital_land.pipeline import Pipeline
+from digital_land.pipeline import Lookups
+
+
+@pytest.fixture
+def pipeline_dir(tmp_path):
+    pipeline_dir = os.path.join(tmp_path, "pipeline")
+    os.makedirs(pipeline_dir, exist_ok=True)
+
+    # create lookups
+    row = {
+        "prefix": "ancient-woodland",
+        "resource": "",
+        "organisation": "local-authority-eng:ABC",
+        "reference": "ABC_0001",
+        "entity": "1234567",
+    }
+    fieldnames = row.keys()
+
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    return pipeline_dir
+
+
+@pytest.fixture
+def empty_pipeline_dir(tmp_path):
+    pipeline_dir = os.path.join(tmp_path, "pipeline")
+    os.makedirs(pipeline_dir, exist_ok=True)
+
+    return pipeline_dir
 
 
 def get_test_column_csv_data_with_resources_and_endpoints(
@@ -320,3 +356,35 @@ def test_concatenations_when_csv_contains_endpoints_and_resources(tmp_path):
 
     assert "i-field3" in concats["o-field2"]["fields"]
     assert "i-field4" in concats["o-field2"]["fields"]
+
+
+def test_lookups_load_csv_success(
+    pipeline_dir,
+):
+    """
+    test csv loading functionality
+    :param pipeline_dir:
+    :return:
+    """
+    lookups = Lookups(pipeline_dir)
+    lookups.load_csv()
+
+    expected_num_entries = 1
+    assert len(lookups.entries) == expected_num_entries
+
+
+def test_lookups_load_csv_failure(
+    empty_pipeline_dir,
+):
+    """
+    test csv loading functionality when file absent
+    :param pipeline_dir:
+    :return:
+    """
+    lookups = Lookups(empty_pipeline_dir)
+
+    with pytest.raises(FileNotFoundError) as fnf_err:
+        lookups.load_csv()
+
+    expected_exception = "No such file or directory"
+    assert expected_exception in str(fnf_err.value)

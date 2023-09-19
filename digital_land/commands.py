@@ -419,24 +419,19 @@ def add_endpoints_and_lookups(
     tmp_dir="./var/cache",
 ):
     """
-    perform required tasks to add new endpoints to a collection
-    :param ctx:
+    :param csv_file_path:
+    :param collection_name:
+    :param collection_dir:
+    :param pipeline_dir:
+    :param specification_dir:
+    :param organisation_path:
+    :param tmp_dir:
     :return:
     """
-    # from digital_land.utils.add_ens
 
-    # Removed as we don't need
-    # task_preprocess(ctx)
-
-    # removed ctx makes it hard to see function requirements
-    # csv_file_path = ctx.obj["CSV_FILE_PATH"]
-    # collection_dir = ctx.obj["COLLECTION_DIR"].absolute()
-
-    # pipeliines is needed
     expected_cols = [
         "pipelines",
         "organisation",
-        # "name",
         "documentation-url",
         "endpoint-url",
         "start-date",
@@ -444,12 +439,10 @@ def add_endpoints_and_lookups(
 
     # need to get collection name from somewhere
     # collection name is NOT the dataset name
-    # dataset_name = ctx.obj["DATASET"]
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
 
     # read and process each record of the new endpoints csv at csv_file_path
-    line_number = 2
     with open(csv_file_path) as new_endpoints_file:
         reader = csv.DictReader(new_endpoints_file)
         csv_columns = reader.fieldnames
@@ -462,24 +455,18 @@ def add_endpoints_and_lookups(
         # this is not perfect we should riase validation errors in our code and below should include a try and except statement
         endpoints = []
         for row in reader:
-            collection.add_source_endpoint(row)
-            endpoint = {
-                "endpoint-url": row["endpoint-url"],
-                "endpoint": hash_value(row["endpoint-url"]),
-                "end-date": row.get("end-date", ""),
-                "plugin": row.get("plugin"),
-            }
-            endpoints.append(endpoint)
-            line_number += 1
-
-        # all endpoints have been added successfully
-        collection.save_csv()
+            if collection.add_source_endpoint(row):
+                endpoint = {
+                    "endpoint-url": row["endpoint-url"],
+                    "endpoint": hash_value(row["endpoint-url"]),
+                    "end-date": row.get("end-date", ""),
+                    "plugin": row.get("plugin"),
+                }
+                endpoints.append(endpoint)
 
     # endpoints have been added now lets collect the resources using the endpoint information
-    # do not need dataset name. it is irrelevant to the collector in fact we should remove it
     collector = Collector(collection_dir=collection_dir)
 
-    # I might bring the new endpoints back I think it could work quite well but I figured I'd try without it first
     for endpoint in endpoints:
         collector.fetch(
             url=endpoint["endpoint-url"],
@@ -489,20 +476,9 @@ def add_endpoints_and_lookups(
         )
     # reload log items
     collection.load_log_items()
+
     # load specification
     specification = Specification(specification_dir)
-
-    # load in current lookups
-    # lookups = Lookups(pipeline_dir)
-
-    # we don't need min or max right now, we can include later if we need to just need current which should be based
-    # pipeline_ens = lookups.entity_num_gen.state
-
-    # pipeline_ens["current"] = lookups.get_max_entity(collection.name)
-    # pipeline_ens["range_min"] = specification.get_dataset_entity_min(collection.name)
-    # pipeline_ens["range_max"] = specification.get_dataset_entity_max(collection.name)
-
-    # lookups.entity_num_gen.state = pipeline_ens
 
     print("")
     print("======================================================================")
@@ -513,11 +489,12 @@ def add_endpoints_and_lookups(
     dataset_resource_map = collection.dataset_resource_map()
     new_lookups = []
 
-    #  use a different loop we are searching for the specific resources that we have downloaded
+    #  searching for the specific resources that we have downloaded
+    pipeline_name = None
     for dataset in dataset_resource_map:
         for resource in dataset_resource_map[dataset]:
             resource_endpoints = collection.resource_endpoints(resource)
-            # this is too complicated aha
+
             if any(
                 endpoint in [new_endpoint["endpoint"] for new_endpoint in endpoints]
                 for endpoint in resource_endpoints
@@ -525,6 +502,7 @@ def add_endpoints_and_lookups(
                 resource_file_path = Path(collection_dir) / "resource" / resource
                 # annoyingly will need to re-establish pipeline each time as it's dataset specific
                 pipeline = Pipeline(pipeline_dir, dataset)
+                pipeline_name = pipeline.name
                 resource_lookups = get_resource_unidentified_lookups(
                     input_path=resource_file_path,
                     dataset=dataset,
@@ -538,13 +516,17 @@ def add_endpoints_and_lookups(
                 new_lookups.append(resource_lookups)
 
     # save new lookups to file
-    lookups = Lookups(os.path.join(pipeline_dir, "lookup.csv"))
+    lookups = Lookups(pipeline_dir)
+    lookups.load_csv()
     for new_lookup in new_lookups:
         for idx, entry in enumerate(new_lookup):
-            lookups.validate_entry(entry[0])
             lookups.add_entry(entry[0])
 
     # save edited csvs
+    max_entity_num = lookups.get_max_entity(pipeline_name)
+    lookups.entity_num_gen.state["current"] = max_entity_num
+    lookups.entity_num_gen.state["range_max"] = max_entity_num + 9999
+
     collection.save_csv()
     lookups.save_csv()
 
@@ -567,11 +549,6 @@ def get_resource_unidentified_lookups(
     tmp_dir=None,
     org_csv_path=None,
 ):
-    # removed below and replaced by adding arguements above
-    # if not (specification or dataset or input_path):
-    #     error_msg = "Failed to perform lookups for resource"
-    #     raise Exception(error_msg)
-
     # convert phase inputs
     # could alter resource_from_path to file from path and promote to a utils folder
     resource = resource_from_path(input_path)

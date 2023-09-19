@@ -327,7 +327,19 @@ class Lookups:
         self.schema = Schema("lookup")
         self.entity_num_gen = EntityNumGen()
 
-    def add_entry(self, entry):
+    def add_entry(self, entry, is_new_entry=True):
+        """
+        is_new_entry is an addition to allow for backward compatibility.
+        Older lookups may not be valid in accordance with the current
+        minimal column requirements
+        :param entry:
+        :param is_new_entry:
+        :return:
+        """
+        if is_new_entry:
+            if not self.validate_entry(entry):
+                return
+
         self.entries.append(entry)
 
     def load_csv(self, lookups_path=None):
@@ -337,20 +349,25 @@ class Lookups:
         lookups_path = lookups_path or self.lookups_path
         reader = csv.DictReader(open(lookups_path, newline=""))
         for row in reader:
-            self.add_entry(row)
+            self.add_entry(row, is_new_entry=False)
 
-    def get_max_entity(self, prefix):
+    def get_max_entity(self, prefix) -> int:
         if len(self.entries) == 0:
-            ret_val = 0
-        else:
+            return 0
+        if not prefix:
+            return 0
+
+        try:
             ret_val = max(
                 [
                     int(entry["entity"])
                     for entry in self.entries
-                    if entry["prefix"] == prefix
+                    if (entry["prefix"] == prefix) and (entry.get("entity", None))
                 ]
             )
-        return ret_val
+            return ret_val
+        except ValueError:
+            return 0
 
     def save_csv(self, lookups_path=None, entries=None):
         path = lookups_path or self.lookups_path
@@ -373,12 +390,40 @@ class Lookups:
                     entry["entity"] = self.entity_num_gen.next()
                 writer.writerow(entry)
 
-    @staticmethod
-    def validate_entry(entry):
+    # @staticmethod
+    def validate_entry(self, entry) -> bool:
+        # ensures minimum expected fields exist and are not empty strings
         expected_fields = ["prefix", "organisation", "reference"]
         for field in expected_fields:
-            # ensures minimum expected fields exist and are not empty strings
             if not entry.get(field, ""):
-                raise ValueError()
+                raise ValueError(f"ERROR: expected {field} not found in lookup entry")
+
+        if len(self.entries) > 0:
+            # check entry is being run against the correct dataset
+            existing_prefixes = len(
+                [1 for item in self.entries if item["prefix"] == entry["prefix"]]
+            )
+
+            if existing_prefixes == 0:
+                raise ValueError(
+                    f"ERROR: {entry['prefix']} is not expected dataset for this pipeline"
+                )
+
+            # check entry does not already exist
+            existing_entries = len(
+                [
+                    1
+                    for item in self.entries
+                    if item["prefix"] == entry["prefix"]
+                    and item["organisation"] == entry["organisation"]
+                    and item["reference"] == entry["reference"]
+                ]
+            )
+
+            if existing_entries > 0:
+                # print(f">>> ERROR: lookup already exists - {entry['organisation']} {entry['reference']}")
+                return False
+
+        return True
 
     # I'm not sure we need this class or if we do it should be an iterator then can be used to iterate through entity numbers by dataset
