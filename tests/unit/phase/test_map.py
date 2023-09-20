@@ -6,7 +6,7 @@ from digital_land.pipeline import run_pipeline
 from digital_land.phase.load import LoadPhase
 from digital_land.phase.parse import ParsePhase
 from digital_land.phase.map import MapPhase
-from digital_land.phase.map import normalise as map_normalise
+from digital_land.phase.map import normalise
 from digital_land.phase.save import SavePhase
 
 
@@ -89,7 +89,7 @@ def test_map_empty_geometry_column():
     ],
 )
 def test_map_normalize_removes_underscores(column_name, expected):
-    actual = map_normalise(column_name)
+    actual = normalise(column_name)
 
     assert actual == expected
 
