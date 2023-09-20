@@ -56,7 +56,7 @@ def get_test_column_csv_data_with_resource_endpoint_clash_ep_first(
             "REF",
             "REF",
         ],
-        "field": ["name", "ep_ref", "res_ref"],
+        "field": ["name", "ep-ref", "res-ref"],
     }
 
 
@@ -85,7 +85,7 @@ def get_test_column_csv_data_with_resource_endpoint_clash_res_first(
             "REF",
             "REF",
         ],
-        "field": ["name", "res_ref", "ep_ref"],
+        "field": ["name", "res-ref", "ep-ref"],
     }
 
 
@@ -240,7 +240,7 @@ def test_columns_when_csv_contains_clashing_entries_res_first(tmp_path):
 
     # -- Asert --
     assert columns["name"] == "name"
-    assert columns["ref"] == "res_ref"
+    assert columns["ref"] == "res-ref"
     assert "ep_ref" not in columns
 
 
@@ -275,7 +275,7 @@ def test_columns_when_csv_contains_clashing_entries_ep_first(tmp_path):
 
     # -- Asert --
     assert columns["name"] == "name"
-    assert columns["ref"] == "res_ref"
+    assert columns["ref"] == "res-ref"
     assert "ep_ref" not in columns
 
 

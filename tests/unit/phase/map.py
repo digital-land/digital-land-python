@@ -1,10 +1,12 @@
 #!/usr/bin/env -S pytest -svv
+import pytest
 
 from io import StringIO
 from digital_land.pipeline import run_pipeline
 from digital_land.phase.load import LoadPhase
 from digital_land.phase.parse import ParsePhase
 from digital_land.phase.map import MapPhase
+from digital_land.phase.map import normalise as map_normalise
 from digital_land.phase.save import SavePhase
 
 
@@ -77,6 +79,21 @@ def test_map_empty_geometry_column():
     )
 
 
+@pytest.mark.parametrize(
+    "column_name, expected",
+    [
+        ("hello_world", "hello-world"),
+        ("hello-world", "hello-world"),
+        ("Hello_World", "hello-world"),
+        ("Hello-World", "hello-world"),
+    ],
+)
+def test_map_normalize_removes_underscores(column_name, expected):
+    actual = map_normalise(column_name)
+
+    assert actual == expected
+
+
 def test_map_column_names_with_underscores_when_column_not_in_specification():
     """
     This tests for successful mapping of resource columns not
@@ -92,7 +109,7 @@ def test_map_column_names_with_underscores_when_column_not_in_specification():
     )
     assert (
         output
-        == "Organisation-Label,PermissionDate,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
+        == "Organisation_Label,PermissionDate,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
     )
 
 
@@ -111,10 +128,10 @@ def test_map_column_names_with_underscores_when_column_in_specification():
 
     m = MapPhase(fieldnames, columns)
     output = TestPipeline(
-        m, "Organisation_Label,end_date,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
+        m, "Organisation_Label,end_date,SiteNameAddress\r\ncol-1-val,col-2-val\r\n"
     )
 
     assert (
         output
-        == "Organisation-Label,SiteNameAddress,end-date\r\ncol-1-val,,col-2-val\r\n"
+        == "Organisation-Label,Organisation_Label,SiteNameAddress,end-date,end_date\r\ncol-1-val,,,col-2-val,\r\n"
     )
