@@ -7,7 +7,8 @@ normalise_pattern = re.compile(r"[^a-z0-9-_]")
 
 
 def normalise(name):
-    return re.sub(normalise_pattern, "", name.lower())
+    new_name = name.replace("_", "-")
+    return re.sub(normalise_pattern, "", new_name.lower())
 
 
 class MapPhase(Phase):
