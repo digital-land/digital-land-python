@@ -58,6 +58,7 @@ def flip(x, y, z=None):
 
 
 def parse_wkt(value):
+    global x
     try:
         geometry = shapely.wkt.loads(value)
     except WKTReadingError:
@@ -182,10 +183,14 @@ def normalise_geometry(geometry, simplification=0.000005):
 
 
 def dump_wkt(geometry, precision=6, dimensions=2):
+    try:
+        current_precision = len(str(x).split(".")[1]) if "." in str(x) else 0
+    except Exception:
+        current_precision = 0
     wkt = shapely.wkt.dumps(
         geometry, rounding_precision=precision, output_dimension=dimensions
     )
-    return wkt.replace(", ", ",")
+    return wkt.replace(", ", ","), True if current_precision > 6 else False
 
 
 class WktDataType(DataType):
@@ -209,19 +214,22 @@ class WktDataType(DataType):
             # fixed/normalised geometry. To reduce precision,
             # round trip the geometry through shapely with 6 dp precision.
 
-            _wkt = dump_wkt(geometry, precision=6)
+            _wkt, issue = dump_wkt(geometry, precision=6)
+            if issue:
+                issues.log("geometry is too precise - fixed", "")
+
             geometry = shapely.wkt.loads(_wkt)
             validity = False
             i = 0
             while i < 3 and not validity:
                 geometry, issue = normalise_geometry(geometry)
                 if issue:
-                    issues.log("invalid geometry", issue)
+                    issues.log("invalid geometry provided - fixed", issue)
 
                 if not geometry:
                     return default
 
-                _wkt = dump_wkt(geometry)
+                _wkt, issue = dump_wkt(geometry)
                 geometry = shapely.wkt.loads(_wkt)
                 validity = geometry.is_valid
                 i += 1
@@ -229,4 +237,4 @@ class WktDataType(DataType):
         if not geometry:
             return default
 
-        return dump_wkt(geometry)
+        return dump_wkt(geometry)[0]

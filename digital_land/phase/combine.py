@@ -14,7 +14,7 @@ def combine_geometries(wkts, precision=6):
     union = unary_union(geometries)
     if not isinstance(union, MultiPolygon):
         union = MultiPolygon([union])
-    return dump_wkt(union, precision=precision)
+    return dump_wkt(union, precision=precision)[0]
 
 
 class FactCombinePhase(Phase):

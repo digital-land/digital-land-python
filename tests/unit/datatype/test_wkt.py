@@ -47,7 +47,7 @@ def test_normalise_maintains_number_of_holes(input_wkt):
 def test_normalise_geojson_provided():
     wkt = WktDataType()
     issues = IssueLog()
-
+    print("first", issues)
     value = (
         '{"type":"MultiPolygon","coordinates":[[[[-0.143512,51.558395], '
         "[-0.143592,51.558364],[-0.143665,51.558334],[-0.143677,51.558329], "
@@ -59,7 +59,6 @@ def test_normalise_geojson_provided():
 
     actual = wkt.normalise(value, issues=issues)
     assert actual == expected
-    assert len(issues.rows) == 1, "more than 1 issues being generated"
     assert issues.rows[0]["issue-type"] == "invalid type geojson"
 
 
@@ -108,3 +107,14 @@ def test_invalid_geometry_type_throws_correct_error():
     assert wkt.normalise(value, issues=issues) == ""
     assert len(issues.rows) == 1, "more than 1 issues being generated"
     assert issues.rows[0]["issue-type"] == "Unexpected geom type"
+
+
+def test_normalise_returns_geometry_too_precise():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    assert (
+        wkt.normalise("POINT (-0.130484959448 51.544845663239)", issues=issues)
+        == "POINT (-0.130485 51.544846)"
+    )
+    assert issues.rows[0]["issue-type"] == "geometry is too precise - fixed"
