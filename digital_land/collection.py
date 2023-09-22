@@ -392,7 +392,7 @@ class Collection:
         return True
 
     def add_source(self, entry: dict):
-        item = Item(
+        source_entry = Item(
             {
                 "source": entry.get("source", ""),
                 "collection": entry["collection"],
@@ -407,8 +407,8 @@ class Collection:
                 "end-date": self.end_date(entry),
             }
         )
-        if self.source.validate_entry(item):
-            self.source.add_entry(entry)
+        if self.source.validate_entry(source_entry):
+            self.source.add_entry(source_entry)
 
     def add_endpoint(self, entry: dict) -> bool:
         endpoint_entry = Item(
