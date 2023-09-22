@@ -47,7 +47,7 @@ def test_normalise_maintains_number_of_holes(input_wkt):
 def test_normalise_geojson_provided():
     wkt = WktDataType()
     issues = IssueLog()
-    print("first", issues)
+
     value = (
         '{"type":"MultiPolygon","coordinates":[[[[-0.143512,51.558395], '
         "[-0.143592,51.558364],[-0.143665,51.558334],[-0.143677,51.558329], "
