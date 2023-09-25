@@ -119,7 +119,7 @@ def test_normalise_invalid_boundary_geometry_type_throws_error():
     assert wkt.normalise(value, issues=issues, boundary=boundary) == ""
     assert (
         issues.rows[0]["issue-type"]
-        == "Boundary must be of type Polygon or MultiPolygon"
+        == "Invalid boundary provided - boundary must be of type Polygon or MultiPolygon"
     )
 
 
@@ -130,7 +130,7 @@ def test_normalise_invalid_boundary_type_throws_error():
     value = "POINT(0 0)"
     boundary = "String"
     assert wkt.normalise(value, issues=issues, boundary=boundary) == ""
-    assert issues.rows[0]["issue-type"] == "Error reading boundary, must be a WKT"
+    assert issues.rows[0]["issue-type"] == "Error reading boundary - must be a WKT"
 
 
 def test_normalise_custom_boundary_wgs84_point_within():
