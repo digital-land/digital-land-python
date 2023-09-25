@@ -199,10 +199,13 @@ class WktDataType(DataType):
                 if boundary_wkt.geom_type in ["Polygon", "MultiPolygon"]:
                     boundary = boundary_wkt
                 else:
-                    issues.log("Boundary must be of type Polygon or MultiPolygon", "")
+                    issues.log(
+                        "Invalid boundary provided - boundary must be of type Polygon or MultiPolygon",
+                        "",
+                    )
                     boundary = DEFAULT_BOUNDARY
             except WKTReadingError:
-                issues.log("Error reading boundary, must be a WKT", "")
+                issues.log("Error reading boundary - must be a WKT", "")
                 boundary = DEFAULT_BOUNDARY
         else:
             boundary = DEFAULT_BOUNDARY
