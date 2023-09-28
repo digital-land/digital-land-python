@@ -58,15 +58,14 @@ def flip(x, y, z=None):
 
 
 def parse_wkt(value):
-    global x
     try:
         geometry = shapely.wkt.loads(value)
     except WKTReadingError:
         try:
             geometry = shapely.wkt.loads(shape(json.loads(value)).wkt)
-            return geometry, "invalid type geojson"
+            return geometry, "invalid type geojson", None
         except Exception:
-            return None, "invalid WKT"
+            return None, "invalid WKT", None
 
     if geometry.geom_type in ["Point", "LineString"]:
         first_point = geometry.coords[0]
@@ -81,45 +80,45 @@ def parse_wkt(value):
         if first_geometry.geom_type in ["MultiPolygon"]:
             first_point = first_geometry.geoms[0].exterior.coords[0]
         else:
-            return None, "Unexpected geom type within GeometryCollection"
+            return None, "Unexpected geom type within GeometryCollection", None
     else:
-        return None, "Unexpected geom type"
+        return None, "Unexpected geom type", None
 
     x, y = first_point[:2]
 
     if degrees_like(x, y):
         if within_england(x, y):
-            return geometry, None
+            return geometry, None, x
 
         if within_england(y, x):
-            return transform(flip, geometry), "WGS84 flipped"
+            return transform(flip, geometry), "WGS84 flipped", x
 
-        return None, "WGS84 out of bounds"
+        return None, "WGS84 out of bounds", x
 
     if easting_northing_like(x, y):
         if osgb_within_england(x, y):
-            return transform(osgb_to_wgs84.transform, geometry), "OSGB"
+            return transform(osgb_to_wgs84.transform, geometry), "OSGB", x
 
         if osgb_within_england(y, x):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
-            return geometry, "OSGB flipped"
+            return geometry, "OSGB flipped", x
 
-        return None, "OSGB out of bounds"
+        return None, "OSGB out of bounds", x
 
     if metres_like(x, y):
         _x, _y = mercator_to_wgs84.transform(x, y)
         if within_england(_x, _y):
-            return transform(mercator_to_wgs84.transform, geometry), "Mercator"
+            return transform(mercator_to_wgs84.transform, geometry), "Mercator", x
 
     if metres_like(y, x):
         _x, _y = mercator_to_wgs84.transform(y, x)
         if within_england(_x, _y):
             geometry = transform(flip, geometry)
             geometry = transform(mercator_to_wgs84.transform, geometry)
-            return geometry, "Mercator flipped"
+            return geometry, "Mercator flipped", x
 
-    return None, "invalid coordinates"
+    return None, "invalid coordinates", x
 
 
 def make_multipolygon(geometry):
@@ -183,14 +182,18 @@ def normalise_geometry(geometry, simplification=0.000005):
 
 
 def dump_wkt(geometry, precision=6, dimensions=2):
-    try:
-        current_precision = len(str(x).split(".")[1]) if "." in str(x) else 0
-    except Exception:
-        current_precision = 0
     wkt = shapely.wkt.dumps(
         geometry, rounding_precision=precision, output_dimension=dimensions
     )
-    return wkt.replace(", ", ","), True if current_precision > 6 else False
+    return wkt.replace(", ", ",")
+
+
+def get_precision(point):
+    try:
+        current_precision = len(str(point).split(".")[1]) if "." in str(point) else 0
+    except Exception:
+        current_precision = 0
+    return current_precision
 
 
 class WktDataType(DataType):
@@ -201,7 +204,10 @@ class WktDataType(DataType):
         if not value:
             return default
 
-        geometry, issue = parse_wkt(value)
+        geometry, issue, x = parse_wkt(value)
+
+        if get_precision(x) > 6:
+            issues.log("geometry provided is too precise - fixed", "")
 
         if issue:
             issues.log(issue, "")
@@ -214,22 +220,22 @@ class WktDataType(DataType):
             # fixed/normalised geometry. To reduce precision,
             # round trip the geometry through shapely with 6 dp precision.
 
-            _wkt, issue = dump_wkt(geometry, precision=6)
-            if issue:
-                issues.log("geometry is too precise - fixed", "")
+            _wkt = dump_wkt(geometry, precision=6)
 
             geometry = shapely.wkt.loads(_wkt)
             validity = False
             i = 0
+            issue_list = []
+
             while i < 3 and not validity:
-                geometry, issue = normalise_geometry(geometry)
-                if issue:
-                    issues.log("invalid geometry provided - fixed", issue)
+                geometry, normalise_issues = normalise_geometry(geometry)
+                if normalise_issues:
+                    issue_list.append(normalise_issues)
 
                 if not geometry:
                     return default
 
-                _wkt, issue = dump_wkt(geometry)
+                _wkt = dump_wkt(geometry)
                 geometry = shapely.wkt.loads(_wkt)
                 validity = geometry.is_valid
                 i += 1
@@ -237,4 +243,12 @@ class WktDataType(DataType):
         if not geometry:
             return default
 
-        return dump_wkt(geometry)[0]
+        if geometry.is_valid:
+            if normalise_issues:
+                for i in range(len(issue_list)):
+                    issues.log("invalid geometry provided - fixed", issue_list[i])
+
+            return dump_wkt(geometry)
+        else:
+            issues.log("invalid geometry provided - removed", "")
+            return default

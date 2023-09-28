@@ -185,7 +185,7 @@ def test_wkt_multipolygon_wgs84():
     value = "MULTIPOLYGON (((-0.1434494279 51.46626361,-0.1434646353 51.46627914,-0.143515539 51.4663375,-0.1435648475 51.4663926,-0.1435988703 51.46643054,-0.1436227923 51.46646195,-0.1436840978 51.46644134,-0.1436913831 51.4664392,-0.1437519691 51.46641858,-0.1437548832 51.46641773,-0.1436953554 51.46634835,-0.1435837312 51.46621808,-0.1435209507 51.46623957,-0.1434494279 51.46626361)))"  # noqa: E501
     expected = "MULTIPOLYGON (((-0.143449 51.466264,-0.143623 51.466462,-0.143755 51.466418,-0.143584 51.466218,-0.143449 51.466264)))"
     assert wkt.normalise(value, issues=issues) == expected
-    assert issue_type(issues) == "geometry is too precise - fixed"
+    assert issue_type(issues) == "geometry provided is too precise - fixed"
 
 
 def test_wkt_multipolygon_flipped_northings_and_eastings():

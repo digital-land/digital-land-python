@@ -117,4 +117,4 @@ def test_normalise_returns_geometry_too_precise():
         wkt.normalise("POINT (-0.130484959448 51.544845663239)", issues=issues)
         == "POINT (-0.130485 51.544846)"
     )
-    assert issues.rows[0]["issue-type"] == "geometry is too precise - fixed"
+    assert issues.rows[0]["issue-type"] == "geometry provided is too precise - fixed"
