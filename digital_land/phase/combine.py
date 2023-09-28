@@ -10,7 +10,7 @@ import shapely.wkt
 
 def combine_geometries(wkts, precision=6):
     # https://shapely.readthedocs.io/en/stable/manual.html#shapely.ops.unary_union
-    geometries = [shapely.wkt.loads(x)[0] for x in wkts]
+    geometries = [shapely.wkt.loads(x).geoms[0] for x in wkts]
     union = unary_union(geometries)
     if not isinstance(union, MultiPolygon):
         union = MultiPolygon([union])
