@@ -44,7 +44,7 @@ def metres_like(x, y):
 
 # bounding box check
 def within_england(x, y):
-    return x > -7.0 and x < 2.5 and y > 49.5 and y < 56.0
+    return x > -7.0 and x < 2.95 and y > 49.5 and y < 56.0
 
 
 # check if NW of the SE corner of the Irish Sea
