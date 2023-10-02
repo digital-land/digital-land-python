@@ -342,7 +342,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     if all(os.path.isfile(path) for path in temp_geojson_files):
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
         for temp_path in temp_geojson_files:
-            responseCode = execute(
+            responseCode, _, _ = execute(
                 [
                     "ogr2ogr",
                     "-f",
@@ -364,16 +364,14 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                         "ogr2ogr",
                         "-f",
                         "GeoJSON",
-                        "-lco",
                         "-append",
                         rfc7946_geojson_path,
                         temp_path,
                     ]
                 )
-            else:
-                # clear up input geojson file
-                if os.path.isfile(temp_path):
-                    os.remove(temp_path)
+            # clear up input geojson file
+            if os.path.isfile(temp_path):
+                os.remove(temp_path)
 
 
 def expectations(results_path, sqlite_dataset_path, data_quality_yaml):
