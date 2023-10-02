@@ -57,74 +57,15 @@ Development requires Python 3.6.2 or later, we recommend using a [virtual enviro
 
 ### add-endpoint-and-lookups
 
-#### 1. Checkout repo
-From Github, checkout the Collection repo you wish to add endpoints to.
-Make a note of the location [COLL-DIR].
+This command allows for adding multiple endpoints and lookups for 
+datasets within a given collection, driven by entries in a csv file.
 
-#### 2. run collection init
-Run the following lines from a virtual env containing the required
-python dependencies required by the collection repo
-```
-make makerules
-make init
-```
+Detailed instructions for running this command can be found in the Data Operations manual
+within the DLUHC technical documentation repository.
 
-#### 3. get your csv of endpoints to add
-Find or generate a csv file of the entries that need to be added
-to the collection. Make a note of the location [CSV-PATH/file.csv].
+**Use with caution**
 
-#### 4. run add-endpoint-and-lookups
-Run the following line from a virtual env containing the required
-python dependencies required by digital-land-python
-(line broken up for readability)
-```
--n [DATASET-NAME] \ 
--p [COLL-DIR]/pipeline \
--s [SPECIFICATION-DIR] \
-add-endpoint-and-lookups \
-[CSV-PATH/new_endpoints.csv] \
--c [COLL-DIR]/collection \
--o [ORGANISATION-DIR]
-```
-
-#### 5. check assigned entities are normal
-After running the command, the following Collection repo
-files will be modified:
-
-```
-collection/source.csv
-collection/endpoints.csv
-pipeline/lookup.csv
-```
-
-The console output will show a list of new lookup entries
-organised by organisation and resource-hash.
-E.g.
-```
-----------------------------------------------------------------------
->>> organisations:['local-authority-eng:ARU']
->>> resource:6c38cd1f84054051ca200d62e9715be0cd739bedbae0db9561ef091fa95f59f1
-----------------------------------------------------------------------
-brownfield-land,,local-authority-eng:ARU,BR23911,1729345
-brownfield-land,,local-authority-eng:ARU,BR19811,1729346
-...
-```
-Find the first lookup entry in the console output, 
-make a note of the entity id (the number at the end),
-and find this in pipeline/lookup.csv.
-
-Check this and all subsequent lines in lookup.csv for
-any anomalies. Each record should have, as a minimum, a prefix,
-organisation and reference.
-
-#### 6. run pipeline
-Run the following line from a virtual env containing the required
-python dependencies required by the collection repo
-```
-make collect
-```
-
-#### 7. check final datasette for any weirdness
+(currently only successfully tested on Brownfield Land collection)
 
 
 ## Release procedure

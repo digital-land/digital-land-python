@@ -31,6 +31,12 @@ class EntityReferencePhase(Phase):
         reference = row.get("reference", "") or row.get(self.dataset, "")
         reference_prefix, reference = split_curie(reference)
 
+        # crude fix for (hopefully) one-of issue with Newham Council
+        # if this type of problem becomes common, a more scalable
+        # solution will need to be sought.
+        if "UPRN" in reference_prefix:
+            reference_prefix = ""
+
         prefix = row.get("prefix", "") or reference_prefix or self.prefix
         return prefix, reference
 

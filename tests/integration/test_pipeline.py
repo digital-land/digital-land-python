@@ -1,5 +1,41 @@
+import pytest
+import os
+import csv
+
 import pandas as pd
 from digital_land.pipeline import Pipeline
+from digital_land.pipeline import Lookups
+
+
+@pytest.fixture
+def pipeline_dir(tmp_path):
+    pipeline_dir = os.path.join(tmp_path, "pipeline")
+    os.makedirs(pipeline_dir, exist_ok=True)
+
+    # create lookups
+    row = {
+        "prefix": "ancient-woodland",
+        "resource": "",
+        "organisation": "local-authority-eng:ABC",
+        "reference": "ABC_0001",
+        "entity": "1234567",
+    }
+    fieldnames = row.keys()
+
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    return pipeline_dir
+
+
+@pytest.fixture
+def empty_pipeline_dir(tmp_path):
+    pipeline_dir = os.path.join(tmp_path, "pipeline")
+    os.makedirs(pipeline_dir, exist_ok=True)
+
+    return pipeline_dir
 
 
 def get_test_column_csv_data_with_resources_and_endpoints(
@@ -24,8 +60,8 @@ def get_test_column_csv_data_with_resources_and_endpoints(
         ],
         "field": [
             "name",
-            "res_field_one",
-            "ep_field_one",
+            "res-field-one",
+            "ep-field-one",
         ],
     }
 
@@ -56,7 +92,7 @@ def get_test_column_csv_data_with_resource_endpoint_clash_ep_first(
             "REF",
             "REF",
         ],
-        "field": ["name", "ep_ref", "res_ref"],
+        "field": ["name", "ep-ref", "res-ref"],
     }
 
 
@@ -85,7 +121,7 @@ def get_test_column_csv_data_with_resource_endpoint_clash_res_first(
             "REF",
             "REF",
         ],
-        "field": ["name", "res_ref", "ep_ref"],
+        "field": ["name", "res-ref", "ep-ref"],
     }
 
 
@@ -131,8 +167,8 @@ def test_load_column_when_csv_contains_endpoints_and_resources(tmp_path):
     assert test_endpoint in column_keys
 
     assert {"name": "name"} in column_values
-    assert {"objectid": "res_field_one"} in column_values
-    assert {"dummy_fiel": "ep_field_one"} in column_values
+    assert {"objectid": "res-field-one"} in column_values
+    assert {"dummy-fiel": "ep-field-one"} in column_values
 
 
 def test_load_concat_when_csv_contains_endpoints_and_resources(tmp_path):
@@ -205,8 +241,8 @@ def test_columns_when_csv_contains_endpoints_and_resources(tmp_path):
 
     # -- Asert --
     assert columns["name"] == "name"
-    assert columns["objectid"] == "res_field_one"
-    assert columns["dummy_fiel"] == "ep_field_one"
+    assert columns["objectid"] == "res-field-one"
+    assert columns["dummy-fiel"] == "ep-field-one"
 
 
 def test_columns_when_csv_contains_clashing_entries_res_first(tmp_path):
@@ -240,7 +276,7 @@ def test_columns_when_csv_contains_clashing_entries_res_first(tmp_path):
 
     # -- Asert --
     assert columns["name"] == "name"
-    assert columns["ref"] == "res_ref"
+    assert columns["ref"] == "res-ref"
     assert "ep_ref" not in columns
 
 
@@ -275,7 +311,7 @@ def test_columns_when_csv_contains_clashing_entries_ep_first(tmp_path):
 
     # -- Asert --
     assert columns["name"] == "name"
-    assert columns["ref"] == "res_ref"
+    assert columns["ref"] == "res-ref"
     assert "ep_ref" not in columns
 
 
@@ -320,3 +356,35 @@ def test_concatenations_when_csv_contains_endpoints_and_resources(tmp_path):
 
     assert "i-field3" in concats["o-field2"]["fields"]
     assert "i-field4" in concats["o-field2"]["fields"]
+
+
+def test_lookups_load_csv_success(
+    pipeline_dir,
+):
+    """
+    test csv loading functionality
+    :param pipeline_dir:
+    :return:
+    """
+    lookups = Lookups(pipeline_dir)
+    lookups.load_csv()
+
+    expected_num_entries = 1
+    assert len(lookups.entries) == expected_num_entries
+
+
+def test_lookups_load_csv_failure(
+    empty_pipeline_dir,
+):
+    """
+    test csv loading functionality when file absent
+    :param pipeline_dir:
+    :return:
+    """
+    lookups = Lookups(empty_pipeline_dir)
+
+    with pytest.raises(FileNotFoundError) as fnf_err:
+        lookups.load_csv()
+
+    expected_exception = "No such file or directory"
+    assert expected_exception in str(fnf_err.value)
