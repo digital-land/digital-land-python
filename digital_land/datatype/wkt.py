@@ -83,20 +83,20 @@ def parse_wkt(value, boundary):
     )
 
     if degrees_like(x, y):
-        if boundary.contains(Point(x, y)):
+        if boundary.intersects(Point(x, y)):
             return geometry, None
 
-        if boundary.contains(Point(y, x)):
+        if boundary.intersects(Point(y, x)):
             return transform(flip, geometry), "WGS84 flipped"
 
         return None, "WGS84 out of bounds of " + boundary_issue_info
 
     if easting_northing_like(x, y):
         _x, _y = osgb_to_wgs84.transform(x, y)
-        if boundary.contains(Point(_x, _y)):
+        if boundary.intersects(Point(_x, _y)):
             return transform(osgb_to_wgs84.transform, geometry), "OSGB"
         _x, _y = osgb_to_wgs84.transform(y, x)
-        if boundary.contains(Point(_x, _y)):
+        if boundary.intersects(Point(_x, _y)):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
             return geometry, "OSGB flipped"
@@ -105,12 +105,12 @@ def parse_wkt(value, boundary):
 
     if metres_like(x, y):
         _x, _y = mercator_to_wgs84.transform(x, y)
-        if boundary.contains(Point(_x, _y)):
+        if boundary.intersects(Point(_x, _y)):
             return transform(mercator_to_wgs84.transform, geometry), "Mercator"
 
     if metres_like(y, x):
         _x, _y = mercator_to_wgs84.transform(y, x)
-        if boundary.contains(Point(_x, _y)):
+        if boundary.intersects(Point(_x, _y)):
             geometry = transform(flip, geometry)
             geometry = transform(mercator_to_wgs84.transform, geometry)
             return geometry, "Mercator flipped"
