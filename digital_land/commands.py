@@ -341,8 +341,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
 
     if all(os.path.isfile(path) for path in temp_geojson_files):
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
-        for path in temp_geojson_files:
-            execute(
+        for temp_path in temp_geojson_files:
+            responseCode = execute(
                 [
                     "ogr2ogr",
                     "-f",
@@ -351,19 +351,29 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                     "RFC7946=YES",
                     "-append",
                     rfc7946_geojson_path,
-                    path,
+                    temp_path,
                 ]
             )
 
-            if not os.path.isfile(rfc7946_geojson_path):
+            if responseCode != 0:
                 logging.error(
                     "Could not generate rfc7946 compliant geojson. Use existing file."
                 )
-                os.rename(geojson_path, rfc7946_geojson_path)
+                execute(
+                    [
+                        "ogr2ogr",
+                        "-f",
+                        "GeoJSON",
+                        "-lco",
+                        "-append",
+                        rfc7946_geojson_path,
+                        temp_path,
+                    ]
+                )
             else:
                 # clear up input geojson file
-                if os.path.isfile(path):
-                    os.remove(path)
+                if os.path.isfile(temp_path):
+                    os.remove(temp_path)
 
 
 def expectations(results_path, sqlite_dataset_path, data_quality_yaml):
