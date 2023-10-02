@@ -30,7 +30,7 @@ osgb_to_wgs84 = Transformer.from_crs(27700, 4326, always_xy=True)
 mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
 DEFAULT_BOUNDARY = shapely.wkt.loads(
-    "POLYGON ((2.5 56, 2.5 49.5, -7 49.5, -7 53.4, -4 53.4, -4 56, 2.5 56))"
+    "POLYGON ((2.95 56, 2.95 49.5, -7 49.5, -7 53.4, -4 53.4, -4 56, 2.95 56))"
 )
 
 
