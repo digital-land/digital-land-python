@@ -4,26 +4,31 @@ from shapely.geometry import shape
 import pandas as pd
 
 
-def prepare_la_geometry_data():
+def process_data(gj, organisation_path):
+    rows_list = []
+    for i in range(len(gj["features"])):
+        statistical_geography = gj["features"][i]["attributes"]["LAD23CD"]
+        rings = gj["features"][i]["geometry"]["rings"]
+        geometry = {"type": "Polygon", "coordinates": rings}
+        geom = shape(geometry)
+        new_row = {
+            "statistical-geography": statistical_geography,
+            "geometry": geom.wkt,
+        }
+        rows_list.append(new_row)
+
+    df = pd.DataFrame(rows_list, columns=["statistical-geography", "geometry"])
+    df_organisations = pd.read_csv(organisation_path)
+    df = df.merge(df_organisations, on="statistical-geography", how="left")
+    df = df[["organisation", "geometry"]]
+    return df
+
+
+def prepare_la_geometry_data(organisation_path):
     try:
         with open("var/cache/la_geometry.geojson") as f:
             gj = json.load(f)
-        rows_list = []
-        for i in range(len(gj["features"])):
-            statistical_geography = gj["features"][i]["attributes"]["LAD23CD"]
-            rings = gj["features"][i]["geometry"]["rings"]
-            geometry = {"type": "Polygon", "coordinates": rings}
-            geom = shape(geometry)
-            new_row = {
-                "statistical-geography": statistical_geography,
-                "geometry": geom.wkt,
-            }
-            rows_list.append(new_row)
-
-        df = pd.DataFrame(rows_list, columns=["statistical-geography", "geometry"])
-        df_organisations = pd.read_csv("var/cache/organisation.csv")
-        df = df.merge(df_organisations, on="statistical-geography", how="left")
-        df = df[["organisation", "geometry"]]
+        df = process_data(gj, organisation_path)
         output_path = "var/cache/la_geometry.csv"
         df.to_csv(output_path)
         return output_path

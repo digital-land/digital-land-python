@@ -17,7 +17,7 @@ def lower_uri(value):
 
 class Organisation:
     organisation_path = "var/cache/organisation.csv"
-    la_geometry_path = "var/cache/lpa_geometry.csv"
+    la_geometry_path = "var/cache/la_geometry.csv"
     pipeline_patch_path = "pipeline/patch.csv"
     organisation = {}
     organisation_uri = {}

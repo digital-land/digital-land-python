@@ -142,7 +142,7 @@ def pipeline_run(
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
 
     # load la geometry
-    la_geometry_path = prepare_la_geometry_data()
+    la_geometry_path = prepare_la_geometry_data(organisation_path)
     # load organisations
     organisation = Organisation(
         organisation_path, Path(pipeline.path), None, la_geometry_path
