@@ -1,3 +1,4 @@
+import csv
 from datetime import datetime
 
 from .phase import Phase
@@ -9,9 +10,11 @@ class HarmonisePhase(Phase):
         self,
         specification=None,
         issues=None,
+        organisation=None,
     ):
         self.specification = specification
         self.issues = issues
+        self.organisation = organisation
 
     def harmonise_field(self, fieldname, value):
         if not value:
@@ -20,6 +23,14 @@ class HarmonisePhase(Phase):
         self.issues.fieldname = fieldname
         datatype = self.specification.field_type(fieldname)
         return datatype.normalise(value, issues=self.issues)
+
+    def load_la_geometry(la_geometry_path, organisation):
+        with open(la_geometry_path) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["organisation"] == organisation:
+                    return row["geometry"]
+            return None
 
     def process(self, stream):
         for block in stream:
@@ -43,6 +54,17 @@ class HarmonisePhase(Phase):
                     self.issues.log_issue(field, "future entry-date", row[field])
                     o[field] = ""
 
+            # if dataset is brownfield land get boundary geometry
+            if (
+                self.organisation.la_geometry_path
+                and stream.dataset == "brownfield-land"
+            ):
+                boundary = self.load_la_geometry(
+                    self.organisation.la_geometry_path, o["organisation"]
+                )
+            else:
+                boundary = None
+
             # fix point geometry
             # TBD: generalise as a co-constraint
             if set(["GeoX", "GeoY"]).issubset(row.keys()):
@@ -50,7 +72,7 @@ class HarmonisePhase(Phase):
 
                 point = PointDataType()
                 (o["GeoX"], o["GeoY"]) = point.normalise(
-                    [o["GeoX"], o["GeoY"]], issues=self.issues
+                    [o["GeoX"], o["GeoY"]], issues=self.issues, boundary=boundary
                 )
 
             # ensure typology fields are a CURIE

@@ -43,6 +43,7 @@ from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
+from digital_land.utils.la_geometry_processor import prepare_la_geometry_data
 from .register import hash_value
 
 
@@ -140,8 +141,12 @@ def pipeline_run(
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
 
+    # load la geometry
+    la_geometry_path = prepare_la_geometry_data()
     # load organisations
-    organisation = Organisation(organisation_path, Path(pipeline.path))
+    organisation = Organisation(
+        organisation_path, Path(pipeline.path), None, la_geometry_path
+    )
 
     # load the resource default values from the collection
     if not endpoints:
