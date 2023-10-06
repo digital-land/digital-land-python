@@ -24,8 +24,8 @@ class HarmonisePhase(Phase):
         datatype = self.specification.field_type(fieldname)
         return datatype.normalise(value, issues=self.issues)
 
-    def load_la_geometry(la_geometry_path, organisation):
-        with open(la_geometry_path) as f:
+    def load_la_geometry(self, organisation):
+        with open(self.organisation.la_geometry_path) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["organisation"] == organisation:
@@ -57,10 +57,12 @@ class HarmonisePhase(Phase):
             # if dataset is brownfield land get boundary geometry
             if (
                 self.organisation.la_geometry_path
-                and stream.dataset == "brownfield-land"
+                and block["dataset"] == "brownfield-land"
             ):
-                boundary = self.load_la_geometry(
-                    self.organisation.la_geometry_path, o["organisation"]
+                boundary = (
+                    self.load_la_geometry(o["organisation"])
+                    if o["organisation"]
+                    else None
                 )
             else:
                 boundary = None
