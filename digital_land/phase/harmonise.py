@@ -25,6 +25,8 @@ class HarmonisePhase(Phase):
         return datatype.normalise(value, issues=self.issues)
 
     def load_la_geometry(self, organisation):
+        if not organisation:
+            return None
         with open(self.organisation.la_geometry_path) as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -54,17 +56,13 @@ class HarmonisePhase(Phase):
                     self.issues.log_issue(field, "future entry-date", row[field])
                     o[field] = ""
 
-            # if dataset is brownfield land get boundary geometry
+            # if dataset is brownfield land get boundary geometry to use for boundary check
             if (
                 self.organisation
                 and self.organisation.la_geometry_path
                 and block["dataset"] == "brownfield-land"
             ):
-                boundary = (
-                    self.load_la_geometry(o["organisation"])
-                    if o["organisation"]
-                    else None
-                )
+                boundary = self.load_la_geometry(o["organisation"])
             else:
                 boundary = None
 

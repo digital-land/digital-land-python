@@ -6,6 +6,7 @@ import pandas as pd
 
 def process_data(gj, organisation_path):
     rows_list = []
+    # Extract geometry data from geojson
     for i in range(len(gj["features"])):
         statistical_geography = gj["features"][i]["attributes"]["LAD23CD"]
         rings = gj["features"][i]["geometry"]["rings"]
@@ -17,6 +18,7 @@ def process_data(gj, organisation_path):
         }
         rows_list.append(new_row)
 
+    # Match geometry data to organisation data
     df = pd.DataFrame(rows_list, columns=["statistical-geography", "geometry"])
     df_organisations = pd.read_csv(organisation_path)
     df = df.merge(df_organisations, on="statistical-geography", how="left")
@@ -25,6 +27,8 @@ def process_data(gj, organisation_path):
 
 
 def prepare_la_geometry_data(organisation_path):
+    # This method processes local authority geometry data downloaded from ONS
+    # so it can be used for boundary checks in the harmonise phase
     try:
         with open("var/cache/la_geometry.geojson") as f:
             gj = json.load(f)
