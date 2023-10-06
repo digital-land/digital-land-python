@@ -27,6 +27,9 @@ def prepare_la_geometry_data():
         output_path = "var/cache/la_geometry.csv"
         df.to_csv(output_path)
         return output_path
-    except Exception as e:
-        logging.error("Could not process Local Authority geometry data", e)
+    except FileNotFoundError:
+        logging.error("Could not find Local Authority geometry geojson")
+        return None
+    except Exception:
+        logging.error("Could not process Local Authority geometry data")
         return None
