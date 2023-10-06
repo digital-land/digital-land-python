@@ -82,10 +82,10 @@ def test_wkt_point_wgs84_out_of_range():
     issues = IssueLog()
 
     assert wkt.normalise("POINT (0.0 0.0)", issues=issues) == ""
-    assert issue_type(issues) == "WGS84 out of bounds"
+    assert issue_type(issues) == "WGS84 out of bounds of England"
 
     assert wkt.normalise("POINT (0.0 48.1)", issues=issues) == ""
-    assert issue_type(issues) == "WGS84 out of bounds"
+    assert issue_type(issues) == "WGS84 out of bounds of England"
 
 
 def test_wkt_point_northings_eastings():
