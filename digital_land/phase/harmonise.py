@@ -56,7 +56,8 @@ class HarmonisePhase(Phase):
 
             # if dataset is brownfield land get boundary geometry
             if (
-                self.organisation.la_geometry_path
+                self.organisation
+                and self.organisation.la_geometry_path
                 and block["dataset"] == "brownfield-land"
             ):
                 boundary = (
