@@ -4,7 +4,7 @@ from shapely.geometry import shape
 import pandas as pd
 
 
-def process_data(gj, organisation_path):
+def process_geojson(gj, organisation_path):
     rows_list = []
     # Extract geometry data from geojson
     for i in range(len(gj["features"])):
@@ -12,16 +12,18 @@ def process_data(gj, organisation_path):
         rings = gj["features"][i]["geometry"]["rings"]
         geometry = {"type": "Polygon", "coordinates": rings}
         geom = shape(geometry)
-        new_row = {
-            "statistical-geography": statistical_geography,
-            "geometry": geom.wkt,
-        }
-        rows_list.append(new_row)
+        if geom.is_valid:
+            new_row = {
+                "statistical-geography": statistical_geography,
+                "geometry": geom.wkt,
+            }
+            rows_list.append(new_row)
 
     # Match geometry data to organisation data
     df = pd.DataFrame(rows_list, columns=["statistical-geography", "geometry"])
     df_organisations = pd.read_csv(organisation_path)
     df = df.merge(df_organisations, on="statistical-geography", how="left")
+    df.dropna(subset=["organisation"], inplace=True)
     df = df[["organisation", "geometry"]]
     return df
 
@@ -32,7 +34,7 @@ def prepare_la_geometry_data(organisation_path):
     try:
         with open("var/cache/la_geometry.geojson") as f:
             gj = json.load(f)
-        df = process_data(gj, organisation_path)
+        df = process_geojson(gj, organisation_path)
         output_path = "var/cache/la_geometry.csv"
         df.to_csv(output_path)
         return output_path
