@@ -324,62 +324,54 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     flattened_json_path = os.path.join(flattened_dir, f"{dataset_name}.json")
     with open(flattened_json_path, "w") as out_json:
         out_json.write(json.dumps({"entities": entities}))
+    batch_size = 100000
+    temp_geojson_files = []
+    geography_entities = [e for e in entities if e["typology"] == "geography"]
+    for i in range(0, len(geography_entities), batch_size):
+        batch = geography_entities[i : i + batch_size]
+        feature_collection = process_data_in_batches(batch, flattened_dir, dataset_name)
 
-    features = []
-    for entity in (e for e in entities if e["typology"] == "geography"):
-        geom = entity.pop("geometry")
-        point = entity.pop("point")
-        if geom:
-            try:
-                geometry = shapely.wkt.loads(geom)
-                feature = geojson.Feature(geometry=geometry, properties=entity)
-                features.append(feature)
-            except Exception as e:
-                logging.error(f"Error loading wkt from entity {entity['entity']}")
-                logging.error(e)
-        elif point:
-            try:
-                geometry = shapely.wkt.loads(point)
-                feature = geojson.Feature(geometry=geometry, properties=entity)
-                features.append(feature)
-            except Exception as e:
-                logging.error(f"Error loading wkt from entity {entity['entity']}")
-                logging.error(e)
-        else:
-            logging.error(
-                f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
-            )
+        geojson_path = os.path.join(flattened_dir, f"{dataset_name}-tmp-{i}.geojson")
+        temp_geojson_files.append(geojson_path)
+        try:
+            with open(geojson_path, "w", encoding="utf-8") as out_geojson:
+                out_geojson.write(geojson.dumps(feature_collection))
+        except Exception as e:
+            logging.error(f"Error writing to GeoJSON file: {e}")
 
-    if features:
-        feature_collection = geojson.FeatureCollection(
-            features=features, name=dataset_name
-        )
-        geojson_path = os.path.join(flattened_dir, f"{dataset_name}-tmp.geojson")
-        with open(geojson_path, "w") as out_geojson:
-            out_geojson.write(geojson.dumps(feature_collection))
-
+    if all(os.path.isfile(path) for path in temp_geojson_files):
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
-
-        execute(
-            [
-                "ogr2ogr",
-                "-f",
-                "GeoJSON",
-                "-lco",
-                "RFC7946=YES",
-                rfc7946_geojson_path,
-                geojson_path,
-            ]
-        )
-        if not os.path.isfile(rfc7946_geojson_path):
-            logging.error(
-                "Could not generate rfc7946 compliant geojson. Use existing file."
+        for temp_path in temp_geojson_files:
+            responseCode, _, _ = execute(
+                [
+                    "ogr2ogr",
+                    "-f",
+                    "GeoJSON",
+                    "-lco",
+                    "RFC7946=YES",
+                    "-append",
+                    rfc7946_geojson_path,
+                    temp_path,
+                ]
             )
-            os.rename(geojson_path, rfc7946_geojson_path)
-        else:
+
+            if responseCode != 0:
+                logging.error(
+                    "Could not generate rfc7946 compliant geojson. Use existing file."
+                )
+                execute(
+                    [
+                        "ogr2ogr",
+                        "-f",
+                        "GeoJSON",
+                        "-append",
+                        rfc7946_geojson_path,
+                        temp_path,
+                    ]
+                )
             # clear up input geojson file
-            if os.path.isfile(geojson_path):
-                os.remove(geojson_path)
+            if os.path.isfile(temp_path):
+                os.remove(temp_path)
 
 
 def expectations(results_path, sqlite_dataset_path, data_quality_yaml):
@@ -642,3 +634,37 @@ def get_resource_unidentified_lookups(
     )
 
     return print_lookup_phase.new_lookup_entries
+
+
+def process_data_in_batches(entities, flattened_dir, dataset_name):
+    features = []
+    for entity in entities:
+        geom = entity.pop("geometry")
+        point = entity.pop("point")
+        if geom:
+            try:
+                geometry = shapely.wkt.loads(geom)
+                feature = geojson.Feature(geometry=geometry, properties=entity)
+                features.append(feature)
+            except Exception as e:
+                logging.error(f"Error loading wkt from entity {entity['entity']}")
+                logging.error(e)
+        elif point:
+            try:
+                geometry = shapely.wkt.loads(point)
+                feature = geojson.Feature(geometry=geometry, properties=entity)
+                features.append(feature)
+            except Exception as e:
+                logging.error(f"Error loading wkt from entity {entity['entity']}")
+                logging.error(e)
+        else:
+            logging.error(
+                f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
+            )
+
+    if features:
+        feature_collection = geojson.FeatureCollection(
+            features=features, name=dataset_name
+        )
+
+    return feature_collection

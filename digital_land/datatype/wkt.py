@@ -1,7 +1,8 @@
 import shapely.wkt
 import json
 import logging
-from shapely.geometry import shape
+import re
+from shapely.geometry import shape, Point
 from shapely.errors import WKTReadingError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
@@ -29,6 +30,10 @@ osgb_to_wgs84 = Transformer.from_crs(27700, 4326, always_xy=True)
 # https://epsg.io/4326
 mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
+DEFAULT_BOUNDARY = shapely.wkt.loads(
+    "POLYGON ((2.95 56, 2.95 49.5, -7 49.5, -7 53.4, -4 53.4, -4 56, 2.95 56))"
+)
+
 
 def degrees_like(x, y):
     return x > -60.0 and x < 60.0 and y > -60.0 and y < 60.0
@@ -42,30 +47,19 @@ def metres_like(x, y):
     return y > 6000000.0 and y < 10000000.0
 
 
-# bounding box check
-def within_england(x, y):
-    return x > -7.0 and x < 2.5 and y > 49.5 and y < 56.0
-
-
-# check if NW of the SE corner of the Irish Sea
-# https://gridreferencefinder.com/?gr=SC7000000000
-def osgb_within_england(x, y):
-    return not (x < 270000.0 and y > 400000.0)
-
-
 def flip(x, y, z=None):
     return tuple(filter(None, [y, x, z]))
 
 
-def parse_wkt(value):
+def parse_wkt(value, boundary):
     try:
         geometry = shapely.wkt.loads(value)
     except WKTReadingError:
         try:
             geometry = shapely.wkt.loads(shape(json.loads(value)).wkt)
-            return geometry, "invalid type geojson", None
+            return geometry, "invalid type geojson"
         except Exception:
-            return None, "invalid WKT", None
+            return None, "invalid WKT"
 
     if geometry.geom_type in ["Point", "LineString"]:
         first_point = geometry.coords[0]
@@ -80,45 +74,49 @@ def parse_wkt(value):
         if first_geometry.geom_type in ["MultiPolygon"]:
             first_point = first_geometry.geoms[0].exterior.coords[0]
         else:
-            return None, "Unexpected geom type within GeometryCollection", None
+            return None, "Unexpected geom type within GeometryCollection"
     else:
-        return None, "Unexpected geom type", None
+        return None, "Unexpected geom type"
 
     x, y = first_point[:2]
+    boundary_issue_info = (
+        "England" if (boundary == DEFAULT_BOUNDARY) else "custom boundary"
+    )
 
     if degrees_like(x, y):
-        if within_england(x, y):
-            return geometry, None, x
+        if boundary.intersects(Point(x, y)):
+            return geometry, None
 
-        if within_england(y, x):
-            return transform(flip, geometry), "WGS84 flipped", x
+        if boundary.intersects(Point(y, x)):
+            return transform(flip, geometry), "WGS84 flipped"
 
-        return None, "WGS84 out of bounds", x
+        return None, "WGS84 out of bounds of " + boundary_issue_info
 
     if easting_northing_like(x, y):
-        if osgb_within_england(x, y):
-            return transform(osgb_to_wgs84.transform, geometry), "OSGB", x
-
-        if osgb_within_england(y, x):
+        _x, _y = osgb_to_wgs84.transform(x, y)
+        if boundary.intersects(Point(_x, _y)):
+            return transform(osgb_to_wgs84.transform, geometry), "OSGB"
+        _x, _y = osgb_to_wgs84.transform(y, x)
+        if boundary.intersects(Point(_x, _y)):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
-            return geometry, "OSGB flipped", x
+            return geometry, "OSGB flipped"
 
-        return None, "OSGB out of bounds", x
+        return None, "OSGB out of bounds of " + boundary_issue_info
 
     if metres_like(x, y):
         _x, _y = mercator_to_wgs84.transform(x, y)
-        if within_england(_x, _y):
-            return transform(mercator_to_wgs84.transform, geometry), "Mercator", x
+        if boundary.intersects(Point(_x, _y)):
+            return transform(mercator_to_wgs84.transform, geometry), "Mercator"
 
     if metres_like(y, x):
         _x, _y = mercator_to_wgs84.transform(y, x)
-        if within_england(_x, _y):
+        if boundary.intersects(Point(_x, _y)):
             geometry = transform(flip, geometry)
             geometry = transform(mercator_to_wgs84.transform, geometry)
-            return geometry, "Mercator flipped", x
+            return geometry, "Mercator flipped"
 
-    return None, "invalid coordinates", x
+    return None, "invalid coordinates"
 
 
 def make_multipolygon(geometry):
@@ -188,26 +186,43 @@ def dump_wkt(geometry, precision=6, dimensions=2):
     return wkt.replace(", ", ",")
 
 
-def get_precision(point):
-    try:
-        current_precision = len(str(point).split(".")[1]) if "." in str(point) else 0
-    except Exception:
-        current_precision = 0
-    return current_precision
+def get_precision(value):
+    precision = re.findall(r"\d+\.\d+", value)
+    max_precision = 0
+    if precision:
+        max_precision = max(len(decimal.split(".")[1]) for decimal in precision)
+    return max_precision
 
 
 class WktDataType(DataType):
     def __init__(self):
         pass
 
-    def normalise(self, value, default="", issues=None):
+    def normalise(self, value, default="", issues=None, boundary=None):
         if not value:
             return default
 
-        geometry, issue, x = parse_wkt(value)
+        if get_precision(value) > 6:
+            issues.log("geometry provided is too precise - handled", "")
 
-        if get_precision(x) > 6:
-            issues.log("geometry provided is too precise - fixed", "")
+        if boundary:
+            try:
+                boundary_wkt = shapely.wkt.loads(boundary)
+                if boundary_wkt.geom_type in ["Polygon", "MultiPolygon"]:
+                    boundary = boundary_wkt
+                else:
+                    issues.log(
+                        "Invalid boundary provided - boundary must be of type Polygon or MultiPolygon",
+                        "",
+                    )
+                    boundary = DEFAULT_BOUNDARY
+            except WKTReadingError:
+                issues.log("Error reading boundary - must be a WKT", "")
+                boundary = DEFAULT_BOUNDARY
+        else:
+            boundary = DEFAULT_BOUNDARY
+
+        geometry, issue = parse_wkt(value, boundary)
 
         if issue:
             issues.log(issue, "")
