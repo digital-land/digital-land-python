@@ -10,6 +10,7 @@ from .schema import Schema
 from .store.csv import CSVStore
 from .store.item import ItemStore
 
+
 # rename and change variable
 DEFAULT_COLLECTION_DIR = "./collection"
 
@@ -339,7 +340,13 @@ class Collection:
 
     @staticmethod
     def format_date(date_val) -> str:
-        if type(date_val) is datetime:
+        if type(date_val) is str:
+            try:
+                param_start_date_dt = datetime.strptime(date_val, "%Y-%m-%d")
+                str_date_fmt = param_start_date_dt.strftime("%Y-%m-%d")
+            except ValueError:
+                str_date_fmt = datetime.now().strftime("%Y-%m-%d")
+        elif type(date_val) is datetime:
             str_date_fmt = date_val.strftime("%Y-%m-%d")
         elif type(date_val) is int:
             param_start_date_str = str(date_val)
