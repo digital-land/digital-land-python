@@ -129,7 +129,6 @@ class SqlitePackage(Package):
             )
 
         try:
-            # print(f">>> table: {table} - table_values: {sys.getsizeof(self.table_values)}")
             self.cursor.executemany(sql_stmt, self.table_values)
 
         except sqlite3.Error as error:
