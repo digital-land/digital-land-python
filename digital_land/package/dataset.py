@@ -1,8 +1,8 @@
 import csv
 import json
 import logging
-import re
 from decimal import Decimal
+from pathlib import Path
 
 import shapely.wkt
 
@@ -123,11 +123,13 @@ class DatasetPackage(SqlitePackage):
         row = self.entity_row(facts)
         row = self.migrate_entity(row)
         if row:
-            self.insert("entity", self.entity_fields, row)
+            entity_fields = [
+                field for field in self.entity_fields if not field.endswith("-geom")
+            ]
+            self.add_table_values(entity_fields, row)
 
     def load_old_entities(self, path):
         """load the old-entity table"""
-
         fields = self.specification.schema["old-entity"]["fields"]
         entity_min = self.specification.schema[self.dataset].get("entity-minimum")
         entity_max = self.specification.schema[self.dataset].get("entity-maximum")
@@ -139,19 +141,20 @@ class DatasetPackage(SqlitePackage):
         entity_min = int(entity_min)
         entity_max = int(entity_max)
         logging.info(f"loading old-entity from {path}")
-        self.connect()
-        self.create_cursor()
+
+        self.create_cursor(optimised=True)
         for row in csv.DictReader(open(path, newline="")):
             entity_id = int(row.get("old-entity"))
             if entity_min <= entity_id <= entity_max:
-                self.insert("old-entity", fields, row)
+                self.add_table_values(fields, row)
+
+        self.insert("old-entity", fields)
         self.commit()
-        self.disconnect()
+        self.table_values = []
 
     def load_entities(self):
         """load the entity table from the fact table"""
-        self.connect()
-        self.create_cursor()
+        self.create_cursor(optimised=True)
         self.execute(
             "select entity, field, value from fact"
             "  where value != ''"
@@ -172,13 +175,13 @@ class DatasetPackage(SqlitePackage):
         if facts:
             self.insert_entity(facts)
 
+        self.insert("entity", self.entity_fields)
         self.commit()
-        self.disconnect()
+        self.table_values = []
 
     def add_counts(self):
         """count the number of entities by resource"""
-        self.connect()
-        self.create_cursor()
+        self.create_cursor(optimised=True)
         self.execute(
             "select resource, count(*)"
             "  from ("
@@ -189,6 +192,7 @@ class DatasetPackage(SqlitePackage):
             "  ) group by resource"
         )
         results = self.cursor.fetchall()
+
         for result in results:
             resource = result[0]
             count = result[1]
@@ -196,7 +200,6 @@ class DatasetPackage(SqlitePackage):
                 f"update dataset_resource set entity_count = {count} where resource = '{resource}'"
             )
         self.commit()
-        self.disconnect()
 
     def entry_date_upsert(self, table, fields, row, conflict_fields, update_fields):
         """
@@ -240,7 +243,11 @@ class DatasetPackage(SqlitePackage):
             self.entry_date_upsert(
                 "fact", fact_fields, row, fact_conflict_fields, fact_update_fields
             )
-            self.insert("fact-resource", fact_resource_fields, row, upsert=True)
+            self.add_table_values(fact_resource_fields, row)
+
+        self.insert("fact-resource", fact_resource_fields, upsert=True)
+        self.commit()
+        self.table_values = []
 
     def load_column_fields(self, path, resource):
         fields = self.specification.schema["column-field"]["fields"]
@@ -250,18 +257,22 @@ class DatasetPackage(SqlitePackage):
         for row in csv.DictReader(open(path, newline="")):
             row["resource"] = resource
             row["dataset"] = self.dataset
-            self.insert("column-field", fields, row)
+            self.add_table_values(fields, row)
+
+        self.insert("column-field", fields)
+        self.commit()
+        self.table_values = []
 
     def load_issues(self, path):
-        self.connect()
-        self.create_cursor()
+        self.create_cursor(optimised=True)
         fields = self.specification.schema["issue"]["fields"]
         logging.info(f"loading issues from {path}")
         for row in csv.DictReader(open(path, newline="")):
-            self.insert("issue", fields, row)
+            self.add_table_values(fields, row)
 
+        self.insert("issue", fields)
         self.commit()
-        self.disconnect()
+        self.table_values = []
 
     def load_dataset_resource(self, path, resource):
         fields = self.specification.schema["dataset-resource"]["fields"]
@@ -269,24 +280,26 @@ class DatasetPackage(SqlitePackage):
         logging.info(f"loading dataset-resource from {path}")
 
         for row in csv.DictReader(open(path, newline="")):
-            self.insert("dataset-resource", fields, row)
+            self.add_table_values(fields, row)
+
+        self.insert("dataset-resource", fields)
+        self.commit()
+        self.table_values = []
 
     def load_transformed(self, path):
-        m = re.search(r"/([a-f0-9]+).csv$", path)
-        resource = m.group(1)
+        # m = re.search(r"/([a-f0-9]+).csv$", path)
+        # resource = m.group(1)
+        file_part = Path(path).parts[-1]
+        resource = file_part.split(".")[0]
 
-        self.connect()
-        self.create_cursor()
+        self.create_cursor(optimised=True)
         self.load_facts(path)
-        # self.load_issues(path.replace("transformed/", "issue/"), resource)
         self.load_column_fields(
             path.replace("transformed/", "var/column-field/"), resource
         )
         self.load_dataset_resource(
             path.replace("transformed/", "var/dataset-resource/"), resource
         )
-        self.commit()
-        self.disconnect()
 
     def load(self):
         pass
