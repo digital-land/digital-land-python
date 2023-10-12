@@ -66,7 +66,6 @@ def specification_dir(tmp_path_factory):
 def organisation_csv(tmp_path_factory):
     organisation_dir = tmp_path_factory.mktemp("organisation")
 
-    # organisation_path = os.path.join(organisation_dir, "organisation.csv")
     organisation_path = organisation_dir / "organisation.csv"
     urllib.request.urlretrieve(
         "https://raw.githubusercontent.com/digital-land/organisation-dataset/main/collection/organisation.csv",
