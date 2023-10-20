@@ -70,15 +70,15 @@ class SqlitePackage(Package):
 
         self.connection.close()
 
-    def create_cursor(self, optimised=False):
+    def create_cursor(self, transactional=False):
         if self.cursor:
             self.cursor.close()
             self.cursor = None
 
         self.cursor = self.connection.cursor()
-        if optimised:
-            self.cursor.execute("PRAGMA synchronous = OFF")
-            self.cursor.execute("PRAGMA journal_mode = OFF")
+        self.cursor.execute("PRAGMA synchronous = OFF")
+        self.cursor.execute("PRAGMA journal_mode = OFF")
+        if transactional:
             self.cursor.execute("BEGIN")
 
     def commit(self):

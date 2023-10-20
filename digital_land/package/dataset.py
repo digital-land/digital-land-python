@@ -31,6 +31,8 @@ indexes = {
     "dataset-resource": ["resource"],
 }
 
+MAX_NUMBER_INSERTS = 10000
+
 
 class DatasetPackage(SqlitePackage):
     def __init__(self, dataset, organisation, **kwargs):
@@ -127,6 +129,10 @@ class DatasetPackage(SqlitePackage):
                 field for field in self.entity_fields if not field.endswith("-geom")
             ]
             self.add_table_values(entity_fields, row)
+            if len(self.table_values) >= MAX_NUMBER_INSERTS:
+                self.insert("entity", self.entity_fields)
+                self.commit()
+                self.table_values = []
 
     def load_old_entities(self, path):
         """load the old-entity table"""
@@ -142,11 +148,15 @@ class DatasetPackage(SqlitePackage):
         entity_max = int(entity_max)
         logging.info(f"loading old-entity from {path}")
 
-        self.create_cursor(optimised=True)
+        self.create_cursor(transactional=True)
         for row in csv.DictReader(open(path, newline="")):
             entity_id = int(row.get("old-entity"))
             if entity_min <= entity_id <= entity_max:
                 self.add_table_values(fields, row)
+                if len(self.table_values) >= MAX_NUMBER_INSERTS:
+                    self.insert("old-entity", fields)
+                    self.commit()
+                    self.table_values = []
 
         self.insert("old-entity", fields)
         self.commit()
@@ -154,7 +164,7 @@ class DatasetPackage(SqlitePackage):
 
     def load_entities(self):
         """load the entity table from the fact table"""
-        self.create_cursor(optimised=True)
+        self.create_cursor(transactional=True)
         self.execute(
             "select entity, field, value from fact"
             "  where value != ''"
@@ -181,7 +191,7 @@ class DatasetPackage(SqlitePackage):
 
     def add_counts(self):
         """count the number of entities by resource"""
-        self.create_cursor(optimised=True)
+        self.create_cursor(transactional=True)
         self.execute(
             "select resource, count(*)"
             "  from ("
@@ -244,6 +254,10 @@ class DatasetPackage(SqlitePackage):
                 "fact", fact_fields, row, fact_conflict_fields, fact_update_fields
             )
             self.add_table_values(fact_resource_fields, row)
+            if len(self.table_values) >= MAX_NUMBER_INSERTS:
+                self.insert("fact-resource", fact_resource_fields, upsert=True)
+                self.commit()
+                self.table_values = []
 
         self.insert("fact-resource", fact_resource_fields, upsert=True)
         self.commit()
@@ -258,17 +272,25 @@ class DatasetPackage(SqlitePackage):
             row["resource"] = resource
             row["dataset"] = self.dataset
             self.add_table_values(fields, row)
+            if len(self.table_values) >= MAX_NUMBER_INSERTS:
+                self.insert("column-field", fields)
+                self.commit()
+                self.table_values = []
 
         self.insert("column-field", fields)
         self.commit()
         self.table_values = []
 
     def load_issues(self, path):
-        self.create_cursor(optimised=True)
+        self.create_cursor(transactional=True)
         fields = self.specification.schema["issue"]["fields"]
         logging.info(f"loading issues from {path}")
         for row in csv.DictReader(open(path, newline="")):
             self.add_table_values(fields, row)
+            if len(self.table_values) >= MAX_NUMBER_INSERTS:
+                self.insert("issue", fields)
+                self.commit()
+                self.table_values = []
 
         self.insert("issue", fields)
         self.commit()
@@ -281,6 +303,10 @@ class DatasetPackage(SqlitePackage):
 
         for row in csv.DictReader(open(path, newline="")):
             self.add_table_values(fields, row)
+            if len(self.table_values) >= MAX_NUMBER_INSERTS:
+                self.insert("dataset-resource", fields)
+                self.commit()
+                self.table_values = []
 
         self.insert("dataset-resource", fields)
         self.commit()
@@ -292,7 +318,7 @@ class DatasetPackage(SqlitePackage):
         file_part = Path(path).parts[-1]
         resource = file_part.split(".")[0]
 
-        self.create_cursor(optimised=True)
+        self.create_cursor(transactional=True)
         self.load_facts(path)
         self.load_column_fields(
             path.replace("transformed/", "var/column-field/"), resource
