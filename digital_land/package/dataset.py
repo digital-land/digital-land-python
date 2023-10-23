@@ -133,9 +133,11 @@ class DatasetPackage(SqlitePackage):
                 self.insert("entity", self.entity_fields)
                 self.commit()
                 self.table_values = []
+                self.create_cursor(transactional=True)
 
     def load_old_entities(self, path):
         """load the old-entity table"""
+        self.connect(optimised=True)
         fields = self.specification.schema["old-entity"]["fields"]
         entity_min = self.specification.schema[self.dataset].get("entity-minimum")
         entity_max = self.specification.schema[self.dataset].get("entity-maximum")
@@ -157,13 +159,16 @@ class DatasetPackage(SqlitePackage):
                     self.insert("old-entity", fields)
                     self.commit()
                     self.table_values = []
+                    self.create_cursor(transactional=True)
 
         self.insert("old-entity", fields)
         self.commit()
         self.table_values = []
+        self.disconnect()
 
     def load_entities(self):
         """load the entity table from the fact table"""
+        self.connect(optimised=True)
         self.create_cursor(transactional=True)
         self.execute(
             "select entity, field, value from fact"
@@ -188,9 +193,11 @@ class DatasetPackage(SqlitePackage):
         self.insert("entity", self.entity_fields)
         self.commit()
         self.table_values = []
+        self.disconnect()
 
     def add_counts(self):
         """count the number of entities by resource"""
+        self.connect(optimised=True)
         self.create_cursor(transactional=True)
         self.execute(
             "select resource, count(*)"
@@ -210,6 +217,7 @@ class DatasetPackage(SqlitePackage):
                 f"update dataset_resource set entity_count = {count} where resource = '{resource}'"
             )
         self.commit()
+        self.disconnect()
 
     def entry_date_upsert(self, table, fields, row, conflict_fields, update_fields):
         """
@@ -258,6 +266,7 @@ class DatasetPackage(SqlitePackage):
                 self.insert("fact-resource", fact_resource_fields, upsert=True)
                 self.commit()
                 self.table_values = []
+                self.create_cursor(transactional=True)
 
         self.insert("fact-resource", fact_resource_fields, upsert=True)
         self.commit()
@@ -276,12 +285,14 @@ class DatasetPackage(SqlitePackage):
                 self.insert("column-field", fields)
                 self.commit()
                 self.table_values = []
+                self.create_cursor(transactional=True)
 
         self.insert("column-field", fields)
         self.commit()
         self.table_values = []
 
     def load_issues(self, path):
+        self.connect(optimised=True)
         self.create_cursor(transactional=True)
         fields = self.specification.schema["issue"]["fields"]
         logging.info(f"loading issues from {path}")
@@ -291,10 +302,12 @@ class DatasetPackage(SqlitePackage):
                 self.insert("issue", fields)
                 self.commit()
                 self.table_values = []
+                self.create_cursor(transactional=True)
 
         self.insert("issue", fields)
         self.commit()
         self.table_values = []
+        self.disconnect()
 
     def load_dataset_resource(self, path, resource):
         fields = self.specification.schema["dataset-resource"]["fields"]
@@ -307,6 +320,7 @@ class DatasetPackage(SqlitePackage):
                 self.insert("dataset-resource", fields)
                 self.commit()
                 self.table_values = []
+                self.create_cursor(transactional=True)
 
         self.insert("dataset-resource", fields)
         self.commit()
@@ -318,6 +332,7 @@ class DatasetPackage(SqlitePackage):
         file_part = Path(path).parts[-1]
         resource = file_part.split(".")[0]
 
+        self.connect(optimised=True)
         self.create_cursor(transactional=True)
         self.load_facts(path)
         self.load_column_fields(
@@ -326,6 +341,7 @@ class DatasetPackage(SqlitePackage):
         self.load_dataset_resource(
             path.replace("transformed/", "var/dataset-resource/"), resource
         )
+        self.disconnect()
 
     def load(self):
         pass

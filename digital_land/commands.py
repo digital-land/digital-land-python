@@ -249,7 +249,6 @@ def dataset_create(
         specification_dir=None,  # TBD: package should use this specification object
     )
     package.create()
-    package.connect(optimised=True)
 
     for path in input_paths:
         package.load_transformed(path)
@@ -268,8 +267,6 @@ def dataset_create(
         logging.warning("No directory for this dataset in the provided issue_directory")
 
     package.add_counts()
-
-    package.disconnect()
 
 
 def dataset_dump(input_path, output_path):
