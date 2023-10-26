@@ -470,3 +470,68 @@ def test_load_entities_creates_expected_entries(
         assert results_df["e_count"].values[0] == 1
         assert results_df["i_count"].values[0] == 0
         assert results_df["oe_count"].values[0] == 0
+
+
+def test_insert_many_creates_expected_entries(
+    specification_dir,
+    organisation_csv,
+    transformed_file_path,
+    tmp_path,
+):
+    dataset = "listed-building"
+    sqlite3_path = os.path.join(tmp_path, f"{dataset}.sqlite3")
+
+    organisation = Organisation(organisation_csv)
+    package = DatasetPackage(
+        dataset,
+        organisation=organisation,
+        path=sqlite3_path,
+        specification_dir=specification_dir,
+    )
+
+    package.create()
+    package.connect(optimised=True)
+
+    fact_resource_fields = [
+        "end-date",
+        "fact",
+        "entry-date",
+        "entry-number",
+        "resource",
+        "start-date",
+    ]
+
+    insert_rows = [
+        (
+            "",
+            "7fa1bd3c802494f4998599b80c828146f621987da954d3490a4b98a5f24a8b4d",
+            "2023-10-03",
+            "1",
+            "47e8c774370b10c803da048f4f1d98cfb028d25e01408314c92f0ac74cbee12b",
+            "",
+        ),
+        (
+            "",
+            "c7bc75878771bb9d39c2ed73d2797a8f910c00dd1813542d19cf6d40bd807bb2",
+            "2023-10-03",
+            "1",
+            "47e8c774370b10c803da048f4f1d98cfb028d25e01408314c92f0ac74cbee12b",
+            "",
+        ),
+    ]
+
+    package.create_cursor()
+    package.insert_many("fact-resource", fact_resource_fields, insert_rows, upsert=True)
+    package.commit()
+
+    with sqlite3.connect(sqlite3_path) as con:
+        sql = """
+        SELECT
+            (select count(*) from fact_resource) as fr_count;
+        """
+        cursor = con.execute(sql)
+        cols = [column[0] for column in cursor.description]
+        qry_result = cursor.fetchall()
+        results_df = pd.DataFrame.from_records(data=qry_result, columns=cols)
+
+        assert results_df["fr_count"].values[0] == 2

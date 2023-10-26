@@ -236,6 +236,7 @@ def dataset_create(
     pipeline,
     dataset,
     specification,
+    max_batch_size,
     issue_dir="issue",
 ):
     if not output_path:
@@ -246,6 +247,7 @@ def dataset_create(
         dataset,
         organisation=organisation,
         path=output_path,
+        max_batch_size=max_batch_size,
         specification_dir=None,  # TBD: package should use this specification object
     )
     package.create()

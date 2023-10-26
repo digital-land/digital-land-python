@@ -3,8 +3,10 @@ import sys
 import csv
 import sqlite3
 import logging
-from .package import Package
 from decimal import Decimal
+from sqlite3 import Connection, Cursor
+
+from digital_land.package.package import Package
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +32,8 @@ class SqlitePackage(Package):
         self._spatialite = None
         self.join_tables = {}
         self.fields = {}
-        self.connection = None
-        self.cursor = None
-        self.table_values = []
+        self.connection: Connection = None
+        self.cursor: Cursor = None
         super().__init__(*args, **kwargs)
 
     def field_coltype(self, field):
@@ -70,7 +71,7 @@ class SqlitePackage(Package):
 
         self.connection.close()
 
-    def create_cursor(self, transactional=False):
+    def create_cursor(self):
         if self.cursor:
             self.cursor.close()
             self.cursor = None
@@ -78,8 +79,6 @@ class SqlitePackage(Package):
         self.cursor = self.connection.cursor()
         self.cursor.execute("PRAGMA synchronous = OFF")
         self.cursor.execute("PRAGMA journal_mode = OFF")
-        if transactional:
-            self.cursor.execute("BEGIN")
 
     def commit(self):
         logger.debug("committing ..")
@@ -113,11 +112,26 @@ class SqlitePackage(Package):
         value = str(row.get(field, ""))
         return value.replace("'", "''")
 
-    def insert(self, table, fields, upsert=False):
+    def insert(self, table, fields, row, upsert=False):
+        fields = [field for field in fields if not field.endswith("-geom")]
+        self.execute(
+            """
+            INSERT OR REPLACE INTO %s(%s)
+            VALUES (%s)%s;
+            """
+            % (
+                colname(table),
+                ",".join([colname(field) for field in fields]),
+                ",".join(["%s" % self.colvalue(row, field) for field in fields]),
+                " ON CONFLICT DO NOTHING " if upsert else "",
+            )
+        )
+
+    def insert_many(self, table, fields, value_rows, upsert=False):
         fields = [field for field in fields if not field.endswith("-geom")]
 
         table_cols = ",".join([colname(field) for field in fields])
-        placeholders = ",".join(["?"] * len(fields))  # self.bindings_list(fields)
+        placeholders = ",".join(["?"] * len(fields))
         table = colname(table)
 
         if upsert:
@@ -129,7 +143,9 @@ class SqlitePackage(Package):
             )
 
         try:
-            self.cursor.executemany(sql_stmt, self.table_values)
+            if not self.connection.in_transaction:
+                self.cursor.execute("BEGIN")
+            self.cursor.executemany(sql_stmt, value_rows)
 
         except sqlite3.Error as error:
             logging.error("Exception: %s" % (error.__class__))
@@ -137,11 +153,11 @@ class SqlitePackage(Package):
             logging.info("Sqlite3 cmd: %s" % (sql_stmt))
             sys.exit(3)
 
-    def add_table_values(self, fields, row):
+    def add_table_values(self, fields, row, rows):
         fields = [field for field in fields if not field.endswith("-geom")]
 
         table_vals = tuple([self.colvalue2(row, field) for field in fields])
-        self.table_values.append(table_vals)
+        rows.append(table_vals)
 
     def create_table(self, table, fields, key_field=None, unique=None):
         self.execute(

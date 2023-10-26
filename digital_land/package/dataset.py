@@ -31,15 +31,14 @@ indexes = {
     "dataset-resource": ["resource"],
 }
 
-MAX_NUMBER_INSERTS = 10000
-
 
 class DatasetPackage(SqlitePackage):
-    def __init__(self, dataset, organisation, **kwargs):
+    def __init__(self, dataset, organisation, max_batch_size=10000, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.entity_fields = self.specification.schema["entity"]["fields"]
         self.organisations = organisation.organisation
+        self.max_batch_size = max_batch_size
 
     def migrate_entity(self, row):
         dataset = self.dataset
@@ -121,19 +120,19 @@ class DatasetPackage(SqlitePackage):
             row[fact[1]] = fact[2]
         return row
 
-    def insert_entity(self, facts):
+    def insert_entity(self, facts, insert_rows):
         row = self.entity_row(facts)
         row = self.migrate_entity(row)
         if row:
             entity_fields = [
                 field for field in self.entity_fields if not field.endswith("-geom")
             ]
-            self.add_table_values(entity_fields, row)
-            if len(self.table_values) >= MAX_NUMBER_INSERTS:
-                self.insert("entity", self.entity_fields)
+            self.add_table_values(entity_fields, row, insert_rows)
+            if len(insert_rows) >= self.max_batch_size:
+                self.insert_many("entity", self.entity_fields, insert_rows)
                 self.commit()
-                self.table_values = []
-                self.create_cursor(transactional=True)
+                insert_rows = []
+                self.create_cursor()
 
     def load_old_entities(self, path):
         """load the old-entity table"""
@@ -150,26 +149,26 @@ class DatasetPackage(SqlitePackage):
         entity_max = int(entity_max)
         logging.info(f"loading old-entity from {path}")
 
-        self.create_cursor(transactional=True)
+        self.create_cursor()
+        insert_rows = []
         for row in csv.DictReader(open(path, newline="")):
             entity_id = int(row.get("old-entity"))
             if entity_min <= entity_id <= entity_max:
-                self.add_table_values(fields, row)
-                if len(self.table_values) >= MAX_NUMBER_INSERTS:
-                    self.insert("old-entity", fields)
+                self.add_table_values(fields, row, insert_rows)
+                if len(insert_rows) >= self.max_batch_size:
+                    self.insert_many("old-entity", fields, insert_rows)
                     self.commit()
-                    self.table_values = []
-                    self.create_cursor(transactional=True)
+                    insert_rows = []
+                    self.create_cursor()
 
-        self.insert("old-entity", fields)
+        self.insert_many("old-entity", fields, insert_rows)
         self.commit()
-        self.table_values = []
         self.disconnect()
 
     def load_entities(self):
         """load the entity table from the fact table"""
         self.connect(optimised=True)
-        self.create_cursor(transactional=True)
+        self.create_cursor()
         self.execute(
             "select entity, field, value from fact"
             "  where value != ''"
@@ -178,27 +177,27 @@ class DatasetPackage(SqlitePackage):
         results = self.cursor.fetchall()
 
         facts = []
+        insert_rows = []
         for fact in results:
             # If facts and fact does not point to same entity as first fact
             if facts and fact[0] != facts[0][0]:
                 # Insert existing facts
-                self.insert_entity(facts)
+                self.insert_entity(facts, insert_rows)
                 # Reset facts list for new entity
                 facts = []
             facts.append(fact)
 
         if facts:
-            self.insert_entity(facts)
+            self.insert_entity(facts, insert_rows)
 
-        self.insert("entity", self.entity_fields)
+        self.insert_many("entity", self.entity_fields, insert_rows)
         self.commit()
-        self.table_values = []
         self.disconnect()
 
     def add_counts(self):
         """count the number of entities by resource"""
         self.connect(optimised=True)
-        self.create_cursor(transactional=True)
+        self.create_cursor()
         self.execute(
             "select resource, count(*)"
             "  from ("
@@ -257,56 +256,62 @@ class DatasetPackage(SqlitePackage):
         fact_update_fields = [
             field for field in fact_fields if field not in fact_conflict_fields
         ]
+
+        insert_rows = []
         for row in csv.DictReader(open(path, newline="")):
             self.entry_date_upsert(
                 "fact", fact_fields, row, fact_conflict_fields, fact_update_fields
             )
-            self.add_table_values(fact_resource_fields, row)
-            if len(self.table_values) >= MAX_NUMBER_INSERTS:
-                self.insert("fact-resource", fact_resource_fields, upsert=True)
+            self.add_table_values(fact_resource_fields, row, insert_rows)
+            if len(insert_rows) >= self.max_batch_size:
+                self.insert_many(
+                    "fact-resource", fact_resource_fields, insert_rows, upsert=True
+                )
                 self.commit()
-                self.table_values = []
-                self.create_cursor(transactional=True)
+                insert_rows = []
+                self.create_cursor()
 
-        self.insert("fact-resource", fact_resource_fields, upsert=True)
+        self.insert_many(
+            "fact-resource", fact_resource_fields, insert_rows, upsert=True
+        )
         self.commit()
-        self.table_values = []
 
     def load_column_fields(self, path, resource):
         fields = self.specification.schema["column-field"]["fields"]
 
         logging.info(f"loading column_fields from {path}")
 
+        insert_rows = []
         for row in csv.DictReader(open(path, newline="")):
             row["resource"] = resource
             row["dataset"] = self.dataset
-            self.add_table_values(fields, row)
-            if len(self.table_values) >= MAX_NUMBER_INSERTS:
-                self.insert("column-field", fields)
+            self.add_table_values(fields, row, insert_rows)
+            if len(insert_rows) >= self.max_batch_size:
+                self.insert_many("column-field", fields, insert_rows)
                 self.commit()
-                self.table_values = []
-                self.create_cursor(transactional=True)
+                insert_rows = []
+                self.create_cursor()
 
-        self.insert("column-field", fields)
+        self.insert_many("column-field", fields, insert_rows)
         self.commit()
-        self.table_values = []
 
     def load_issues(self, path):
         self.connect(optimised=True)
-        self.create_cursor(transactional=True)
+        self.create_cursor()
         fields = self.specification.schema["issue"]["fields"]
         logging.info(f"loading issues from {path}")
-        for row in csv.DictReader(open(path, newline="")):
-            self.add_table_values(fields, row)
-            if len(self.table_values) >= MAX_NUMBER_INSERTS:
-                self.insert("issue", fields)
-                self.commit()
-                self.table_values = []
-                self.create_cursor(transactional=True)
 
-        self.insert("issue", fields)
+        insert_rows = []
+        for row in csv.DictReader(open(path, newline="")):
+            self.add_table_values(fields, row, insert_rows)
+            if len(insert_rows) >= self.max_batch_size:
+                self.insert_many("issue", fields, insert_rows)
+                self.commit()
+                insert_rows = []
+                self.create_cursor()
+
+        self.insert_many("issue", fields, insert_rows)
         self.commit()
-        self.table_values = []
         self.disconnect()
 
     def load_dataset_resource(self, path, resource):
@@ -314,26 +319,24 @@ class DatasetPackage(SqlitePackage):
 
         logging.info(f"loading dataset-resource from {path}")
 
+        insert_rows = []
         for row in csv.DictReader(open(path, newline="")):
-            self.add_table_values(fields, row)
-            if len(self.table_values) >= MAX_NUMBER_INSERTS:
-                self.insert("dataset-resource", fields)
+            self.add_table_values(fields, row, insert_rows)
+            if len(insert_rows) >= self.max_batch_size:
+                self.insert_many("dataset-resource", fields, insert_rows)
                 self.commit()
-                self.table_values = []
-                self.create_cursor(transactional=True)
+                insert_rows = []
+                self.create_cursor()
 
-        self.insert("dataset-resource", fields)
+        self.insert_many("dataset-resource", fields, insert_rows)
         self.commit()
-        self.table_values = []
 
     def load_transformed(self, path):
-        # m = re.search(r"/([a-f0-9]+).csv$", path)
-        # resource = m.group(1)
         file_part = Path(path).parts[-1]
         resource = file_part.split(".")[0]
 
         self.connect(optimised=True)
-        self.create_cursor(transactional=True)
+        self.create_cursor()
         self.load_facts(path)
         self.load_column_fields(
             path.replace("transformed/", "var/column-field/"), resource
