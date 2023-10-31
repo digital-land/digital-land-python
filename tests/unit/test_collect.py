@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 import pytest
 import responses
+import requests
 
 from digital_land.collect import Collector, FetchStatus
 
@@ -21,6 +22,15 @@ def collector(tmp_path):
 @pytest.fixture
 def prepared_response():
     responses.add(responses.GET, "http://some.url", body="some data")
+
+
+@pytest.fixture
+def prepared_exception():
+    responses.add(
+        responses.GET,
+        "http://mock.url",
+        body=requests.ConnectionError("Mocked Connection Error"),
+    )
 
 
 def sha_digest(string):
@@ -78,3 +88,13 @@ def read_log(collector, url):
 
 def log_file(url):
     return f"{datetime.now().strftime('%Y-%m-%d')}/{sha_digest(url)}.json"
+
+
+@responses.activate
+def test_get(collector, prepared_exception):
+    url = "http://mock.url"
+    log, content = collector.get(url)
+
+    assert "status" not in log
+    assert log.get("exception") == "ConnectionError"
+    assert content is None
