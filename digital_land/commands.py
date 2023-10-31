@@ -236,8 +236,8 @@ def dataset_create(
     pipeline,
     dataset,
     specification,
-    max_batch_size,
     issue_dir="issue",
+    max_batch_size=10000,
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)

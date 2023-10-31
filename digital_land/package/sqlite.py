@@ -146,6 +146,7 @@ class SqlitePackage(Package):
             if not self.connection.in_transaction:
                 self.cursor.execute("BEGIN")
             self.cursor.executemany(sql_stmt, value_rows)
+            self.commit()
 
         except sqlite3.Error as error:
             logging.error("Exception: %s" % (error.__class__))

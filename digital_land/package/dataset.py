@@ -130,7 +130,6 @@ class DatasetPackage(SqlitePackage):
             self.add_table_values(entity_fields, row, insert_rows)
             if len(insert_rows) >= self.max_batch_size:
                 self.insert_many("entity", self.entity_fields, insert_rows)
-                self.commit()
                 insert_rows = []
                 self.create_cursor()
 
@@ -157,12 +156,10 @@ class DatasetPackage(SqlitePackage):
                 self.add_table_values(fields, row, insert_rows)
                 if len(insert_rows) >= self.max_batch_size:
                     self.insert_many("old-entity", fields, insert_rows)
-                    self.commit()
                     insert_rows = []
                     self.create_cursor()
 
         self.insert_many("old-entity", fields, insert_rows)
-        self.commit()
         self.disconnect()
 
     def load_entities(self):
@@ -191,7 +188,6 @@ class DatasetPackage(SqlitePackage):
             self.insert_entity(facts, insert_rows)
 
         self.insert_many("entity", self.entity_fields, insert_rows)
-        self.commit()
         self.disconnect()
 
     def add_counts(self):
@@ -267,14 +263,12 @@ class DatasetPackage(SqlitePackage):
                 self.insert_many(
                     "fact-resource", fact_resource_fields, insert_rows, upsert=True
                 )
-                self.commit()
                 insert_rows = []
                 self.create_cursor()
 
         self.insert_many(
             "fact-resource", fact_resource_fields, insert_rows, upsert=True
         )
-        self.commit()
 
     def load_column_fields(self, path, resource):
         fields = self.specification.schema["column-field"]["fields"]
@@ -288,12 +282,10 @@ class DatasetPackage(SqlitePackage):
             self.add_table_values(fields, row, insert_rows)
             if len(insert_rows) >= self.max_batch_size:
                 self.insert_many("column-field", fields, insert_rows)
-                self.commit()
                 insert_rows = []
                 self.create_cursor()
 
         self.insert_many("column-field", fields, insert_rows)
-        self.commit()
 
     def load_issues(self, path):
         self.connect(optimised=True)
@@ -306,12 +298,10 @@ class DatasetPackage(SqlitePackage):
             self.add_table_values(fields, row, insert_rows)
             if len(insert_rows) >= self.max_batch_size:
                 self.insert_many("issue", fields, insert_rows)
-                self.commit()
                 insert_rows = []
                 self.create_cursor()
 
         self.insert_many("issue", fields, insert_rows)
-        self.commit()
         self.disconnect()
 
     def load_dataset_resource(self, path, resource):
@@ -324,12 +314,10 @@ class DatasetPackage(SqlitePackage):
             self.add_table_values(fields, row, insert_rows)
             if len(insert_rows) >= self.max_batch_size:
                 self.insert_many("dataset-resource", fields, insert_rows)
-                self.commit()
                 insert_rows = []
                 self.create_cursor()
 
         self.insert_many("dataset-resource", fields, insert_rows)
-        self.commit()
 
     def load_transformed(self, path):
         file_part = Path(path).parts[-1]
