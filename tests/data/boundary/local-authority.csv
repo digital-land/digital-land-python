@@ -1,0 +1,4 @@
+dataset,prefix,reference,local-authority-type,wikidata,name,combined-authority,local-authority-district,local-planning-authority,start-date,end-date
+local-authority,local-authority,HPL,UA,Q16993720,Hartlepool Borough Council,TVCA,E06000001,E60000003,1905-06-18,
+local-authority,local-authority,MDB,UA,Q6841843,Middlesbrough Borough Council,TVCA,E06000002,E60000004,1905-06-18,
+local-authority,local-authority,RCC,UA,Q17019415,Redcar and Cleveland Borough Council,TVCA,E06000003,E60000006,1996-04-01,

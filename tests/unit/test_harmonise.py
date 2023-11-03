@@ -46,7 +46,8 @@ def test_harmonise_inside_custom_boundary():
         "tests/data/boundary/organisation.csv",
         None,
         None,
-        "tests/data/boundary/la_geometry.csv",
+        "tests/data/boundary/lpa-geometry.csv",
+        "tests/data/boundary/local-authority.csv",
     )
     issues = IssueLog()
 
@@ -76,7 +77,8 @@ def test_harmonise_outside_custom_boundary():
         "tests/data/boundary/organisation.csv",
         None,
         None,
-        "tests/data/boundary/la_geometry.csv",
+        "tests/data/boundary/lpa-geometry.csv",
+        "tests/data/boundary/local-authority.csv",
     )
     issues = IssueLog()
 
@@ -106,7 +108,8 @@ def test_harmonise_non_brownfield_outside_custom_boundary():
         "tests/data/boundary/organisation.csv",
         None,
         None,
-        "tests/data/boundary/la_geometry.csv",
+        "tests/data/boundary/lpa-geometry.csv",
+        "tests/data/boundary/local-authority.csv",
     )
     issues = IssueLog()
 
@@ -136,7 +139,8 @@ def test_harmonise_inside_default_boundary_unknown_organisation():
         "tests/data/boundary/organisation.csv",
         None,
         None,
-        "tests/data/boundary/la_geometry.csv",
+        "tests/data/boundary/lpa-geometry.csv",
+        "tests/data/boundary/local-authority.csv",
     )
     issues = IssueLog()
 
@@ -166,7 +170,8 @@ def test_harmonise_outside_default_boundary_unknown_organisation():
         "tests/data/boundary/organisation.csv",
         None,
         None,
-        "tests/data/boundary/la_geometry.csv",
+        "tests/data/boundary/lpa-geometry.csv",
+        "tests/data/boundary/local-authority.csv",
     )
     issues = IssueLog()
 

@@ -17,7 +17,8 @@ def lower_uri(value):
 
 class Organisation:
     organisation_path = "var/cache/organisation.csv"
-    la_geometry_path = "var/cache/la_geometry.csv"
+    lpa_geometry_path = "var/cache/lpa-geometry.csv"
+    local_authority_path = "var/cache/local-authority.csv"
     pipeline_patch_path = "pipeline/patch.csv"
     organisation = {}
     organisation_uri = {}
@@ -28,12 +29,15 @@ class Organisation:
         organisation_path=None,
         pipeline_dir=None,
         organisation=None,
-        la_geometry_path=None,
+        lpa_geometry_path=None,
+        local_authority_path=None,
     ):
         if organisation_path:
             self.organisation_path = organisation_path
-        if la_geometry_path:
-            self.la_geometry_path = la_geometry_path
+        if lpa_geometry_path:
+            self.lpa_geometry_path = lpa_geometry_path
+        if local_authority_path:
+            self.local_authority_path = local_authority_path
         if pipeline_dir:
             self.pipeline_patch_path = pipeline_dir / "patch.csv"
         if organisation is None:
