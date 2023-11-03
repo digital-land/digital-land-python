@@ -114,16 +114,29 @@ def convert_features_to_csv(input_path):
 
 
 class ConvertPhase(Phase):
-    def __init__(self, path=None, dataset_resource_log=None, custom_temp_dir=None):
+    def __init__(
+        self,
+        path=None,
+        dataset_resource_log=None,
+        custom_temp_dir=None,
+        custom_temp_file=None,
+    ):
         self.path = path
         self.log = dataset_resource_log
         self.charset = ""
         # Allows for custom temporary directory to be specified
         # This allows symlink creation in case of /tmp & path being on different partitions
         if custom_temp_dir:
+            self.custom_temp_dir = custom_temp_dir
             self.temp_file_extra_kwargs = {"dir": custom_temp_dir}
+            if not os.path.exists(custom_temp_dir):
+                os.makedirs(custom_temp_dir)
         else:
             self.temp_file_extra_kwargs = {}
+        # custom_temp_file
+        # allows a specified file if user wants to interrogate them
+        if custom_temp_file:
+            self.custom_temp_file = custom_temp_file
 
     def process(self, stream=None):
         input_path = self.path
@@ -142,6 +155,15 @@ class ConvertPhase(Phase):
 
             # raise StopIteration()
             reader = iter(())
+
+        # save converted input to a file if custom_temp_dir and custom_temp_file are set
+        if hasattr(self, "custom_temp_dir") and hasattr(self, "custom_temp_file"):
+            output_path = os.path.join(
+                os.getcwd(), self.custom_temp_dir, self.custom_temp_file
+            )
+            with open(output_path, "w") as f:
+                f.write(reader.read())
+            reader = read_csv(output_path)
 
         return Stream(input_path, f=reader, log=self.log)
 
