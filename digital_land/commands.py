@@ -140,7 +140,7 @@ def pipeline_run(
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
 
-    lpa_geometry_path = "var/cache/local-authority.csv"
+    lpa_geometry_path = "var/cache/lpa-geometry.csv"
     local_authority_path = "var/cache/local-authority.csv"
     # load organisations
     organisation = Organisation(
