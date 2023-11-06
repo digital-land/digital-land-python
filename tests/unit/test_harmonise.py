@@ -193,3 +193,8 @@ def test_harmonise_outside_default_boundary_unknown_organisation():
     assert len(output) == 1
     assert output[0]["row"]["GeoX"] == ""
     assert output[0]["row"]["GeoY"] == ""
+
+
+def test_failing_test():
+    variable = "fail"
+    assert variable == "pass"
