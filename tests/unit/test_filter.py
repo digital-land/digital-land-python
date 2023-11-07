@@ -25,3 +25,21 @@ def test_filter_in():
     assert out[0]["row"] == {"reference": "2", "name": "Two"}
     assert out[1]["row"] == {"reference": "3", "name": "Three"}
     assert len(out) == 2
+
+
+def test_negative_filtering():
+    pattern = {
+        "somefield": "^(?!Individual|\\.).*"
+    }  # NOT starting with Individual. Watch out for the pipe character preceding the \\.
+    input = (
+        "reference,somefield\r\n" + "1,Group\r\n" + "2,Individual\r\n" + "3,Zone\r\n"
+    )  # We want 1 and 3
+
+    phase = FilterPhase(filters=pattern)
+    stream = _reader(input)
+
+    out = list(phase.process(stream))
+
+    assert len(out) == 2
+    assert out[0]["row"] == {"reference": "1", "somefield": "Group"}
+    assert out[1]["row"] == {"reference": "3", "somefield": "Zone"}
