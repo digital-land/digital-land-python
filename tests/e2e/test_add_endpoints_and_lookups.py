@@ -349,4 +349,3 @@ def test_cli_add_endpoints_and_lookups_cmd_success_return_code(
     )
 
     assert result.exit_code == 0, f"{result.stdout}"
-
