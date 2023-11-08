@@ -15,15 +15,53 @@ def test_load_xlsm():
     assert log.mime_type == "application/vnd.ms-excel"
 
 
-def test_converted_csv_saved():
-    path = os.path.join(os.getcwd(), "tests/data/brentwood.xlsm")
+def test_save_converted_geojson():
+    path = os.path.join(os.getcwd(), "tests/data/resource_examples/geojson.resource")
     log = DatasetResourceLog()
-    reader = ConvertPhase(
+    ConvertPhase(
         path,
         dataset_resource_log=log,
         custom_temp_dir="data",
-        custom_temp_file="input.csv",
     ).process()
-    block = next(reader)
-    assert block["resource"] == "brentwood"
-    assert os.path.isfile(os.path.join(os.getcwd(), "data/input.csv"))
+
+    assert os.path.isfile(os.path.join(os.getcwd(), "converted/geojson.csv"))
+    os.remove(os.path.join(os.getcwd(), "converted/geojson.csv"))
+
+
+def test_save_converted_geopackage():
+    path = os.path.join(os.getcwd(), "tests/data/resource_examples/geopackage.resource")
+    log = DatasetResourceLog()
+    ConvertPhase(
+        path,
+        dataset_resource_log=log,
+        custom_temp_dir="data",
+    ).process()
+
+    assert os.path.isfile(os.path.join(os.getcwd(), "converted/geopackage.csv"))
+    os.remove(os.path.join(os.getcwd(), "converted/geopackage.csv"))
+
+
+def test_save_converted_gml():
+    path = os.path.join(os.getcwd(), "tests/data/resource_examples/gml.resource")
+    log = DatasetResourceLog()
+    ConvertPhase(
+        path,
+        dataset_resource_log=log,
+        custom_temp_dir="data",
+    ).process()
+
+    assert os.path.isfile(os.path.join(os.getcwd(), "converted/gml.csv"))
+    os.remove(os.path.join(os.getcwd(), "converted/gml.csv"))
+
+
+def test_save_converted_kml():
+    path = os.path.join(os.getcwd(), "tests/data/resource_examples/kml.resource")
+    log = DatasetResourceLog()
+    ConvertPhase(
+        path,
+        dataset_resource_log=log,
+        custom_temp_dir="data",
+    ).process()
+
+    assert os.path.isfile(os.path.join(os.getcwd(), "converted/kml.csv"))
+    os.remove(os.path.join(os.getcwd(), "converted/kml.csv"))
