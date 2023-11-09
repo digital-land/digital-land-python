@@ -108,10 +108,13 @@ def convert_cmd(input_path, output_path):
 
 @cli.command("dataset-create", short_help="create a dataset from processed resources")
 @click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
+@click.option("--max-batch-size", type=click.INT, default=10000)
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @organisation_path
 @click.pass_context
-def dataset_create_cmd(ctx, input_paths, output_path, organisation_path):
+def dataset_create_cmd(
+    ctx, input_paths, output_path, max_batch_size, organisation_path
+):
     return dataset_create(
         input_paths=input_paths,
         output_path=output_path,
@@ -119,6 +122,7 @@ def dataset_create_cmd(ctx, input_paths, output_path, organisation_path):
         pipeline=ctx.obj["PIPELINE"],
         dataset=ctx.obj["DATASET"],
         specification=ctx.obj["SPECIFICATION"],
+        max_batch_size=max_batch_size,
     )
 
 

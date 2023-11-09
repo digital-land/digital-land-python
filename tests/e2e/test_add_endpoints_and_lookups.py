@@ -349,10 +349,3 @@ def test_cli_add_endpoints_and_lookups_cmd_success_return_code(
     )
 
     assert result.exit_code == 0, f"{result.stdout}"
-
-
-# adding endpoint requirements
-# start date should be provided
-# adding source requirements
-
-# passing both Path and strs for directory structures

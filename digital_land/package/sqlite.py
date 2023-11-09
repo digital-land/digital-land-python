@@ -3,8 +3,10 @@ import sys
 import csv
 import sqlite3
 import logging
-from .package import Package
 from decimal import Decimal
+from sqlite3 import Connection, Cursor
+
+from digital_land.package.package import Package
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,8 @@ class SqlitePackage(Package):
         self._spatialite = None
         self.join_tables = {}
         self.fields = {}
+        self.connection: Connection = None
+        self.cursor: Cursor = None
         super().__init__(*args, **kwargs)
 
     def field_coltype(self, field):
@@ -46,9 +50,14 @@ class SqlitePackage(Package):
                     path = "/usr/lib/x86_64-linux-gnu/mod_spatialite.so"
         self._spatialite = path
 
-    def connect(self):
+    def connect(self, optimised=False):
         logging.debug(f"sqlite3 connect {self.path}")
-        self.connection = sqlite3.connect(self.path)
+        self.connection = None
+
+        if optimised:
+            self.connection = sqlite3.connect(self.path, cached_statements=0)
+        else:
+            self.connection = sqlite3.connect(self.path)
 
         if self._spatialite:
             self.connection.enable_load_extension(True)
@@ -56,7 +65,100 @@ class SqlitePackage(Package):
 
     def disconnect(self):
         logging.debug("sqlite3 disconnect")
+        if self.cursor:
+            self.cursor.close()
+            self.cursor = None
+
         self.connection.close()
+
+    def create_cursor(self):
+        if self.cursor:
+            self.cursor.close()
+            self.cursor = None
+
+        self.cursor = self.connection.cursor()
+        self.cursor.execute("PRAGMA synchronous = OFF")
+        self.cursor.execute("PRAGMA journal_mode = OFF")
+
+    def commit(self):
+        logger.debug("committing ..")
+
+        self.connection.commit()
+
+    def execute(self, cmd):
+        logger.debug(cmd)
+        try:
+            self.cursor.execute(cmd)
+        except sqlite3.Error as error:
+            logging.error("Exception: %s" % (error.__class__))
+            logging.error("Sqlite3 error: %s" % (" ".join(error.args)))
+            logging.info("Sqlite3 cmd: %s" % (cmd))
+            sys.exit(3)
+
+    def colvalue(self, row, field):
+        value = str(row.get(field, ""))
+        t = self.field_coltype(field)
+        if t == "INTEGER":
+            if value == "":
+                return "NULL"
+            return "%d" % Decimal(value)
+        if t == "JSON":
+            if value == "{}":
+                return "NULL"
+
+        return "'%s'" % value.replace("'", "''")
+
+    def colvalue2(self, row, field):
+        value = str(row.get(field, ""))
+        return value.replace("'", "''")
+
+    def insert(self, table, fields, row, upsert=False):
+        fields = [field for field in fields if not field.endswith("-geom")]
+        self.execute(
+            """
+            INSERT OR REPLACE INTO %s(%s)
+            VALUES (%s)%s;
+            """
+            % (
+                colname(table),
+                ",".join([colname(field) for field in fields]),
+                ",".join(["%s" % self.colvalue(row, field) for field in fields]),
+                " ON CONFLICT DO NOTHING " if upsert else "",
+            )
+        )
+
+    def insert_many(self, table, fields, value_rows, upsert=False):
+        fields = [field for field in fields if not field.endswith("-geom")]
+
+        table_cols = ",".join([colname(field) for field in fields])
+        placeholders = ",".join(["?"] * len(fields))
+        table = colname(table)
+
+        if upsert:
+            condition = " ON CONFLICT DO NOTHING"
+            sql_stmt = f"INSERT OR REPLACE INTO {table}({table_cols}) VALUES({placeholders}){condition};"
+        else:
+            sql_stmt = (
+                f"INSERT OR REPLACE INTO {table}({table_cols}) VALUES({placeholders});"
+            )
+
+        try:
+            if not self.connection.in_transaction:
+                self.cursor.execute("BEGIN")
+            self.cursor.executemany(sql_stmt, value_rows)
+            self.commit()
+
+        except sqlite3.Error as error:
+            logging.error("Exception: %s" % (error.__class__))
+            logging.error("Sqlite3 error: %s" % (" ".join(error.args)))
+            logging.info("Sqlite3 cmd: %s" % (sql_stmt))
+            sys.exit(3)
+
+    def add_table_values(self, fields, row, rows):
+        fields = [field for field in fields if not field.endswith("-geom")]
+
+        table_vals = tuple([self.colvalue2(row, field) for field in fields])
+        rows.append(table_vals)
 
     def create_table(self, table, fields, key_field=None, unique=None):
         self.execute(
@@ -102,53 +204,6 @@ class SqlitePackage(Package):
                     "SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);"
                     % (table)
                 )
-
-    def create_cursor(self):
-        self.cursor = self.connection.cursor()
-        self.cursor.execute("PRAGMA synchronous = OFF")
-        self.cursor.execute("PRAGMA journal_mode = OFF")
-
-    def commit(self):
-        logger.debug("committing ..")
-
-        self.connection.commit()
-
-    def execute(self, cmd):
-        logger.debug(cmd)
-        try:
-            self.cursor.execute(cmd)
-        except sqlite3.Error as error:
-            logging.error("Exception: %s" % (error.__class__))
-            logging.error("Sqlite3 error: %s" % (" ".join(error.args)))
-            logging.info("Sqlite3 cmd: %s" % (cmd))
-            sys.exit(3)
-
-    def colvalue(self, row, field):
-        value = str(row.get(field, ""))
-        t = self.field_coltype(field)
-        if t == "INTEGER":
-            if value == "":
-                return "NULL"
-            return "%d" % Decimal(value)
-        if t == "JSON":
-            if value == "{}":
-                return "NULL"
-        return "'%s'" % value.replace("'", "''")
-
-    def insert(self, table, fields, row, upsert=False):
-        fields = [field for field in fields if not field.endswith("-geom")]
-        self.execute(
-            """
-            INSERT OR REPLACE INTO %s(%s)
-            VALUES (%s)%s;
-            """
-            % (
-                colname(table),
-                ",".join([colname(field) for field in fields]),
-                ",".join(["%s" % self.colvalue(row, field) for field in fields]),
-                " ON CONFLICT DO NOTHING " if upsert else "",
-            )
-        )
 
     def load_table(self, table, fields, path=None):
         logging.info("loading %s from %s" % (table, path))
