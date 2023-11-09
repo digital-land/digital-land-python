@@ -166,6 +166,11 @@ def normalise_geometry(geometry, simplification=0.000005):
     # ensure geometry is a MultiPolygon
     geometry = make_multipolygon(geometry)
 
+    if geometry:
+        if not geometry.is_valid:
+            issue = explain_validity(geometry)
+            geometry = geometry.buffer(0)
+
     # fix winding order
     # WKT external rings should be counterclockwise, interior rings clockwise
     # https://shapely.readthedocs.io/en/stable/manual.html#shapely.geometry.polygon.orient
@@ -223,22 +228,24 @@ class WktDataType(DataType):
             # fixed/normalised geometry. To reduce precision,
             # round trip the geometry through shapely with 6 dp precision.
 
-            _wkt = dump_wkt(geometry, precision=6)
+            _wkt = dump_wkt(geometry)
             geometry = shapely.wkt.loads(_wkt)
-            validity = False
-            i = 0
-            while i < 3 and not validity:
-                geometry, issue = normalise_geometry(geometry)
-                if issue:
-                    issues.log("invalid geometry", issue)
 
-                if not geometry:
-                    return default
+            geometry, issue = normalise_geometry(geometry)
 
-                _wkt = dump_wkt(geometry)
-                geometry = shapely.wkt.loads(_wkt)
-                validity = geometry.is_valid
-                i += 1
+            if geometry:
+                if geometry.is_valid:
+                    # if the geometry is valid at this point log any issue that has been fixed
+                    if issue:
+                        issues.log("invalid geometry", issue)
+                else:
+                    # if the geometry is not valid, mark as not fixable
+                    if issue:
+                        issues.log("invalid geometry", issue)
+                        issues.log("invalid geometry", "not fixable")
+
+            if not geometry:
+                return default
 
         if not geometry:
             return default
