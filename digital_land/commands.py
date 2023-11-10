@@ -237,7 +237,6 @@ def dataset_create(
     dataset,
     specification,
     issue_dir="issue",
-    max_batch_size=10000,
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
@@ -247,14 +246,11 @@ def dataset_create(
         dataset,
         organisation=organisation,
         path=output_path,
-        max_batch_size=max_batch_size,
         specification_dir=None,  # TBD: package should use this specification object
     )
     package.create()
-
     for path in input_paths:
         package.load_transformed(path)
-
     package.load_entities()
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
