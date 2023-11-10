@@ -1,4 +1,5 @@
 import shapely.wkt
+from shapely import set_precision
 import json
 import logging
 from shapely.geometry import shape, Point
@@ -155,6 +156,8 @@ def normalise_geometry(geometry, simplification=0.000005):
     if not geometry.is_valid or simplification.is_valid:
         geometry = simplification
 
+    geometry = set_precision(geometry, 0.000001)
+
     # check and resolve an invalid geometry
     # result may be a GeometryCollection containing points and lines
     # https://shapely.readthedocs.io/en/stable/manual.html#validation.make_valid
@@ -235,14 +238,14 @@ class WktDataType(DataType):
 
             if geometry:
                 if geometry.is_valid:
+
                     # if the geometry is valid at this point log any issue that has been fixed
                     if issue:
-                        issues.log("invalid geometry", issue)
+                        issues.log("invalid geometry - fixed", issue)
                 else:
                     # if the geometry is not valid, mark as not fixable
                     if issue:
-                        issues.log("invalid geometry", issue)
-                        issues.log("invalid geometry", "not fixable")
+                        issues.log("invalid geometry - not fixable", issue)
 
             if not geometry:
                 return default
