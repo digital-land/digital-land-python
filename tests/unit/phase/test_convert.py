@@ -15,53 +15,86 @@ def test_load_xlsm():
     assert log.mime_type == "application/vnd.ms-excel"
 
 
-def test_save_converted_geojson():
+def test_convert_features_to_csv_save_geojson():
     path = os.path.join(os.getcwd(), "tests/data/resource_examples/geojson.resource")
     log = DatasetResourceLog()
     ConvertPhase(
         path,
         dataset_resource_log=log,
-        custom_temp_dir="data",
+        output_path="converted/geojson.csv",
     ).process()
 
     assert os.path.isfile(os.path.join(os.getcwd(), "converted/geojson.csv"))
     os.remove(os.path.join(os.getcwd(), "converted/geojson.csv"))
 
 
-def test_save_converted_geopackage():
+def test_convert_features_to_csv_save_geopackage():
     path = os.path.join(os.getcwd(), "tests/data/resource_examples/geopackage.resource")
     log = DatasetResourceLog()
     ConvertPhase(
         path,
         dataset_resource_log=log,
-        custom_temp_dir="data",
+        output_path="converted/geopackage.csv",
     ).process()
 
     assert os.path.isfile(os.path.join(os.getcwd(), "converted/geopackage.csv"))
     os.remove(os.path.join(os.getcwd(), "converted/geopackage.csv"))
 
 
-def test_save_converted_gml():
+def test_convert_features_to_csv_save_converted_gml():
     path = os.path.join(os.getcwd(), "tests/data/resource_examples/gml.resource")
     log = DatasetResourceLog()
     ConvertPhase(
         path,
         dataset_resource_log=log,
-        custom_temp_dir="data",
+        output_path="wow/convert/gml.csv",
     ).process()
 
-    assert os.path.isfile(os.path.join(os.getcwd(), "converted/gml.csv"))
+    assert os.path.isfile(os.path.join(os.getcwd(), "wow/convert/gml.csv"))
     os.remove(os.path.join(os.getcwd(), "converted/gml.csv"))
 
 
-def test_save_converted_kml():
+def test_convert_features_to_csv_save_converted_kml():
     path = os.path.join(os.getcwd(), "tests/data/resource_examples/kml.resource")
     log = DatasetResourceLog()
     ConvertPhase(
         path,
         dataset_resource_log=log,
-        custom_temp_dir="data",
+        output_path="converted/kml.csv",
     ).process()
 
     assert os.path.isfile(os.path.join(os.getcwd(), "converted/kml.csv"))
     os.remove(os.path.join(os.getcwd(), "converted/kml.csv"))
+
+
+def test_convert_features_to_csv_save_converted_sqlite3():
+    path = os.path.join(
+        os.getcwd(),
+        "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
+    )
+    log = DatasetResourceLog()
+    ConvertPhase(
+        path,
+        dataset_resource_log=log,
+        output_path="converted/sqlite3.csv",
+    ).process()
+
+    assert os.path.isfile(
+        os.path.join(os.getcwd(), "converted/data_for_url_expect_test.csv")
+    )
+    os.remove(os.path.join(os.getcwd(), "converted/data_for_url_expect_test.csv"))
+
+
+def test_convert_features_to_csv_converted_not_saved():
+    path = os.path.join(
+        os.getcwd(),
+        "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
+    )
+    log = DatasetResourceLog()
+    ConvertPhase(
+        path,
+        dataset_resource_log=log,
+    ).process()
+
+    for root, dirs, files in os.walk(os.getcwd()):
+        assert "data_for_url_expect_test.csv" not in files

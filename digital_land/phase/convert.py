@@ -83,8 +83,9 @@ def read_excel(path):
     return f
 
 
-def convert_features_to_csv(input_path):
-    output_path = "converted/" + os.path.basename(input_path).rsplit(".", 1)[0] + ".csv"
+def convert_features_to_csv(input_path, output_path=None):
+    if not output_path:
+        output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     execute(
         [
             "ogr2ogr",
@@ -119,6 +120,7 @@ class ConvertPhase(Phase):
         path=None,
         dataset_resource_log=None,
         custom_temp_dir=None,
+        output_path=None,
     ):
         self.path = path
         self.log = dataset_resource_log
@@ -129,8 +131,12 @@ class ConvertPhase(Phase):
             self.temp_file_extra_kwargs = {"dir": custom_temp_dir}
         else:
             self.temp_file_extra_kwargs = {}
-        if not os.path.exists("converted"):
-            os.makedirs("converted")
+
+        self.output_path = output_path
+        if output_path:
+            output_dir = os.path.dirname(output_path)
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
 
     def process(self, stream=None):
         input_path = self.path
@@ -168,7 +174,7 @@ class ConvertPhase(Phase):
         elif content.lower().startswith(("<?xml ", "<wfs:")):
             logging.debug("%s looks like xml", input_path)
             self.log.mime_type = "application/xml" + self.charset
-            converted_csv_file = convert_features_to_csv(input_path)
+            converted_csv_file = convert_features_to_csv(input_path, self.output_path)
             if not converted_csv_file:
                 f.close()
                 logging.warning("conversion from XML to CSV failed")
@@ -177,7 +183,7 @@ class ConvertPhase(Phase):
         elif content.lower().startswith("{"):
             logging.debug("%s looks like json", input_path)
             self.log.mime_type = "application/json" + self.charset
-            converted_csv_file = convert_features_to_csv(input_path)
+            converted_csv_file = convert_features_to_csv(input_path, self.output_path)
 
         if converted_csv_file:
             f.close()
@@ -253,7 +259,7 @@ class ConvertPhase(Phase):
                 os.link(input_path, temp_path)
                 zip_path = f"/vsizip/{temp_path}{internal_path}"
                 logging.debug(f"zip_path: {zip_path} mime_type: {mime_type}")
-                csv_path = convert_features_to_csv(zip_path)
+                csv_path = convert_features_to_csv(zip_path, self.output_path)
                 encoding = detect_file_encoding(csv_path)
                 return read_csv(csv_path, encoding)
 
@@ -267,7 +273,7 @@ class ConvertPhase(Phase):
         else:
             logging.debug(f"{input_path} looks like SQLite")
             self.log.mime_type = "application/geopackage+sqlite3"
-            csv_path = convert_features_to_csv(input_path)
+            csv_path = convert_features_to_csv(input_path, self.output_path)
             encoding = detect_file_encoding(csv_path)
             return read_csv(csv_path, encoding)
 
