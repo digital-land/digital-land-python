@@ -47,10 +47,10 @@ def test_convert_features_to_csv_save_converted_gml():
     ConvertPhase(
         path,
         dataset_resource_log=log,
-        output_path="wow/convert/gml.csv",
+        output_path="converted/gml.csv",
     ).process()
 
-    assert os.path.isfile(os.path.join(os.getcwd(), "wow/convert/gml.csv"))
+    assert os.path.isfile(os.path.join(os.getcwd(), "converted/gml.csv"))
     os.remove(os.path.join(os.getcwd(), "converted/gml.csv"))
 
 
