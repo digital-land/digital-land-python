@@ -86,6 +86,10 @@ def test_convert_features_to_csv_save_converted_sqlite3():
 
 
 def test_convert_features_to_csv_converted_not_saved():
+    files_before = []
+    for root, dirs, files in os.walk(os.getcwd()):
+        files_before.extend(files)
+
     path = os.path.join(
         os.getcwd(),
         "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
@@ -96,5 +100,8 @@ def test_convert_features_to_csv_converted_not_saved():
         dataset_resource_log=log,
     ).process()
 
+    files_after = []
     for root, dirs, files in os.walk(os.getcwd()):
-        assert "data_for_url_expect_test.csv" not in files
+        files_after.extend(files)
+
+    assert files_before == files_after
