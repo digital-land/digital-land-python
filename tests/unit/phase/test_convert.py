@@ -76,7 +76,7 @@ def test_convert_features_to_csv_save_converted_sqlite3():
     ConvertPhase(
         path,
         dataset_resource_log=log,
-        output_path="converted/sqlite3.csv",
+        output_path="converted/data_for_url_expect_test.csv",
     ).process()
 
     assert os.path.isfile(
