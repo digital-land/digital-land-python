@@ -246,9 +246,6 @@ class WktDataType(DataType):
                     if issue:
                         issues.log("invalid geometry - not fixable", issue)
 
-            if not geometry:
-                return default
-
         if not geometry:
             return default
 
