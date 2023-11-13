@@ -238,7 +238,6 @@ class WktDataType(DataType):
 
             if geometry:
                 if geometry.is_valid:
-
                     # if the geometry is valid at this point log any issue that has been fixed
                     if issue:
                         issues.log("invalid geometry - fixed", issue)
