@@ -156,7 +156,7 @@ def normalise_geometry(geometry, simplification=0.000005):
     if not geometry.is_valid or simplification.is_valid:
         geometry = simplification
 
-    geometry = set_precision(geometry, 0.000001)
+    geometry = set_precision(geometry, 0.000001, mode="pointwise")
 
     # check and resolve an invalid geometry
     # result may be a GeometryCollection containing points and lines
