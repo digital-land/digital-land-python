@@ -1,107 +1,58 @@
 #!/usr/bin/env -S py.test -svv
 import os
+import pytest
+
 from digital_land.log import DatasetResourceLog
 from digital_land.phase.convert import ConvertPhase
 
 
-def test_load_xlsm():
-    path = os.path.join(os.getcwd(), "tests/data/brentwood.xlsm")
-    log = DatasetResourceLog()
-    reader = ConvertPhase(path, dataset_resource_log=log).process()
-    block = next(reader)
-    assert block["resource"] == "brentwood"
-    assert block["line-number"] == 1
-    assert "OrganisationURI" in block["line"]
-    assert log.mime_type == "application/vnd.ms-excel"
+class TestConvertPhase:
+    def test_process_xlsm_is_loaded(self):
+        path = os.path.join(os.getcwd(), "tests/data/brentwood.xlsm")
+        log = DatasetResourceLog()
+        reader = ConvertPhase(path, dataset_resource_log=log).process()
+        block = next(reader)
+        assert block["resource"] == "brentwood"
+        assert block["line-number"] == 1
+        assert "OrganisationURI" in block["line"]
+        assert log.mime_type == "application/vnd.ms-excel"
 
-
-def test_convert_features_to_csv_save_geojson():
-    path = os.path.join(os.getcwd(), "tests/data/resource_examples/geojson.resource")
-    log = DatasetResourceLog()
-    ConvertPhase(
-        path,
-        dataset_resource_log=log,
-        output_path="converted/geojson.csv",
-    ).process()
-
-    assert os.path.isfile(os.path.join(os.getcwd(), "converted/geojson.csv"))
-    os.remove(os.path.join(os.getcwd(), "converted/geojson.csv"))
-
-
-def test_convert_features_to_csv_save_geopackage():
-    path = os.path.join(os.getcwd(), "tests/data/resource_examples/geopackage.resource")
-    log = DatasetResourceLog()
-    ConvertPhase(
-        path,
-        dataset_resource_log=log,
-        output_path="converted/geopackage.csv",
-    ).process()
-
-    assert os.path.isfile(os.path.join(os.getcwd(), "converted/geopackage.csv"))
-    os.remove(os.path.join(os.getcwd(), "converted/geopackage.csv"))
-
-
-def test_convert_features_to_csv_save_converted_gml():
-    path = os.path.join(os.getcwd(), "tests/data/resource_examples/gml.resource")
-    log = DatasetResourceLog()
-    ConvertPhase(
-        path,
-        dataset_resource_log=log,
-        output_path="converted/gml.csv",
-    ).process()
-
-    assert os.path.isfile(os.path.join(os.getcwd(), "converted/gml.csv"))
-    os.remove(os.path.join(os.getcwd(), "converted/gml.csv"))
-
-
-def test_convert_features_to_csv_save_converted_kml():
-    path = os.path.join(os.getcwd(), "tests/data/resource_examples/kml.resource")
-    log = DatasetResourceLog()
-    ConvertPhase(
-        path,
-        dataset_resource_log=log,
-        output_path="converted/kml.csv",
-    ).process()
-
-    assert os.path.isfile(os.path.join(os.getcwd(), "converted/kml.csv"))
-    os.remove(os.path.join(os.getcwd(), "converted/kml.csv"))
-
-
-def test_convert_features_to_csv_save_converted_sqlite3():
-    path = os.path.join(
-        os.getcwd(),
-        "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
+    @pytest.mark.parametrize(
+        "input_path",
+        [
+            "tests/data/resource_examples/geojson.resource",
+            "tests/data/resource_examples/geopackage.resource",
+            "tests/data/resource_examples/gml.resource",
+            "tests/data/resource_examples/kml.resource",
+            "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
+        ],
     )
-    log = DatasetResourceLog()
-    ConvertPhase(
-        path,
-        dataset_resource_log=log,
-        output_path="converted/data_for_url_expect_test.csv",
-    ).process()
+    def test_process_file_is_saved_to_output_path(self, input_path, tmp_path):
+        path = os.path.join(os.getcwd(), input_path)
+        output_path = os.path.join(tmp_path, "converted/geojson.csv")
+        log = DatasetResourceLog()
+        ConvertPhase(path, dataset_resource_log=log, output_path=output_path).process()
 
-    assert os.path.isfile(
-        os.path.join(os.getcwd(), "converted/data_for_url_expect_test.csv")
-    )
-    os.remove(os.path.join(os.getcwd(), "converted/data_for_url_expect_test.csv"))
+        assert os.path.isfile(output_path)
+        # os.remove(os.path.join(os.getcwd(), "converted/geojson.csv"))
 
+    def test_process_converted_file_not_saved(self):
+        files_before = []
+        for root, dirs, files in os.walk(os.getcwd()):
+            files_before.extend(files)
 
-def test_convert_features_to_csv_converted_not_saved():
-    files_before = []
-    for root, dirs, files in os.walk(os.getcwd()):
-        files_before.extend(files)
+        path = os.path.join(
+            os.getcwd(),
+            "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
+        )
+        log = DatasetResourceLog()
+        ConvertPhase(
+            path,
+            dataset_resource_log=log,
+        ).process()
 
-    path = os.path.join(
-        os.getcwd(),
-        "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
-    )
-    log = DatasetResourceLog()
-    ConvertPhase(
-        path,
-        dataset_resource_log=log,
-    ).process()
+        files_after = []
+        for root, dirs, files in os.walk(os.getcwd()):
+            files_after.extend(files)
 
-    files_after = []
-    for root, dirs, files in os.walk(os.getcwd()):
-        files_after.extend(files)
-
-    assert files_before == files_after
+        assert files_before == files_after
