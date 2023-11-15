@@ -11,7 +11,6 @@ from shapely.validation import explain_validity, make_valid
 from pyproj import Transformer
 from pyproj.transformer import TransformerGroup
 from .datatype import DataType
-from shapely.ops import unary_union
 
 
 # use PyProj to transform coordinates between systems
@@ -138,7 +137,8 @@ def make_multipolygon(geometry):
                 for polygon in geom.geoms:
                     polygons.append(polygon)
             elif geom.geom_type == "GeometryCollection":
-                polygons = unary_union(geometry)
+                temp_polygons = make_multipolygon(geom)
+                polygons.extend(temp_polygons.geoms)
             else:
                 logging.info(f"skipping {geom.geom_type}")
         return MultiPolygon(polygons)
