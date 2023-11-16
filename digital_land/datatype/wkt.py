@@ -171,7 +171,6 @@ def normalise_geometry(geometry, simplification=0.000005):
 
     if geometry:
         if not geometry.is_valid:
-            issue = explain_validity(geometry)
             geometry = geometry.buffer(0)
 
     # fix winding order
