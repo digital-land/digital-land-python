@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime
+import pandas as pd
 
 
 def entry_date():
@@ -53,6 +54,28 @@ class IssueLog(Log):
                 "entry-number": entry_number or self.entry_number,
             }
         )
+
+    def add_severity_column(self, severity_mapping_path):
+        # Load only the 'severity' column from severity_mapping
+        severity_mapping = pd.read_csv(
+            severity_mapping_path, usecols=["issue-type", "severity"]
+        )
+
+        # Convert the existing log data to a DataFrame
+        log_df = pd.DataFrame(self.rows)
+
+        # Merge with severity_mapping based on 'issue-type'
+        merged_df = pd.merge(
+            log_df,
+            severity_mapping,
+            how="left",
+            left_on="issue-type",
+            right_on="issue-type",
+        )
+
+        # Add the new 'severity' column to the log data
+        self.fieldnames.append("severity")
+        self.rows = merged_df.to_dict(orient="records")
 
 
 class ColumnFieldLog(Log):
