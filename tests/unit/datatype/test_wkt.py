@@ -495,3 +495,13 @@ def test_invalid_geometry_fixed_and_area_maintained(input_wkt):
         min_area = min(input_geometry_valid.area, output_geometry.area)
         percentage = 100 * (intersection_area / min_area)
         assert (percentage > 95) is True
+
+
+def test_normalise_without_issues_argument():
+    # input wkt does contain issues
+    input_wkt = "MULTIPOLYGON (((460316.9266 298735.6545,460316.9266 298731.3933,460311.2699 298731.127,460311.9181 298731.223,460304.7879 298735.6593,460304.7854 298735.6545,460316.9266 298735.6545)))"  # noqa: E501
+
+    output_wkt = WktDataType().normalise(input_wkt)
+    output_geometry = shapely.wkt.loads(output_wkt)
+
+    assert output_geometry.is_valid
