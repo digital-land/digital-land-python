@@ -498,7 +498,7 @@ def test_invalid_geometry_fixed_and_area_maintained(input_wkt):
 
 
 def test_normalise_without_issues_argument():
-    # input wkt does contain issues
+    # input wkt contains issues
     input_wkt = "MULTIPOLYGON (((460316.9266 298735.6545,460316.9266 298731.3933,460311.2699 298731.127,460311.9181 298731.223,460304.7879 298735.6593,460304.7854 298735.6545,460316.9266 298735.6545)))"  # noqa: E501
 
     output_wkt = WktDataType().normalise(input_wkt)

@@ -11,7 +11,6 @@ from shapely.validation import explain_validity, make_valid
 from pyproj import Transformer
 from pyproj.transformer import TransformerGroup
 from .datatype import DataType
-from digital_land.log import IssueLog
 
 # use PyProj to transform coordinates between systems
 # https://pyproj4.github.io/pyproj/stable/api/transformer.html#transformer
@@ -201,9 +200,6 @@ class WktDataType(DataType):
         pass
 
     def normalise(self, value, default="", issues=None, boundary=None):
-        if not issues:
-            issues = IssueLog()
-
         if not value:
             return default
 
@@ -226,7 +222,7 @@ class WktDataType(DataType):
 
         geometry, issue = parse_wkt(value, boundary)
 
-        if issue:
+        if issues and issue:
             issues.log(issue, "")
 
         if geometry:
@@ -245,11 +241,11 @@ class WktDataType(DataType):
             if geometry:
                 if geometry.is_valid:
                     # if the geometry is valid at this point log any issue that has been fixed
-                    if issue:
+                    if issues and issue:
                         issues.log("invalid geometry - fixed", issue)
                 else:
                     # if the geometry is not valid, mark as not fixable
-                    if issue:
+                    if issues and issue:
                         issues.log("invalid geometry - not fixable", issue)
 
         if not geometry:
