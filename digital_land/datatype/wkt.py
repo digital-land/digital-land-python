@@ -169,6 +169,10 @@ def normalise_geometry(geometry, simplification=0.000005):
     # ensure geometry is a MultiPolygon
     geometry = make_multipolygon(geometry)
 
+    # uses a buffer to combine overlapping polyongs inside the multipolygon
+    # this is very common when simplifying a geometry collection as it's
+    # usually why it's a geometry collection not a multipolygon
+    # ToDO should this be in the make_multipolygon function? Should it record an error?
     if geometry:
         if not geometry.is_valid:
             geometry = geometry.buffer(0)
