@@ -1,4 +1,5 @@
 import shapely.wkt
+from shapely import set_precision
 import json
 import logging
 from shapely.geometry import shape, Point
@@ -10,8 +11,6 @@ from shapely.validation import explain_validity, make_valid
 from pyproj import Transformer
 from pyproj.transformer import TransformerGroup
 from .datatype import DataType
-from shapely.ops import unary_union
-
 
 # use PyProj to transform coordinates between systems
 # https://pyproj4.github.io/pyproj/stable/api/transformer.html#transformer
@@ -137,7 +136,8 @@ def make_multipolygon(geometry):
                 for polygon in geom.geoms:
                     polygons.append(polygon)
             elif geom.geom_type == "GeometryCollection":
-                polygons = unary_union(geometry)
+                temp_polygons = make_multipolygon(geom)
+                polygons.extend(temp_polygons.geoms)
             else:
                 logging.info(f"skipping {geom.geom_type}")
         return MultiPolygon(polygons)
@@ -155,6 +155,8 @@ def normalise_geometry(geometry, simplification=0.000005):
     if not geometry.is_valid or simplification.is_valid:
         geometry = simplification
 
+    geometry = set_precision(geometry, 0.000001, mode="pointwise")
+
     # check and resolve an invalid geometry
     # result may be a GeometryCollection containing points and lines
     # https://shapely.readthedocs.io/en/stable/manual.html#validation.make_valid
@@ -165,6 +167,14 @@ def normalise_geometry(geometry, simplification=0.000005):
 
     # ensure geometry is a MultiPolygon
     geometry = make_multipolygon(geometry)
+
+    # uses a buffer to combine overlapping polyongs inside the multipolygon
+    # this is very common when simplifying a geometry collection as it's
+    # usually why it's a geometry collection not a multipolygon
+    # ToDO should this be in the make_multipolygon function? Should it record an error?
+    if geometry:
+        if not geometry.is_valid:
+            geometry = geometry.buffer(0)
 
     # fix winding order
     # WKT external rings should be counterclockwise, interior rings clockwise
@@ -212,7 +222,7 @@ class WktDataType(DataType):
 
         geometry, issue = parse_wkt(value, boundary)
 
-        if issue:
+        if issues and issue:
             issues.log(issue, "")
 
         if geometry:
@@ -223,22 +233,20 @@ class WktDataType(DataType):
             # fixed/normalised geometry. To reduce precision,
             # round trip the geometry through shapely with 6 dp precision.
 
-            _wkt = dump_wkt(geometry, precision=6)
+            _wkt = dump_wkt(geometry)
             geometry = shapely.wkt.loads(_wkt)
-            validity = False
-            i = 0
-            while i < 3 and not validity:
-                geometry, issue = normalise_geometry(geometry)
-                if issue:
-                    issues.log("invalid geometry", issue)
 
-                if not geometry:
-                    return default
+            geometry, issue = normalise_geometry(geometry)
 
-                _wkt = dump_wkt(geometry)
-                geometry = shapely.wkt.loads(_wkt)
-                validity = geometry.is_valid
-                i += 1
+            if geometry:
+                if geometry.is_valid:
+                    # if the geometry is valid at this point log any issue that has been fixed
+                    if issues and issue:
+                        issues.log("invalid geometry - fixed", issue)
+                else:
+                    # if the geometry is not valid, mark as not fixable
+                    if issues and issue:
+                        issues.log("invalid geometry - not fixable", issue)
 
         if not geometry:
             return default
