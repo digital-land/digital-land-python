@@ -64,19 +64,20 @@ class IssueLog(Log):
         # Convert the existing log data to a DataFrame
         log_df = pd.DataFrame(self.rows)
 
-        # Merge with severity_mapping based on 'issue-type'
-        merged_df = pd.merge(
-            log_df,
-            severity_mapping,
-            how="left",
-            left_on="issue-type",
-            right_on="issue-type",
-        )
+        if not log_df.empty:
+            # Merge with severity_mapping based on 'issue-type'
+            merged_df = pd.merge(
+                log_df,
+                severity_mapping,
+                how="left",
+                left_on="issue-type",
+                right_on="issue-type",
+            )
 
-        # Add the new 'severity' column to the log data
-        self.fieldnames.append("severity")
-        self.fieldnames.append("description")
-        self.rows = merged_df.to_dict(orient="records")
+            # Add the new 'severity' column to the log data
+            self.fieldnames.append("severity")
+            self.fieldnames.append("description")
+            self.rows = merged_df.to_dict(orient="records")
 
 
 class ColumnFieldLog(Log):
