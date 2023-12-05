@@ -84,6 +84,11 @@ class Organisation:
                 organisation = organisation[len(leg) :]
 
         if organisation.lower() not in self.organisation_lookup:
-            logging.info(f"unknown organisation {organisation}")
-            return ""
+            if organisation.lower().replace("-eng", "") in self.organisation_lookup:
+                return self.organisation_lookup[
+                    organisation.lower().replace("-eng", "")
+                ]
+            else:
+                logging.info(f"unknown organisation {organisation}")
+                return ""
         return self.organisation_lookup[organisation.lower()]
