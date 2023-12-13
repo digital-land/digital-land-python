@@ -509,6 +509,14 @@ def add_endpoints_and_lookups(
 
     # save new lookups to file
     lookups = Lookups(pipeline_dir)
+    # Check if the lookups file exists, create it if not
+    if not os.path.exists(lookups.lookups_path):
+        with open(lookups.lookups_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                ["prefix", "resource", "organisation", "reference", "entity"]
+            )
+
     lookups.load_csv()
     for new_lookup in new_lookups:
         for idx, entry in enumerate(new_lookup):
@@ -517,7 +525,12 @@ def add_endpoints_and_lookups(
     # save edited csvs
     max_entity_num = lookups.get_max_entity(pipeline_name)
     lookups.entity_num_gen.state["current"] = max_entity_num
-    lookups.entity_num_gen.state["range_max"] = max_entity_num + 9999
+    lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
+        dataset
+    )
+    lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
+        dataset
+    )
 
     collection.save_csv()
     lookups.save_csv()
