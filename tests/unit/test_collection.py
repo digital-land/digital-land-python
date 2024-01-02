@@ -85,7 +85,7 @@ def test_format_date():
 
     for check, dates in {
         "2023-08-01": ["2023-8-1", "2023-08-01", "1/8/2023", "01/08/2023", 20230801],
-        now_str: [now, "NotADate", None, list() ],
+        now_str: [now, "NotADate", None, list()],
     }.items():
         for date in dates:
             print(date)
