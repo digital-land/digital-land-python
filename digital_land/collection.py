@@ -341,11 +341,14 @@ class Collection:
     @staticmethod
     def format_date(date_val) -> str:
         if type(date_val) is str:
-            try:
-                param_start_date_dt = datetime.strptime(date_val, "%Y-%m-%d")
-                str_date_fmt = param_start_date_dt.strftime("%Y-%m-%d")
-            except ValueError:
-                str_date_fmt = datetime.now().strftime("%Y-%m-%d")
+            param_start_date_dt = None
+            for fmt in ["%Y-%m-%d", "%d/%m/%Y"]:
+                try:
+                    param_start_date_dt = datetime.strptime(date_val, fmt)
+                    break
+                except ValueError:
+                    pass
+            str_date_fmt = (param_start_date_dt or datetime.now()).strftime("%Y-%m-%d")
         elif type(date_val) is datetime:
             str_date_fmt = date_val.strftime("%Y-%m-%d")
         elif type(date_val) is int:
@@ -381,7 +384,7 @@ class Collection:
                 continue
 
         # add entries to source and endpoint csvs changed this just to add to the stores but not to save to csv
-        # hash_value should be added in the functions beow
+        # hash_value should be added in the functions below
         entry["endpoint"] = hash_value(entry["endpoint-url"])
 
         if not entry.get("end-date"):
