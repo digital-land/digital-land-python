@@ -1,6 +1,7 @@
 from digital_land.register import hash_value, Item
 from digital_land.collection import Collection, LogStore
 from digital_land.schema import Schema
+from datetime import datetime
 
 test_collection_dir = "tests/data/collection"
 
@@ -76,3 +77,16 @@ def test_check_item_path():
     # Bad data test
     item["endpoint"] = unexpected_endpoint
     assert log_store.check_item_path(item, test_file_path) is False
+
+
+def test_format_date():
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d")
+
+    for check, dates in {
+        "2023-08-01": ["2023-8-1", "2023-08-01", "1/8/2023", "01/08/2023", 20230801],
+        now_str: [now, "NotADate", None, list()],
+    }.items():
+        for date in dates:
+            print(date)
+            assert Collection.format_date(date) == check
