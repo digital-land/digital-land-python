@@ -13,6 +13,7 @@ from digital_land.commands import add_endpoints_and_lookups
 from digital_land.collection import Collection
 from digital_land.pipeline import Lookups
 from digital_land.cli import add_endpoint_and_lookups_cmd
+from digital_land.specification import Specification
 
 """
 A file to test adding an endpoint to a collection. This involves:
@@ -159,17 +160,20 @@ def organisation_csv(tmp_path):
 
 
 @pytest.fixture
-def pipeline_dir(tmp_path):
+def pipeline_dir(tmp_path, specification_dir):
     pipeline_dir = os.path.join(tmp_path, "pipeline")
     os.makedirs(pipeline_dir, exist_ok=True)
 
+    collection_name = "ancient-woodland"
+    specification = Specification(specification_dir)
+    entity_range_min = specification.get_dataset_entity_min(collection_name)
     # create lookups
     row = {
-        "prefix": "ancient-woodland",
+        "prefix": collection_name,
         "resource": "",
         "organisation": "local-authority-eng:ABC",
         "reference": "ABC_0001",
-        "entity": "1234567",
+        "entity": entity_range_min,
     }
     fieldnames = row.keys()
 
@@ -198,7 +202,7 @@ def test_command_add_endpoints_and_lookups_success_lookups_required(
     with open(mock_resource, "r", encoding="utf-8") as f:
         csv_content = f.read().encode("utf-8")
 
-    collection_name = "testing"
+    collection_name = "ancient-woodland"
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.request.headers = {"test": "test"}
@@ -208,7 +212,6 @@ def test_command_add_endpoints_and_lookups_success_lookups_required(
         "requests.Session.get",
         return_value=mock_response,
     )
-
     add_endpoints_and_lookups(
         csv_file_path=endpoint_url_csv,
         collection_name=collection_name,
@@ -231,12 +234,17 @@ def test_command_add_endpoints_and_lookups_success_lookups_required(
     # test lookups have been added correctly, including
     lookups = Lookups(pipeline_dir)
     lookups.load_csv()
-
     assert len(lookups.entries) > 0
+
+    specification = Specification(specification_dir)
+    entity_range_min = specification.get_dataset_entity_min(collection_name)
 
     for entry in lookups.entries:
         for expected_key in ["organisation", "prefix", "entity", "reference"]:
             assert entry.get(expected_key, None) is not None
+            # Check if the entity range in the lookups file is within the specification
+        assert entry.get("entity") == entity_range_min
+        entity_range_min = str(int(entity_range_min) + 1)
 
     expected_entry_date = datetime.now().strftime("%Y-%m-%d")
     for source in collection.source.entries:
@@ -265,7 +273,7 @@ def test_cli_add_endpoints_and_lookups_cmd_success_return_code(
     with open(mock_resource, "r", encoding="utf-8") as f:
         csv_content = f.read().encode("utf-8")
 
-    collection_name = "testing"
+    collection_name = "ancient-woodland"
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.request.headers = {"test": "test"}
