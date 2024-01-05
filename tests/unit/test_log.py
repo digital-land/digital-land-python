@@ -1,8 +1,7 @@
 import pytest
 from digital_land.log import IssueLog
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 import pandas as pd
-import io
 
 
 @pytest.fixture
@@ -69,9 +68,7 @@ def test_appendErrorMessage(issue_log_data, mapping_data):
     assert issue.rows[1]["description"] == "desc2"
 
     # Patch the open function to return the fake YAML content
-    with patch(
-        "builtins.open", side_effect=lambda *args, **kwargs: io.StringIO(mapping_data)
-    ):
+    with patch("builtins.open", mock_open(read_data=mapping_data)):
         # Call the appendErrorMessage method with the fake mapping YAML
         issue.appendErrorMessage("fake_yaml_path.yaml")
 
