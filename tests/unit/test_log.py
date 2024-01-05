@@ -35,7 +35,6 @@ def mapping_data():
 
 
 def test_add_severity_column(issue_log_data):
-
     issue = IssueLog()
     issue.log_issue("test", "type1", "value1")
 
@@ -55,7 +54,6 @@ def test_add_severity_column(issue_log_data):
 
 
 def test_appendErrorMessage(issue_log_data, mapping_data):
-
     issue = IssueLog()
     issue.log_issue("test", "type1", "value1")
     issue.log_issue("test", "type2", "value2")
