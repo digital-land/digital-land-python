@@ -399,16 +399,6 @@ class Lookups:
                 raise ValueError(f"ERROR: expected {field} not found in lookup entry")
 
         if len(self.entries) > 0:
-            # check entry is being run against the correct dataset
-            existing_prefixes = len(
-                [1 for item in self.entries if item["prefix"] == entry["prefix"]]
-            )
-
-            if existing_prefixes == 0:
-                raise ValueError(
-                    f"ERROR: {entry['prefix']} is not expected dataset for this pipeline"
-                )
-
             # check entry does not already exist
             existing_entries = len(
                 [
