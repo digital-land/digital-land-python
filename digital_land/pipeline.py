@@ -348,6 +348,11 @@ class Lookups:
         """
         lookups_path = lookups_path or self.lookups_path
         reader = csv.DictReader(open(lookups_path, newline=""))
+        extra_fields = set(reader.fieldnames) - set(self.schema.fieldnames)
+
+        if len(extra_fields):
+            raise RuntimeError(f"{len(extra_fields)} extra fields founds in lookup.csv ({','.join(list(extra_fields))})")
+
         for row in reader:
             self.add_entry(row, is_new_entry=False)
 

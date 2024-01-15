@@ -71,6 +71,7 @@ schemas = {
         "fields": [
             "prefix",
             "resource",
+            "entry-number",
             "organisation",
             "reference",
             "entity",
