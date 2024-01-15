@@ -332,7 +332,6 @@ def test_cli_add_endpoints_and_lookups_cmd_error_for_extra_columns(
         "reference": "ABC_0001",
         "entity": 12345,
         "cheese": "Wensleydale",
-
     }
     with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
         dictwriter = csv.DictWriter(f, fieldnames=row.keys())
@@ -371,6 +370,7 @@ def test_cli_add_endpoints_and_lookups_cmd_error_for_extra_columns(
     )
 
     assert result.exit_code != 0, f"{result.stdout}"
+
 
 # adding endpoint requirements
 # start date should be provided
