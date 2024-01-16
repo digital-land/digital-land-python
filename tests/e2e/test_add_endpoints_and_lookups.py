@@ -171,10 +171,12 @@ def pipeline_dir(tmp_path, specification_dir):
     row = {
         "prefix": collection_name,
         "resource": "",
+        "entry-number": 1,
         "organisation": "local-authority-eng:ABC",
         "reference": "ABC_0001",
         "entity": entity_range_min,
     }
+
     fieldnames = row.keys()
 
     with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
@@ -303,6 +305,71 @@ def test_cli_add_endpoints_and_lookups_cmd_success_return_code(
     )
 
     assert result.exit_code == 0, f"{result.stdout}"
+
+
+def test_cli_add_endpoints_and_lookups_cmd_error_for_extra_columns(
+    endpoint_url_csv,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mocker,
+    mock_resource,
+):
+    """
+    generate a lookup.csv file with an extra column. This should
+    cause an error, rather than just dropping the column.
+    """
+
+    collection_name = "ancient-woodland"
+
+    # Re-generate lookups with the extra field
+    row = {
+        "prefix": collection_name,
+        "resource": "",
+        "entry-number": 1,
+        "organisation": "local-authority-eng:ABC",
+        "reference": "ABC_0001",
+        "entity": 12345,
+        "cheese": "Wensleydale",
+    }
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    with open(mock_resource, "r", encoding="utf-8") as f:
+        csv_content = f.read().encode("utf-8")
+
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.request.headers = {"test": "test"}
+    mock_response.headers = {"test": "test"}
+    mock_response.content = csv_content
+    mocker.patch(
+        "requests.Session.get",
+        return_value=mock_response,
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        add_endpoint_and_lookups_cmd,
+        [
+            endpoint_url_csv,
+            collection_name,
+            # these will be optional to the user but included here to point at files stored elsewhere
+            "--collection-dir",
+            collection_dir,
+            "--pipeline-dir",
+            pipeline_dir,
+            "--specification-dir",
+            specification_dir,
+            "--organisation-path",
+            organisation_path,
+        ],
+    )
+
+    assert result.exit_code != 0, f"{result.stdout}"
 
 
 # adding endpoint requirements
