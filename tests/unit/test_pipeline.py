@@ -237,7 +237,6 @@ def test_lookups_add_entry_failure(entry):
 
 
 def test_lookups_with_old_entity_numbers():
-
     lookups = Lookups("")
     new_lookup = [
         {
@@ -251,7 +250,6 @@ def test_lookups_with_old_entity_numbers():
 
     mock_lookups_file = Path("pipeline") / "lookup.csv"
     mock_lookups_file_content = "prefix,resource,organisation,reference,entity\nancient-woodland,,government-organisation:D1342,1,1\n"
-
     mock_old_entity_file = Path("pipeline") / "old-entity.csv"
     mock_old_entity_file_content = "old-entity,status,entity\n1,301,2\n3,301,4"
 
