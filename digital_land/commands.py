@@ -515,11 +515,6 @@ def add_endpoints_and_lookups(
             writer = csv.writer(f)
             writer.writerow(list(lookups.schema.fieldnames))
 
-    if not os.path.exists(lookups.old_entity_path):
-        with open(lookups.old_entity_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["old-entity", "status", "entity"])
-
     lookups.load_csv()
     for new_lookup in new_lookups:
         for idx, entry in enumerate(new_lookup):

@@ -391,13 +391,14 @@ class Lookups:
         )
         writer.writeheader()
 
-        old_entity_path = self.old_entity_path
-        reader = csv.DictReader(open(old_entity_path, newline=""))
-
         entity_values = []
-        for row in reader:
-            entity_values.append(row["old-entity"])
-            entity_values.append(row["entity"])
+        if os.path.exists(self.old_entity_path):
+            old_entity_path = self.old_entity_path
+            reader = csv.DictReader(open(old_entity_path, newline=""))
+
+            for row in reader:
+                entity_values.append(row["old-entity"])
+                entity_values.append(row["entity"])
 
         for idx, entry in enumerate(entries):
             if not entry:
