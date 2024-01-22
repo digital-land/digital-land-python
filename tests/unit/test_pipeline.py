@@ -255,9 +255,13 @@ def test_lookups_with_old_entity_numbers():
 
     with patch(
         "builtins.open", mock_open(read_data=mock_lookups_file_content), create=True
-    ), patch(
-        "builtins.open", mock_open(read_data=mock_old_entity_file_content), create=True
     ):
-        lookups.save_csv(mock_lookups_file, new_lookup, mock_old_entity_file)
+        with patch("os.path.exists", return_value=True):
+            with patch(
+                "builtins.open",
+                mock_open(read_data=mock_old_entity_file_content),
+                create=True,
+            ):
+                lookups.save_csv(mock_lookups_file, new_lookup, mock_old_entity_file)
 
     assert new_lookup[0]["entity"] == 5
