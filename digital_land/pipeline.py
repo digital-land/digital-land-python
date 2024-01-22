@@ -323,6 +323,7 @@ class Lookups:
     def __init__(self, directory=None) -> None:
         self.directory = directory or "pipeline"
         self.lookups_path = Path(directory) / "lookup.csv"
+        self.old_entity_path = Path(directory) / "old-entity.csv"
         self.entries = []
         self.schema = Schema("lookup")
         self.entity_num_gen = EntityNumGen()
@@ -376,7 +377,7 @@ class Lookups:
         except ValueError:
             return 0
 
-    def save_csv(self, lookups_path=None, entries=None):
+    def save_csv(self, lookups_path=None, entries=None, old_entity_path=None):
         path = lookups_path or self.lookups_path
 
         if entries is None:
@@ -389,12 +390,26 @@ class Lookups:
             f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
         )
         writer.writeheader()
+
+        entity_values = []
+        if os.path.exists(self.old_entity_path):
+            old_entity_path = self.old_entity_path
+            reader = csv.DictReader(open(old_entity_path, newline=""))
+
+            for row in reader:
+                entity_values.append(row["old-entity"])
+                entity_values.append(row["entity"])
+
         for idx, entry in enumerate(entries):
             if not entry:
                 continue
             else:
                 if not entry.get("entity"):
-                    entry["entity"] = self.entity_num_gen.next()
+                    while True:
+                        generated_entity = self.entity_num_gen.next()
+                        if str(generated_entity) not in entity_values:
+                            entry["entity"] = generated_entity
+                            break
                 writer.writerow(entry)
 
     # @staticmethod
