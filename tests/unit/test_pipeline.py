@@ -7,39 +7,32 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 
-def test_columns():
-    p = Pipeline("tests/data/pipeline/", "pipeline-one")
-    column = p.columns()
+class TestPipeLine:
+    def test_load_lookup_removes_eng(self, mocker):
+        """
+        Very specific test, we are migrating from local-authority-eng
+        to local-authority, inf uture this won't be needed butt we have
+        to support a transition period
+        """
 
-    assert column == {
-        "dos": "two",
-        "due": "one",
-        "thirdcolumn": "three",
-        "um": "one",
-        "un": "one",
-        "una": "one",
-        "uno": "one",
-    }
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup.csv":
+                return [
+                    {
+                        "prefix": "dataset",
+                        "organisation": "local-authority-eng:DNC",
+                        "reference": "1",
+                        "entity": 1,
+                    }
+                ]
+            else:
+                return []
 
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
 
-def test_resource_specific_columns():
-    p = Pipeline("tests/data/pipeline/", "pipeline-one")
-    column = p.columns("some-resource")
-
-    assert (
-        list(column)[0] == "quatro"
-    ), "resource specific column 'quatro' should appear first in the returned dict"
-
-    assert column == {
-        "dos": "two",
-        "due": "one",
-        "thirdcolumn": "three",
-        "um": "one",
-        "un": "one",
-        "una": "one",
-        "uno": "one",
-        "quatro": "four",
-    }
+        p = Pipeline("anything", "whateva")
+        for key in p.lookup.keys():
+            assert "local-authority-eng" not in key
 
 
 def test_skip_patterns():
