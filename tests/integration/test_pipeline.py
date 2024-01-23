@@ -217,6 +217,41 @@ def test_load_concat_when_csv_contains_endpoints_and_resources(tmp_path):
     assert "o-field3" not in concat_values[1].keys()
 
 
+def test_columns():
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    column = p.columns()
+
+    assert column == {
+        "dos": "two",
+        "due": "one",
+        "thirdcolumn": "three",
+        "um": "one",
+        "un": "one",
+        "una": "one",
+        "uno": "one",
+    }
+
+
+def test_resource_specific_columns():
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    column = p.columns("some-resource")
+
+    assert (
+        list(column)[0] == "quatro"
+    ), "resource specific column 'quatro' should appear first in the returned dict"
+
+    assert column == {
+        "dos": "two",
+        "due": "one",
+        "thirdcolumn": "three",
+        "um": "one",
+        "un": "one",
+        "una": "one",
+        "uno": "one",
+        "quatro": "four",
+    }
+
+
 def test_columns_when_csv_contains_endpoints_and_resources(tmp_path):
     # -- Arrange --
     pipeline_dir = tmp_path / "pipeline"
