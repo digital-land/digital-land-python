@@ -94,6 +94,8 @@ def test_field_names():
             "field",
             "reference-entity",
             "fact",
+            "GeoX",
+            "GeoY",
         ]
     )
 
@@ -133,6 +135,8 @@ def test_current_fieldnames():
             "line-number",
             "resource",
             "value",
+            "GeoX",
+            "GeoY",
         ]
     )
 

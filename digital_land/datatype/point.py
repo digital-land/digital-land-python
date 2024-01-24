@@ -3,12 +3,12 @@ from .wkt import WktDataType
 
 
 class PointDataType(WktDataType):
-    def normalise(self, values, default=["", ""], issues=None):
+    def normalise(self, values, default=["", ""], issues=None, boundary=None):
         if not values or "" in values:
             return default
 
         point = f"POINT ({values[0]} {values[1]})"
-        point = super().normalise(point, issues=issues)
+        point = super().normalise(point, issues=issues, boundary=boundary)
 
         if not point:
             return default
