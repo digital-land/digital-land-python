@@ -12,7 +12,6 @@ def normalise(name):
 
 
 class MapPhase(Phase):
-
     """
     rename field names using the provided column map
     """
@@ -37,7 +36,6 @@ class MapPhase(Phase):
                 if fieldname == pattern:
                     matched.append(value)
                     headers[header] = value
-            # stop if we found a match
 
         for header in sorted(fieldnames):
             if header in headers:
