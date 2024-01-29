@@ -1,6 +1,7 @@
 """
 Contains data classes representing the result of an expectation being ran from expectation functions
 """
+
 import datetime
 import os
 
