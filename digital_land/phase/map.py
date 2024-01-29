@@ -12,7 +12,6 @@ def normalise(name):
 
 
 class MapPhase(Phase):
-
     """
     rename field names using the provided column map
     """
