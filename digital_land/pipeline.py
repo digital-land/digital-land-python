@@ -26,9 +26,6 @@ def run_pipeline(*args):
         pass
 
 
-# TODO should we remove loading from init? it makes it harder to test
-# and what if you only wanted to load specific files
-# TODO replace with config models which load is handled by them
 class Pipeline:
     def __init__(self, path, dataset):
         self.dataset = dataset
@@ -175,10 +172,6 @@ class Pipeline:
             ] = row["entity"]
 
             organisation = row.get("organisation", "")
-            # replace local-authority-eng while we migrate
-            organisation = organisation.replace(
-                "local-authority-eng", "local-authority"
-            )
             resource_lookup[
                 lookup_key(
                     prefix=prefix,
