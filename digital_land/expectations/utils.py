@@ -5,6 +5,7 @@ notes:
 - might want to remove QueryRunner at a future date as it loads spatialite which may
 not be useful for everything
 """
+
 import spatialite
 import yaml
 import pandas as pd
