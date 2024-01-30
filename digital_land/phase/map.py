@@ -30,6 +30,8 @@ class MapPhase(Phase):
     def headers(self, fieldnames):
         headers = {}
         matched = []
+
+        # loop to check if mapping exists and add it to header
         for header in sorted(fieldnames):
             fieldname = normalise(header)
             for pattern, value in self.columns.items():
@@ -37,6 +39,7 @@ class MapPhase(Phase):
                     matched.append(value)
                     headers[header] = value
 
+        # check other remaining fields and ignore if header is same and has already been added
         for header in sorted(fieldnames):
             if header in headers:
                 continue
