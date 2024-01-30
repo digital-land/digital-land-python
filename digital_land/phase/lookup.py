@@ -1,4 +1,5 @@
 import re
+import logging
 
 from .phase import Phase
 
@@ -112,5 +113,11 @@ class PrintLookupPhase(Phase):
                         "reference": reference,
                     }
                     self.new_lookup_entries.append([new_lookup])
-
+                elif not reference:
+                    logging.error(
+                        "No reference found for entry: "
+                        + str(entry_number)
+                        + " in resource: "
+                        + block["resource"]
+                    )
             yield block

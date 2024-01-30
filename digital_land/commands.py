@@ -543,6 +543,93 @@ def default_output_path(command, input_path):
     return f"{directory}{command}/{resource_from_path(input_path)}.csv"
 
 
+def assign_entities(
+    resource_file_paths,
+    collection_name,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    tmp_dir="./var/cache",
+):
+
+    """
+    :param csv_file_path:
+    :param collection_name:
+    :param collection_dir:
+    :param pipeline_dir:
+    :param specification_dir:
+    :param organisation_path:
+    :param tmp_dir:
+    :return:
+    """
+
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    # load specification
+    specification = Specification(specification_dir)
+
+    print("")
+    print("======================================================================")
+    print("New Lookups")
+    print("======================================================================")
+
+    # generate the lookup entries for each new resource
+    dataset_resource_map = collection.dataset_resource_map()
+    # resource_dataset_map = {value: key for key, value in dataset_resource_map.items()}
+    new_lookups = []
+
+    #  searching for the specific resources that we have downloaded
+    pipeline_name = None
+    for resource_file_path in resource_file_paths:
+        resource = os.path.splitext(os.path.basename(resource_file_path))[0]
+        dataset = next(
+            (k for k, v in dataset_resource_map.items() if v == {resource}), None
+        )
+        # Chcek for None here in case resource hasn't been run through the pipeline
+        # annoyingly will need to re-establish pipeline each time as it's dataset specific
+        pipeline = Pipeline(pipeline_dir, dataset)
+        pipeline_name = pipeline.name
+        resource_lookups = get_resource_unidentified_lookups(
+            input_path=Path(resource_file_path),
+            dataset=dataset,
+            organisations=collection.resource_organisations(resource),
+            pipeline=pipeline,
+            specification=specification,
+            tmp_dir=Path(tmp_dir).absolute(),
+            org_csv_path=organisation_path,
+        )
+
+        new_lookups.append(resource_lookups)
+
+    # save new lookups to file
+    lookups = Lookups(pipeline_dir)
+    # Check if the lookups file exists, create it if not
+    if not os.path.exists(lookups.lookups_path):
+        with open(lookups.lookups_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(list(lookups.schema.fieldnames))
+
+    lookups.load_csv()
+    for new_lookup in new_lookups:
+        for idx, entry in enumerate(new_lookup):
+            lookups.add_entry(entry[0])
+
+    # save edited csvs
+    max_entity_num = lookups.get_max_entity(pipeline_name)
+    lookups.entity_num_gen.state["current"] = max_entity_num
+    lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
+        pipeline_name
+    )
+    lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
+        pipeline_name
+    )
+
+    collection.save_csv()
+    lookups.save_csv()
+
+
 def get_resource_unidentified_lookups(
     input_path,
     dataset,
