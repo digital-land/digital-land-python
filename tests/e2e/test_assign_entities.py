@@ -200,7 +200,6 @@ def pipeline_dir(tmp_path):
 def test_command_assign_entities(
     collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
 ):
-
     """
     This tests a function that, given a specific resource hash for an endpoint already added to the system,
     should identify any missing lookups and add them to lookup.csv
@@ -242,7 +241,6 @@ def test_command_assign_entities(
 def test_cli_assign_entities_success(
     collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
 ):
-
     """
     Tests assign entities from cli
     """
@@ -274,7 +272,6 @@ def test_cli_assign_entities_success(
 def test_cli_assign_entities_failure_resource_not_found(
     collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
 ):
-
     """
     Tests assign entities from cli when resource path is incorrect
     """
@@ -311,7 +308,6 @@ def test_command_assign_entities_no_reference_log(
     organisation_path,
     mock_resource,
 ):
-
     """
     This tests that the assign entities command logs a warning when there is an entry
     with no reference

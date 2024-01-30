@@ -552,7 +552,6 @@ def assign_entities(
     organisation_path,
     tmp_dir="./var/cache",
 ):
-
     """
     :param csv_file_path:
     :param collection_name:
