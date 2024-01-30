@@ -513,9 +513,7 @@ def add_endpoints_and_lookups(
     if not os.path.exists(lookups.lookups_path):
         with open(lookups.lookups_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(
-                ["prefix", "resource", "organisation", "reference", "entity"]
-            )
+            writer.writerow(list(lookups.schema.fieldnames))
 
     lookups.load_csv()
     for new_lookup in new_lookups:
@@ -526,10 +524,10 @@ def add_endpoints_and_lookups(
     max_entity_num = lookups.get_max_entity(pipeline_name)
     lookups.entity_num_gen.state["current"] = max_entity_num
     lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
-        dataset
+        pipeline_name
     )
     lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
-        dataset
+        pipeline_name
     )
 
     collection.save_csv()

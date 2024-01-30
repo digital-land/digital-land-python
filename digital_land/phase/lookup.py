@@ -36,6 +36,9 @@ class LookupPhase(Phase):
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
             organisation = row.get("organisation", "")
+            organisation = organisation.replace(
+                "local-authority-eng", "local-authority"
+            )
 
             if prefix:
                 if not row.get(self.entity_field, ""):
