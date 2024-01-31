@@ -105,12 +105,9 @@ def test_map_column_names_with_underscores_when_column_not_in_specification():
 
     m = MapPhase(fieldnames, columns)
     output = TestPipeline(
-        m, "Organisation_Label,PermissionDate\r\ncol-1-val,col-2-val\r\n"
+        m, "Organisation_Label,PermissionDate,test\r\ncol-1-val,col-2-val,\r\n"
     )
-    assert (
-        output
-        == "Organisation_Label,PermissionDate,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
-    )
+    assert output == "Organisation_Label,PermissionDate\r\ncol-1-val,col-2-val\r\n"
 
 
 def test_map_column_names_with_underscores_when_column_in_specification():
@@ -128,10 +125,9 @@ def test_map_column_names_with_underscores_when_column_in_specification():
 
     m = MapPhase(fieldnames, columns)
     output = TestPipeline(
-        m, "Organisation_Label,end_date,SiteNameAddress\r\ncol-1-val,col-2-val\r\n"
+        m, "Organisation_Label,end_date,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
     )
-
     assert (
         output
-        == "Organisation-Label,Organisation_Label,SiteNameAddress,end-date,end_date\r\ncol-1-val,,,col-2-val,\r\n"
+        == "Organisation-Label,SiteNameAddress,end-date\r\ncol-1-val,,col-2-val\r\n"
     )

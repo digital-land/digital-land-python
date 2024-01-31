@@ -59,6 +59,17 @@ class HarmonisePhase(Phase):
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (block["dataset"], value)
 
+            # ensure geometry field is not empty
+            for typology in ["geography"]:
+                # logging error when both geometry & point are empty
+                # TO-DO: will replace this code once we get mandatory list from Specification
+                for field in row:
+                    if field in ["geometry", "point"]:
+                        if (
+                            row.get("geometry") == "" or row.get("geometry") is None
+                        ) and (row.get("point") == "" or row.get("point") is None):
+                            self.issues.log_issue(field, "missing value", "")
+
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
                 self.issues.log_issue(
@@ -68,4 +79,5 @@ class HarmonisePhase(Phase):
                     "https://en.wikipedia.org/wiki/", ""
                 )
             block["row"] = o
+
             yield block
