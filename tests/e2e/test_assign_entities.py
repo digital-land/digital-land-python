@@ -5,6 +5,7 @@ import urllib
 
 from pathlib import Path
 from click.testing import CliRunner
+from digital_land.collection import Collection
 
 from digital_land.commands import assign_entities
 from digital_land.pipeline import Lookups
@@ -207,10 +208,12 @@ def test_command_assign_entities(
     collection_name = "ancient-woodland"
     dataset_name = "ancient-woodland"
 
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
-        collection_name=collection_name,
-        collection_dir=collection_dir,
+        collection=collection,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
@@ -313,11 +316,12 @@ def test_command_assign_entities_no_reference_log(
     with no reference
     """
     collection_name = "ancient-woodland"
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
 
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
-        collection_name=collection_name,
-        collection_dir=collection_dir,
+        collection=collection,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,

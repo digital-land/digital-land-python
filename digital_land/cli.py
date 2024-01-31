@@ -5,6 +5,7 @@ from pathlib import Path
 import click
 
 from collections import defaultdict
+from digital_land.collection import Collection
 
 from digital_land.commands import (
     assign_entities,
@@ -288,10 +289,9 @@ def assign_entities_cmd(
     organisation_path,
 ):
     """
-    assigns entities for given resource/endpoint assuming it has already been added to collection
-    :param ctx:
+    Assigns entities for given resource in collection assuming it's endpoint has already been added to collection
     :param resource-path:
-    :param collection_dir:
+    :param collection_name:
     :return:
     """
     resource_file_path = Path(resource_path)
@@ -299,10 +299,12 @@ def assign_entities_cmd(
         logging.error("resource file not found")
         sys.exit(2)
 
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
     return assign_entities(
         [resource_file_path],
-        collection_name,
-        collection_dir,
+        collection,
         pipeline_dir,
         specification_dir,
         organisation_path,
