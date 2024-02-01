@@ -290,7 +290,7 @@ def assign_entities_cmd(
 ):
     """
     Assigns entities for given resource in collection assuming it's endpoint has already been added to collection
-    :param resource-path:
+    :param resource_path:
     :param collection_name:
     :return:
     """
@@ -299,6 +299,7 @@ def assign_entities_cmd(
         logging.error("resource file not found")
         sys.exit(2)
 
+    # Load collection
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
 

@@ -469,12 +469,6 @@ def add_endpoints_and_lookups(
     # reload log items
     collection.load_log_items()
 
-    print("")
-    print("======================================================================")
-    print("New Lookups")
-    print("======================================================================")
-
-    # generate the lookup entries for each new resource
     dataset_resource_map = collection.dataset_resource_map()
 
     #  searching for the specific resources that we have downloaded
@@ -495,6 +489,7 @@ def add_endpoints_and_lookups(
             specification_dir=specification_dir,
             organisation_path=organisation_path,
             tmp_dir=tmp_dir,
+            dataset=dataset,
         )
 
 
@@ -514,6 +509,7 @@ def assign_entities(
     specification_dir,
     organisation_path,
     tmp_dir="./var/cache",
+    dataset=None,
 ):
     """
     Assigns entities for the given resources in the given collection. The resources must have sources already added to the collection
@@ -536,32 +532,39 @@ def assign_entities(
     dataset_resource_map = collection.dataset_resource_map()
     new_lookups = []
 
-    dataset = None
+    # establish pipeline if dataset is known - else have to find dataset for each resource
+    if dataset is not None:
+        pipeline = Pipeline(pipeline_dir, dataset)
+        pipeline_name = pipeline.name
+
     for resource_file_path in resource_file_paths:
         resource = os.path.splitext(os.path.basename(resource_file_path))[0]
-        # Find dataset for resource
-        for dataset_key, resources in dataset_resource_map.items():
-            if resource in list(resources):
-                dataset = dataset_key
-                break
-        # Chcek for None here in case resource hasn't been run through the pipeline
-        if dataset is not None:
-            # annoyingly will need to re-establish pipeline each time as it's dataset specific
-            pipeline = Pipeline(pipeline_dir, dataset)
-            pipeline_name = pipeline.name
-            resource_lookups = get_resource_unidentified_lookups(
-                input_path=Path(resource_file_path),
-                dataset=dataset,
-                organisations=collection.resource_organisations(resource),
-                pipeline=pipeline,
-                specification=specification,
-                tmp_dir=Path(tmp_dir).absolute(),
-                org_csv_path=organisation_path,
-            )
-            new_lookups.append(resource_lookups)
-        else:
-            logging.error("Resource has not been processed by pipeline")
-            sys.exit(3)
+        # Find dataset for resource if not given
+        if dataset is None:
+            for dataset_key, resources in dataset_resource_map.items():
+                if resource in list(resources):
+                    dataset = dataset_key
+                    break
+            # Check whether dataset was found in dataset resource map in case resource hasn't been run through pipeline
+            if dataset is not None:
+                pipeline = Pipeline(pipeline_dir, dataset)
+                pipeline_name = pipeline.name
+            else:
+                logging.error(
+                    "Resource ", resource, " has not been processed by pipeline"
+                )
+                sys.exit(3)
+
+        resource_lookups = get_resource_unidentified_lookups(
+            input_path=Path(resource_file_path),
+            dataset=dataset,
+            organisations=collection.resource_organisations(resource),
+            pipeline=pipeline,
+            specification=specification,
+            tmp_dir=Path(tmp_dir).absolute(),
+            org_csv_path=organisation_path,
+        )
+        new_lookups.append(resource_lookups)
 
     # save new lookups to file
     lookups = Lookups(pipeline_dir)
@@ -585,6 +588,9 @@ def assign_entities(
     lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
         pipeline_name
     )
+
+    # TO DO: Currently using pipeline_name to find dataset min, max, current
+    # This would not function properly if each resource had a different dataset
 
     collection.save_csv()
     lookups.save_csv()
