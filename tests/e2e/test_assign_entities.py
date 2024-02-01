@@ -199,7 +199,12 @@ def pipeline_dir(tmp_path):
 
 
 def test_command_assign_entities(
-    collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
+    capfd,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource,
 ):
     """
     This tests a function that, given a specific resource hash for an endpoint already added to the system,
@@ -226,6 +231,7 @@ def test_command_assign_entities(
     entity_range_min = specification.get_dataset_entity_min(dataset_name)
     entity_range_max = specification.get_dataset_entity_max(dataset_name)
 
+    # Test lookup entrys created
     assert len(lookups.entries) > 0
     assert lookups.entries[0]["entity"] == entity_range_min
     assert lookups.entries[0]["reference"] == "Ref1"
@@ -234,11 +240,17 @@ def test_command_assign_entities(
     assert lookups.entries[1]["reference"] == "Ref2"
     assert lookups.entries[1]["prefix"] == dataset_name
 
+    # Test entity min/max ranges
     entity_numbers = []
     for entry in lookups.entries:
         entity_numbers.append(entry.get("entity"))
     assert min(int(entity) for entity in entity_numbers) >= int(entity_range_min)
     assert max(int(entity) for entity in entity_numbers) <= int(entity_range_max)
+
+    out, err = capfd.readouterr()
+    # Test console output
+    assert "ancient-woodland , government-organisation:D1342 , Ref1 , 110000000" in out
+    assert "ancient-woodland , government-organisation:D1342 , Ref2 , 110000001" in out
 
 
 def test_cli_assign_entities_success(

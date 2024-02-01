@@ -407,6 +407,7 @@ class Lookups:
                 entity_values.append(row["old-entity"])
                 entity_values.append(row["entity"])
 
+        new_entities = []
         for idx, entry in enumerate(entries):
             if not entry:
                 continue
@@ -416,8 +417,10 @@ class Lookups:
                         generated_entity = self.entity_num_gen.next()
                         if str(generated_entity) not in entity_values:
                             entry["entity"] = generated_entity
+                            new_entities.append(entry)
                             break
                 writer.writerow(entry)
+        return new_entities
 
     # @staticmethod
     def validate_entry(self, entry) -> bool:

@@ -545,7 +545,7 @@ def assign_entities(
             for dataset_key, resources in dataset_resource_map.items():
                 if resource in list(resources):
                     dataset = dataset_key
-                    break
+                    continue
             # Check whether dataset was found in dataset resource map in case resource hasn't been run through pipeline
             if dataset is not None:
                 pipeline = Pipeline(pipeline_dir, dataset)
@@ -596,7 +596,18 @@ def assign_entities(
         # This would not function properly if each resource had a different dataset
 
         collection.save_csv()
-        lookups.save_csv()
+        new_lookups = lookups.save_csv()
+
+        for entity in new_lookups:
+            print(
+                entity["prefix"],
+                ",",
+                entity["organisation"],
+                ",",
+                entity["reference"],
+                ",",
+                entity["entity"],
+            )
 
 
 def get_resource_unidentified_lookups(
