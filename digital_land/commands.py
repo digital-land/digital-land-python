@@ -532,6 +532,7 @@ def assign_entities(
     dataset_resource_map = collection.dataset_resource_map()
     new_lookups = []
 
+    pipeline_name = None
     # establish pipeline if dataset is known - else have to find dataset for each resource
     if dataset is not None:
         pipeline = Pipeline(pipeline_dir, dataset)
@@ -551,9 +552,10 @@ def assign_entities(
                 pipeline_name = pipeline.name
             else:
                 logging.error(
-                    "Resource ", resource, " has not been processed by pipeline"
+                    "Resource '%s' has not been processed by pipeline - no lookups added"
+                    % (resource)
                 )
-                sys.exit(3)
+                break
 
         resource_lookups = get_resource_unidentified_lookups(
             input_path=Path(resource_file_path),
@@ -566,34 +568,35 @@ def assign_entities(
         )
         new_lookups.append(resource_lookups)
 
-    # save new lookups to file
-    lookups = Lookups(pipeline_dir)
-    # Check if the lookups file exists, create it if not
-    if not os.path.exists(lookups.lookups_path):
-        with open(lookups.lookups_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(list(lookups.schema.fieldnames))
+    if pipeline_name is not None:
+        # save new lookups to file
+        lookups = Lookups(pipeline_dir)
+        # Check if the lookups file exists, create it if not
+        if not os.path.exists(lookups.lookups_path):
+            with open(lookups.lookups_path, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(list(lookups.schema.fieldnames))
 
-    lookups.load_csv()
-    for new_lookup in new_lookups:
-        for idx, entry in enumerate(new_lookup):
-            lookups.add_entry(entry[0])
+        lookups.load_csv()
+        for new_lookup in new_lookups:
+            for idx, entry in enumerate(new_lookup):
+                lookups.add_entry(entry[0])
 
-    # save edited csvs
-    max_entity_num = lookups.get_max_entity(pipeline_name)
-    lookups.entity_num_gen.state["current"] = max_entity_num
-    lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
-        pipeline_name
-    )
-    lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
-        pipeline_name
-    )
+        # save edited csvs
+        max_entity_num = lookups.get_max_entity(pipeline_name)
+        lookups.entity_num_gen.state["current"] = max_entity_num
+        lookups.entity_num_gen.state[
+            "range_max"
+        ] = specification.get_dataset_entity_max(pipeline_name)
+        lookups.entity_num_gen.state[
+            "range_min"
+        ] = specification.get_dataset_entity_min(pipeline_name)
 
-    # TO DO: Currently using pipeline_name to find dataset min, max, current
-    # This would not function properly if each resource had a different dataset
+        # TO DO: Currently using pipeline_name to find dataset min, max, current
+        # This would not function properly if each resource had a different dataset
 
-    collection.save_csv()
-    lookups.save_csv()
+        collection.save_csv()
+        lookups.save_csv()
 
 
 def get_resource_unidentified_lookups(

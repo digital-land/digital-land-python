@@ -329,3 +329,46 @@ def test_command_assign_entities_no_reference_log(
 
     assert "No reference" in caplog.text
     assert "mock_csv" in caplog.text
+
+
+def test_command_assign_entities_resource_not_processed(
+    caplog,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource,
+):
+    """
+    This tests that the assign entities command logs a warning when there is an entry
+    with no reference
+    """
+
+    row1 = {
+        "reference": "Ref1",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+
+    mock_csv_path = Path("unprocessed_resource.csv")
+    with open(mock_csv_path, "w", encoding="utf-8") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row1)
+
+    collection_name = "ancient-woodland"
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    assign_entities(
+        resource_file_paths=["unprocessed_resource.csv"],
+        collection=collection,
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        pipeline_dir=pipeline_dir,
+    )
+
+    os.remove("unprocessed_resource.csv")
+
+    assert "unprocessed_resource" in caplog.text
+    assert "not been processed" in caplog.text
