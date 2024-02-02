@@ -5,8 +5,10 @@ from pathlib import Path
 import click
 
 from collections import defaultdict
+from digital_land.collection import Collection
 
 from digital_land.commands import (
+    assign_entities,
     fetch,
     collect,
     collection_list_resources,
@@ -263,6 +265,47 @@ def add_endpoint_and_lookups_cmd(
         csv_file_path,
         collection_name,
         collection_dir,
+        pipeline_dir,
+        specification_dir,
+        organisation_path,
+    )
+
+
+@cli.command("assign-entities")
+@click.argument("resource-path", nargs=1, type=click.Path())
+@click.argument("collection-name", nargs=1, type=click.Path())
+@collection_dir
+@organisation_path
+@click.option(
+    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
+)
+@click.option("--pipeline-dir", "-p", type=click.Path(exists=True), default="pipeline/")
+def assign_entities_cmd(
+    resource_path,
+    collection_name,
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    organisation_path,
+):
+    """
+    Assigns entities for given resource in collection assuming it's endpoint has already been added to collection
+    :param resource_path:
+    :param collection_name:
+    :return:
+    """
+    resource_file_path = Path(resource_path)
+    if not resource_file_path.is_file():
+        logging.error("resource file not found")
+        sys.exit(2)
+
+    # Load collection
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    return assign_entities(
+        [resource_file_path],
+        collection,
         pipeline_dir,
         specification_dir,
         organisation_path,
