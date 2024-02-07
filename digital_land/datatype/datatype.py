@@ -1,4 +1,9 @@
 class DataType:
+    SPECIAL_CASES_MAPPING = {
+        "url": "URL",
+        # Add more special cases as needed
+    }
+
     def format(self, value):
         return value
 
@@ -7,7 +12,13 @@ class DataType:
 
     def split_and_capitalize(self, input):
         words = input.split("-")
-        result_string = words[0].capitalize()
-        if len(words) > 1:
-            result_string += " " + " ".join(words[1:])
+        result_words = []
+
+        for i, word in enumerate(words):
+            if word.lower() in self.SPECIAL_CASES_MAPPING:
+                result_words.append(self.SPECIAL_CASES_MAPPING[word.lower()])
+            else:
+                result_words.append(word.capitalize() if i == 0 else word)
+
+        result_string = " ".join(result_words)
         return result_string
