@@ -44,7 +44,7 @@ from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from .register import hash_value
-
+from digital_land.expectations import run_expectations
 
 def fetch(url, pipeline):
     """fetch a single source endpoint URL, and add it to the collection"""
@@ -375,9 +375,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
 
 
 def expectations(results_path, sqlite_dataset_path, data_quality_yaml):
-    from digital_land.expectations.main import run_expectation_suite
-
-    run_expectation_suite(results_path, sqlite_dataset_path, data_quality_yaml)
+    run_expectations(results_path, sqlite_dataset_path, data_quality_yaml)
 
 
 #

@@ -2,7 +2,7 @@
 Contains data classes representing the result of an expectation being ran from expectation functions
 """
 
-import datetime
+from datetime import datetime
 import os
 
 # TODO I think we can remove copy, often promotes bad behaviour

@@ -1,6 +1,6 @@
 import yaml
 import warnings
-import datetime
+from datetime import datetime
 import os
 import json
 
@@ -21,6 +21,12 @@ class BaseCheckpoint:
     def load():
         """filled in by child classes, ensures a config is loaded correctly should raise error if not"""
         pass
+
+    def save(self, output_dir, format="csv"):
+        self.save_responses(
+            self.responses,
+            os.path.join(output_dir,self.__class__.__name__+".csv"),
+            format=format)
 
     def yaml_config_parser(self, filepath):
         "Will parse a config file"
@@ -57,17 +63,17 @@ class BaseCheckpoint:
         # TODO return errors and a response
         response = ExpectationResponse(
             entry_date=entry_date,
-            name=arguements["name"],
-            description=arguements.get("description", None),
+            name="Test Name", # arguements["name"],
+            description="Test Description", # arguements.get("description", None),
             # TODO this won't work and should change it to function and get the name
             # of the function above
-            expectation=arguements["expectation"],
-            severity=arguements["severity"],
+            expectation="Test expecation", # arguements["expectation"],
+            severity="warning", # arguements["severity"],
             result=result,
             msg=msg,
-            details=details,
-            data_name=self.data_name,
-            data_path=self.data_path,
+            details={},
+            data_name="None", # self.data_name,
+            data_path="None", # self.data_path,
             expectation_input={**arguements},
             # TODO remove as not sure tags are neccessary tbh
             tags=arguements.get("tags", None),
@@ -77,11 +83,11 @@ class BaseCheckpoint:
 
     # should be decided by the actualy checkpoint
     def run(self):
-        if not self.config:
-            self.load_config()
+        #if not self.config:
+        #    self.load_config()
 
-        if not self.config():
-            warnings.warn("no configuration loaded so no expectations where ran")
+        #if not self.config():
+        #    warnings.warn("no configuration loaded so no expectations where ran")
         # self.expectation_suite_config = self.config_parser(self.expectation_suite_yaml)
         # if not self.expectation_suite_config:
         #     return
@@ -92,7 +98,7 @@ class BaseCheckpoint:
         self.entry_date = now.isoformat()
         self.failed_expectation_with_error_severity = 0
 
-        self.expectations = self.expectation_suite_config.get("expectations", None)
+        # self.expectations = self.expectation_suite_config.get("expectations", None)
         for expectation in self.expectations:
             response = self.run_expectation(expectation)
             self.responses.append(response)

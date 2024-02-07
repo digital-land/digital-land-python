@@ -213,3 +213,10 @@ class Specification:
             return self.dataset[dataset]["entity-maximum"]
         else:
             return 100
+
+    def get_dataset_typology(self, dataset):
+        if dataset:
+            return self.dataset[dataset]["typology"]
+        else:
+            return None
+        
