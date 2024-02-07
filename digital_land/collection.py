@@ -218,13 +218,13 @@ class EndpointStore(CSVStore):
                 for item in self.entries
                 if item["endpoint"] == endpoint_item["endpoint"]
                 and item["endpoint-url"] == endpoint_item["endpoint-url"]
-                and item["plugin"] == endpoint_item["plugin"]
-                and item["start-date"] == endpoint_item["start-date"]
             ]
         )
 
         if existing_entries > 0:
-            # print(f">>> INFO: endpoint already exists - {endpoint_item['endpoint']}")
+            print(">>> INFO: endpoint already exists")
+            print(f">>> Endpoint hash {endpoint_item['endpoint']}")
+            print(f">>> Endpoint URL {endpoint_item['endpoint-url']}")
             return False
 
         return True

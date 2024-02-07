@@ -372,6 +372,71 @@ def test_cli_add_endpoints_and_lookups_cmd_error_for_extra_columns(
     assert result.exit_code != 0, f"{result.stdout}"
 
 
+def test_command_add_endpoints_and_lookups_flags_duplicate_endpoint(
+    endpoint_url_csv,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mocker,
+    mock_resource,
+):
+    """
+    Checks existing endpoints for every new endpoint added. If the new endpoint is a duplicate
+    then raises this is an issue and prevents adding it to the system
+    """
+
+    with open(mock_resource, "r", encoding="utf-8") as f:
+        csv_content = f.read().encode("utf-8")
+
+    collection_name = "ancient-woodland"
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.request.headers = {"test": "test"}
+    mock_response.headers = {"test": "test"}
+    mock_response.content = csv_content
+    mocker.patch(
+        "requests.Session.get",
+        return_value=mock_response,
+    )
+
+    add_endpoints_and_lookups(
+        csv_file_path=endpoint_url_csv,
+        collection_name=collection_name,
+        collection_dir=Path(collection_dir),
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        pipeline_dir=pipeline_dir,
+    )
+
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        add_endpoint_and_lookups_cmd,
+        [
+            endpoint_url_csv,
+            collection_name,
+            "--collection-dir",
+            collection_dir,
+            "--pipeline-dir",
+            pipeline_dir,
+            "--specification-dir",
+            specification_dir,
+            "--organisation-path",
+            organisation_path,
+        ],
+    )
+
+    cli_output = f"{result.stdout}"
+    assert ">>> INFO: endpoint already exists" in cli_output
+    assert ">>> Endpoint URL https://www.example.com" in cli_output
+
+    assert len(collection.source.entries) == 1
+    assert len(collection.endpoint.entries) == 1
+
+
 # adding endpoint requirements
 # start date should be provided
 # adding source requirements
