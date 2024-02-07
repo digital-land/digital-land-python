@@ -40,7 +40,12 @@ class HarmonisePhase(Phase):
                     and datetime.strptime(o[field][:10], "%Y-%m-%d").date()
                     > datetime.today().date()
                 ):
-                    self.issues.log_issue(field, "future entry-date", row[field])
+                    self.issues.log_issue(
+                        field,
+                        "future entry-date",
+                        row[field],
+                        f"{field.capitalize()} must be today or in the past",
+                    )
                     o[field] = ""
 
             # fix point geometry
@@ -68,7 +73,12 @@ class HarmonisePhase(Phase):
                         if (
                             row.get("geometry") == "" or row.get("geometry") is None
                         ) and (row.get("point") == "" or row.get("point") is None):
-                            self.issues.log_issue(field, "missing value", "")
+                            self.issues.log_issue(
+                                field,
+                                "missing value",
+                                "",
+                                f"{field.capitalize()} missing",
+                            )
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):

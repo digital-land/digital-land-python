@@ -11,6 +11,10 @@ class URIDataType(DataType):
             return uri
 
         if issues:
-            issues.log("invalid URI", value)
+            issues.log(
+                "invalid URI",
+                value,
+                f"{issues.fieldname.capitalize()} must be a real URL",
+            )
 
         return ""
