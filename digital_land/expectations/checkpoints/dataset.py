@@ -2,7 +2,7 @@ from .base import BaseCheckpoint
 
 import sqlite3
 
-class DatasetCheckpoint(BaseCheckpoint):
+class EntityChecksCheckpoint(BaseCheckpoint):
     def __init__(self, dataset_path, dataset, typology):
         self.dataset_path = dataset_path
         self.dataset = dataset

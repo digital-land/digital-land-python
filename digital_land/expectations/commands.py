@@ -1,4 +1,4 @@
-from .checkpoints.dataset import DatasetCheckpoint
+from .checkpoints.dataset import EntityChecksCheckpoint
 from .checkpoints.converted_resource import CovertedResourceCheckpoint
 from digital_land.specification import Specification
 from pathlib import Path

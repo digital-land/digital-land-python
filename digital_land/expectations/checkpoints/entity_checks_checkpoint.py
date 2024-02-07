@@ -1,14 +1,14 @@
-from .dataset import DatasetCheckpoint
+from .dataset import EntityChecksCheckpoint
 import functools
 
-class DatasetCheckpoint(DatasetCheckpoint):
+class EntityChecksCheckpoint(EntityChecksCheckpoint):
     def __init__(self, *args):
         super().__init__(*args)
 
     def load(self):
         self.expectations = [
-            functools.partial(DatasetCheckpoint.check_old_entities, self),
-            functools.partial(DatasetCheckpoint.check_entities_without_doc_url, self),
+            functools.partial(EntityChecksCheckpoint.check_old_entities, self),
+            functools.partial(EntityChecksCheckpoint.check_entities_without_doc_url, self),
         ]
 
     def check_old_entities(self):
