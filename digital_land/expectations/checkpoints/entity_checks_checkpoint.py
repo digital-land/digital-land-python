@@ -1,7 +1,7 @@
-from .dataset import EntityChecksCheckpoint
+from .dataset import DatasetCheckpoint
 import functools
 
-class EntityChecksCheckpoint(EntityChecksCheckpoint):
+class EntityChecksCheckpoint(DatasetCheckpoint):
     def __init__(self, *args):
         super().__init__(*args)
 
