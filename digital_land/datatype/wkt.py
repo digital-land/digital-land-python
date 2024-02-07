@@ -96,7 +96,11 @@ def parse_wkt(value, boundary):
         if boundary.intersects(Point(y, x)):
             return transform(flip, geometry), "WGS84 flipped", None
 
-        return None, "WGS84 out of bounds of " + boundary_issue_info, None
+        return (
+            None,
+            "WGS84 out of bounds of " + boundary_issue_info,
+            "Geometry must be in England",
+        )
 
     if easting_northing_like(x, y):
         _x, _y = osgb_to_wgs84.transform(x, y)
@@ -108,7 +112,11 @@ def parse_wkt(value, boundary):
             geometry = transform(osgb_to_wgs84.transform, geometry)
             return geometry, "OSGB flipped", None
 
-        return None, "OSGB out of bounds of " + boundary_issue_info, None
+        return (
+            None,
+            "OSGB out of bounds of " + boundary_issue_info,
+            "Geometry must be in England",
+        )
 
     if metres_like(x, y):
         _x, _y = mercator_to_wgs84.transform(x, y)
@@ -258,7 +266,11 @@ class WktDataType(DataType):
                 else:
                     # if the geometry is not valid, mark as not fixable
                     if issues and issue:
-                        issues.log("invalid geometry - not fixable", issue)
+                        issues.log(
+                            "invalid geometry - not fixable",
+                            issue,
+                            "Geometry must be correctly formatted",
+                        )
 
         if not geometry:
             return default

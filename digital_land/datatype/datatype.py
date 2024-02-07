@@ -7,6 +7,7 @@ class DataType:
 
     def split_and_capitalize(self, input):
         words = input.split("-")
-        capitalized_words = [word.capitalize() for word in words]
-        result_string = " ".join(capitalized_words)
+        result_string = words[0].capitalize()
+        if len(words) > 1:
+            result_string += " " + " ".join(words[1:])
         return result_string
