@@ -54,7 +54,7 @@ class DateDataType(DataType):
             issues.log(
                 "invalid date",
                 fieldvalue,
-                f"{issues.fieldname.capitalize()} must be a real date",
+                f"{self.split_and_capitalize(issues.fieldname)} must be a real date",
             )
 
         return ""
