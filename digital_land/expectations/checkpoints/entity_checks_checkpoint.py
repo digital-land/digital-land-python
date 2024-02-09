@@ -1,6 +1,8 @@
 from .dataset import DatasetCheckpoint
+from . import checkpoint
 import functools
 
+@checkpoint("post-load")
 class EntityChecksCheckpoint(DatasetCheckpoint):
     def __init__(self, *args):
         super().__init__(*args)

@@ -12,7 +12,6 @@ def run_dataset_checkpoint(
     dataset=None,
     # act_on_critical_error=True,
 ):
-    print("Dataset_path:", dataset_path)
     """
     function to run the expectation checkpoint for a sqlite dataset
     """

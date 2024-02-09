@@ -227,9 +227,9 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option(
     "--sqlite-dataset-path", help="path/name to sqlite3 dataset", required=True
 )
-@click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
-def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
-    return expectations(results_path, sqlite_dataset_path, data_quality_yaml)
+@click.option("--checkpoint", help="checkpoint to run", required=False, multiple=True)
+def call_expectations(results_path, sqlite_dataset_path, checkpoint):
+    return expectations(results_path, sqlite_dataset_path, checkpoint)
 
 
 # edit to add collection_name in
