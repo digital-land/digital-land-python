@@ -2,6 +2,7 @@ from .base import BaseCheckpoint
 
 import sqlite3
 
+
 class DatasetCheckpoint(BaseCheckpoint):
     def __init__(self, dataset_path, dataset, typology):
         self.dataset_path = dataset_path
@@ -10,4 +11,6 @@ class DatasetCheckpoint(BaseCheckpoint):
 
         self.connection = sqlite3.connect(self.dataset_path)
 
-        print(f"DatasetCheckpoint path={dataset_path} dataset={dataset} typology={typology}")
+        print(
+            f"DatasetCheckpoint path={dataset_path} dataset={dataset} typology={typology}"
+        )

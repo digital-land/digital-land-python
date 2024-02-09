@@ -1,5 +1,6 @@
 checkpoints = {}
 
+
 def checkpoint(name):
     def decorator(klass):
         if name in checkpoints.keys():
@@ -7,4 +8,5 @@ def checkpoint(name):
         else:
             checkpoints[name] = [klass]
         return klass
+
     return decorator

@@ -219,4 +219,3 @@ class Specification:
             return self.dataset[dataset]["typology"]
         else:
             return None
-        

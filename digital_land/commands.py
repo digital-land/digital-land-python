@@ -46,6 +46,7 @@ from digital_land.update import add_source_endpoint
 from .register import hash_value
 from digital_land.expectations import run_expectations
 
+
 def fetch(url, pipeline):
     """fetch a single source endpoint URL, and add it to the collection"""
     collector = Collector(pipeline.name)
