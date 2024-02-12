@@ -8,6 +8,7 @@ from collections import defaultdict
 from digital_land.collection import Collection
 
 from digital_land.commands import (
+    add_redirections,
     assign_entities,
     fetch,
     collect,
@@ -310,3 +311,22 @@ def assign_entities_cmd(
         specification_dir,
         organisation_path,
     )
+
+
+@cli.command("add-redirections")
+@click.argument("csv_path", nargs=1, type=click.Path())
+@click.option("--pipeline-dir", "-p", type=click.Path(exists=True), default="pipeline/")
+def add_redirections_cmd(csv_path, pipeline_dir):
+    """
+    Add redirections to the old-entity file based on records in csv_path
+    :param resource_path:
+    :param collection_name:
+    :return:
+    """
+
+    csv_file_path = Path(csv_path)
+    if not csv_file_path.is_file():
+        logging.error("no csv file was provided")
+        sys.exit(2)
+
+    return add_redirections(csv_file_path, pipeline_dir)
