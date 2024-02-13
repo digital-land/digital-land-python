@@ -911,6 +911,9 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
     else:
         msg = "Enitities found in old-entities"
 
-    details = {"enitites in old-entities": len(entities_in_old)}
+    details = [
+        {"entity": entity, "message": "Entity is in old-entities"}
+        for entity in entities_in_old.values.flatten()
+    ]
 
     return result, msg, details

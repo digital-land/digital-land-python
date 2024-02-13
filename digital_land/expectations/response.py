@@ -14,7 +14,7 @@ import warnings
 from enum import Enum
 from pydantic.dataclasses import dataclass
 from dataclasses_json import dataclass_json
-from typing import Optional
+from typing import Optional, Union
 
 
 class SeverityEnum(str, Enum):
@@ -41,7 +41,7 @@ class ExpectationResponse:
     result: bool = None
     severity: SeverityEnum = None
     msg: str = None
-    details: Optional[dict] = None
+    details: Optional[Union[dict, list]] = None
     data_name: str = None
     data_path: str = None
     name: str = None

@@ -36,31 +36,29 @@ class BaseCheckpoint:
         #  = {**kwargs}
         # expectation_function = getattr(expectations, expectation[""])
         # TODO add an errors return detail below
-        result, msg, details = expectation_function(
-            **kwargs,
-        )
+        result, msg, details = expectation_function(**kwargs)
 
         if getattr(self, "responses", None):
             entry_date = self.entry_date
         else:
             now = datetime.now()
             entry_date = now.isoformat()
-        arguements = {**kwargs}
+        arguments = {**kwargs}
         # TODO return errors and a response
         response = ExpectationResponse(
             entry_date=entry_date,
-            name=arguements["name"],
-            description=arguements.get("description", None),
+            name=arguments["name"],
+            description=arguments.get("description", None),
             # TODO this won't work and should change it to function and get the name
             # of the function above
             expectation=expectation_function.__name__,
-            severity=arguements["severity"],
+            severity=arguments["severity"],
             result=result,
             msg=msg,
-            details={},
+            details=details,
             data_name=self.data_name,
             data_path=self.data_path,
-            expectation_input={**arguements},
+            expectation_input={**arguments},
         )
 
         return response
