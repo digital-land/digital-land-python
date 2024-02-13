@@ -24,7 +24,7 @@ class DecimalDataType(DataType):
                 issues.log(
                     "invalid decimal",
                     value,
-                    f"{issues.fieldname.capitalize()} must be a decimal number",
+                    f"{issues.fieldname} must be a decimal number",
                 )
             return ""
 
@@ -33,7 +33,7 @@ class DecimalDataType(DataType):
                 issues.log(
                     "too small",
                     value,
-                    f"{issues.fieldname.capitalize()} must be larger than {self.minimum}",
+                    f"{issues.fieldname} must be larger than {self.minimum}",
                 )
             return ""
 
@@ -42,7 +42,7 @@ class DecimalDataType(DataType):
                 issues.log(
                     "too large",
                     value,
-                    f"{issues.fieldname.capitalize()} must be lower than {self.maximum}",
+                    f"{issues.fieldname} must be lower than {self.maximum}",
                 )
             return ""
 

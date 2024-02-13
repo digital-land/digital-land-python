@@ -23,7 +23,7 @@ class FlagDataType(DataType):
             issues.log(
                 "invalid flag",
                 value,
-                f"{issues.fieldname.capitalize()} must be yes or no",
+                f"{issues.fieldname} must be yes or no",
             )
 
         return ""

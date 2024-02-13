@@ -14,7 +14,7 @@ class URIDataType(DataType):
             issues.log(
                 "invalid URI",
                 value,
-                f"{self.split_and_capitalize(issues.fieldname)} must be a real URL",
+                f"{issues.fieldname} must be a real URL",
             )
 
         return ""

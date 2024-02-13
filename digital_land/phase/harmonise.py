@@ -2,7 +2,6 @@ from datetime import datetime
 
 from .phase import Phase
 from digital_land.datatype.point import PointDataType
-from digital_land.datatype.datatype import DataType as Data_type
 
 
 class HarmonisePhase(Phase):
@@ -41,12 +40,11 @@ class HarmonisePhase(Phase):
                     and datetime.strptime(o[field][:10], "%Y-%m-%d").date()
                     > datetime.today().date()
                 ):
-                    data_type = Data_type()
                     self.issues.log_issue(
                         field,
                         "future entry-date",
                         row[field],
-                        f"{data_type.split_and_capitalize(field)} must be today or in the past",
+                        f"{field} must be today or in the past",
                     )
                     o[field] = ""
 
@@ -79,7 +77,7 @@ class HarmonisePhase(Phase):
                                 field,
                                 "missing value",
                                 "",
-                                f"{field.capitalize()} missing",
+                                f"{field} missing",
                             )
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix

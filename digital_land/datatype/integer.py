@@ -22,7 +22,7 @@ class IntegerDataType(DataType):
                 issues.log(
                     "invalid integer",
                     value,
-                    f"{issues.fieldname.capitalize()} must be a number",
+                    f"{issues.fieldname} must be a number",
                 )
             return ""
 
@@ -31,7 +31,7 @@ class IntegerDataType(DataType):
                 issues.log(
                     "too small",
                     value,
-                    f"{issues.fieldname.capitalize()} must be larger than {self.minimum}",
+                    f"{issues.fieldname} must be larger than {self.minimum}",
                 )
             return ""
 
@@ -40,7 +40,7 @@ class IntegerDataType(DataType):
                 issues.log(
                     "too large",
                     value,
-                    f"{issues.fieldname.capitalize()} must be lower than {self.maximum}",
+                    f"{issues.fieldname} must be lower than {self.maximum}",
                 )
             return ""
 

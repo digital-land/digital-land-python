@@ -18,5 +18,5 @@ def test_uri_normalise():
     issue = issues.rows.pop()
     assert issue["issue-type"] == "invalid URI"
     assert issue["value"] == "example.com"
-    assert issue["message"] == "Documentation URL must be a real URL"
+    assert issue["message"] == "documentation-url must be a real URL"
     assert issues.rows == []
