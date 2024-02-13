@@ -1,3 +1,4 @@
+from pathlib import Path
 import yaml
 import warnings
 from datetime import datetime
@@ -14,8 +15,7 @@ class BaseCheckpoint:
     def __init__(self, data_path):
         # self.results_file_path = results_file_path
         self.data_path = data_path
-        # self.data_name = Path(data_path).stem
-        # self.expectation_suite_yaml = expectation_suite_yaml
+        self.data_name = Path(data_path).stem
         # self.query_runner = QueryRunner(self.data_path)
 
     def load():
@@ -29,21 +29,6 @@ class BaseCheckpoint:
             format=format,
         )
 
-    def yaml_config_parser(self, filepath):
-        "Will parse a config file"
-        try:
-            with open(filepath) as file:
-                config = yaml.load(file, Loader=yaml.FullLoader)
-                if config is not None:
-                    config = dict(config)
-                else:
-                    warnings.warn("empty yaml file provided")
-
-        except OSError:
-            warnings.warn("no yaml file found")
-            config = None
-        return config
-
     def run_expectation(self, expectation_function, **kwargs):
         """
         runs a given function with the kwargs
@@ -52,9 +37,9 @@ class BaseCheckpoint:
         # expectation_function = getattr(expectations, expectation[""])
         # TODO add an errors return detail below
         result, msg, details = expectation_function(
-            # query_runner=self.query_runner,
             **kwargs,
         )
+
         if getattr(self, "responses", None):
             entry_date = self.entry_date
         else:
@@ -64,44 +49,34 @@ class BaseCheckpoint:
         # TODO return errors and a response
         response = ExpectationResponse(
             entry_date=entry_date,
-            name="Test Name",  # arguements["name"],
-            description="Test Description",  # arguements.get("description", None),
+            name=arguements["name"],
+            description=arguements.get("description", None),
             # TODO this won't work and should change it to function and get the name
             # of the function above
-            expectation="Test expecation",  # arguements["expectation"],
-            severity="warning",  # arguements["severity"],
+            expectation=expectation_function.__name__,
+            severity=arguements["severity"],
             result=result,
             msg=msg,
             details={},
-            data_name="None",  # self.data_name,
-            data_path="None",  # self.data_path,
+            data_name=self.data_name,
+            data_path=self.data_path,
             expectation_input={**arguements},
-            # TODO remove as not sure tags are neccessary tbh
-            tags=arguements.get("tags", None),
         )
 
         return response
 
     # should be decided by the actualy checkpoint
     def run(self):
-        # if not self.config:
-        #    self.load_config()
-
-        # if not self.config():
-        #    warnings.warn("no configuration loaded so no expectations where ran")
-        # self.expectation_suite_config = self.config_parser(self.expectation_suite_yaml)
-        # if not self.expectation_suite_config:
-        #     return
 
         self.responses = []
+
         # TODO do somewhere different but not sure how
         now = datetime.now()
         self.entry_date = now.isoformat()
         self.failed_expectation_with_error_severity = 0
 
-        # self.expectations = self.expectation_suite_config.get("expectations", None)
-        for expectation in self.expectations:
-            response = self.run_expectation(expectation)
+        for expectation, kwargs in self.expectations.items():
+            response = self.run_expectation(expectation, **kwargs)
             self.responses.append(response)
             self.failed_expectation_with_error_severity += response.act_on_failure()
 

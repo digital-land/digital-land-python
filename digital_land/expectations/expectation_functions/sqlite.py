@@ -1,5 +1,5 @@
 import pandas as pd
-from .core import QueryRunner
+from ..core import QueryRunner
 from math import inf
 import logging
 
@@ -895,5 +895,22 @@ def validate_wkt_values(
         msg = "Fails"
 
     details = {"invalid_wkts": invalid_wkts}
+
+    return result, msg, details
+
+
+def check_old_entities(query_runner: QueryRunner, **kwargs):
+    entities_in_old = query_runner.run_query(
+        "SELECT entity FROM entity WHERE entity IN (SELECT entity FROM old_entity)"
+    )
+
+    result = not len(entities_in_old) > 0
+
+    if result:
+        msg = "No enities found in old-entities"
+    else:
+        msg = "Enitities found in old-entities"
+
+    details = {"enitites in old-entities": len(entities_in_old)}
 
     return result, msg, details

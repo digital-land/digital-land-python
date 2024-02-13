@@ -5,7 +5,6 @@ from pathlib import Path
 
 
 def run_dataset_checkpoint(
-    checkpoint_class,
     dataset_path,
     output_dir,
     spec: Specification,
@@ -18,12 +17,10 @@ def run_dataset_checkpoint(
     if not dataset:
         dataset = Path(dataset_path).stem
     typology = spec.get_dataset_typology(dataset)
-    checkpoint = checkpoint_class(dataset_path, dataset, typology)
+    checkpoint = DatasetCheckpoint(dataset_path, dataset, typology)
     checkpoint.load()
     checkpoint.run()
     checkpoint.save(output_dir, format="csv")
-    # if act_on_critical_error:
-    #    checkpoint.act_on_critical_error()
 
 
 def run_coverted_resource_checkpoint(
