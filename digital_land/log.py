@@ -38,12 +38,20 @@ class IssueLog(Log):
         "field",
         "issue-type",
         "value",
+        "message",
     ]
 
-    def log(self, issue_type, value):
-        self.log_issue(self.fieldname, issue_type, value)
+    def log(
+        self,
+        issue_type,
+        value,
+        message=None,
+    ):
+        self.log_issue(self.fieldname, issue_type, value, message)
 
-    def log_issue(self, fieldname, issue_type, value, line_number=0, entry_number=0):
+    def log_issue(
+        self, fieldname, issue_type, value, message=None, line_number=0, entry_number=0
+    ):
         self.rows.append(
             {
                 "dataset": self.dataset,
@@ -53,6 +61,7 @@ class IssueLog(Log):
                 "value": value,
                 "line-number": line_number or self.line_number,
                 "entry-number": entry_number or self.entry_number,
+                "message": message,
             }
         )
 

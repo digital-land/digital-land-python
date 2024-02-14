@@ -51,6 +51,10 @@ class DateDataType(DataType):
                     pass
 
         if issues:
-            issues.log("invalid date", fieldvalue)
+            issues.log(
+                "invalid date",
+                fieldvalue,
+                f"{issues.fieldname} must be a real date",
+            )
 
         return ""

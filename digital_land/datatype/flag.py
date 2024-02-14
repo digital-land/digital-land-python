@@ -5,6 +5,7 @@ class FlagDataType(DataType):
     def __init__(self):
         pass
 
+    # need to confirm message
     def normalise(self, value, issues=None):
         value = value.strip().lower()
 
@@ -19,6 +20,10 @@ class FlagDataType(DataType):
             return value
 
         if issues:
-            issues.log("invalid flag", value)
+            issues.log(
+                "invalid flag",
+                value,
+                f"{issues.fieldname} must be yes or no",
+            )
 
         return ""

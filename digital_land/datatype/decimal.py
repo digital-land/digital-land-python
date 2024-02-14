@@ -21,17 +21,29 @@ class DecimalDataType(DataType):
             d = Decimal(value)
         except InvalidOperation:
             if issues:
-                issues.log("invalid decimal", value)
+                issues.log(
+                    "invalid decimal",
+                    value,
+                    f"{issues.fieldname} must be a decimal number",
+                )
             return ""
 
         if self.minimum is not None and d < self.minimum:
             if issues:
-                issues.log("too small", value)
+                issues.log(
+                    "too small",
+                    value,
+                    f"{issues.fieldname} must be larger than {self.minimum}",
+                )
             return ""
 
         if self.maximum is not None and d > self.maximum:
             if issues:
-                issues.log("too large", value)
+                issues.log(
+                    "too large",
+                    value,
+                    f"{issues.fieldname} must be lower than {self.maximum}",
+                )
             return ""
 
         return self.format(d)

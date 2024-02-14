@@ -12,9 +12,11 @@ def test_uri_normalise():
     )
 
     issues = IssueLog()
+    issues.fieldname = "documentation-url"
     assert uri.normalise("example.com", issues=issues) == ""
 
     issue = issues.rows.pop()
     assert issue["issue-type"] == "invalid URI"
     assert issue["value"] == "example.com"
+    assert issue["message"] == "documentation-url must be a real URL"
     assert issues.rows == []
