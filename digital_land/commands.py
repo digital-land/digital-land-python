@@ -746,3 +746,52 @@ def process_data_in_batches(entities, flattened_dir, dataset_name):
         )
 
     return feature_collection
+
+
+def add_redirections(csv_file_path, pipeline_dir):
+    """
+    :param csv_file_path:
+    :param pipeline_dir:
+    :return:
+    """
+    expected_cols = [
+        "entity_source",
+        "entity_destination",
+    ]
+
+    old_entity_path = Path(pipeline_dir) / "old-entity.csv"
+
+    with open(csv_file_path) as new_endpoints_file:
+        reader = csv.DictReader(new_endpoints_file)
+        csv_columns = reader.fieldnames
+
+        for expected_col in expected_cols:
+            if expected_col not in csv_columns:
+                raise Exception(f"required column ({expected_col}) not found in csv")
+
+        fieldnames = ["old-entity", "status", "entity"]
+
+        f = open(old_entity_path, "a", newline="")
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if f.tell() == 0:
+            writer.writeheader()
+
+        for row in reader:
+            if row["entity_source"] == "" or row["entity_destination"] == "":
+                print(
+                    "Missing entity number for",
+                    (
+                        row["entity_destination"]
+                        if row["entity_source"] == ""
+                        else row["entity_source"]
+                    ),
+                )
+            else:
+                writer.writerow(
+                    {
+                        "old-entity": row["entity_source"],
+                        "status": "301",
+                        "entity": row["entity_destination"],
+                    }
+                )
+    print("Redirections added to old-entity.csv")
