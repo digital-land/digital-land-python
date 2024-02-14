@@ -755,8 +755,8 @@ def add_redirections(csv_file_path, pipeline_dir):
     :return:
     """
     expected_cols = [
-        "entity_HE",
-        "entity_LPA",
+        "entity_source",
+        "entity_destination",
     ]
 
     old_entity_path = Path(pipeline_dir) / "old-entity.csv"
@@ -777,17 +777,21 @@ def add_redirections(csv_file_path, pipeline_dir):
             writer.writeheader()
 
         for row in reader:
-            if row["entity_HE"] == "" or row["entity_LPA"] == "":
+            if row["entity_source"] == "" or row["entity_destination"] == "":
                 print(
                     "Missing entity number for",
-                    row["entity_LPA"] if row["entity_HE"] == "" else row["entity_HE"],
+                    (
+                        row["entity_destination"]
+                        if row["entity_source"] == ""
+                        else row["entity_source"]
+                    ),
                 )
             else:
                 writer.writerow(
                     {
-                        "old-entity": row["entity_HE"],
+                        "old-entity": row["entity_source"],
                         "status": "301",
-                        "entity": row["entity_LPA"],
+                        "entity": row["entity_destination"],
                     }
                 )
     print("Redirections added to old-entity.csv")

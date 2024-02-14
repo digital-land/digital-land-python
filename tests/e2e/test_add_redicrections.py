@@ -13,8 +13,8 @@ def csv_file_path(tmp_path):
     entities_csv_path = os.path.join(tmp_path, "redirections.csv")
 
     row = {
-        "entity_LPA": "100",
-        "entity_HE": "200",
+        "entity_destination": "100",
+        "entity_source": "200",
     }
     fieldnames = row.keys()
     with open(entities_csv_path, "w") as f:
