@@ -13,7 +13,7 @@ class DatasetCheckpoint(BaseCheckpoint):
     def load(self):
         self.expectations = {
             check_old_entities: {
-                "name": "Check for old entities",
+                "description": "Check for old entities",
                 "severity": "warning",
                 "query_runner": QueryRunner(self.dataset_path),
             },

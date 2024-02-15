@@ -57,7 +57,7 @@ class BaseCheckpoint:
             ).hexdigest(),
             checkpoint=self.checkpoint,
             entry_date=entry_date,
-            name=arguments["name"],
+            name=arguments.get("name", expectation_function.__name__),
             description=arguments.get("description", None),
             expectation=expectation,
             severity=arguments["severity"],

@@ -37,7 +37,7 @@ class SeverityEnum(str, Enum):
 class ExpectationResponse:
     """Class to keep inputs and results of expectations"""
 
-    run: str = (None,)
+    run: str = None
     checkpoint: str = None
     result: bool = None
     severity: SeverityEnum = None
