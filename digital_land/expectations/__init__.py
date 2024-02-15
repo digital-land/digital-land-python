@@ -1,4 +1,3 @@
-import os
 from digital_land.specification import Specification
 
 

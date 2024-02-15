@@ -14,7 +14,7 @@ import warnings
 from enum import Enum
 from pydantic.dataclasses import dataclass
 from dataclasses_json import dataclass_json
-from typing import Optional, Union
+from typing import Optional
 
 
 class SeverityEnum(str, Enum):
