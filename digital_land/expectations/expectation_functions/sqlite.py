@@ -910,7 +910,7 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
     if result:
         msg = "No enities found in old-entities"
     else:
-        msg = "Enitities found in old-entities"
+        msg = f"{ len(entities_in_old)} enitities found in old-entities"
 
     errors = [
         DatasetError(message="Entity is in old-entities", entity=entity)

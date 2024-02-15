@@ -51,7 +51,11 @@ class BaseCheckpoint:
             + expectation_function.__name__.encode()
         ).hexdigest()
 
-        response = ExpectationResponse(
+        return ExpectationResponse(
+            run=hashlib.md5(
+                self.checkpoint.encode() + self.data_name.encode() + entry_date.encode()
+            ).hexdigest(),
+            checkpoint=self.checkpoint,
             entry_date=entry_date,
             name=arguments["name"],
             description=arguments.get("description", None),
@@ -63,8 +67,6 @@ class BaseCheckpoint:
             data_name=self.data_name,
             data_path=self.data_path,
         )
-
-        return response
 
     # should be decided by the actualy checkpoint
     def run(self):

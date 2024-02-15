@@ -90,7 +90,7 @@ class SeverityEnum(str, Enum):
 class ExpectationResponse:
     """Class to keep inputs and results of expectations"""
 
-    expectation_input: dict
+    checkpoint: str = None
     result: bool = None
     severity: SeverityEnum = None
     msg: str = None
@@ -149,10 +149,3 @@ class ExpectationResponse:
                 failure_count = 1
 
         return failure_count
-
-
-# expectation_input = {
-#         key: value
-#         for key, value in locals().items()
-#         if key not in ["name", "description", "expectation_severity"]
-#     }
