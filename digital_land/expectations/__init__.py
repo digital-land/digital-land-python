@@ -23,4 +23,6 @@ def run_expectations(results_path, sqlite_dataset_path, checkpoint):
 
     if checkpoint == "dataset":
         specification = Specification("specification")
-        run_dataset_checkpoint(sqlite_dataset_path, results_path, specification)
+        run_dataset_checkpoint(
+            checkpoint, sqlite_dataset_path, results_path, specification
+        )

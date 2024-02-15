@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 def run_dataset_checkpoint(
+    checkpoint,
     dataset_path,
     output_dir,
     spec: Specification,
@@ -17,7 +18,7 @@ def run_dataset_checkpoint(
     if not dataset:
         dataset = Path(dataset_path).stem
     typology = spec.get_dataset_typology(dataset)
-    checkpoint = DatasetCheckpoint(dataset_path, dataset, typology)
+    checkpoint = DatasetCheckpoint(checkpoint, dataset_path, dataset, typology)
     checkpoint.load()
     checkpoint.run()
     checkpoint.save(output_dir, format="csv")

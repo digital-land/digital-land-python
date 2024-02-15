@@ -4,8 +4,8 @@ from ..expectation_functions.sqlite import check_old_entities
 
 
 class DatasetCheckpoint(BaseCheckpoint):
-    def __init__(self, dataset_path, dataset, typology):
-        super().__init__(dataset_path)
+    def __init__(self, checkpoint, dataset_path, dataset, typology):
+        super().__init__(checkpoint, dataset_path)
         self.dataset_path = dataset_path
         self.dataset = dataset
         self.typolgy = typology

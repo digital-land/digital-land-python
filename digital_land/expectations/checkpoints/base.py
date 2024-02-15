@@ -3,6 +3,7 @@ from itertools import chain
 from datetime import datetime
 import os
 import json
+import hashlib
 
 from csv import DictWriter
 
@@ -11,11 +12,10 @@ from ..exception import DataQualityException
 
 
 class BaseCheckpoint:
-    def __init__(self, data_path):
-        # self.results_file_path = results_file_path
+    def __init__(self, checkpoint, data_path):
+        self.checkpoint = checkpoint
         self.data_path = data_path
         self.data_name = Path(data_path).stem
-        # self.query_runner = QueryRunner(self.data_path)
 
     def load():
         """filled in by child classes, ensures a config is loaded correctly should raise error if not"""
@@ -24,7 +24,7 @@ class BaseCheckpoint:
     def save(self, output_dir, format="csv"):
         self.save_responses(
             self.responses,
-            os.path.join(output_dir, self.__class__.__name__ + ".csv"),
+            os.path.join(output_dir, self.checkpoint),
             format=format,
         )
 
@@ -43,14 +43,19 @@ class BaseCheckpoint:
             now = datetime.now()
             entry_date = now.isoformat()
         arguments = {**kwargs}
-        # TODO return errors and a response
+
+        # Make a hash of this expecation
+        expectation = hashlib.md5(
+            self.checkpoint.encode()
+            + self.entry_date.encode()
+            + expectation_function.__name__.encode()
+        ).hexdigest()
+
         response = ExpectationResponse(
             entry_date=entry_date,
             name=arguments["name"],
             description=arguments.get("description", None),
-            # TODO this won't work and should change it to function and get the name
-            # of the function above
-            expectation=expectation_function.__name__,
+            expectation=expectation,
             severity=arguments["severity"],
             result=result,
             msg=msg,
@@ -81,42 +86,36 @@ class BaseCheckpoint:
                 "One or more expectations with severity RaiseError failed, see results for more details"
             )
 
-    def validate_results_path(self, path, format):
-        """ensures path ends in the correct file format format"""
-        p = os.path.splitext(path)[0]
-        p = p + f".{format}"
-        return p
+    def save_responses(self, responses, results_base, format="csv"):
 
-    def save_responses(self, responses=None, results_path=None, format="csv"):
-        if responses is None:
-            responses = getattr(self, "responses", None)
+        # Assign the appropriate expectation to the errors
+        all_errors = []  # List of dicts
+        for response in responses:
+            for error in response.errors:
+                error = error.to_dict()
+                error["expectation"] = response.expectation
+                all_errors.append(error)
 
-        if not responses:
-            return
-
-        if results_path is None:
-            results_path = self.results_file_path
-
-        results_path = self.validate_results_path(results_path, format)
-        fieldnames = [x for x in responses[0].__annotations__.keys() if x != "errors"]
-
-        all_errors = list(
-            chain.from_iterable([response.errors for response in responses])
-        )
-
-        def drop_errors(d):
+        # The docs seems to suggest you can pass exclude=.. to to_dict but it doesn't work, so
+        # map the resulting dict instead.
+        def remove_errors_column(d):
             if "errors" in d.keys():
                 del d["errors"]
             return d
 
         responses_as_dicts = map(
-            drop_errors, [response.to_dict() for response in responses]
+            remove_errors_column, [response.to_dict() for response in responses]
         )
 
+        results_fieldnames = [
+            x for x in responses[0].__annotations__.keys() if x != "errors"
+        ]
+
+        results_path = results_base + os.extsep + format
         os.makedirs(os.path.dirname(results_path), exist_ok=True)
         with open(results_path, "w") as f:
             if format == "csv":
-                dictwriter = DictWriter(f, fieldnames=fieldnames)
+                dictwriter = DictWriter(f, fieldnames=results_fieldnames)
                 dictwriter.writeheader()
                 dictwriter.writerows(responses_as_dicts)
             elif format == "json":
@@ -124,19 +123,20 @@ class BaseCheckpoint:
             else:
                 raise ValueError(f"format must be csv or json and cannot be {format}")
 
-        errors_as_dicts = [error.to_dict() for error in all_errors]
+        # Build the filednames for the errors table
+        errors_fieldnames = ["expectation", "message"]
+        for fieldname in chain.from_iterable(
+            [[keys for keys in dict.keys()] for dict in all_errors]
+        ):
+            if fieldname not in errors_fieldnames:
+                errors_fieldnames.append(fieldname)
 
-        fieldnames = set(
-            chain.from_iterable(
-                [[keys for keys in dict.keys()] for dict in errors_as_dicts]
-            )
-        )
-
-        with open(results_path + ".errors", "w") as f:
+        errors_path = results_base + "-errors" + os.extsep + format
+        with open(errors_path, "w") as f:
             if format == "csv":
-                dictwriter = DictWriter(f, fieldnames=fieldnames)
+                dictwriter = DictWriter(f, fieldnames=errors_fieldnames)
                 dictwriter.writeheader()
-                dictwriter.writerows(errors_as_dicts)
+                dictwriter.writerows(all_errors)
             elif format == "json":
                 json.dump(all_errors, f)
             else:
