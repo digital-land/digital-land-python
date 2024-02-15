@@ -1,5 +1,5 @@
 from digital_land.expectations.core import QueryRunner
-from digital_land.expectations.expectations import (
+from digital_land.expectations.expectation_functions.sqlite import (
     expect_database_to_have_set_of_tables,
     expect_table_to_have_set_of_columns,
     expect_table_row_count_to_be_in_range,
