@@ -3,6 +3,8 @@ Module containing the dataclasses representing the different
 expectation errors that can be recorded when running expectations
 """
 
+from pydantic.dataclasses import dataclass
+
 
 def error_factory(scope):
     """
@@ -10,8 +12,15 @@ def error_factory(scope):
     """
 
 
+@dataclass
 class BaseError:
-    pass
+    message: str = ""
+
+    def to_dict(self):
+        dict = {}
+        for key in self.__signature__.parameters.keys():
+            dict[key] = getattr(self, key)
+        return dict
 
 
 class ResourceError(BaseError):
@@ -30,8 +39,9 @@ class EntryValueError(BaseError):
     pass
 
 
+@dataclass
 class DatasetError(BaseError):
-    pass
+    entity: int = None
 
 
 class OrganisationError(BaseError):

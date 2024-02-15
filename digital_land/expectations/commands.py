@@ -21,6 +21,8 @@ def run_dataset_checkpoint(
     checkpoint.load()
     checkpoint.run()
     checkpoint.save(output_dir, format="csv")
+    # if act_on_critical_error:
+    #    checkpoint.act_on_critical_error()
 
 
 def run_coverted_resource_checkpoint(

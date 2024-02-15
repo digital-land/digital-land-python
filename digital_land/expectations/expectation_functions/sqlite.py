@@ -1,5 +1,6 @@
 import pandas as pd
 from ..core import QueryRunner
+from ..error import DatasetError
 from math import inf
 import logging
 
@@ -911,9 +912,9 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
     else:
         msg = "Enitities found in old-entities"
 
-    details = [
-        {"entity": entity, "message": "Entity is in old-entities"}
+    errors = [
+        DatasetError(message="Entity is in old-entities", entity=entity)
         for entity in entities_in_old.values.flatten()
     ]
 
-    return result, msg, details
+    return result, msg, errors

@@ -1,6 +1,5 @@
 from pathlib import Path
-import yaml
-import warnings
+from itertools import chain
 from datetime import datetime
 import os
 import json
@@ -36,7 +35,7 @@ class BaseCheckpoint:
         #  = {**kwargs}
         # expectation_function = getattr(expectations, expectation[""])
         # TODO add an errors return detail below
-        result, msg, details = expectation_function(**kwargs)
+        result, msg, errors = expectation_function(**kwargs)
 
         if getattr(self, "responses", None):
             entry_date = self.entry_date
@@ -55,10 +54,9 @@ class BaseCheckpoint:
             severity=arguments["severity"],
             result=result,
             msg=msg,
-            details=details,
+            errors=errors,
             data_name=self.data_name,
             data_path=self.data_path,
-            expectation_input={**arguments},
         )
 
         return response
@@ -93,26 +91,56 @@ class BaseCheckpoint:
         if responses is None:
             responses = getattr(self, "responses", None)
 
-        if responses:
-            if results_path is None:
-                results_path = self.results_file_path
+        if not responses:
+            return
 
-            results_path = self.validate_results_path(results_path, format)
-            fieldnames = responses[0].__annotations__.keys()
-            responses_as_dicts = [response.to_dict() for response in responses]
+        if results_path is None:
+            results_path = self.results_file_path
 
-            os.makedirs(os.path.dirname(results_path), exist_ok=True)
-            with open(results_path, "w") as f:
-                if format == "csv":
-                    dictwriter = DictWriter(f, fieldnames=fieldnames)
-                    dictwriter.writeheader()
-                    dictwriter.writerows(responses_as_dicts)
-                elif format == "json":
-                    json.dump(responses_as_dicts, f)
-                else:
-                    raise ValueError(
-                        f"format must be csv or json and cannot be {format}"
-                    )
+        results_path = self.validate_results_path(results_path, format)
+        fieldnames = [x for x in responses[0].__annotations__.keys() if x != "errors"]
+
+        all_errors = list(
+            chain.from_iterable([response.errors for response in responses])
+        )
+
+        def drop_errors(d):
+            if "errors" in d.keys():
+                del d["errors"]
+            return d
+
+        responses_as_dicts = map(
+            drop_errors, [response.to_dict() for response in responses]
+        )
+
+        os.makedirs(os.path.dirname(results_path), exist_ok=True)
+        with open(results_path, "w") as f:
+            if format == "csv":
+                dictwriter = DictWriter(f, fieldnames=fieldnames)
+                dictwriter.writeheader()
+                dictwriter.writerows(responses_as_dicts)
+            elif format == "json":
+                json.dump(responses_as_dicts, f)
+            else:
+                raise ValueError(f"format must be csv or json and cannot be {format}")
+
+        errors_as_dicts = [error.to_dict() for error in all_errors]
+
+        fieldnames = set(
+            chain.from_iterable(
+                [[keys for keys in dict.keys()] for dict in errors_as_dicts]
+            )
+        )
+
+        with open(results_path + ".errors", "w") as f:
+            if format == "csv":
+                dictwriter = DictWriter(f, fieldnames=fieldnames)
+                dictwriter.writeheader()
+                dictwriter.writerows(errors_as_dicts)
+            elif format == "json":
+                json.dump(all_errors, f)
+            else:
+                raise ValueError(f"format must be csv or json and cannot be {format}")
 
     # feels not needed
     # def act_on_critical_error(self, failed_expectation_with_error_severity=None):

@@ -37,22 +37,21 @@ class SeverityEnum(str, Enum):
 class ExpectationResponse:
     """Class to keep inputs and results of expectations"""
 
-    expectation_input: dict
     result: bool = None
     severity: SeverityEnum = None
     msg: str = None
-    details: Optional[Union[dict, list]] = None
+    errors: list = None
     data_name: str = None
     data_path: str = None
     name: str = None
     description: Optional[str] = None
     expectation: str = None
     entry_date: Optional[str] = None
-    tags: Optional[dict] = None
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"
 
+        """
         check_for_kwargs = self.expectation_input.get("kwargs", None)
         if check_for_kwargs:
             entry_date = check_for_kwargs.get("entry_date", None)
@@ -62,8 +61,8 @@ class ExpectationResponse:
         if entry_date:
             self.entry_date = entry_date
         else:
-            now = datetime.now()
-            self.entry_date = now.isoformat()
+        """
+        self.entry_date = datetime.now().isoformat()
 
     def save_to_file(self, dir_path: str):
         "Prepares a naming convention and saves the response to a provided path"
