@@ -43,6 +43,7 @@ def mock_resource():
 
     os.remove(mock_csv_path)
 
+
 @pytest.fixture
 def second_mock_resource():
     row1 = {
@@ -421,6 +422,7 @@ def test_command_assign_entities_resource_not_processed(
     assert "unprocessed_resource" in caplog.text
     assert "not been processed" in caplog.text
 
+
 def test_assign_entities_unique_assignment(
     collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
 ):
@@ -456,5 +458,9 @@ def test_assign_entities_unique_assignment(
     lookups_second_call.load_csv()
     updated_entities = [entry["entity"] for entry in lookups_second_call.entries]
 
-    combined_entities = initial_entities + [entry for entry in updated_entities if entry not in initial_entities]
-    assert len(set(combined_entities)) == len(set(initial_entities)) + len(set(updated_entities) - set(initial_entities)), "No duplicates introduced."
+    combined_entities = initial_entities + [
+        entry for entry in updated_entities if entry not in initial_entities
+    ]
+    assert len(set(combined_entities)) == len(set(initial_entities)) + len(
+        set(updated_entities) - set(initial_entities)
+    ), "No duplicates introduced."
