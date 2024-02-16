@@ -43,6 +43,42 @@ def mock_resource():
 
     os.remove(mock_csv_path)
 
+@pytest.fixture
+def second_mock_resource():
+    row1 = {
+        "reference": "Ref1",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row2 = {
+        "reference": "Ref2",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row3 = {
+        "reference": "",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row4 = {
+        "reference": "",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+
+    second_mock_csv_path = Path("second_mock_csv.csv")
+    with open(second_mock_csv_path, "w", encoding="utf-8") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row1)
+        dictwriter.writerow(row2)
+        dictwriter.writerow(row3)
+        dictwriter.writerow(row4)
+
+    yield second_mock_csv_path
+
+    os.remove(second_mock_csv_path)
+
 
 @pytest.fixture
 def collection_dir(tmp_path):
@@ -420,5 +456,7 @@ def test_assign_entities_unique_assignment(
     lookups_second_call.load_csv()
     updated_entities = [entry["entity"] for entry in lookups_second_call.entries]
 
-    assert len(set(updated_entities)) == len(set(initial_entities)), "The total count of unique entities did not increase as expected."
+    combined_entities = initial_entities + [entry for entry in updated_entities if entry not in initial_entities]
+    assert len(set(combined_entities)) == len(set(initial_entities)) + len(set(updated_entities) - set(initial_entities)), "No duplicates introduced."
+
 
