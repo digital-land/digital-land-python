@@ -62,11 +62,15 @@ def second_mock_resource():
         "value": "test",
     }
     row4 = {
-        "reference": "",
+        "reference": "Ref3",
         "organisation": "government-organisation:D1342",
         "value": "test",
     }
-
+    row5 = {
+        "reference": "Ref4",
+        "organisation": "government-organisation:D1343",
+        "value": "test",
+    }
     second_mock_csv_path = Path("second_mock_csv.csv")
     with open(second_mock_csv_path, "w", encoding="utf-8") as f:
         dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
