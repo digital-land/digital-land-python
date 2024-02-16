@@ -419,7 +419,6 @@ def test_assign_entities_unique_assignment(
     lookups_second_call = Lookups(pipeline_dir)
     lookups_second_call.load_csv()
     updated_entities = [entry["entity"] for entry in lookups_second_call.entries]
-    print(updated_entities)
 
     assert len(set(updated_entities)) == len(set(initial_entities)), "The total count of unique entities did not increase as expected."
 
