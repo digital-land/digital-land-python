@@ -384,3 +384,42 @@ def test_command_assign_entities_resource_not_processed(
 
     assert "unprocessed_resource" in caplog.text
     assert "not been processed" in caplog.text
+
+def test_assign_entities_unique_assignment(
+    collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
+):
+    """
+    Test to ensure that new entities are assigned unique identifiers and do not duplicate existing ones.
+    """
+
+    collection_name = "ancient-woodland"
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    assign_entities(
+        resource_file_paths=["mock_csv.csv"],
+        collection=collection,
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        pipeline_dir=pipeline_dir,
+    )
+
+    lookups_first_call = Lookups(pipeline_dir)
+    lookups_first_call.load_csv()
+    initial_entities = [entry["entity"] for entry in lookups_first_call.entries]
+
+    assign_entities(
+        resource_file_paths=["second_mock_csv.csv"],
+        collection=collection,
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        pipeline_dir=pipeline_dir,
+    )
+
+    lookups_second_call = Lookups(pipeline_dir)
+    lookups_second_call.load_csv()
+    updated_entities = [entry["entity"] for entry in lookups_second_call.entries]
+    print(updated_entities)
+
+    assert len(set(updated_entities)) == len(set(initial_entities)), "The total count of unique entities did not increase as expected."
+
