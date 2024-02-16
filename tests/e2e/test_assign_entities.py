@@ -458,5 +458,3 @@ def test_assign_entities_unique_assignment(
 
     combined_entities = initial_entities + [entry for entry in updated_entities if entry not in initial_entities]
     assert len(set(combined_entities)) == len(set(initial_entities)) + len(set(updated_entities) - set(initial_entities)), "No duplicates introduced."
-
-
