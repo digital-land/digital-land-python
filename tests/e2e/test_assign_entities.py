@@ -384,3 +384,80 @@ def test_command_assign_entities_resource_not_processed(
 
     assert "unprocessed_resource" in caplog.text
     assert "not been processed" in caplog.text
+
+
+def test_assign_entities_unique_assignment(
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource,
+):
+    """
+    Test to ensure that new entities are assigned unique identifiers and do not duplicate existing ones.
+    """
+
+    collection_name = "ancient-woodland"
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    assign_entities(
+        resource_file_paths=["mock_csv.csv"],
+        collection=collection,
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        pipeline_dir=pipeline_dir,
+    )
+
+    lookups_first_call = Lookups(pipeline_dir)
+    lookups_first_call.load_csv()
+    initial_entities = [entry["entity"] for entry in lookups_first_call.entries]
+
+    row1 = {
+        "reference": "Ref1",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row2 = {
+        "reference": "Ref2",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row3 = {
+        "reference": "Ref3",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row4 = {
+        "reference": "Ref3",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+
+    mock_csv_path = Path("mock_csv.csv")
+    with open(mock_csv_path, "w", encoding="utf-8") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row1)
+        dictwriter.writerow(row2)
+        dictwriter.writerow(row3)
+        dictwriter.writerow(row4)
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    assign_entities(
+        resource_file_paths=["mock_csv.csv"],
+        collection=collection,
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        pipeline_dir=pipeline_dir,
+    )
+
+    lookups_second_call = Lookups(pipeline_dir)
+    lookups_second_call.load_csv()
+    updated_entities = [entry["entity"] for entry in lookups_second_call.entries]
+
+    combined_entities = initial_entities + [entry for entry in updated_entities]
+    assert len(set(combined_entities)) == len(set(initial_entities)) + len(
+        set(updated_entities) - set(initial_entities)
+    ), "No duplicates introduced."
