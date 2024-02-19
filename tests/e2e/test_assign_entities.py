@@ -45,48 +45,6 @@ def mock_resource():
 
 
 @pytest.fixture
-def second_mock_resource():
-    row1 = {
-        "reference": "Ref1",
-        "organisation": "government-organisation:D1342",
-        "value": "test",
-    }
-    row2 = {
-        "reference": "Ref2",
-        "organisation": "government-organisation:D1342",
-        "value": "test",
-    }
-    row3 = {
-        "reference": "",
-        "organisation": "government-organisation:D1342",
-        "value": "test",
-    }
-    row4 = {
-        "reference": "Ref3",
-        "organisation": "government-organisation:D1342",
-        "value": "test",
-    }
-    row5 = {
-        "reference": "Ref4",
-        "organisation": "government-organisation:D1343",
-        "value": "test",
-    }
-    second_mock_csv_path = Path("second_mock_csv.csv")
-    with open(second_mock_csv_path, "w", encoding="utf-8") as f:
-        dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
-        dictwriter.writeheader()
-        dictwriter.writerow(row1)
-        dictwriter.writerow(row2)
-        dictwriter.writerow(row3)
-        dictwriter.writerow(row4)
-        dictwriter.writerow(row5)
-
-    yield second_mock_csv_path
-
-    os.remove(second_mock_csv_path)
-
-
-@pytest.fixture
 def collection_dir(tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
@@ -429,7 +387,11 @@ def test_command_assign_entities_resource_not_processed(
 
 
 def test_assign_entities_unique_assignment(
-    collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource,
 ):
     """
     Test to ensure that new entities are assigned unique identifiers and do not duplicate existing ones.
@@ -451,8 +413,40 @@ def test_assign_entities_unique_assignment(
     lookups_first_call.load_csv()
     initial_entities = [entry["entity"] for entry in lookups_first_call.entries]
 
+    row1 = {
+        "reference": "Ref1",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row2 = {
+        "reference": "Ref2",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row3 = {
+        "reference": "Ref3",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row4 = {
+        "reference": "Ref3",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+
+    mock_csv_path = Path("mock_csv.csv")
+    with open(mock_csv_path, "w", encoding="utf-8") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row1)
+        dictwriter.writerow(row2)
+        dictwriter.writerow(row3)
+        dictwriter.writerow(row4)
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
     assign_entities(
-        resource_file_paths=["second_mock_csv.csv"],
+        resource_file_paths=["mock_csv.csv"],
         collection=collection,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
