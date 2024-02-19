@@ -1,6 +1,5 @@
 import pandas as pd
-from ..core import QueryRunner
-from ..error import DatasetError
+from ..utils import QueryRunner
 from math import inf
 import logging
 
@@ -900,7 +899,7 @@ def validate_wkt_values(
     return result, msg, details
 
 
-def check_old_entities(query_runner: QueryRunner, **kwargs):
+def check_old_entities(query_runner: QueryRunner):
     entities_in_old = query_runner.run_query(
         "SELECT entity FROM entity WHERE entity IN (SELECT entity FROM old_entity)"
     )
@@ -912,9 +911,55 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
     else:
         msg = f"{ len(entities_in_old)} enitities found in old-entities"
 
-    errors = [
-        DatasetError(message="Entity is in old-entities", entity=entity)
-        for entity in entities_in_old.values.flatten()
-    ]
+        issues = [
+            {
+                "scope": "entity",
+                "dataset": entity["dataset"],
+                "organisattion": entity["organisatiton"],
+                "entity": entity["entity"],
+                "entity_json": entity,
+                "msg": "this entity should be retired",
+            }
+            for entity in entities_in_old.flatten()
+        ]
 
-    return result, msg, errors
+    return result, msg, issues
+
+
+def check_json_field_is_not_blank(query_runner: QueryRunner, field: str):
+    """Receives a table name, a field name (of a field that has a JSON text
+    stored in it) and a set of keys. It checks if the keys found in the JSON
+    are within the expected set of expected keys.
+    One sided: will not check if all expected keys are found, only if all
+    found are within the expected
+    """
+
+    sql_query = f"""
+        SELECT *
+        FROM entity
+        WHERE json_extract(json, '$.{field}') IS NULL
+        ;"""
+
+    entities = query_runner.run_query(sql_query)
+
+    result = not len(entities) > 0
+    if result:
+        msg = f"Success: all entities have a non-blank {field}"
+        issues = None
+
+    else:
+        msg = f"Fail: {len(entities)} entities have a blank {field}"
+        issues = [
+            {
+                "scope": "entity-value",
+                "dataset": entity["dataset"],
+                "organisattion": entity["organisatiton"],
+                "entity": entity["entity"],
+                "field": field,
+                "value": "",
+                "msg": f"{field} must be not be blank",
+            }
+            for entity in entities.flatten()
+        ]
+
+    return result, msg, issues

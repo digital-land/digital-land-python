@@ -37,17 +37,16 @@ class SeverityEnum(str, Enum):
 class ExpectationResponse:
     """Class to keep inputs and results of expectations"""
 
-    run: str = None
-    checkpoint: str = None
-    result: bool = None
-    severity: SeverityEnum = None
-    msg: str = None
+    expectation: str
+    name: str
+    checkpoint: str
+    result: bool
+    severity: SeverityEnum
+    msg: str
     errors: list = None
     data_name: str = None
     data_path: str = None
-    name: str = None
     description: Optional[str] = None
-    expectation: str = None
     entry_date: Optional[str] = None
 
     def __post_init__(self):
