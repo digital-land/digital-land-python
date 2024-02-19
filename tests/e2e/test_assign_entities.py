@@ -79,6 +79,7 @@ def second_mock_resource():
         dictwriter.writerow(row2)
         dictwriter.writerow(row3)
         dictwriter.writerow(row4)
+        dictwriter.writerow(row5)
 
     yield second_mock_csv_path
 
