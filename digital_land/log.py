@@ -1,7 +1,6 @@
 import csv
 from datetime import datetime
 import pandas as pd
-import yaml
 
 
 def entry_date():
@@ -68,7 +67,7 @@ class IssueLog(Log):
     def add_severity_column(self, severity_mapping_path):
         # Load only the 'severity' column from severity_mapping
         severity_mapping = pd.read_csv(
-            severity_mapping_path, usecols=["issue-type", "severity", "description"]
+            severity_mapping_path, usecols=["issue-type", "severity"]
         )
 
         # Convert the existing log data to a DataFrame
@@ -86,23 +85,7 @@ class IssueLog(Log):
 
             # Add the new 'severity' column to the log data
             self.fieldnames.append("severity")
-            self.fieldnames.append("description")
             self.rows = merged_df.to_dict(orient="records")
-
-    def appendErrorMessage(self, mapping_path):
-        # Read the mapping from the JSON config file
-        with open(mapping_path, "r") as f:
-            mapping_data = yaml.safe_load(f)
-        mapping = pd.DataFrame(mapping_data["mappings"])
-
-        # Update the 'description' column based on the mapping data
-        for row in self.rows:
-            mapping_row = mapping[
-                (mapping["field"] == row["field"])
-                & (mapping["issue-type"] == row["issue-type"])
-            ]
-            if not mapping_row["description"].empty:
-                row["description"] = mapping_row["description"].values[0]
 
 
 class ColumnFieldLog(Log):
