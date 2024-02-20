@@ -43,7 +43,7 @@ class ExpectationResponse:
     result: bool
     severity: SeverityEnum
     msg: str
-    errors: list = None
+    issues: list
     data_name: str = None
     data_path: str = None
     description: Optional[str] = None
@@ -64,6 +64,11 @@ class ExpectationResponse:
         else:
         """
         self.entry_date = datetime.now().isoformat()
+
+    def dict_for_export(self):
+        d = self.to_dict()
+        del(d['issues'])
+        return d
 
     def save_to_file(self, dir_path: str):
         "Prepares a naming convention and saves the response to a provided path"

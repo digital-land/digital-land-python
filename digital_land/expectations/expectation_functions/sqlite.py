@@ -899,28 +899,30 @@ def validate_wkt_values(
     return result, msg, details
 
 
-def check_old_entities(query_runner: QueryRunner):
+def check_old_entities(query_runner: QueryRunner, **kwargs):
     entities_in_old = query_runner.run_query(
-        "SELECT entity FROM entity WHERE entity IN (SELECT entity FROM old_entity)"
+        "SELECT entity, dataset, organisation_entity FROM entity WHERE entity IN (SELECT old_entity FROM old_entity)"
     )
 
     result = not len(entities_in_old) > 0
 
     if result:
         msg = "No enities found in old-entities"
+        issues = []
+
     else:
-        msg = f"{ len(entities_in_old)} enitities found in old-entities"
+        msg = f"{ len(entities_in_old)} enities found in old-entities"
 
         issues = [
             {
                 "scope": "entity",
-                "dataset": entity["dataset"],
-                "organisattion": entity["organisatiton"],
-                "entity": entity["entity"],
-                "entity_json": entity,
+                "dataset": entity[1],
+                "organisation": entity[2],
+                "entity": entity[0],
+                "entity_json": {},
                 "msg": "this entity should be retired",
             }
-            for entity in entities_in_old.flatten()
+            for entity in entities_in_old.values
         ]
 
     return result, msg, issues

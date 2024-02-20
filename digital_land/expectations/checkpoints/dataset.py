@@ -47,19 +47,19 @@ class DatasetCheckpoint(BaseCheckpoint):
         super().__init__(checkpoint, dataset_path)
         self.dataset_path = dataset_path
         self.dataset = dataset
-        self.typolgy = typology
+        self.typology = typology
 
     def load(self):
-        self.expectations = {}
-        self.expectations.append(BASE)
+        self.expectations = []
+        self.expectations.extend(BASE)
         typology_expectations = TYPOLOGY.get(self.typology, "")
         dataset_expectations = DATASET.get(self.dataset, "")
 
         if typology_expectations:
-            self.expectations.append(typology_expectations)
+            self.expectations.extend(typology_expectations)
 
         if dataset_expectations:
-            self.expectations.append(dataset_expectations)
+            self.expectations.extend(dataset_expectations)
 
         for expectation in self.expectations:
             expectation["query_runner"] = QueryRunner(self.dataset_path)
@@ -71,9 +71,11 @@ class DatasetCheckpoint(BaseCheckpoint):
         issues_file_path = os.path.join(
             output_dir, self.checkpoint, f"{self.data_name}-issues.csv"
         )
+
         self.save_responses(
             self.responses,
             responses_file_path,
             format=format,
         )
+
         self.save_issues(self.issues, issues_file_path, format=format)

@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 from digital_land.expectations.core import QueryRunner
-from digital_land.expectations.expectations import (
+from digital_land.expectations.expectation_functions.sqlite import (
     expect_filtered_entities_to_be_as_predicted,
     expect_entities_to_intersect_given_geometry_to_be_as_predicted,
     count_entities,

@@ -19,17 +19,17 @@ class BaseCheckpoint:
         self.responses = []
         self.issues = []
         # each issue is going to have different fields, so define here what all of them are
-        # this will take some iterations tog et right
+        # this will take some iterations to get right
         self.response_fieldnames = [
             "expectation",
             "name",
-            "checkpoint"
-            "result"
-            "severity"
-            "msg"
-            "data_name"
-            "data_path"
-            "description"
+            "checkpoint",
+            "result",
+            "severity",
+            "msg",
+            "data_name",
+            "data_path",
+            "description",
             "entry_date",
         ]
         self.issue_fieldnames = [
@@ -37,7 +37,7 @@ class BaseCheckpoint:
             "scope",
             "msg",
             "dataset",
-            "organisatiton",
+            "organisation",
             "entity",
             "entity_json",
             "field",
@@ -112,9 +112,9 @@ class BaseCheckpoint:
         self.failed_expectation_with_error_severity = 0
 
         for expectation in self.expectations:
-            response, issues = self.run_expectation(expectation)
+            response = self.run_expectation(expectation)
             self.responses.append(response)
-            self.issues.append(issues)
+            self.issues.extend(response.issues)
             self.failed_expectation_with_error_severity += response.act_on_failure()
 
         if self.failed_expectation_with_error_severity > 0:
@@ -123,12 +123,13 @@ class BaseCheckpoint:
             )
 
     def save_responses(self, responses, file_path, format="csv"):
+
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:
             if format == "csv":
                 dictwriter = DictWriter(f, fieldnames=self.response_fieldnames)
                 dictwriter.writeheader()
-                dictwriter.writerows([response.to_dict() for response in responses])
+                dictwriter.writerows([response.dict_for_export() for response in responses])
             elif format == "json":
                 json.dump([response.to_dict() for response in responses], f)
             else:
@@ -140,7 +141,7 @@ class BaseCheckpoint:
             if format == "csv":
                 dictwriter = DictWriter(f, fieldnames=self.issue_fieldnames)
                 dictwriter.writeheader()
-                dictwriter.writerows([issue.to_dict() for issue in issues])
+                dictwriter.writerows(issues)#[issue.to_dict() for issue in issues])
             elif format == "json":
                 json.dump([issue.to_dict() for issue in issues], f)
             else:

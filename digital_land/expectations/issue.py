@@ -13,16 +13,25 @@ def issue_factory(scope):
     """
     SCOPE_MAP = {"entity": EntityIssue, "entity-value": EntityValueIssue}
     issue_class = getattr(SCOPE_MAP, scope, "")
-    if issue_class:
-        return issue_class
+    if scope in SCOPE_MAP:
+        return SCOPE_MAP[scope]
     else:
-        raise TypeError("scope of expectation issue is nnot corrrect")
+        raise TypeError(f"scope ({scope}) of expectation issue is nnot corrrect")
 
 
 @dataclass
 class BaseError:
     scope: str
-    message: str
+    msg: str
+
+    def keys(self):
+        return self.__signature__.parameters.keys()
+
+    def get(self, key, default):
+        if key in self.__signature__.parameters.keys():
+            return getattr(self, key)
+        else:
+            return default
 
     def to_dict(self):
         dict = {}
@@ -35,7 +44,7 @@ class BaseError:
 class EntityIssue(BaseError):
     dataset: str
     # might need to replace the below wiht something else
-    organisatiton: str
+    organisation: str
     entity: int
     # let's give all values in the entity, it will be useful later
     entity_json: dict
