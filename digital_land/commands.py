@@ -432,9 +432,9 @@ def add_endpoints_and_lookups(
 
     licence_csv_path = os.path.join(specification_dir, "licence.csv")
     valid_licenses = []
-    with open(licence_csv_path, mode='r', encoding='utf-8') as csvfile:
+    with open(licence_csv_path, mode="r", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
-        valid_licenses = [row['licence'] for row in reader]
+        valid_licenses = [row["licence"] for row in reader]
 
     # need to get collection name from somewhere
     # collection name is NOT the dataset name
@@ -455,8 +455,10 @@ def add_endpoints_and_lookups(
         endpoints = []
         for row in reader:
             if row["licence"] not in valid_licenses:
-                raise ValueError(f"Licence '{row['licence']}' is not a valid licence according to the specification.")
-             
+                raise ValueError(
+                    f"Licence '{row['licence']}' is not a valid licence according to the specification."
+                )
+
             if collection.add_source_endpoint(row):
                 endpoint = {
                     "endpoint-url": row["endpoint-url"],
@@ -596,12 +598,12 @@ def assign_entities(
         # save edited csvs
         max_entity_num = lookups.get_max_entity(pipeline_name)
         lookups.entity_num_gen.state["current"] = max_entity_num
-        lookups.entity_num_gen.state["range_max"] = (
-            specification.get_dataset_entity_max(pipeline_name)
-        )
-        lookups.entity_num_gen.state["range_min"] = (
-            specification.get_dataset_entity_min(pipeline_name)
-        )
+        lookups.entity_num_gen.state[
+            "range_max"
+        ] = specification.get_dataset_entity_max(pipeline_name)
+        lookups.entity_num_gen.state[
+            "range_min"
+        ] = specification.get_dataset_entity_min(pipeline_name)
 
         # TO DO: Currently using pipeline_name to find dataset min, max, current
         # This would not function properly if each resource had a different dataset
