@@ -506,6 +506,8 @@ def add_endpoints_and_lookups(
         )
 
 
+
+
 def resource_from_path(path):
     return Path(path).stem
 
