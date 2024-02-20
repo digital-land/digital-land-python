@@ -32,6 +32,7 @@ def endpoint_url_csv(tmp_path):
         "documentation-url": "https://www.example.com",
         "organisation": "government-organisation:D1342",
         "start-date": "2023-08-10",
+        "licence" : "cc0",
         "plugin": "",
         "pipelines": "ancient-woodland",
     }
