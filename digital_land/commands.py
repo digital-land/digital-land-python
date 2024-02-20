@@ -598,12 +598,12 @@ def assign_entities(
         # save edited csvs
         max_entity_num = lookups.get_max_entity(pipeline_name)
         lookups.entity_num_gen.state["current"] = max_entity_num
-        lookups.entity_num_gen.state[
-            "range_max"
-        ] = specification.get_dataset_entity_max(pipeline_name)
-        lookups.entity_num_gen.state[
-            "range_min"
-        ] = specification.get_dataset_entity_min(pipeline_name)
+        lookups.entity_num_gen.state["range_max"] = (
+            specification.get_dataset_entity_max(pipeline_name)
+        )
+        lookups.entity_num_gen.state["range_min"] = (
+            specification.get_dataset_entity_min(pipeline_name)
+        )
 
         # TO DO: Currently using pipeline_name to find dataset min, max, current
         # This would not function properly if each resource had a different dataset
