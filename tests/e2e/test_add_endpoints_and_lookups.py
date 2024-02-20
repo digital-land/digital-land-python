@@ -32,7 +32,7 @@ def endpoint_url_csv(tmp_path):
         "documentation-url": "https://www.example.com",
         "organisation": "government-organisation:D1342",
         "start-date": "2023-08-10",
-        "licence" : "cc0",
+        "licence": "cc0",
         "plugin": "",
         "pipelines": "ancient-woodland",
     }
@@ -436,6 +436,53 @@ def test_command_add_endpoints_and_lookups_flags_duplicate_endpoint(
 
     assert len(collection.source.entries) == 1
     assert len(collection.endpoint.entries) == 1
+
+
+@pytest.fixture
+def invalid_license_endpoint_csv(tmp_path):
+    """
+    Creates a CSV with an endpoint that has a non-existent license, simulating a scenario where the license doesn't match the specification.
+    """
+    new_endpoints_csv_path = os.path.join(tmp_path, "invalid_license_endpoints.csv")
+    row = {
+        "endpoint-url": "https://www.example.com",
+        "documentation-url": "https://www.example.com",
+        "organisation": "government-organisation:D1342",
+        "start-date": "2023-08-10",
+        "licence": "non-existent-license",
+        "plugin": "",
+        "pipelines": "ancient-woodland",
+    }
+    fieldnames = row.keys()
+    with open(new_endpoints_csv_path, "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    return new_endpoints_csv_path
+
+
+def test_add_endpoints_with_invalid_license_raises_value_error(
+    invalid_license_endpoint_csv,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mocker,
+):
+    """
+    Test to ensure that providing an endpoint with an invalid license raises a ValueError.
+    """
+    with pytest.raises(ValueError) as excinfo:
+        add_endpoints_and_lookups(
+            csv_file_path=invalid_license_endpoint_csv,
+            collection_name="ancient-woodland",
+            collection_dir=Path(collection_dir),
+            pipeline_dir=pipeline_dir,
+            specification_dir=specification_dir,
+            organisation_path=organisation_path,
+        )
+    assert "Licence 'non-existent-license' is not a valid licence" in str(excinfo.value)
 
 
 # adding endpoint requirements
