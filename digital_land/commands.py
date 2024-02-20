@@ -427,7 +427,14 @@ def add_endpoints_and_lookups(
         "documentation-url",
         "endpoint-url",
         "start-date",
+        "licence",
     ]
+
+    licence_csv_path = os.path.join(specification_dir, "licence.csv")
+    valid_licenses = []
+    with open(licence_csv_path, mode='r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        valid_licenses = [row['licence'] for row in reader]
 
     # need to get collection name from somewhere
     # collection name is NOT the dataset name
@@ -447,12 +454,16 @@ def add_endpoints_and_lookups(
         # this is not perfect we should riase validation errors in our code and below should include a try and except statement
         endpoints = []
         for row in reader:
+            if row["licence"] not in valid_licenses:
+                raise ValueError(f"Licence '{row['licence']}' is not a valid licence according to the specification.")
+             
             if collection.add_source_endpoint(row):
                 endpoint = {
                     "endpoint-url": row["endpoint-url"],
                     "endpoint": hash_value(row["endpoint-url"]),
                     "end-date": row.get("end-date", ""),
                     "plugin": row.get("plugin"),
+                    "licence": row["licence"],
                 }
                 endpoints.append(endpoint)
 
