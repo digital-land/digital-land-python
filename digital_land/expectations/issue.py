@@ -12,7 +12,6 @@ def issue_factory(scope):
     Factory to return the correct error dataclass based on scope
     """
     SCOPE_MAP = {"entity": EntityIssue, "entity-value": EntityValueIssue}
-    issue_class = getattr(SCOPE_MAP, scope, "")
     if scope in SCOPE_MAP:
         return SCOPE_MAP[scope]
     else:

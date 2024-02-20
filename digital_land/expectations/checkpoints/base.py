@@ -129,7 +129,9 @@ class BaseCheckpoint:
             if format == "csv":
                 dictwriter = DictWriter(f, fieldnames=self.response_fieldnames)
                 dictwriter.writeheader()
-                dictwriter.writerows([response.dict_for_export() for response in responses])
+                dictwriter.writerows(
+                    [response.dict_for_export() for response in responses]
+                )
             elif format == "json":
                 json.dump([response.to_dict() for response in responses], f)
             else:
@@ -141,7 +143,7 @@ class BaseCheckpoint:
             if format == "csv":
                 dictwriter = DictWriter(f, fieldnames=self.issue_fieldnames)
                 dictwriter.writeheader()
-                dictwriter.writerows(issues)#[issue.to_dict() for issue in issues])
+                dictwriter.writerows(issues)  # [issue.to_dict() for issue in issues])
             elif format == "json":
                 json.dump([issue.to_dict() for issue in issues], f)
             else:

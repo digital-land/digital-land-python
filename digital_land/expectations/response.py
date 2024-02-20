@@ -67,7 +67,7 @@ class ExpectationResponse:
 
     def dict_for_export(self):
         d = self.to_dict()
-        del(d['issues'])
+        del d["issues"]
         return d
 
     def save_to_file(self, dir_path: str):
