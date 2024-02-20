@@ -50,19 +50,21 @@ def flip(x, y, z=None):
 
 
 def parse_wkt(value, boundary):
-    try:
-        geometry = shapely.wkt.loads(value)
-    except WKTReadingError:
+    if isinstance(value, shapely.geometry.base.BaseGeometry):
+        geometry = value
+    else:
         try:
-            geometry = shapely.wkt.loads(shape(json.loads(value)).wkt)
-            return geometry, "invalid type geojson", None
-        except Exception:
-            return (
-                None,
-                "invalid WKT",
-                "Geometry must be in Well-Known Text (WKT) format",
-            )
-
+            geometry = shapely.wkt.loads(value)
+        except WKTReadingError:
+            try:
+                geometry = shapely.wkt.loads(shape(json.loads(value)).wkt)
+                return geometry, "invalid type geojson", None
+            except Exception:
+                return (
+                    None,
+                    "invalid WKT",
+                    "Geometry must be in Well-Known Text (WKT) format",
+                )
     if geometry.geom_type in ["Point", "LineString"]:
         first_point = geometry.coords[0]
     elif geometry.geom_type in ["Polygon"]:
@@ -222,7 +224,6 @@ class WktDataType(DataType):
     def normalise(self, value, default="", issues=None, boundary=None):
         if not value:
             return default
-
         if boundary:
             try:
                 boundary_wkt = shapely.wkt.loads(boundary)
@@ -239,12 +240,10 @@ class WktDataType(DataType):
                 boundary = DEFAULT_BOUNDARY
         else:
             boundary = DEFAULT_BOUNDARY
-
         geometry, issue, message = parse_wkt(value, boundary)
 
         if issues and issue:
             issues.log(issue, "", message=message)
-
         if geometry:
             # Reduce precision prior to normalisation.
             # this prevents reintroduction of errors fixed by

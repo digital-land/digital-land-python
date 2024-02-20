@@ -1,19 +1,25 @@
 import shapely.wkt
 from .wkt import WktDataType
+from shapely.geometry import Point
 
 
 class PointDataType(WktDataType):
     def normalise(self, values, default=["", ""], issues=None):
-        if not values or "" in values:
-            return default
+        try:
+            # Try to load the value as WKT
+            point = shapely.wkt.loads(values)
+            if not isinstance(point, Point):
+                issues.log("Unexpected geom type", values)
+                return ""
+        except shapely.errors.WKTReadingError:
+            # If loading as WKT fails, assume it's a pair of coordinates
+            try:
+                point = Point(float(values[0]), float(values[1]))
+            except (ValueError, IndexError):
+                return default
 
-        point = f"POINT ({values[0]} {values[1]})"
+        # Normalize the point representation
         point = super().normalise(point, issues=issues)
-
         if not point:
             return default
-
-        geometry = shapely.wkt.loads(point)
-        x, y = geometry.coords[0]
-
-        return [str(x), str(y)]
+        return point
