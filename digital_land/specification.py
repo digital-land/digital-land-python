@@ -12,7 +12,7 @@ from .datatype.organisation import OrganisationURIDataType
 from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
 from .datatype.point import PointDataType
-from .datatype.multipolygon import MultiPolygon
+from .datatype.multipolygon import MultiPolygonDataType
 
 specification_path = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "specification"
@@ -161,7 +161,7 @@ class Specification:
             "datetime": DateDataType,
             "url": URIDataType,
             "flag": FlagDataType,
-            "multipolygon": MultiPolygon,
+            "multipolygon": MultiPolygonDataType,
             "point": PointDataType,
             "curie": DataType,  # TODO create proper curie type
         }

@@ -9,7 +9,7 @@ class PointDataType(WktDataType):
             # Try to load the value as WKT
             point = shapely.wkt.loads(values)
             if not isinstance(point, Point):
-                issues.log("Unexpected geom type", values)
+                issues.log("Unexpected geom type", values, "Geometry must be a point")
                 return ""
         except shapely.errors.WKTReadingError:
             # If loading as WKT fails, assume it's a pair of coordinates
