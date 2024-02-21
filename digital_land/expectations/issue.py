@@ -19,7 +19,7 @@ def issue_factory(scope):
 
 
 @dataclass
-class BaseError:
+class BaseIssue:
     scope: str
     msg: str
 
@@ -40,7 +40,7 @@ class BaseError:
 
 
 @dataclass
-class EntityIssue(BaseError):
+class EntityIssue(BaseIssue):
     dataset: str
     # might need to replace the below wiht something else
     organisation: str
@@ -51,7 +51,7 @@ class EntityIssue(BaseError):
 
 
 @dataclass
-class EntityValueIssue(BaseError):
+class EntityValueIssue(BaseIssue):
     dataset: str
     # might need to replace the below wiht something else
     organisatiton: str
