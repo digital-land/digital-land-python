@@ -458,7 +458,10 @@ def add_endpoints_and_lookups(
                 raise ValueError(
                     f"Licence '{row['licence']}' is not a valid licence according to the specification."
                 )
-
+            if not row["documentation-url"].strip():
+                raise ValueError(
+                    "The 'documentation-url' must be populated for each row."
+                )
             if collection.add_source_endpoint(row):
                 endpoint = {
                     "endpoint-url": row["endpoint-url"],
