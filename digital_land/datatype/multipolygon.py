@@ -4,7 +4,7 @@ from .wkt import WktDataType
 
 
 class MultiPolygonDataType(WktDataType):
-    def normalise(self, values, default=None, issues=None):
+    def normalise(self, values, default="", issues=None):
         try:
             # Try to load the value as WKT
             multipolygon = shapely.wkt.loads(values)
