@@ -2,6 +2,10 @@ from datetime import datetime
 
 from .phase import Phase
 from digital_land.datatype.point import PointDataType
+import shapely.wkt
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class HarmonisePhase(Phase):
@@ -54,9 +58,17 @@ class HarmonisePhase(Phase):
                 self.issues.fieldname = "GeoX,GeoY"
 
                 point = PointDataType()
-                (o["GeoX"], o["GeoY"]) = point.normalise(
-                    [o["GeoX"], o["GeoY"]], issues=self.issues
-                )
+                try:
+                    geometry = point.normalise(
+                        [o["GeoX"], o["GeoY"]], issues=self.issues
+                    )
+                    point_geometry = shapely.wkt.loads(geometry)
+                    x, y = point_geometry.coords[0]
+                    (o["GeoX"], o["GeoY"]) = [str(x), str(y)]
+                except Exception as e:
+                    logger.error(
+                        f"Exception occured while fetching geoX, geoY cordinates: {e}"
+                    )
 
             # ensure typology fields are a CURIE
             for typology in ["organisation", "geography", "document"]:

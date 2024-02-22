@@ -732,6 +732,7 @@ def get_resource_unidentified_lookups(
 
 def process_data_in_batches(entities, flattened_dir, dataset_name):
     features = []
+    feature_collection = ""
     for entity in entities:
         geom = entity.pop("geometry")
         point = entity.pop("point")
