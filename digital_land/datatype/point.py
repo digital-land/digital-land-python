@@ -4,7 +4,7 @@ from shapely.geometry import Point
 
 
 class PointDataType(WktDataType):
-    def normalise(self, values, default=["", ""], issues=None):
+    def normalise(self, values, default="", issues=None, boundary=None):
         try:
             # Try to load the value as WKT
             point = shapely.wkt.loads(values)
@@ -15,11 +15,16 @@ class PointDataType(WktDataType):
             # If loading as WKT fails, assume it's a pair of coordinates
             try:
                 point = Point(float(values[0]), float(values[1]))
-            except (ValueError, IndexError):
+            except Exception:
+                issues.log(
+                    "invalid WKT",
+                    values,
+                    "Geometry must be in Well-Known Text (WKT) format",
+                )
                 return default
 
         # Normalize the point representation
-        point = super().normalise(point, issues=issues)
+        point = super().normalise(point, issues=issues, boundary=boundary)
         if not point:
             return default
         return point
