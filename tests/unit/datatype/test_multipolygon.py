@@ -60,7 +60,6 @@ def test_normalise_geojson_provided():
     expected = "MULTIPOLYGON (((-0.143512 51.558395,-0.143558 51.558442,-0.143686 51.558392,-0.143702 51.558352,-0.143677 51.558329,-0.143512 51.558395)))"
 
     actual = wkt.normalise(value, issues=issues)
-    print(issues.rows)
     assert actual == expected
     assert len(issues.rows) == 1, "more than 1 issues being generated"
     assert issues.rows[0]["issue-type"] == "invalid type geojson"

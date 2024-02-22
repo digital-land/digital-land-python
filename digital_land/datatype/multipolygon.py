@@ -41,7 +41,6 @@ class MultiPolygonDataType(WktDataType):
                 return default
 
         # Normalize the multipolygon representation
-        print("b:", boundary)
         normalized_multipolygon = super().normalise(
             multipolygon, issues=issues, boundary=boundary
         )
