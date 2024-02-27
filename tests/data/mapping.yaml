@@ -1,0 +1,4 @@
+mappings:
+- field: test
+  issue-type: type2
+  description: appended description

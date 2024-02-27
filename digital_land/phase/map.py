@@ -7,11 +7,11 @@ normalise_pattern = re.compile(r"[^a-z0-9-_]")
 
 
 def normalise(name):
-    return re.sub(normalise_pattern, "", name.lower())
+    new_name = name.replace("_", "-")
+    return re.sub(normalise_pattern, "", new_name.lower())
 
 
 class MapPhase(Phase):
-
     """
     rename field names using the provided column map
     """
@@ -30,19 +30,21 @@ class MapPhase(Phase):
     def headers(self, fieldnames):
         headers = {}
         matched = []
+
+        # loop to check if mapping exists and add it to header
         for header in sorted(fieldnames):
             fieldname = normalise(header)
-
             for pattern, value in self.columns.items():
                 if fieldname == pattern:
                     matched.append(value)
                     headers[header] = value
 
-            # stop if we found a match
+        # check other remaining fields and ignore if header is same and has already been added
+        for header in sorted(fieldnames):
             if header in headers:
                 continue
-
-            if fieldname in self.normalised_fieldnames:
+            fieldname = normalise(header)
+            if fieldname not in matched and fieldname in self.normalised_fieldnames:
                 headers[header] = self.normalised_fieldnames[fieldname]
                 continue
 
@@ -73,11 +75,7 @@ class MapPhase(Phase):
                 if headers[header] == "IGNORE":
                     continue
 
-                o[headers[header]] = row.get(header, "")
-
-            for header in self.normalised_fieldnames.values():
-                if header not in o:
-                    o[header] = ""
+                o[headers[header]] = row.get(header)
 
             block["row"] = o
 

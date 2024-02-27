@@ -1,4 +1,4 @@
-dataset,end-date,entity,entry-date,geojson,geometry,name,organisation-entity,point,prefix,reference,start-date,typology,listed-building-grade
-listed-building-grade,,700000,2021-11-22,,,I,,,listed-building-grade,I,,category,I
-listed-building-grade,,700001,2021-11-22,,,II,,,listed-building-grade,II,,category,II
-listed-building-grade,,700002,2021-11-22,,,II*,,,listed-building-grade,II*,,category,II*
+dataset,end-date,entity,entry-date,geojson,geometry,name,organisation-entity,point,prefix,reference,start-date,typology,description,notes
+listed-building-grade,,700000,2021-11-22,,,I,,,listed-building-grade,I,,category,,
+listed-building-grade,,700001,2021-11-22,,,II,,,listed-building-grade,II,,category,,
+listed-building-grade,,700002,2021-11-22,,,II*,,,listed-building-grade,II*,,category,,

@@ -47,9 +47,17 @@ class EntityPrunePhase(Phase):
                 entry_number = block["entry-number"]
 
                 if self.issues:
-                    self.issues.log_issue(
-                        "entity", "unknown entity", curie, line_number=line_number
-                    )
+                    if not reference:
+                        self.issues.log_issue(
+                            "entity",
+                            "unknown entity - missing reference",
+                            curie,
+                            line_number=line_number,
+                        )
+                    else:
+                        self.issues.log_issue(
+                            "entity", "unknown entity", curie, line_number=line_number
+                        )
 
                 logging.info(
                     f"{resource} row {entry_number}: missing entity for {curie}"

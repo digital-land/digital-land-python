@@ -24,7 +24,6 @@ class HarmonisePhase(Phase):
     def process(self, stream):
         for block in stream:
             row = block["row"]
-
             self.issues.resource = block["resource"]
             self.issues.line_number = block["line-number"]
             self.issues.entry_number = block["entry-number"]
@@ -41,7 +40,12 @@ class HarmonisePhase(Phase):
                     and datetime.strptime(o[field][:10], "%Y-%m-%d").date()
                     > datetime.today().date()
                 ):
-                    self.issues.log_issue(field, "future entry-date", row[field])
+                    self.issues.log_issue(
+                        field,
+                        "future entry-date",
+                        row[field],
+                        f"{field} must be today or in the past",
+                    )
                     o[field] = ""
 
             # fix point geometry
@@ -60,6 +64,22 @@ class HarmonisePhase(Phase):
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (block["dataset"], value)
 
+            # ensure geometry field is not empty
+            for typology in ["geography"]:
+                # logging error when both geometry & point are empty
+                # TO-DO: will replace this code once we get mandatory list from Specification
+                for field in row:
+                    if field in ["geometry", "point"]:
+                        if (
+                            row.get("geometry") == "" or row.get("geometry") is None
+                        ) and (row.get("point") == "" or row.get("point") is None):
+                            self.issues.log_issue(
+                                field,
+                                "missing value",
+                                "",
+                                f"{field} missing",
+                            )
+
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
                 self.issues.log_issue(
@@ -68,6 +88,6 @@ class HarmonisePhase(Phase):
                 o["wikipedia"] = row["wikipedia"].replace(
                     "https://en.wikipedia.org/wiki/", ""
                 )
-
             block["row"] = o
+
             yield block

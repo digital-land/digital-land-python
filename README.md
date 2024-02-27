@@ -38,6 +38,7 @@
       dataset-entries                dump dataset entries as csv
       fetch                          fetch resource from a single endpoint
       pipeline                       process a resource
+      add-endpoint-and-lookups       add batch of endpoints from csv
 
 ## Development environment
 
@@ -50,6 +51,22 @@ Development requires Python 3.6.2 or later, we recommend using a [virtual enviro
     make init
     make
     python -m digital-land --help
+
+
+## Commands Guide
+
+### add-endpoint-and-lookups
+
+This command allows for adding multiple endpoints and lookups for 
+datasets within a given collection, driven by entries in a csv file.
+
+Detailed instructions for running this command can be found in the Data Operations manual
+within the DLUHC technical documentation repository.
+
+**Use with caution**
+
+(currently only successfully tested on Brownfield Land collection)
+
 
 ## Release procedure
 
@@ -74,3 +91,5 @@ Wait for the [continuous integration tests](https://pypi.python.org/pypi/digital
 The software in this project is open source and covered by the [LICENSE](LICENSE) file.
 
 Individual datasets copied into this repository may have specific copyright and licensing, otherwise all content and data in this repository is [© Crown copyright](http://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/copyright-and-re-use/crown-copyright/) and available under the terms of the [Open Government 3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) licence.
+
+

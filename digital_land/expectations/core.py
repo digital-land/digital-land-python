@@ -8,6 +8,7 @@ from datetime import datetime
 import warnings
 import copy
 import os
+from typing import Optional
 
 
 def transform_df_first_column_into_set(dataframe: pd.DataFrame) -> set:
@@ -93,13 +94,14 @@ class ExpectationResponse:
     result: bool = None
     severity: SeverityEnum = None
     msg: str = None
-    details: dict = None
+    details: Optional[dict] = None
     data_name: str = None
     data_path: str = None
     name: str = None
-    description: str = None
+    description: Optional[str] = None
     expectation: str = None
-    entry_date: str = None
+    entry_date: Optional[str] = None
+    tags: Optional[dict] = None
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"

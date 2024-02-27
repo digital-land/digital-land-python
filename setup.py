@@ -44,7 +44,7 @@ setup(
         "validators",
         "xlrd==1.2.0",
         "openpyxl",
-        "Shapely==1.8.0",  # Version locking till https://github.com/shapely/shapely/issues/1364 is fixed
+        "Shapely==2.0.2",
         "SPARQLWrapper",
         "geojson",
         "spatialite",

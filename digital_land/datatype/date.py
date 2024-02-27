@@ -11,6 +11,7 @@ class DateDataType(DataType):
             "%Y-%m-%d",
             "%Y%m%d",
             "%Y-%m-%dT%H:%M:%S.000Z",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S",
             "%Y-%m-%d %H:%M:%S",
@@ -36,14 +37,24 @@ class DateDataType(DataType):
             "%b-%y",
             "%B %Y",
             "%m/%d/%Y",  # risky!
+            "%s",
         ]:
             try:
                 date = datetime.strptime(value, pattern)
                 return date.strftime("%Y-%m-%d")
             except ValueError:
-                pass
+                try:
+                    if pattern == "%s":
+                        date = datetime.utcfromtimestamp(float(value) / 1000.0)
+                        return date.strftime("%Y-%m-%d")
+                except ValueError:
+                    pass
 
         if issues:
-            issues.log("invalid date", fieldvalue)
+            issues.log(
+                "invalid date",
+                fieldvalue,
+                f"{issues.fieldname} must be a real date",
+            )
 
         return ""

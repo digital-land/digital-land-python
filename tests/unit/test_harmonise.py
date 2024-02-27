@@ -34,3 +34,24 @@ def test_harmonise():
     assert output[0]["row"] == {"field-integer": "123"}, "pass through valid data"
     assert output[1]["row"] == {"field-integer": "321"}, "whitespace trimmed"
     assert output[2]["row"] == {"field-integer": ""}, "remove bad data"
+
+
+def test_harmonise_geometry():
+    specification = Specification("tests/data/specification")
+    issues = IssueLog()
+
+    h = HarmonisePhase(specification=specification, issues=issues)
+    reader = FakeDictReader(
+        [
+            {"organisation": "test_org"},
+        ]
+    )
+    output = list(h.process(reader))
+
+    assert len(output) == 1
+
+    # It should have an issue logged for the empty "geometry" field
+    for issue in issues.rows:
+        assert issue["field"] in ["geometry", "point"]
+        assert issue["issue-type"] == "missing value"
+        assert issue["value"] == ""

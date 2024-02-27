@@ -3,7 +3,6 @@ from .phase import Phase
 
 
 class ConcatFieldPhase(Phase):
-
     """
     concatenate fields
     """

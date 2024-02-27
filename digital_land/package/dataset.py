@@ -1,9 +1,11 @@
 import csv
 import json
-import re
-import shapely.wkt
-from decimal import Decimal
 import logging
+import re
+from decimal import Decimal
+
+import shapely.wkt
+
 from .sqlite import SqlitePackage, colname
 
 logger = logging.getLogger(__name__)
@@ -127,11 +129,22 @@ class DatasetPackage(SqlitePackage):
         """load the old-entity table"""
 
         fields = self.specification.schema["old-entity"]["fields"]
+        entity_min = self.specification.schema[self.dataset].get("entity-minimum")
+        entity_max = self.specification.schema[self.dataset].get("entity-maximum")
+        if entity_min is None or entity_max is None:
+            raise ValueError(
+                "Entity minimum and Entity maximum are not defined in the specification for ",
+                self.dataset,
+            )
+        entity_min = int(entity_min)
+        entity_max = int(entity_max)
         logging.info(f"loading old-entity from {path}")
         self.connect()
         self.create_cursor()
         for row in csv.DictReader(open(path, newline="")):
-            self.insert("old-entity", fields, row)
+            entity_id = int(row.get("old-entity"))
+            if entity_min <= entity_id <= entity_max:
+                self.insert("old-entity", fields, row)
         self.commit()
         self.disconnect()
 
@@ -239,15 +252,16 @@ class DatasetPackage(SqlitePackage):
             row["dataset"] = self.dataset
             self.insert("column-field", fields, row)
 
-    def load_issues(self, path, resource):
+    def load_issues(self, path):
+        self.connect()
+        self.create_cursor()
         fields = self.specification.schema["issue"]["fields"]
-
         logging.info(f"loading issues from {path}")
-
         for row in csv.DictReader(open(path, newline="")):
-            row["resource"] = resource
-            row["dataset"] = self.dataset
             self.insert("issue", fields, row)
+
+        self.commit()
+        self.disconnect()
 
     def load_dataset_resource(self, path, resource):
         fields = self.specification.schema["dataset-resource"]["fields"]

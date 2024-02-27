@@ -14,6 +14,7 @@ schemas = {
             "entry-date",
             "start-date",
             "end-date",
+            "exception",
         ],
         "key": "endpoint",
     },
@@ -64,6 +65,17 @@ schemas = {
             "status",
         ],
         "key": "old-resource",
+    },
+    "lookup": {
+        "key": "lookup",
+        "fields": [
+            "prefix",
+            "resource",
+            "entry-number",
+            "organisation",
+            "reference",
+            "entity",
+        ],
     },
 }
 

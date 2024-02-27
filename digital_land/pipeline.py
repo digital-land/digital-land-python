@@ -3,9 +3,11 @@ import csv
 import functools
 import importlib.util
 import logging
+from pathlib import Path
 
 from .phase.map import normalise
 from .phase.lookup import key as lookup_key
+from .schema import Schema
 
 
 def chain_phases(phases):
@@ -24,6 +26,9 @@ def run_pipeline(*args):
         pass
 
 
+# TODO should we remove loading from init? it makes it harder to test
+# and what if you only wanted to load specific files
+# TODO replace with config models which load is handled by them
 class Pipeline:
     def __init__(self, path, dataset):
         self.dataset = dataset
@@ -70,7 +75,15 @@ class Pipeline:
 
     def load_column(self):
         for row in self.reader("column.csv"):
-            record = self.column.setdefault(row["resource"], {})
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.column.setdefault(resource, {})
+            elif endpoint:
+                record = self.column.setdefault(endpoint, {})
+            else:
+                record = self.column.setdefault("", {})
 
             # migrate column.csv
             row["column"] = row.get("column", "") or row["pattern"]
@@ -112,7 +125,17 @@ class Pipeline:
 
     def load_concat(self):
         for row in self.reader("concat.csv"):
-            record = self.concat.setdefault(row["resource"], {})
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.concat.setdefault(resource, {})
+            elif endpoint:
+                record = self.concat.setdefault(endpoint, {})
+            else:
+                record = self.concat.setdefault("", {})
+
+            # record = self.concat.setdefault(row["resource"], {})
             record[row["field"]] = {
                 "fields": row["fields"].split(";"),
                 "separator": row["separator"],
@@ -154,6 +177,10 @@ class Pipeline:
             ] = row["entity"]
 
             organisation = row.get("organisation", "")
+            # replace local-authority-eng while we migrate
+            organisation = organisation.replace(
+                "local-authority-eng", "local-authority"
+            )
             resource_lookup[
                 lookup_key(
                     prefix=prefix,
@@ -176,14 +203,18 @@ class Pipeline:
             d.update(self.filter.get(resource, {}))
         return d
 
-    def columns(self, resource=""):
+    def columns(self, resource="", endpoints=[]):
         general_columns = self.column.get("", {})
         if not resource:
             return general_columns
 
         resource_columns = self.column.get(resource, {})
+        endpoint_columns = {}
+        for endpoint in endpoints:
+            endpoint_columns = {**endpoint_columns, **self.column.get(endpoint, {})}
 
-        result = resource_columns
+        result = {**endpoint_columns, **resource_columns}
+
         for key in general_columns:
             if key in result:
                 continue
@@ -219,7 +250,9 @@ class Pipeline:
             d[key] = value
         return d
 
-    def default_values(self, endpoints=[]):
+    def default_values(self, endpoints=None):
+        if endpoints is None:
+            endpoints = []
         config = self.default_value
         d = config.get("", {})
         for endpoint in endpoints:
@@ -227,7 +260,9 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def combine_fields(self, endpoints=[]):
+    def combine_fields(self, endpoints=None):
+        if endpoints is None:
+            endpoints = []
         config = self.combine_field
         d = config.get("", {})
         for endpoint in endpoints:
@@ -235,11 +270,15 @@ class Pipeline:
                 d[key] = value
         return d
 
-    def concatenations(self, resource=None):
-        d = self.concat.get("", {})
+    def concatenations(self, resource=None, endpoints=[]):
+        result = self.concat.get("", {})
         if resource:
-            d.update(self.concat.get(resource, {}))
-        return d
+            result.update(self.concat.get(resource, {}))
+
+        for endpoint in endpoints:
+            result.update(self.concat.get(endpoint, {}))
+
+        return result
 
     def migrations(self):
         return self.migrate
@@ -272,3 +311,154 @@ class Pipeline:
         chain = self.compose(phases)
         for row in chain(input_path):
             pass
+
+
+class EntityNumGen:
+    def __init__(self, entity_num_state: dict = None):
+        if not entity_num_state:
+            entity_num_state = {
+                "range_min": 0,
+                "range_max": 100,
+                "current": 0,
+            }
+
+        self.state = entity_num_state
+
+    def next(self):
+        current = self.state["current"]
+        new_current = current + 1
+
+        if new_current > int(self.state["range_max"]):
+            new_current = int(self.state["range_min"])
+
+        if new_current < int(self.state["range_min"]):
+            new_current = int(self.state["range_min"])
+
+        self.state["current"] = new_current
+
+        return new_current
+
+
+class Lookups:
+    def __init__(self, directory=None) -> None:
+        self.directory = directory or "pipeline"
+        self.lookups_path = Path(directory) / "lookup.csv"
+        self.old_entity_path = Path(directory) / "old-entity.csv"
+        self.entries = []
+        self.schema = Schema("lookup")
+        self.entity_num_gen = EntityNumGen()
+
+    def add_entry(self, entry, is_new_entry=True):
+        """
+        is_new_entry is an addition to allow for backward compatibility.
+        Older lookups may not be valid in accordance with the current
+        minimal column requirements
+        :param entry:
+        :param is_new_entry:
+        :return:
+        """
+        if is_new_entry:
+            if not self.validate_entry(entry):
+                return
+
+        self.entries.append(entry)
+
+    def load_csv(self, lookups_path=None):
+        """
+        load in lookups as df, not when we process pipeline but useful for other analysis
+        """
+        lookups_path = lookups_path or self.lookups_path
+        reader = csv.DictReader(open(lookups_path, newline=""))
+        extra_fields = set(reader.fieldnames) - set(self.schema.fieldnames)
+
+        if len(extra_fields):
+            raise RuntimeError(
+                f"{len(extra_fields)} extra fields founds in lookup.csv ({','.join(list(extra_fields))})"
+            )
+
+        for row in reader:
+            self.add_entry(row, is_new_entry=False)
+
+    def get_max_entity(self, prefix) -> int:
+        if len(self.entries) == 0:
+            return 0
+        if not prefix:
+            return 0
+
+        try:
+            ret_val = max(
+                [
+                    int(entry["entity"])
+                    for entry in self.entries
+                    if (entry["prefix"] == prefix) and (entry.get("entity", None))
+                ]
+            )
+            return ret_val
+        except ValueError:
+            return 0
+
+    def save_csv(self, lookups_path=None, entries=None, old_entity_path=None):
+        path = lookups_path or self.lookups_path
+
+        if entries is None:
+            entries = self.entries
+
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        logging.debug("saving %s" % (path))
+        f = open(path, "w", newline="")
+        writer = csv.DictWriter(
+            f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
+        )
+        writer.writeheader()
+
+        entity_values = []
+        if os.path.exists(self.old_entity_path):
+            old_entity_path = self.old_entity_path
+            reader = csv.DictReader(open(old_entity_path, newline=""))
+
+            for row in reader:
+                entity_values.append(row["old-entity"])
+                entity_values.append(row["entity"])
+
+        new_entities = []
+        for idx, entry in enumerate(entries):
+            if not entry:
+                continue
+            else:
+                if not entry.get("entity"):
+                    while True:
+                        generated_entity = self.entity_num_gen.next()
+                        if str(generated_entity) not in entity_values:
+                            entry["entity"] = generated_entity
+                            new_entities.append(entry)
+                            break
+                writer.writerow(entry)
+        return new_entities
+
+    # @staticmethod
+    def validate_entry(self, entry) -> bool:
+        # ensures minimum expected fields exist and are not empty strings
+        expected_fields = ["prefix", "organisation", "reference"]
+        for field in expected_fields:
+            if not entry.get(field, ""):
+                raise ValueError(f"ERROR: expected {field} not found in lookup entry")
+
+        if len(self.entries) > 0:
+            # check entry does not already exist
+            existing_entries = len(
+                [
+                    1
+                    for item in self.entries
+                    if item["prefix"] == entry["prefix"]
+                    and item["organisation"] == entry["organisation"]
+                    and item["reference"] == entry["reference"]
+                ]
+            )
+
+            if existing_entries > 0:
+                # print(f">>> ERROR: lookup already exists - {entry['organisation']} {entry['reference']}")
+                return False
+
+        return True
+
+    # I'm not sure we need this class or if we do it should be an iterator then can be used to iterate through entity numbers by dataset

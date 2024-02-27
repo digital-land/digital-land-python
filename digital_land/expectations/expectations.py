@@ -753,6 +753,7 @@ def count_entities(
     query_runner: QueryRunner,
     expected_result: list,
     filters: dict,
+    assertion_rule: str = "equals_to",
     **kwargs,
 ):
     """
@@ -760,7 +761,11 @@ def count_entities(
     the expected result
 
     filters: provide a dictionary contain any filters to be applied to the dataset, geometry and point are converted
+    assertion_rule: a string describing how to compare the actual result to the expected result. Currently accepts values equals_to and greater_than
     """
+    assertion_rule_set = ["equals_to", "greater_than"]
+    if assertion_rule not in assertion_rule_set:
+        raise ValueError(f"assetion rule must be in {','.join(assertion_rule_set)}")
 
     custom_query = f"""
         SELECT COUNT(*) as count
@@ -771,7 +776,11 @@ def count_entities(
 
     query_result = query_runner.run_query(custom_query)
     actual_result = query_result.to_dict(orient="records")[0]["count"]
-    result = actual_result == expected_result
+
+    if assertion_rule == "equals_to":
+        result = actual_result == expected_result
+    elif assertion_rule == "greater_than":
+        result = actual_result > expected_result
 
     details = {
         "actual_result": actual_result,
