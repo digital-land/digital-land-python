@@ -62,7 +62,6 @@ def test_process_301_redirect():
     redirect_lookups = {"1": {"entity": "2", "status": "301"}}
     phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
     output = [block for block in phase.process(input_stream)]
-    print("output", output[0])
     assert output[0]["row"]["entity"] == "2"
 
 
@@ -80,5 +79,4 @@ def test_process_successful_lookup():
     lookups = {",dataset,1,test": "1"}
     phase = PrintLookupPhase(lookups=lookups)
     output = [block for block in phase.process(input_stream)]
-    print("output", output[0])
     assert output[0]["row"]["entity"] == "1"
