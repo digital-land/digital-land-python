@@ -43,6 +43,9 @@ class ItemStore(CSVStore):
         logging.debug("loading %s%s" % (path, f" after {after}" if after else ""))
         for path in sorted(glob.glob(path)):
             if after:
+                # If we are loading items after a tinmestamp, we can skip anything
+                # in a directory before the date part of that stamp. We want to INCLUDE
+                # the directory of the 'after' date in case the item is later in the day.
                 dirdate = datetime.fromisoformat(
                     os.path.split(os.path.dirname(path))[-1]
                 )
@@ -51,6 +54,8 @@ class ItemStore(CSVStore):
 
             item = self.load_item(path)
             if after and datetime.fromisoformat(item["entry-date"]) <= after:
+                # Check the entry-date of the item against the one are want to load
+                # after.
                 continue
 
             self.add_entry(item)
