@@ -112,7 +112,7 @@ class ResourceLogStore(CSVStore):
         today = datetime.utcnow().isoformat()[:10]
 
         for entry in log.entries:
-            if "resource" in entry:
+            if "resource" in entry and len(entry["resource"]):
                 resource = entry["resource"]
                 if resource not in resources:
                     resources[resource] = {
@@ -144,17 +144,18 @@ class ResourceLogStore(CSVStore):
             if end_date >= today:
                 end_date = ""
 
-            self.add_entry(
-                {
-                    "resource": key,
-                    "bytes": resource["bytes"],
-                    "endpoints": ";".join(sorted(resource["endpoints"])),
-                    "organisations": ";".join(sorted(organisations)),
-                    "datasets": ";".join(sorted(datasets)),
-                    "start-date": isodate(resource["start-date"]),
-                    "end-date": end_date,
-                }
-            )
+            entry = {
+                "resource": key,
+                "bytes": resource["bytes"],
+                "endpoints": ";".join(sorted(resource["endpoints"])),
+                "organisations": ";".join(sorted(organisations)),
+                "datasets": ";".join(sorted(datasets)),
+                "start-date": isodate(resource["start-date"]),
+                "end-date": end_date,
+            }
+
+            if entry not in self.entries:
+                self.add_entry(entry)
 
 
 class SourceStore(CSVStore):
@@ -245,7 +246,7 @@ class Collection:
         self.source = SourceStore()
         self.endpoint = EndpointStore()
 
-    def load_log_items(self, directory=None, log_directory=None):
+    def load_log_items(self, directory=None, log_directory=None, after=None):
         """
         Method to load the log store and resource store from log items instead of csvs. used when csvs don't exist
         or new log items have been created by running a collector
@@ -254,7 +255,7 @@ class Collection:
         log_directory = log_directory or Path(directory) / "log/*/"
 
         logging.info("loading log files")
-        self.log.load(directory=log_directory)
+        self.log.load(directory=log_directory, after=after)
 
         logging.info("indexing resources")
         self.resource.load(log=self.log, source=self.source, directory=directory)
@@ -273,12 +274,32 @@ class Collection:
         self.source.load(directory=directory)
         self.endpoint.load(directory=directory)
 
-        # attempts to load log store and resource store from csv first, if either file isn't found it'll load them from log items
+        regenerate_resouces = False
+
+        # Try to load log store from csv first
         try:
             self.log.load_csv(directory=directory)
-            self.resource.load_csv(directory=directory)
+            print(f"Log loaded from CSV - {len(self.log.entries)} entries")
         except FileNotFoundError:
+            print("No log.csv - building from log items")
             self.load_log_items(directory=directory)
+            regenerate_resouces = True
+
+        # Now try to load resoucres, unless we need to rebuild them anyway
+        if not regenerate_resouces:
+            try:
+                self.resource.load_csv(directory=directory)
+                print(
+                    f"Resource loaded from CSV - {len(self.resource.entries)} entries"
+                )
+            except FileNotFoundError:
+                print("No resources.csv - genereating from log.csv")
+                regenerate_resouces = True
+
+        # Do we need to regenerate resources?
+        if regenerate_resouces:
+            print("Loading resouces from log.csv")
+            self.resource.load(log=self.log, source=self.source, directory=directory)
 
         # attempts to load in old-resources if the file exists, many use cases won't have any
         try:
