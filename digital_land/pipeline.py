@@ -190,12 +190,12 @@ class Pipeline:
             ] = row["entity"]
 
     def load_redirect_lookup(self):
-        for row in self.file_reader("old_entity.csv"):
-            old_entity = row.get("old_entity", "")
+        for row in self.file_reader("old-entity.csv"):
+            old_entity = row.get("old-entity", "")
             entity = row.get("entity", "")
             status = row.get("status", "")
             if old_entity and entity and status:
-                self.resource_lookup[old_entity] = {"entity": entity, "status": status}
+                self.redirect_lookup[old_entity] = {"entity": entity, "status": status}
 
     def filters(self, resource=""):
         d = self.filter.get("", {})
