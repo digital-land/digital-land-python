@@ -75,14 +75,26 @@ def collection_pipeline_makerules(collection_dir):
     collection.pipeline_makerules()
 
 
-def collection_save_csv(collection_dir):
-    try:
-        os.remove(Path(collection_dir) / "log.csv")
-        os.remove(Path(collection_dir) / "resource.csv")
-    except OSError:
-        pass
+def collection_save_csv(collection_dir, update):
+    if not update:
+        try:
+            os.remove(Path(collection_dir) / "log.csv")
+            os.remove(Path(collection_dir) / "resource.csv")
+        except OSError:
+            pass
+    else:
+        print("Running in update mode - not removing existing csv files")
+
     collection = Collection(name=None, directory=collection_dir)
     collection.load()
+    if update:
+        try:
+            collection.load_log_items(after=collection.log.entries[-1]["entry-date"])
+        except IndexError:
+            raise RuntimeError(
+                "Couldn't get last entry date. Run without --update to regenerate log.csv"
+            )
+
     collection.save_csv()
 
 

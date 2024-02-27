@@ -3,6 +3,7 @@
 import os
 import glob
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from ..register import Item
@@ -33,11 +34,25 @@ class ItemStore(CSVStore):
         item.unpack(data)
         return item
 
-    def load_items(self, directory="."):
+    def load_items(self, directory=".", after=None):
         path = "%s/*.json" % (directory)
-        logging.debug("loading %s" % (path))
+        if after:
+            after = datetime.fromisoformat(after)
+            startdate = datetime(year=after.year, month=after.month, day=after.day)
+
+        logging.debug("loading %s%s" % (path, f" after {after}" if after else ""))
         for path in sorted(glob.glob(path)):
+            if after:
+                dirdate = datetime.fromisoformat(
+                    os.path.split(os.path.dirname(path))[-1]
+                )
+                if dirdate < startdate:
+                    continue
+
             item = self.load_item(path)
+            if after and datetime.fromisoformat(item["entry-date"]) <= after:
+                continue
+
             self.add_entry(item)
 
     def load(self, *args, **kwargs):
