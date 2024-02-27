@@ -26,7 +26,7 @@ def test_collection(
     # Pytest fixtures
     tmp_path,
 ):
-    collection_save_csv(collection_dir)
+    collection_save_csv(collection_dir, False)
 
     # Assert
     actual_log_csv = collection_dir.joinpath("log.csv")
