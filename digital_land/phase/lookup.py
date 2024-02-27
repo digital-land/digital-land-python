@@ -24,8 +24,8 @@ class LookupPhase(Phase):
     lookup entity numbers by CURIE
     """
 
-    def __init__(self, entity_field):
-        self.entity_field = entity_field
+    def __init__(self, lookups={}):
+        self.lookups = lookups
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
@@ -64,13 +64,11 @@ class LookupPhase(Phase):
 
 
 class EntityLookupPhase(LookupPhase):
-    def __init__(self, **kwargs):
-        super().__init__(entity_field="entity", **kwargs)
+    entity_field = "entity"
 
 
 class FactLookupPhase(LookupPhase):
-    def __init__(self, **kwargs):
-        super().__init__(entity_field="reference-entity", **kwargs)
+    entity_field = "reference-entity"
 
 
 class PrintLookupPhase(Phase):
@@ -94,7 +92,7 @@ class PrintLookupPhase(Phase):
             organisation = row.get("organisation", "")
             if prefix:
                 if not row.get(self.entity_field, ""):
-                    entity = (
+                    row[self.entity_field] = (
                         # by the resource and row number
                         (
                             self.entity_field == "entity"
@@ -115,7 +113,8 @@ class PrintLookupPhase(Phase):
                             row[self.entity_field] = new_entity["entity"]
                         elif new_entity and new_entity["status"] == "410":
                             row[self.entity_field] = ""
-            if not entity:
+
+            if not row[self.entity_field]:
                 if prefix and organisation and reference:
                     new_lookup = {
                         "prefix": prefix,
