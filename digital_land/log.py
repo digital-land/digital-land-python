@@ -106,12 +106,11 @@ class IssueLog(Log):
 
 
 class ColumnFieldLog(Log):
-    fieldnames = ["entry-date", "dataset", "resource", "column", "field"]
+    fieldnames = ["dataset", "resource", "column", "field"]
 
     def add(self, column, field):
         self.rows.append(
             {
-                "entry-date": entry_date(),
                 "dataset": self.dataset,
                 "resource": self.resource,
                 "column": column,
@@ -122,7 +121,6 @@ class ColumnFieldLog(Log):
 
 class DatasetResourceLog(Log):
     fieldnames = [
-        "entry-date",
         "dataset",
         "resource",
         "entry-count",
@@ -143,7 +141,6 @@ class DatasetResourceLog(Log):
     def add(self):
         self.rows.append(
             {
-                "entry-date": entry_date(),
                 "dataset": self.dataset,
                 "resource": self.resource,
                 "entry-count": self.entry_count,
