@@ -91,7 +91,11 @@ class LogStore(ItemStore):
 # a register of resources constructed from the log register
 class ResourceLogStore(CSVStore):
     def load(
-        self, log: LogStore, source: CSVStore, directory: str = DEFAULT_COLLECTION_DIR
+        self,
+        log: LogStore,
+        source: CSVStore,
+        directory: str = DEFAULT_COLLECTION_DIR,
+        after: datetime = None,
     ):
         """
         Rebuild resource.csv file from the log store
@@ -107,17 +111,24 @@ class ResourceLogStore(CSVStore):
         :type source: CSVStore
         :param directory:
         :type directory: str
+        :param after:
+        :type directory: datetime
         """
         resources = {}
         today = datetime.utcnow().isoformat()[:10]
 
+        # Process the log entries
         for entry in log.entries:
             if "resource" in entry and len(entry["resource"]):
+                if after:
+                    if entry["entry-date"] < after:
+                        continue
+
                 resource = entry["resource"]
                 if resource not in resources:
                     resources[resource] = {
                         "bytes": entry["bytes"],
-                        "endpoints": {},
+                        "endpoints": set(),
                         "start-date": entry["entry-date"],
                         "end-date": entry["entry-date"],
                     }
@@ -128,7 +139,10 @@ class ResourceLogStore(CSVStore):
                     resources[resource]["end-date"] = max(
                         resources[resource]["end-date"], entry["entry-date"]
                     )
-                resources[resource]["endpoints"][entry["endpoint"]] = True
+                resources[resource]["endpoints"].add(entry["endpoint"])
+
+        # Convert these into resource entries to be added
+        new_entries = {}
 
         for key, resource in sorted(resources.items()):
             organisations = set()
@@ -144,18 +158,51 @@ class ResourceLogStore(CSVStore):
             if end_date >= today:
                 end_date = ""
 
-            entry = {
-                "resource": key,
+            new_entries[key] = {
                 "bytes": resource["bytes"],
-                "endpoints": ";".join(sorted(resource["endpoints"])),
-                "organisations": ";".join(sorted(organisations)),
-                "datasets": ";".join(sorted(datasets)),
+                "endpoints": resource["endpoints"],
+                "organisations": organisations,
+                "datasets": datasets,
                 "start-date": isodate(resource["start-date"]),
                 "end-date": end_date,
             }
 
-            if entry not in self.entries:
-                self.add_entry(entry)
+        # Update existing entries
+        for entry in self.entries:
+            resource = entry["resource"]
+            if resource in new_entries:
+                new_entry = new_entries[resource]
+                endpoints = set(entry["endpoints"].split(";")).union(
+                    new_entry["endpoints"]
+                )
+                organisations = set(entry["organisations"].split(";")).union(
+                    new_entry["organisations"]
+                )
+                datasets = set(entry["datasets"].split(";")).union(
+                    new_entry["datasets"]
+                )
+
+                entry["endpoints"] = ";".join(sorted(endpoints))
+                entry["organisations"] = ";".join(sorted(organisations))
+                entry["datasets"] = ";".join(sorted(datasets))
+                entry["start-date"] = min(entry["start-date"], new_entry["start-date"])
+                entry["end-date"] = max(entry["end-date"], new_entry["end-date"])
+
+                del new_entries[resource]  # Remove it from the list so we don't add it
+
+        # Add any new entries
+        for resource, new_entry in new_entries.items():
+            self.add_entry(
+                {
+                    "resource": resource,
+                    "bytes": new_entry["bytes"],
+                    "endpoints": ";".join(sorted(new_entry["endpoints"])),
+                    "organisations": ";".join(sorted(new_entry["organisations"])),
+                    "datasets": ";".join(sorted(new_entry["endpoints"])),
+                    "start-date": isodate(new_entry["start-date"]),
+                    "end-date": new_entry["end-date"],
+                }
+            )
 
 
 class SourceStore(CSVStore):
@@ -258,7 +305,9 @@ class Collection:
         self.log.load(directory=log_directory, after=after)
 
         logging.info("indexing resources")
-        self.resource.load(log=self.log, source=self.source, directory=directory)
+        self.resource.load(
+            log=self.log, source=self.source, directory=directory, after=after
+        )
 
     def save_csv(self, directory=None):
         directory = directory or self.dir
