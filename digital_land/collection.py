@@ -198,7 +198,7 @@ class ResourceLogStore(CSVStore):
                     "bytes": new_entry["bytes"],
                     "endpoints": ";".join(sorted(new_entry["endpoints"])),
                     "organisations": ";".join(sorted(new_entry["organisations"])),
-                    "datasets": ";".join(sorted(new_entry["endpoints"])),
+                    "datasets": ";".join(sorted(new_entry["datasets"])),
                     "start-date": isodate(new_entry["start-date"]),
                     "end-date": new_entry["end-date"],
                 }
