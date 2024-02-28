@@ -36,7 +36,11 @@ class DefaultPhase(Phase):
                 if not row.get(field, ""):
                     value = self.default_values.get(field, "")
                     if value:
-                        self.issues.log_issue(field, "default-value", value)
+                        # TODO organisation and entry-date are being replaced systematically
+                        # using default-value. This is cuasing tons of issues which are meaningless
+                        # need to improve default-field to be able to map this
+                        if field not in ["organisation", "entry-date"]:
+                            self.issues.log_issue(field, "default-value", value)
                         row[field] = value
 
             yield block
