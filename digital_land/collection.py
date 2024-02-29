@@ -356,6 +356,9 @@ class Collection:
         except FileNotFoundError:
             pass
 
+    def update(self):
+        self.load_log_items(after=self.log.entries[-1]["entry-date"])
+
     def resource_endpoints(self, resource):
         "the list of endpoints a resource was collected from"
         return self.resource.records[resource][-1]["endpoints"].split(";")
