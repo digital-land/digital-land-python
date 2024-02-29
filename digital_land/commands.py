@@ -680,7 +680,10 @@ def get_resource_unidentified_lookups(
 
     # print lookups phase
     pipeline_lookups = pipeline.lookups()
-    print_lookup_phase = PrintLookupPhase(lookups=pipeline_lookups)
+    redirect_lookups = pipeline.redirect_lookups()
+    print_lookup_phase = PrintLookupPhase(
+        lookups=pipeline_lookups, redirect_lookups=redirect_lookups
+    )
 
     run_pipeline(
         ConvertPhase(

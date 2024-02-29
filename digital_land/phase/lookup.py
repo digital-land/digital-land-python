@@ -72,8 +72,9 @@ class FactLookupPhase(LookupPhase):
 
 
 class PrintLookupPhase(Phase):
-    def __init__(self, lookups={}):
+    def __init__(self, lookups={}, redirect_lookups={}):
         self.lookups = lookups
+        self.redirect_lookups = redirect_lookups
         self.entity_field = "entity"
         self.new_lookup_entries = []
 
@@ -91,7 +92,7 @@ class PrintLookupPhase(Phase):
             organisation = row.get("organisation", "")
             if prefix:
                 if not row.get(self.entity_field, ""):
-                    entity = (
+                    row[self.entity_field] = (
                         # by the resource and row number
                         (
                             self.entity_field == "entity"
@@ -105,7 +106,15 @@ class PrintLookupPhase(Phase):
                             reference=reference,
                         )
                     )
-            if not entity:
+                    if self.redirect_lookups:
+                        old_entity = row[self.entity_field]
+                        new_entity = self.redirect_lookups.get(old_entity, "")
+                        if new_entity and new_entity["status"] == "301":
+                            row[self.entity_field] = new_entity["entity"]
+                        elif new_entity and new_entity["status"] == "410":
+                            row[self.entity_field] = ""
+
+            if not row[self.entity_field]:
                 if prefix and organisation and reference:
                     new_lookup = {
                         "prefix": prefix,
