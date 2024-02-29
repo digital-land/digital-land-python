@@ -328,9 +328,9 @@ class Collection:
         # Try to load log store from csv first
         try:
             self.log.load_csv(directory=directory)
-            print(f"Log loaded from CSV - {len(self.log.entries)} entries")
+            logging.info(f"Log loaded from CSV - {len(self.log.entries)} entries")
         except FileNotFoundError:
-            print("No log.csv - building from log items")
+            logging.info("No log.csv - building from log items")
             self.load_log_items(directory=directory)
             regenerate_resouces = True
 
@@ -338,16 +338,16 @@ class Collection:
         if not regenerate_resouces:
             try:
                 self.resource.load_csv(directory=directory)
-                print(
+                logging.info(
                     f"Resource loaded from CSV - {len(self.resource.entries)} entries"
                 )
             except FileNotFoundError:
-                print("No resources.csv - genereating from log.csv")
+                logging.info("No resources.csv - genereating from log.csv")
                 regenerate_resouces = True
 
         # Do we need to regenerate resources?
         if regenerate_resouces:
-            print("Generating resouces from log.csv")
+            logging.info("Generating resouces from log.csv")
             self.resource.load(log=self.log, source=self.source, directory=directory)
 
         # attempts to load in old-resources if the file exists, many use cases won't have any

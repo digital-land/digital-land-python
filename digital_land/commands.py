@@ -77,13 +77,14 @@ def collection_pipeline_makerules(collection_dir):
 
 def collection_save_csv(collection_dir, update):
     if not update:
+        logging.info("Removing old log.csv and resource.csv")
         try:
             os.remove(Path(collection_dir) / "log.csv")
             os.remove(Path(collection_dir) / "resource.csv")
         except OSError:
             pass
     else:
-        print("Running in update mode - not removing existing csv files")
+        logging.info("Running in update mode - not removing log.csv or resource.csv")
 
     collection = Collection(name=None, directory=collection_dir)
     collection.load()
