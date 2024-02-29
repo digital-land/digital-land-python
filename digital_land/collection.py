@@ -347,7 +347,7 @@ class Collection:
 
         # Do we need to regenerate resources?
         if regenerate_resouces:
-            print("Loading resouces from log.csv")
+            print("Generating resouces from log.csv")
             self.resource.load(log=self.log, source=self.source, directory=directory)
 
         # attempts to load in old-resources if the file exists, many use cases won't have any

@@ -88,12 +88,7 @@ def collection_save_csv(collection_dir, update):
     collection = Collection(name=None, directory=collection_dir)
     collection.load()
     if update:
-        try:
-            collection.load_log_items(after=collection.log.entries[-1]["entry-date"])
-        except IndexError:
-            raise RuntimeError(
-                "Couldn't get last entry date. Run without --update to regenerate log.csv"
-            )
+        collection.update()
 
     collection.save_csv()
 
