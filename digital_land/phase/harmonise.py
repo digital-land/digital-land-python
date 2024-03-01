@@ -7,6 +7,40 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+mandatory_fields_dict = {
+    "article-4-direction": [
+        "reference",
+        "name",
+        "description",
+        "document-url",
+        "documentation-url",
+    ],
+    "article-4-direction-area": [
+        "reference",
+        "geometry",
+        "name",
+        "permitted-development-rights",
+    ],
+    "conservation-area": ["reference", "geometry", "name"],
+    "conservation-area-document": [
+        "reference",
+        "name",
+        "conservation-area",
+        "document-url",
+        "documentation-url",
+        "document-type",
+    ],
+    "tree-preservation-order": [
+        "reference",
+        "name",
+        "document-url",
+        "documentation-url",
+    ],
+    "tree-preservation-zone": ["reference", "geometry"],
+    "listed-building-outline": ["reference", "geometry", "name", "listed-building"],
+    "tree": ["reference", "point", "geometry"],
+}
+
 
 class HarmonisePhase(Phase):
     def __init__(
@@ -76,6 +110,7 @@ class HarmonisePhase(Phase):
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (block["dataset"], value)
 
+            mandatory_fields = mandatory_fields_dict.get(block["dataset"])
             # ensure geometry field is not empty
             for typology in ["geography"]:
                 # logging error when both geometry & point are empty
@@ -85,6 +120,14 @@ class HarmonisePhase(Phase):
                         if (
                             row.get("geometry") == "" or row.get("geometry") is None
                         ) and (row.get("point") == "" or row.get("point") is None):
+                            self.issues.log_issue(
+                                field,
+                                "missing value",
+                                "",
+                                f"{field} missing",
+                            )
+                    elif mandatory_fields and field in mandatory_fields:
+                        if row.get(field) == "" or row.get(field) is None:
                             self.issues.log_issue(
                                 field,
                                 "missing value",
