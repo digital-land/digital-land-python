@@ -3,6 +3,7 @@ import csv
 import os
 import pytest
 import canonicaljson
+import datetime
 
 from digital_land.commands import collection_save_csv
 from digital_land.collection import Collection
@@ -382,6 +383,7 @@ def test_collection_update_older(test_collection_update_fixture):
     collection.update()
     assert len(collection.log.entries) == 1
     assert len(collection.resource.entries) == 1
+    assert collection.resource.entries[0]["end-date"] == "2019-01-01"
 
 
 def test_collection_update_newer(test_collection_update_fixture):
@@ -399,3 +401,24 @@ def test_collection_update_newer(test_collection_update_fixture):
     # Update
     collection.update()
     assert len(collection.log.entries) == 2
+    assert collection.resource.entries[0]["end-date"] == "2019-01-02"
+
+
+def test_collection_update_today(test_collection_update_fixture):
+    # Check that a successful collection today results in a blank end-date
+    test_collection_update = test_collection_update_fixture(
+        datetime.datetime.utcnow().isoformat()
+    )
+
+    collection = Collection(directory=test_collection_update)
+
+    # Load from CSVs
+    collection.load()
+    assert len(collection.log.entries) == 1
+    assert len(collection.resource.entries) == 1
+
+    # Update
+    collection.update()
+    assert len(collection.log.entries) == 2
+    assert len(collection.resource.entries) == 1
+    assert collection.resource.entries[0]["end-date"] == ""

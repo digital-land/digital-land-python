@@ -154,17 +154,13 @@ class ResourceLogStore(CSVStore):
                         entry.get("datasets", entry.get("pipelines", "")).split(";")
                     )
 
-            end_date = isodate(resource["end-date"])
-            if end_date >= today:
-                end_date = ""
-
             new_entries[key] = {
                 "bytes": resource["bytes"],
                 "endpoints": resource["endpoints"],
                 "organisations": organisations,
                 "datasets": datasets,
                 "start-date": isodate(resource["start-date"]),
-                "end-date": end_date,
+                "end-date": isodate(resource["end-date"]),
             }
 
         # Update existing entries
@@ -181,12 +177,14 @@ class ResourceLogStore(CSVStore):
                 datasets = set(entry["datasets"].split(";")).union(
                     new_entry["datasets"]
                 )
+                start_date = min(entry["start-date"], new_entry["start-date"])
+                end_date = max(entry["end-date"], new_entry["end-date"])
 
                 entry["endpoints"] = ";".join(sorted(endpoints))
                 entry["organisations"] = ";".join(sorted(organisations))
                 entry["datasets"] = ";".join(sorted(datasets))
-                entry["start-date"] = min(entry["start-date"], new_entry["start-date"])
-                entry["end-date"] = max(entry["end-date"], new_entry["end-date"])
+                entry["start-date"] = start_date
+                entry["end-date"] = "" if end_date >= today else end_date
 
                 del new_entries[resource]  # Remove it from the list so we don't add it
 
@@ -199,8 +197,10 @@ class ResourceLogStore(CSVStore):
                     "endpoints": ";".join(sorted(new_entry["endpoints"])),
                     "organisations": ";".join(sorted(new_entry["organisations"])),
                     "datasets": ";".join(sorted(new_entry["datasets"])),
-                    "start-date": isodate(new_entry["start-date"]),
-                    "end-date": new_entry["end-date"],
+                    "start-date": new_entry["start-date"],
+                    "end-date": (
+                        "" if new_entry["end-date"] >= today else new_entry["end-date"]
+                    ),
                 }
             )
 
