@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Storing mandatory fields in dict for now until added to specification
 mandatory_fields_dict = {
     "article-4-direction": [
         "reference",
