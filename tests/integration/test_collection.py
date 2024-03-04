@@ -43,6 +43,7 @@ def test_collection(
     actual_resource_csv = collection_dir.joinpath("resource.csv")
     expected_resource_csv = populated_collection_dir_results.joinpath("resource.csv")
     expected_log_csv = populated_collection_dir_results.joinpath("log.csv")
+
     with actual_log_csv.open() as log_file:
         log_csv = csv.DictReader(log_file)
         logs = list(log_csv)

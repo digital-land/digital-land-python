@@ -65,7 +65,6 @@ class LogStore(ItemStore):
             item["endpoint"] = hash_value(item["endpoint-url"])
         self.check_item_path(item, path)
 
-        self._latest_entry_date = None
         return item
 
     def save_item(self, item, path):
@@ -92,14 +91,18 @@ class LogStore(ItemStore):
 
         return True
 
-    def latest_entry_date(self):
-        """Gets the latest entry date from the log, recalcuating it first if needed.
-        Returns None if there are no entries (None is also used to show the cached
-        date needs to be generated, but if there are no entries this is a no-op anyway)
-        """
-        if not self._latest_entry_date and len(self.entries):
-            self._latest_entry_date = max(map(lambda x: x["entry-date"], self.entries))
+    def add_entry(self, item):
+        super().add_entry(item)
+        # Update the _latest_entry_date
+        if "entry-date" in item:
+            if (
+                not self._latest_entry_date
+                or item["entry-date"] > self._latest_entry_date
+            ):
+                self._latest_entry_date = item["entry-date"]
 
+    def latest_entry_date(self):
+        """Gets the latest entry date from the log"""
         return self._latest_entry_date
 
 
