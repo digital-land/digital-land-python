@@ -33,6 +33,10 @@ def resource_url(collection, resource):
 # a store of log files created by the collector
 # collecton/log/YYYY-MM-DD/{endpoint#}.json
 class LogStore(ItemStore):
+    def __init__(self, *args, **kwargs):
+        self._latest_entry_date = None
+        super().__init__(*args, **kwargs)
+
     def load_item(self, path):
         item = super().load_item(path)
         item = item.copy()
@@ -61,6 +65,7 @@ class LogStore(ItemStore):
             item["endpoint"] = hash_value(item["endpoint-url"])
         self.check_item_path(item, path)
 
+        self._latest_entry_date = None
         return item
 
     def save_item(self, item, path):
@@ -86,6 +91,16 @@ class LogStore(ItemStore):
             return False
 
         return True
+
+    def latest_entry_date(self):
+        """Gets the latest entry date from the log, recalcuating it first if needed.
+        Returns None if there are no entries (None is also used to show the cached
+        date needs to be generated, but if there are no entries this is a no-op anyway)
+        """
+        if not self._latest_entry_date and len(self.entries):
+            self._latest_entry_date = max(map(lambda x: x["entry-date"], self.entries))
+
+        return self._latest_entry_date
 
 
 # a register of resources constructed from the log register
@@ -357,7 +372,7 @@ class Collection:
             pass
 
     def update(self):
-        self.load_log_items(after=self.log.entries[-1]["entry-date"])
+        self.load_log_items(after=self.log.latest_entry_date())
 
     def resource_endpoints(self, resource):
         "the list of endpoints a resource was collected from"
