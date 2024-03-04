@@ -3,7 +3,7 @@ class FakeDictReader:
     # csv.DictReader). Simply returns values from the passed in list of rows.
     def __init__(self, rows, resource=None, dataset=None):
         self.resource = resource
-        self.dataset = resource
+        self.dataset = dataset
         self.fieldnames = rows[0].keys()
         self.rows = iter(rows)
         self.line_number = 0
