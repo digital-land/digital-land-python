@@ -116,12 +116,12 @@ class ResourceLogStore(CSVStore):
         after: datetime = None,
     ):
         """
-        Rebuild resource.csv file from the log store
-
-        This does not depend in any way on the current state of resource.csv on the file system
+        Rebuild or update resource.csv file from the log store.
 
         We cannot assume that all resources are present on the local file system as we also want to keep records
-        of resources we have not collected within the current collector execution due to their end_date elapsing
+        of resources we have not collected within the current collector execution due to their end_date elapsing.
+
+        If 'after' is not None, only log entires after the given datetime will be loaded (used when updating).
 
         :param log:
         :type log: LogStore
@@ -314,7 +314,8 @@ class Collection:
     def load_log_items(self, directory=None, log_directory=None, after=None):
         """
         Method to load the log store and resource store from log items instead of csvs. used when csvs don't exist
-        or new log items have been created by running a collector
+        or new log items have been created by running a collector. If 'after' is not None, only log items after the
+        specified date / time will be loaded.
         """
         directory = directory or self.dir
         log_directory = log_directory or Path(directory) / "log/*/"
