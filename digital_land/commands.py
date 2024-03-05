@@ -163,6 +163,7 @@ def pipeline_run(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
             custom_temp_dir=custom_temp_dir,
+            dataset=dataset,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),

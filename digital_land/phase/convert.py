@@ -121,10 +121,12 @@ class ConvertPhase(Phase):
         dataset_resource_log=None,
         custom_temp_dir=None,
         output_path=None,
+        dataset=None,
     ):
         self.path = path
         self.log = dataset_resource_log
         self.charset = ""
+        self.dataset = dataset
         # Allows for custom temporary directory to be specified
         # This allows symlink creation in case of /tmp & path being on different partitions
         if custom_temp_dir:
@@ -156,7 +158,7 @@ class ConvertPhase(Phase):
             # raise StopIteration()
             reader = iter(())
 
-        return Stream(input_path, f=reader, log=self.log)
+        return Stream(input_path, f=reader, log=self.log, dataset=self.dataset)
 
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)

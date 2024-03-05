@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Storing mandatory fields in dict for now until added to specification
-mandatory_fields_dict = {
+MANDATORY_FIELDS_DICT = {
     "article-4-direction": [
         "reference",
         "name",
@@ -111,11 +111,12 @@ class HarmonisePhase(Phase):
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (block["dataset"], value)
 
-            mandatory_fields = mandatory_fields_dict.get(block["dataset"])
+            mandatory_fields = MANDATORY_FIELDS_DICT.get(block["dataset"])
             # ensure geometry field is not empty
             for typology in ["geography"]:
-                # logging error when both geometry & point are empty
-                # TO-DO: will replace this code once we get mandatory list from Specification
+                # Check for missing values in mandatory fields
+                # Only checking fields given to us - not checking for missing fields
+                # EITHER geometry or point must not be empty if the field is given
                 for field in row:
                     if field in ["geometry", "point"]:
                         if (
