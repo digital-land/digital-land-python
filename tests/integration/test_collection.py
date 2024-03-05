@@ -3,6 +3,7 @@ import csv
 import os
 import pytest
 import canonicaljson
+import datetime
 
 from digital_land.commands import collection_save_csv
 from digital_land.collection import Collection
@@ -10,6 +11,15 @@ from digital_land.collection import Collection
 
 def _get_filename_without_suffix_from_path(path):
     return path.name[: -len("".join(path.suffixes))]
+
+
+def _write_csv(dir, **kwargs):
+    for file in kwargs.keys():
+        data = kwargs[file]
+        with open(os.path.join(dir, file + ".csv"), "w") as f:
+            dictwriter = csv.DictWriter(f, fieldnames=data.keys())
+            dictwriter.writeheader()
+            dictwriter.writerow(data)
 
 
 def test_collection(
@@ -33,6 +43,7 @@ def test_collection(
     actual_resource_csv = collection_dir.joinpath("resource.csv")
     expected_resource_csv = populated_collection_dir_results.joinpath("resource.csv")
     expected_log_csv = populated_collection_dir_results.joinpath("log.csv")
+
     with actual_log_csv.open() as log_file:
         log_csv = csv.DictReader(log_file)
         logs = list(log_csv)
@@ -153,10 +164,31 @@ def test_collection_load_all_csvs_present(test_collection_with_log_and_resource)
     assert len(collection.endpoint.entries) > 0
 
 
+def test_collection_load_no_resource_csv(test_collection_with_log_and_resource):
+    os.remove(os.path.join(test_collection_with_log_and_resource, "resource.csv"))
+    collection = Collection(directory=test_collection_with_log_and_resource)
+    collection.load()
+
+    assert len(collection.log.entries) > 0
+    assert len(collection.resource.entries) > 0
+    assert len(collection.source.entries) > 0
+    assert len(collection.endpoint.entries) > 0
+
+    # repeat but set directory in method
+    collection = Collection()
+    collection.load(directory=test_collection_with_log_and_resource)
+
+    assert len(collection.log.entries) > 0
+    assert len(collection.resource.entries) > 0
+    assert len(collection.source.entries) > 0
+    assert len(collection.endpoint.entries) > 0
+
+
 @pytest.fixture
 def test_collection_without_log_and_resource_csvs(tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
+
     endpoint = {
         "endpoint": "test",
         "endpoint-url": "test.com",
@@ -240,3 +272,154 @@ def test_collection_load_resource_and_logs_from_log_items(
     assert len(collection.resource.entries) > 0
     assert len(collection.source.entries) > 0
     assert len(collection.endpoint.entries) > 0
+
+
+@pytest.fixture
+def test_collection_update_fixture(tmp_path):
+
+    def _fixture(log_entry_date):
+        collection_dir = os.path.join(tmp_path, "collection")
+        os.makedirs(collection_dir, exist_ok=True)
+
+        # Write the existing log and resource file
+        _write_csv(
+            dir=collection_dir,
+            log={
+                "bytes": "2",
+                "content-type": "",
+                "elapsed": "0.5",
+                "endpoint": "test",
+                "resource": "test",
+                "status": "200",
+                "entry-date": "2019-01-01",
+                "start-date": "2019-01-01",
+                "end-date": "",
+                "exception": "",
+            },
+            resource={
+                "resource": "test",
+                "bytes": "2",
+                "organisations": "test",
+                "datasets": "test",
+                "endpoints": "test",
+                "start-date": "2019-01-01",
+                "end-date": "",
+            },
+        )
+
+        # Write the endpoint/source for the new log item
+        _write_csv(
+            dir=collection_dir,
+            endpoint={
+                "endpoint": "test",
+                "endpoint-url": "test.com",
+                "parameters": "",
+                "plugin": "",
+                "entry-date": "2019-01-01",
+                "start-date": "2019-01-01",
+                "end-date": "",
+            },
+            source={
+                "source": "test1",
+                "attribution": "",
+                "collection": "test",
+                "documentation-url": "testing.com",
+                "endpoint": "test",
+                "licence": "test",
+                "organisation": "test-org",
+                "pipelines": "test",
+                "entry-date": "2019-01-01",
+                "start-date": "2019-01-01",
+                "end-date": "",
+            },
+        )
+
+        # And the item itself
+        raw_log = {
+            "bytes": "20",
+            "elapsed": "0.5",
+            "endpoint-url": "test.com",
+            "endpoint": "test",
+            "entry-date": log_entry_date,
+            "request-headers": {
+                "Accept": "*/*",
+                "Accept-Encoding": "gzip, deflate",
+                "Connection": "keep-alive",
+                "User-Agent": "DLUHC Digital Land",
+            },
+            "resource": "test",
+            "response-headers": {
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            },
+            "ssl-verify": "true",
+            "status": "200",
+        }
+
+        log_dir = os.path.join(collection_dir, "log")
+        path = os.path.join(log_dir, log_entry_date[:10], "test.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            data = canonicaljson.encode_canonical_json(raw_log)
+            with open(path, "wb") as f:
+                f.write(data)
+
+        return collection_dir
+
+    return _fixture
+
+
+def test_collection_update_older(test_collection_update_fixture):
+    test_collection_update = test_collection_update_fixture(
+        "2018-12-31T23:59:55.012345"
+    )
+
+    collection = Collection(directory=test_collection_update)
+
+    # Load from CSVs
+    collection.load()
+    assert len(collection.log.entries) == 1
+    assert len(collection.resource.entries) == 1
+
+    # Update
+    collection.update()
+    assert len(collection.log.entries) == 1
+    assert len(collection.resource.entries) == 1
+    assert collection.resource.entries[0]["end-date"] == "2019-01-01"
+
+
+def test_collection_update_newer(test_collection_update_fixture):
+    test_collection_update = test_collection_update_fixture(
+        "2019-01-02T12:45:56.789012"
+    )
+
+    collection = Collection(directory=test_collection_update)
+
+    # Load from CSVs
+    collection.load()
+    assert len(collection.log.entries) == 1
+    assert len(collection.resource.entries) == 1
+
+    # Update
+    collection.update()
+    assert len(collection.log.entries) == 2
+    assert collection.resource.entries[0]["end-date"] == "2019-01-02"
+
+
+def test_collection_update_today(test_collection_update_fixture):
+    # Check that a successful collection today results in a blank end-date
+    test_collection_update = test_collection_update_fixture(
+        datetime.datetime.utcnow().isoformat()
+    )
+
+    collection = Collection(directory=test_collection_update)
+
+    # Load from CSVs
+    collection.load()
+    assert len(collection.log.entries) == 1
+    assert len(collection.resource.entries) == 1
+
+    # Update
+    collection.update()
+    assert len(collection.log.entries) == 2
+    assert len(collection.resource.entries) == 1
+    assert collection.resource.entries[0]["end-date"] == ""

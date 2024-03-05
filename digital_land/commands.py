@@ -76,13 +76,10 @@ def collection_pipeline_makerules(collection_dir):
 
 
 def collection_save_csv(collection_dir):
-    try:
-        os.remove(Path(collection_dir) / "log.csv")
-        os.remove(Path(collection_dir) / "resource.csv")
-    except OSError:
-        pass
     collection = Collection(name=None, directory=collection_dir)
+
     collection.load()
+    collection.update()
     collection.save_csv()
 
 

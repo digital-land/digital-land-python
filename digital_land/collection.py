@@ -33,6 +33,10 @@ def resource_url(collection, resource):
 # a store of log files created by the collector
 # collecton/log/YYYY-MM-DD/{endpoint#}.json
 class LogStore(ItemStore):
+    def __init__(self, *args, **kwargs):
+        self._latest_entry_date = None
+        super().__init__(*args, **kwargs)
+
     def load_item(self, path):
         item = super().load_item(path)
         item = item.copy()
@@ -87,19 +91,37 @@ class LogStore(ItemStore):
 
         return True
 
+    def add_entry(self, item):
+        super().add_entry(item)
+        # Update the _latest_entry_date
+        if "entry-date" in item:
+            if (
+                not self._latest_entry_date
+                or item["entry-date"] > self._latest_entry_date
+            ):
+                self._latest_entry_date = item["entry-date"]
+
+    def latest_entry_date(self):
+        """Gets the latest entry date from the log"""
+        return self._latest_entry_date
+
 
 # a register of resources constructed from the log register
 class ResourceLogStore(CSVStore):
     def load(
-        self, log: LogStore, source: CSVStore, directory: str = DEFAULT_COLLECTION_DIR
+        self,
+        log: LogStore,
+        source: CSVStore,
+        directory: str = DEFAULT_COLLECTION_DIR,
+        after: datetime = None,
     ):
         """
-        Rebuild resource.csv file from the log store
-
-        This does not depend in any way on the current state of resource.csv on the file system
+        Rebuild or update resource.csv file from the log store.
 
         We cannot assume that all resources are present on the local file system as we also want to keep records
-        of resources we have not collected within the current collector execution due to their end_date elapsing
+        of resources we have not collected within the current collector execution due to their end_date elapsing.
+
+        If 'after' is not None, only log entires after the given datetime will be loaded (used when updating).
 
         :param log:
         :type log: LogStore
@@ -107,17 +129,24 @@ class ResourceLogStore(CSVStore):
         :type source: CSVStore
         :param directory:
         :type directory: str
+        :param after:
+        :type directory: datetime
         """
         resources = {}
         today = datetime.utcnow().isoformat()[:10]
 
+        # Process the log entries
         for entry in log.entries:
-            if "resource" in entry:
+            if "resource" in entry and len(entry["resource"]):
+                if after:
+                    if entry["entry-date"] < after:
+                        continue
+
                 resource = entry["resource"]
                 if resource not in resources:
                     resources[resource] = {
                         "bytes": entry["bytes"],
-                        "endpoints": {},
+                        "endpoints": set(),
                         "start-date": entry["entry-date"],
                         "end-date": entry["entry-date"],
                     }
@@ -128,7 +157,10 @@ class ResourceLogStore(CSVStore):
                     resources[resource]["end-date"] = max(
                         resources[resource]["end-date"], entry["entry-date"]
                     )
-                resources[resource]["endpoints"][entry["endpoint"]] = True
+                resources[resource]["endpoints"].add(entry["endpoint"])
+
+        # Convert these into resource entries to be added
+        new_entries = {}
 
         for key, resource in sorted(resources.items()):
             organisations = set()
@@ -140,19 +172,53 @@ class ResourceLogStore(CSVStore):
                         entry.get("datasets", entry.get("pipelines", "")).split(";")
                     )
 
-            end_date = isodate(resource["end-date"])
-            if end_date >= today:
-                end_date = ""
+            new_entries[key] = {
+                "bytes": resource["bytes"],
+                "endpoints": resource["endpoints"],
+                "organisations": organisations,
+                "datasets": datasets,
+                "start-date": isodate(resource["start-date"]),
+                "end-date": isodate(resource["end-date"]),
+            }
 
+        # Update existing entries
+        for entry in self.entries:
+            resource = entry["resource"]
+            if resource in new_entries:
+                new_entry = new_entries[resource]
+                endpoints = set(entry["endpoints"].split(";")).union(
+                    new_entry["endpoints"]
+                )
+                organisations = set(entry["organisations"].split(";")).union(
+                    new_entry["organisations"]
+                )
+                datasets = set(entry["datasets"].split(";")).union(
+                    new_entry["datasets"]
+                )
+                start_date = min(entry["start-date"], new_entry["start-date"])
+                end_date = max(entry["end-date"], new_entry["end-date"])
+
+                entry["endpoints"] = ";".join(sorted(endpoints))
+                entry["organisations"] = ";".join(sorted(organisations))
+                entry["datasets"] = ";".join(sorted(datasets))
+                entry["start-date"] = start_date
+                entry["end-date"] = "" if end_date >= today else end_date
+
+                del new_entries[resource]  # Remove it from the list so we don't add it
+
+        # Add any new entries
+        for resource, new_entry in new_entries.items():
             self.add_entry(
                 {
-                    "resource": key,
-                    "bytes": resource["bytes"],
-                    "endpoints": ";".join(sorted(resource["endpoints"])),
-                    "organisations": ";".join(sorted(organisations)),
-                    "datasets": ";".join(sorted(datasets)),
-                    "start-date": isodate(resource["start-date"]),
-                    "end-date": end_date,
+                    "resource": resource,
+                    "bytes": new_entry["bytes"],
+                    "endpoints": ";".join(sorted(new_entry["endpoints"])),
+                    "organisations": ";".join(sorted(new_entry["organisations"])),
+                    "datasets": ";".join(sorted(new_entry["datasets"])),
+                    "start-date": new_entry["start-date"],
+                    "end-date": (
+                        "" if new_entry["end-date"] >= today else new_entry["end-date"]
+                    ),
                 }
             )
 
@@ -245,19 +311,22 @@ class Collection:
         self.source = SourceStore()
         self.endpoint = EndpointStore()
 
-    def load_log_items(self, directory=None, log_directory=None):
+    def load_log_items(self, directory=None, log_directory=None, after=None):
         """
         Method to load the log store and resource store from log items instead of csvs. used when csvs don't exist
-        or new log items have been created by running a collector
+        or new log items have been created by running a collector. If 'after' is not None, only log items after the
+        specified date / time will be loaded.
         """
         directory = directory or self.dir
         log_directory = log_directory or Path(directory) / "log/*/"
 
         logging.info("loading log files")
-        self.log.load(directory=log_directory)
+        self.log.load(directory=log_directory, after=after)
 
         logging.info("indexing resources")
-        self.resource.load(log=self.log, source=self.source, directory=directory)
+        self.resource.load(
+            log=self.log, source=self.source, directory=directory, after=after
+        )
 
     def save_csv(self, directory=None):
         directory = directory or self.dir
@@ -273,18 +342,41 @@ class Collection:
         self.source.load(directory=directory)
         self.endpoint.load(directory=directory)
 
-        # attempts to load log store and resource store from csv first, if either file isn't found it'll load them from log items
+        regenerate_resouces = False
+
+        # Try to load log store from csv first
         try:
             self.log.load_csv(directory=directory)
-            self.resource.load_csv(directory=directory)
+            logging.info(f"Log loaded from CSV - {len(self.log.entries)} entries")
         except FileNotFoundError:
+            logging.info("No log.csv - building from log items")
             self.load_log_items(directory=directory)
+            regenerate_resouces = True
+
+        # Now try to load resoucres, unless we need to rebuild them anyway
+        if not regenerate_resouces:
+            try:
+                self.resource.load_csv(directory=directory)
+                logging.info(
+                    f"Resource loaded from CSV - {len(self.resource.entries)} entries"
+                )
+            except FileNotFoundError:
+                logging.info("No resources.csv - genereating from log.csv")
+                regenerate_resouces = True
+
+        # Do we need to regenerate resources?
+        if regenerate_resouces:
+            logging.info("Generating resouces from log.csv")
+            self.resource.load(log=self.log, source=self.source, directory=directory)
 
         # attempts to load in old-resources if the file exists, many use cases won't have any
         try:
             self.old_resource.load(directory=directory)
         except FileNotFoundError:
             pass
+
+    def update(self):
+        self.load_log_items(after=self.log.latest_entry_date())
 
     def resource_endpoints(self, resource):
         "the list of endpoints a resource was collected from"
