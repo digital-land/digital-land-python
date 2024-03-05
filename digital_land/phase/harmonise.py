@@ -44,13 +44,10 @@ MANDATORY_FIELDS_DICT = {
 
 
 class HarmonisePhase(Phase):
-    def __init__(
-        self,
-        specification=None,
-        issues=None,
-    ):
+    def __init__(self, specification=None, issues=None, dataset=None):
         self.specification = specification
         self.issues = issues
+        self.dataset = dataset
 
     def harmonise_field(self, fieldname, value):
         if not value:
@@ -109,9 +106,9 @@ class HarmonisePhase(Phase):
             for typology in ["organisation", "geography", "document"]:
                 value = o.get(typology, "")
                 if value and ":" not in value:
-                    o[typology] = "%s:%s" % (block["dataset"], value)
+                    o[typology] = "%s:%s" % (self.dataset, value)
 
-            mandatory_fields = MANDATORY_FIELDS_DICT.get(block["dataset"])
+            mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset)
             # ensure geometry field is not empty
             for typology in ["geography"]:
                 # Check for missing values in mandatory fields
