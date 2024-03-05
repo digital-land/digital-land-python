@@ -84,7 +84,7 @@ def test_harmonise_geometry_present_no_point_field():
     specification = Specification("tests/data/specification")
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues)
+    h = HarmonisePhase(specification=specification, issues=issues, dataset="tree")
     reader = FakeDictReader(
         [
             {
@@ -92,7 +92,6 @@ def test_harmonise_geometry_present_no_point_field():
                 "organisation": "test_org",
             },
         ],
-        dataset="tree",
     )
     output = list(h.process(reader))
 
@@ -106,7 +105,9 @@ def test_harmonise_missing_mandatory_values():
     specification = Specification("tests/data/specification")
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues)
+    h = HarmonisePhase(
+        specification=specification, issues=issues, dataset="article-4-direction"
+    )
     reader = FakeDictReader(
         [
             {
@@ -118,7 +119,6 @@ def test_harmonise_missing_mandatory_values():
                 "organisation": "test_org",
             },
         ],
-        dataset="article-4-direction",
     )
     output = list(h.process(reader))
 

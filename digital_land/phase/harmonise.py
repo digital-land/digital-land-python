@@ -109,30 +109,29 @@ class HarmonisePhase(Phase):
                     o[typology] = "%s:%s" % (self.dataset, value)
 
             mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset)
-            # ensure geometry field is not empty
-            for typology in ["geography"]:
-                # Check for missing values in mandatory fields
-                # Only checking fields given to us - not checking for missing fields
-                # EITHER geometry or point must not be empty if the field is given
-                for field in row:
-                    if field in ["geometry", "point"]:
-                        if (
-                            row.get("geometry") == "" or row.get("geometry") is None
-                        ) and (row.get("point") == "" or row.get("point") is None):
-                            self.issues.log_issue(
-                                field,
-                                "missing value",
-                                "",
-                                f"{field} missing",
-                            )
-                    elif mandatory_fields and field in mandatory_fields:
-                        if row.get(field) == "" or row.get(field) is None:
-                            self.issues.log_issue(
-                                field,
-                                "missing value",
-                                "",
-                                f"{field} missing",
-                            )
+
+            # Check for missing values in mandatory fields
+            # Only checking fields given to us - not checking for missing fields
+            # One of geometry or point must not be empty if either field is given
+            for field in row:
+                if field in ["geometry", "point"]:
+                    if (row.get("geometry") == "" or row.get("geometry") is None) and (
+                        row.get("point") == "" or row.get("point") is None
+                    ):
+                        self.issues.log_issue(
+                            field,
+                            "missing value",
+                            "",
+                            f"{field} missing",
+                        )
+                elif mandatory_fields and field in mandatory_fields:
+                    if row.get(field) == "" or row.get(field) is None:
+                        self.issues.log_issue(
+                            field,
+                            "missing value",
+                            "",
+                            f"{field} missing",
+                        )
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
