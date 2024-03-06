@@ -177,6 +177,7 @@ def pipeline_run(
         HarmonisePhase(
             specification=specification,
             issues=issue_log,
+            dataset=dataset,
         ),
         DefaultPhase(
             default_fields=default_fields,
