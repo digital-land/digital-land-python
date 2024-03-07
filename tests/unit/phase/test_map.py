@@ -131,3 +131,13 @@ def test_map_column_names_with_underscores_when_column_in_specification():
         output
         == "Organisation-Label,SiteNameAddress,end-date\r\ncol-1-val,,col-2-val\r\n"
     )
+
+
+def test_null_to_empty_string():
+    fieldnames = ["Nada"]
+    columns = {}
+
+    output = list(MapPhase(fieldnames, columns).process([{"row":{"Nada":None}}]))
+
+    assert len(output) == 1
+    assert output[0]['row']['Nada'] == ""
