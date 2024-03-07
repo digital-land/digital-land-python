@@ -137,7 +137,7 @@ def test_null_to_empty_string():
     fieldnames = ["Nada"]
     columns = {}
 
-    output = list(MapPhase(fieldnames, columns).process([{"row":{"Nada":None}}]))
+    output = list(MapPhase(fieldnames, columns).process([{"row": {"Nada": None}}]))
 
     assert len(output) == 1
-    assert output[0]['row']['Nada'] == ""
+    assert output[0]["row"]["Nada"] == ""
