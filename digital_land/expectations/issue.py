@@ -4,22 +4,30 @@ expectation errors that can be recorded when running expectations
 """
 
 from pydantic.dataclasses import dataclass
-from typing import Any
 
 
 def issue_factory(scope):
     """
     Factory to return the correct error dataclass based on scope
     """
-    SCOPE_MAP = {"entity": EntityIssue, "entity-value": EntityValueIssue}
+    SCOPE_MAP = {
+        "dataset": DatasetIssue,
+        "organisation": OrganisationIssue,
+        "field": FieldIssue,
+        "row-group": RowGroupIssue,
+        "row": RowIssue,
+        "value": ValueIssue,
+    }
     if scope in SCOPE_MAP:
         return SCOPE_MAP[scope]
     else:
-        raise TypeError(f"scope ({scope}) of expectation issue is nnot corrrect")
+        raise TypeError(f"scope ({scope}) of expectation issue is not corrrect")
 
 
+# TODO review below against pydantic classes to see if we're following best practice
 @dataclass
-class BaseIssue:
+class Issue:
+    response_id: str
     scope: str
     msg: str
 
@@ -40,24 +48,81 @@ class BaseIssue:
 
 
 @dataclass
-class EntityIssue(BaseIssue):
+class DatasetIssue(Issue):
     dataset: str
-    # might need to replace the below wiht something else
-    organisation: str
-    entity: int
-    # let's give all values in the entity, it will be useful later
-    entity_json: dict
-    details: dict = None
+
+    def __post_init__(self):
+        issue_scope = "dataset"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")
 
 
 @dataclass
-class EntityValueIssue(BaseIssue):
+class OrganisationIssue(Issue):
     dataset: str
-    # might need to replace the below wiht something else
-    organisatiton: str
-    entity: int
-    # let's give all values in the entity, it will be useful later
-    field: str
-    value: Any
-    entity_json: dict
-    details: dict = None
+    organisation: str
+
+    def __post_init__(self):
+        issue_scope = "organisation"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")
+
+
+@dataclass
+class FieldIssue(Issue):
+    scope: str
+    dataset: str
+    table_name: str
+    field_name: str
+    organisation: str = None
+
+    def __post_init__(self):
+        issue_scope = "field"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")
+
+
+@dataclass
+class RowGroupIssue(Issue):
+    scope: str = "row-group"
+    dataset: str
+    table_name: str
+    row_id: str
+    rows: list
+    organisation: str = None
+
+    def __post_init__(self):
+        issue_scope = "row-group"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")
+
+
+@dataclass
+class RowIssue(Issue):
+    scope: str
+    dataset: str
+    table_name: str
+    row_id: str
+    row: dict
+    organisation: str = None
+
+    def __post_init__(self):
+        issue_scope = "row"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")
+
+
+@dataclass
+class ValueIssue(Issue):
+    scope: str
+    dataset: str
+    table_name: str
+    field_name: str
+    row_id: str
+    value: str
+    organisation: str = None
+
+    def __post_init__(self):
+        issue_scope = "value"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")

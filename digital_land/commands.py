@@ -44,7 +44,6 @@ from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from .register import hash_value
-from digital_land.expectations import run_expectations
 
 
 def fetch(url, pipeline):
@@ -373,10 +372,6 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             # clear up input geojson file
             if os.path.isfile(temp_path):
                 os.remove(temp_path)
-
-
-def expectations(results_path, sqlite_dataset_path, data_quality_yaml):
-    run_expectations(results_path, sqlite_dataset_path, data_quality_yaml)
 
 
 #

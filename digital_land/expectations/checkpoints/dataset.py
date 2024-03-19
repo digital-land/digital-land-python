@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from .base import BaseCheckpoint
 from ..utils import QueryRunner
@@ -23,7 +24,7 @@ TYPOLOGY = {
             "function": check_json_field_is_not_blank,
             "name": "Check entities in a document dataset have a document field",
             "severity": "warning",
-            "responsibility": "external",
+            "responsibility": "internal",
             "field": "document-url",
         }
     ],
@@ -35,7 +36,7 @@ DATASET = {
             "function": check_json_field_is_not_blank,
             "name": "Check article 4 direction area has an associated article 4 direction",
             "severity": "warning",
-            "responsibility": "external",
+            "responsibility": "internal",
             "field": "article-4-direction",
         }
     ]
@@ -43,10 +44,14 @@ DATASET = {
 
 
 class DatasetCheckpoint(BaseCheckpoint):
-    def __init__(self, checkpoint, dataset_path, dataset, typology):
-        super().__init__(checkpoint, dataset_path)
-        self.dataset_path = dataset_path
-        self.dataset = dataset
+    def __init__(self, dataset_path, typology, dataset=None):
+
+        super().__init__("dataset", dataset_path)
+        self.dataset_path = Path(dataset_path)
+        if dataset:
+            self.dataset = dataset
+        else:
+            self.dataset = self.dataset_path.stem
         self.typology = typology
 
     def load(self):

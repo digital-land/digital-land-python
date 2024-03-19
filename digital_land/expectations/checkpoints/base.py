@@ -21,28 +21,23 @@ class BaseCheckpoint:
         # each issue is going to have different fields, so define here what all of them are
         # this will take some iterations to get right
         self.response_fieldnames = [
-            "expectation",
-            "name",
-            "checkpoint",
+            "response_id",
             "result",
+            "message",
             "severity",
-            "msg",
+            "responsibility",
+            "checkpoint",
             "data_name",
-            "data_path",
-            "description",
-            "entry_date",
         ]
         self.issue_fieldnames = [
-            "expectation",
+            "response_id",
             "scope",
-            "msg",
-            "dataset",
+            "message" "dataset",
             "organisation",
-            "entity",
-            "entity_json",
-            "field",
-            "value",
-            "details",
+            "table_name",
+            "field_name",
+            "row_id" "rows",
+            "row" "value",
         ]
 
     def load():
