@@ -14,7 +14,6 @@ import warnings
 from enum import Enum
 from pydantic.dataclasses import dataclass
 from dataclasses_json import dataclass_json
-from typing import Optional
 
 
 class SeverityEnum(str, Enum):
@@ -37,17 +36,16 @@ class SeverityEnum(str, Enum):
 class ExpectationResponse:
     """Class to keep inputs and results of expectations"""
 
-    expectation: str
-    name: str
+    response_id: str
     checkpoint: str
     result: bool
     severity: SeverityEnum
     msg: str
     issues: list
     data_name: str = None
-    data_path: str = None
-    description: Optional[str] = None
-    entry_date: Optional[str] = None
+    # data_path: str = None
+    # description: Optional[str] = None
+    # entry_date: Optional[str] = None
 
     def __post_init__(self):
         "Adds a few more interesting items and adjusts response for log"

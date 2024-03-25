@@ -23,7 +23,7 @@ class BaseCheckpoint:
         self.response_fieldnames = [
             "response_id",
             "result",
-            "message",
+            "msg",
             "severity",
             "responsibility",
             "checkpoint",
@@ -32,12 +32,15 @@ class BaseCheckpoint:
         self.issue_fieldnames = [
             "response_id",
             "scope",
-            "message" "dataset",
+            "msg",
+            "dataset",
             "organisation",
             "table_name",
             "field_name",
-            "row_id" "rows",
-            "row" "value",
+            "row_id",
+            "rows",
+            "row",
+            "value",
         ]
 
     def load():
@@ -82,10 +85,10 @@ class BaseCheckpoint:
         validated_issues = []
         for issue in issues:
             issue_class = issue_factory(issue["scope"])
-            validated_issues.append(issue_class(**issue))
+            validated_issues.append(issue_class(**issue, response_id=expectation_hash))
 
         return ExpectationResponse(
-            expectation=expectation_hash,
+            response_id=expectation_hash,
             checkpoint=self.checkpoint,
             entry_date=entry_date,
             name=expectation["name"],

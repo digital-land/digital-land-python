@@ -52,22 +52,21 @@ def test_run_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
         test_old_entity_data.to_sql("old_entity", con, if_exists="append", index=False)
 
     checkpoint = DatasetCheckpoint(
-        "test-checkpoint", sqlite3_with_entity_tables_path, "test", None
+        sqlite3_with_entity_tables_path,
+        None,
     )
     checkpoint.load()
     checkpoint.run()
     checkpoint.save(tmp_path)
 
-    with open(
-        os.path.join(tmp_path, "test-checkpoint", "test-responses.csv"), "r"
-    ) as f:
+    with open(os.path.join(tmp_path, "dataset", "test-responses.csv"), "r") as f:
         responses = list(DictReader(f))
 
-    with open(os.path.join(tmp_path, "test-checkpoint", "test-issues.csv"), "r") as f:
+    with open(os.path.join(tmp_path, "dataset", "test-issues.csv"), "r") as f:
         issues = list(DictReader(f))
 
     assert len(responses) == 1
-    assert responses[0]["checkpoint"] == "test-checkpoint"
+    assert responses[0]["checkpoint"] == "dataset"
     assert responses[0]["result"] == "True"
     assert responses[0]["severity"] == "warning"
     assert responses[0]["msg"] == "No enities found in old-entities"
@@ -91,27 +90,30 @@ def test_run_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
         test_old_entity_data.to_sql("old_entity", con, if_exists="append", index=False)
 
     checkpoint = DatasetCheckpoint(
-        "test-checkpoint", sqlite3_with_entity_tables_path, "test", None
+        sqlite3_with_entity_tables_path,
+        None,
     )
     checkpoint.load()
     checkpoint.run()
     checkpoint.save(tmp_path)
 
-    with open(
-        os.path.join(tmp_path, "test-checkpoint", "test-responses.csv"), "r"
-    ) as f:
+    with open(os.path.join(tmp_path, "dataset", "test-responses.csv"), "r") as f:
         responses = list(DictReader(f))
 
-    with open(os.path.join(tmp_path, "test-checkpoint", "test-issues.csv"), "r") as f:
+    with open(os.path.join(tmp_path, "dataset", "test-issues.csv"), "r") as f:
         issues = list(DictReader(f))
 
     assert len(responses) == 1
-    assert responses[0]["checkpoint"] == "test-checkpoint"
+    assert responses[0]["checkpoint"] == "dataset"
     assert responses[0]["result"] == "False"
     assert responses[0]["severity"] == "warning"
     assert responses[0]["msg"] == "1 enities found in old-entities"
 
     assert len(issues) == 1
-    assert responses[0]["checkpoint"] == "test-checkpoint"
-    assert responses[0]["result"] == "False"
-    assert responses[0]["severity"] == "warning"
+    assert issues[0]["response_id"] == responses[0]["response_id"]
+    assert issues[0]["scope"] == "row"
+    assert issues[0]["msg"] == "this entity should be retired"
+    assert issues[0]["dataset"] == "test-dataset"
+    assert issues[0]["organisation"] == "123"
+    assert issues[0]["table_name"] == "entity"
+    assert issues[0]["row_id"] == "1"

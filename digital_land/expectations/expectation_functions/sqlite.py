@@ -916,13 +916,13 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
             {
                 "scope": "row",
                 "dataset": entity["dataset"],
-                "organisation": entity["organisation"],
+                "organisation": entity["organisation_entity"],
                 "table_name": "entity",
-                "row_id": entity["entity"],
+                "row_id": str(entity["entity"]),
                 "row": entity,
                 "msg": "this entity should be retired",
             }
-            for entity in entities_in_old.flatten()
+            for entity in entities_in_old.to_dict(orient="records")
         ]
 
     return result, msg, issues

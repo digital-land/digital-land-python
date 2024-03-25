@@ -74,7 +74,7 @@ class FieldIssue(Issue):
     dataset: str
     table_name: str
     field_name: str
-    organisation: str = None
+    organisation: str
 
     def __post_init__(self):
         issue_scope = "field"
@@ -84,12 +84,12 @@ class FieldIssue(Issue):
 
 @dataclass
 class RowGroupIssue(Issue):
-    scope: str = "row-group"
+    scope: str
     dataset: str
     table_name: str
     row_id: str
     rows: list
-    organisation: str = None
+    organisation: str
 
     def __post_init__(self):
         issue_scope = "row-group"
@@ -104,7 +104,7 @@ class RowIssue(Issue):
     table_name: str
     row_id: str
     row: dict
-    organisation: str = None
+    organisation: str
 
     def __post_init__(self):
         issue_scope = "row"
@@ -120,7 +120,7 @@ class ValueIssue(Issue):
     field_name: str
     row_id: str
     value: str
-    organisation: str = None
+    organisation: str
 
     def __post_init__(self):
         issue_scope = "value"
