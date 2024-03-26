@@ -77,15 +77,7 @@ class Collector:
                 timeout=120,
                 verify=verify_ssl,
             )
-        except (
-            requests.exceptions.SSLError,
-            requests.ConnectionError,
-            requests.HTTPError,
-            requests.Timeout,
-            requests.TooManyRedirects,
-            requests.exceptions.MissingSchema,
-            requests.exceptions.ChunkedEncodingError,
-        ) as exception:
+        except (requests.RequestException,) as exception:
             logging.warning(exception)
             log["exception"] = type(exception).__name__
             response = None
