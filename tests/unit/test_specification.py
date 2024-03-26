@@ -1,3 +1,5 @@
+import pytest
+
 from digital_land.specification import Specification
 from digital_land.datatype.string import StringDataType
 from digital_land.datatype.integer import IntegerDataType
@@ -160,3 +162,46 @@ def test_field_parent():
 def test_typology():
     specification = Specification("tests/data/specification")
     assert specification.typology["category"]["name"] == "Category"
+
+
+def test_get_field_datatype_map_returns_correct_values(mocker):
+    fields = {"child-test": {"datatype": "string"}, "parent-test": {"datatype": "url"}}
+
+    mocker.patch("digital_land.specification.Specification.__init__", return_value=None)
+
+    spec = Specification()
+    spec.field = fields
+    assert {
+        "child-test": "string",
+        "parent-test": "url",
+    } == spec.get_field_datatype_map()
+
+
+def test_get_field_typology_map_returns_correct_values(mocker):
+    fields = {
+        "child-test": {"parent-field": "parent-test"},
+        "parent-test": {"parent-field": "parent-test"},
+    }
+
+    mocker.patch("digital_land.specification.Specification.__init__", return_value=None)
+
+    spec = Specification()
+    spec.field = fields
+    assert {
+        "child-test": "parent-test",
+        "parent-test": "parent-test",
+    } == spec.get_field_typology_map()
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        ({"field": {"prefix": "prefix"}}, {"field": "prefix"}),
+        ({"field": {}}, {"field": "field"}),
+        ({"field": {"prefix": ""}}, {"field": "field"}),
+    ],
+)
+def test_get_field_prefix_map_returns_correct_values(input, expected):
+    spec = Specification()
+    spec.field = input
+    assert expected == spec.get_field_prefix_map()

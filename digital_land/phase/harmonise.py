@@ -2,8 +2,10 @@ from datetime import datetime
 
 from .phase import Phase
 from digital_land.datatype.point import PointDataType
+from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -44,17 +46,41 @@ MANDATORY_FIELDS_DICT = {
 
 
 class HarmonisePhase(Phase):
-    def __init__(self, specification=None, issues=None, dataset=None):
+    def __init__(
+        self, field_datatype_map=None, specification=None, issues=None, dataset=None
+    ):
+        self.field_datatype_map = field_datatype_map
         self.specification = specification
         self.issues = issues
         self.dataset = dataset
+
+    def get_field_datatype_name(self, fieldname):
+        if self.field_datatype_map:
+            try:
+                datatype_name = self.field_datatype_map[fieldname]
+            except KeyError:
+                raise ValueError(f"field {fieldname} does not have a datatype mapping")
+
+        elif self.specification:
+            warnings.warn(
+                "providing specification is depreciated please provide field_datatype_map instead",
+                DeprecationWarning,
+                2,
+            )
+            datatype_name = self.specification.field[fieldname]["datatype"]
+
+        else:
+            raise ValueError("please provide field_datatype_map")
+
+        return datatype_name
 
     def harmonise_field(self, fieldname, value):
         if not value:
             return ""
 
         self.issues.fieldname = fieldname
-        datatype = self.specification.field_type(fieldname)
+        datatype_name = self.get_field_datatype_name(fieldname)
+        datatype = datatype_factory(datatype_name=datatype_name)
         return datatype.normalise(value, issues=self.issues)
 
     def process(self, stream):
