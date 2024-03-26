@@ -85,7 +85,28 @@ def test_harmonise_geometry_present_point_missing():
 
     assert len(output) == 1
 
-    # As one of geometry or multipolygon exist, no issue is flagged
+    # As one of geometry or point exist, no issue is flagged
+    assert len(issues.rows) == 0
+
+
+def test_harmonise_geometry_present_no_point_field():
+    specification = Specification("tests/data/specification")
+    issues = IssueLog()
+
+    h = HarmonisePhase(specification=specification, issues=issues, dataset="tree")
+    reader = FakeDictReader(
+        [
+            {
+                "geometry": "MULTIPOLYGON (((-0.469666 51.801822, -0.469666 51.80819, -0.455246 51.80819, -0.455246 51.801822, -0.469666 51.801822)))",
+                "organisation": "test_org",
+            },
+        ],
+    )
+    output = list(h.process(reader))
+
+    assert len(output) == 1
+
+    # As geometry is given (even without point field present) there is no issue raised
     assert len(issues.rows) == 0
 
 
@@ -100,7 +121,11 @@ def test_harmonise_missing_mandatory_values():
         "organisation": "string",
     }
 
-    h = HarmonisePhase(field_datatype_map=field_datatype_map, issues=issues)
+    h = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues,
+        dataset="article-4-direction",
+    )
     reader = FakeDictReader(
         [
             {
@@ -112,7 +137,6 @@ def test_harmonise_missing_mandatory_values():
                 "organisation": "test_org",
             },
         ],
-        dataset="article-4-direction",
     )
     output = list(h.process(reader))
 

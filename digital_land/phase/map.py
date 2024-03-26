@@ -75,7 +75,7 @@ class MapPhase(Phase):
                 if headers[header] == "IGNORE":
                     continue
 
-                o[headers[header]] = row.get(header)
+                o[headers[header]] = row.get(header) or ""
 
             block["row"] = o
 
