@@ -725,7 +725,7 @@ def get_resource_unidentified_lookups(
         FieldPrunePhase(fields=specification.current_fieldnames(schema)),
         EntityReferencePhase(
             dataset=dataset,
-            prefix=specification.g,
+            prefix=specification.dataset_prefix(dataset),
         ),
         EntityPrefixPhase(dataset=dataset),
         print_lookup_phase,
