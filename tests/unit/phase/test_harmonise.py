@@ -1,27 +1,28 @@
 #!/usr/bin/env -S py.test -svv
+import pytest
 
 from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.specification import Specification
 from digital_land.log import IssueLog
 
-from .conftest import FakeDictReader
+from ..conftest import FakeDictReader
 
 
 def test_harmonise_field():
-    specification = Specification("tests/data/specification")
+    field_datatype_map = {"field-string": "string"}
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues)
+    h = HarmonisePhase(field_datatype_map=field_datatype_map, issues=issues)
 
     assert h.harmonise_field("field-string", None) == ""
     assert h.harmonise_field("field-string", "value") == "value"
 
 
 def test_harmonise():
-    specification = Specification("tests/data/specification")
+    field_datatype_map = {"field-integer": "integer"}
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues)
+    h = HarmonisePhase(field_datatype_map=field_datatype_map, issues=issues)
     reader = FakeDictReader(
         [
             {"field-integer": "123"},
@@ -37,10 +38,14 @@ def test_harmonise():
 
 
 def test_harmonise_geometry_and_point_missing():
-    specification = Specification("tests/data/specification")
+    field_datatye_map = {
+        "geometry": "multipolygon",
+        "point": "point",
+        "organisation": "string",
+    }
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues)
+    h = HarmonisePhase(field_datatype_map=field_datatye_map, issues=issues)
     reader = FakeDictReader(
         [
             {"geometry": "", "point": "", "organisation": "test_org"},
@@ -59,10 +64,14 @@ def test_harmonise_geometry_and_point_missing():
 
 
 def test_harmonise_geometry_present_point_missing():
-    specification = Specification("tests/data/specification")
+    field_datatye_map = {
+        "geometry": "multipolygon",
+        "point": "point",
+        "organisation": "string",
+    }
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues)
+    h = HarmonisePhase(field_datatype_map=field_datatye_map, issues=issues)
     reader = FakeDictReader(
         [
             {
@@ -81,10 +90,17 @@ def test_harmonise_geometry_present_point_missing():
 
 
 def test_harmonise_missing_mandatory_values():
-    specification = Specification("tests/data/specification")
     issues = IssueLog()
+    field_datatype_map = {
+        "reference": "string",
+        "name": "string",
+        "description": "string",
+        "document-url": "url",
+        "documentation-url": "url",
+        "organisation": "string",
+    }
 
-    h = HarmonisePhase(specification=specification, issues=issues)
+    h = HarmonisePhase(field_datatype_map=field_datatype_map, issues=issues)
     reader = FakeDictReader(
         [
             {
@@ -113,3 +129,26 @@ def test_harmonise_missing_mandatory_values():
         ]
         assert issue["issue-type"] == "missing value"
         assert issue["value"] == ""
+
+
+def test_get_field_datatype_name_uses_field_datatype_map():
+    field_datatype_map = {"reference": "string"}
+    phase = HarmonisePhase(field_datatype_map=field_datatype_map)
+    datatype_name = phase.get_field_datatype_name("reference")
+    assert datatype_name == "string"
+
+
+def test_get_field_datatype_name_riases_warning_for_spec():
+    spec = Specification()
+    spec.field = {"reference": {"datatype": "string"}}
+    phase = HarmonisePhase(specification=spec)
+    with pytest.warns(DeprecationWarning):
+        datatype_name = phase.get_field_datatype_name("reference")
+    assert datatype_name == "string"
+
+
+def test_get_field_datatype_name_raises_error_for_missing_mapping():
+    field_datatype_map = {}
+    phase = HarmonisePhase(field_datatype_map=field_datatype_map)
+    with pytest.raises(ValueError):
+        phase.get_field_datatype_name("reference")
