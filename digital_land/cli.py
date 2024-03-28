@@ -6,6 +6,7 @@ import click
 
 from collections import defaultdict
 from digital_land.collection import Collection
+from digital_land.specification import Specification
 
 from digital_land.commands import (
     add_redirections,
@@ -21,7 +22,6 @@ from digital_land.commands import (
     dataset_create,
     pipeline_run,
     collection_add_source,
-    expectations,
     add_endpoints_and_lookups,
 )
 
@@ -222,14 +222,40 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
     return collection_add_source(entry, collection, endpoint_url, collection_dir)
 
 
-@cli.command("expectations", short_help="runs data quality expectations")
-@click.option("--results-path", help="path to save json results", required=True)
-@click.option(
-    "--sqlite-dataset-path", help="path/name to sqlite3 dataset", required=True
+@cli.command(
+    "expectations-dataset-checkpoint",
+    short_help="runs data quality expectations against a dataset sqlite file",
 )
-@click.option("--data-quality-yaml", help="path to expectations yaml", required=True)
-def call_expectations(results_path, sqlite_dataset_path, data_quality_yaml):
-    return expectations(results_path, sqlite_dataset_path, data_quality_yaml)
+@click.option("--data-path", help="path to the sqlite3 dataset", required=True)
+@click.option("--output-dir", help="directory to store results", required=True)
+@click.option("--specification-dir", help="checkpoint to run", required=True)
+def expectations_run_dataset_checkpoint(data_path, output_dir, specification_dir):
+    from digital_land.expectations.commands import run_dataset_checkpoint
+
+    dataset = Path(data_path).stem
+    spec = Specification(specification_dir)
+    typology = spec.get_dataset_typology(dataset)
+    run_dataset_checkpoint(data_path, output_dir, dataset, typology)
+
+
+@cli.command(
+    "expectations-converted-resource-checkpoint",
+    short_help="runs data quality expectations against a converted resource",
+)
+@click.option(
+    "--data-path", help="path to the converted resource to use", required=True
+)
+@click.option("--output-dir", help="path/name to sqlite3 dataset", required=True)
+@click.option("--specification-dir", help="checkpoint to run", required=True)
+@click.option("--dataset", help="checkpoint to run", required=True)
+def expectations_run_converted_resource_checkpoint(
+    data_path, output_dir, specification_dir, dataset
+):
+    from digital_land.expectations.commands import run_converted_resource_checkpoint
+
+    spec = Specification(specification_dir)
+    typology = spec.get_dataset_typology(dataset)
+    run_converted_resource_checkpoint(data_path, output_dir, dataset, typology)
 
 
 # edit to add collection_name in

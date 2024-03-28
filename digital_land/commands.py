@@ -372,12 +372,6 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                 os.remove(temp_path)
 
 
-def expectations(results_path, sqlite_dataset_path, data_quality_yaml):
-    from digital_land.expectations.main import run_expectation_suite
-
-    run_expectation_suite(results_path, sqlite_dataset_path, data_quality_yaml)
-
-
 #
 #  configuration commands
 #
