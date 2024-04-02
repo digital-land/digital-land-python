@@ -45,6 +45,8 @@ from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from .register import hash_value
 
+logger = logging.getLogger(__name__)
+
 
 def fetch(url, pipeline):
     """fetch a single source endpoint URL, and add it to the collection"""
@@ -77,7 +79,6 @@ def collection_pipeline_makerules(collection_dir):
 
 def collection_save_csv(collection_dir):
     collection = Collection(name=None, directory=collection_dir)
-
     collection.load()
     collection.update()
     collection.save_csv()
@@ -175,7 +176,7 @@ def pipeline_run(
             patches=patches,
         ),
         HarmonisePhase(
-            specification=specification,
+            field_datatype_map=specification.get_field_datatype_map(),
             issues=issue_log,
             dataset=dataset,
         ),
@@ -195,7 +196,7 @@ def pipeline_run(
         FieldPrunePhase(fields=specification.current_fieldnames(schema)),
         EntityReferencePhase(
             dataset=dataset,
-            specification=specification,
+            prefix=specification.dataset_prefix(dataset),
         ),
         EntityPrefixPhase(dataset=dataset),
         EntityLookupPhase(lookups),
@@ -210,7 +211,10 @@ def pipeline_run(
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),
-        FactReferencePhase(dataset=dataset, specification=specification),
+        FactReferencePhase(
+            field_typology_map=specification.get_field_typology_map(),
+            field_prefix_map=specification.get_field_prefix_map(),
+        ),
         FactLookupPhase(lookups),
         FactPrunePhase(),
         SavePhase(
@@ -619,13 +623,13 @@ def assign_entities(
 
 
 def get_resource_unidentified_lookups(
-    input_path,
-    dataset,
-    pipeline,
-    specification,
-    organisations=[],
-    tmp_dir=None,
-    org_csv_path=None,
+    input_path: Path,
+    dataset: str,
+    pipeline: Pipeline,
+    specification: Specification,
+    organisations: list = [],
+    tmp_dir: Path = None,
+    org_csv_path: Path = None,
 ):
     # convert phase inputs
     # could alter resource_from_path to file from path and promote to a utils folder
@@ -697,7 +701,7 @@ def get_resource_unidentified_lookups(
             patches=patches,
         ),
         HarmonisePhase(
-            specification=specification,
+            field_datatype_map=specification.get_field_datatype_map(),
             issues=issue_log,
         ),
         DefaultPhase(
@@ -716,7 +720,7 @@ def get_resource_unidentified_lookups(
         FieldPrunePhase(fields=specification.current_fieldnames(schema)),
         EntityReferencePhase(
             dataset=dataset,
-            specification=specification,
+            prefix=specification.dataset_prefix(dataset),
         ),
         EntityPrefixPhase(dataset=dataset),
         print_lookup_phase,

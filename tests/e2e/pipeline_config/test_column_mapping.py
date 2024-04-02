@@ -167,11 +167,11 @@ def get_additional_field_csv_data():
         "guidance": ["", ""],
         "hint": ["", ""],
         "name": ["res_field_one", "ep_field_one"],
-        "parent-field": ["", ""],
+        "parent-field": ["value", "value"],
         "replacement-field": ["", ""],
         "start-date": ["", ""],
         "text": ["value", "value"],
-        "typology": ["", ""],
+        "typology": ["value", "value"],
         "uri-template": ["", ""],
         "wikidata-property": ["", ""],
     }

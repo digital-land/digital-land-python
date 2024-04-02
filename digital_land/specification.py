@@ -1,6 +1,8 @@
 import csv
 import os
 from datetime import datetime
+import logging
+import warnings
 
 from .datatype.address import AddressDataType
 from .datatype.datatype import DataType
@@ -13,6 +15,8 @@ from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
 from .datatype.point import PointDataType
 from .datatype.multipolygon import MultiPolygonDataType
+
+logger = logging.getLogger(__name__)
 
 specification_path = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "specification"
@@ -149,6 +153,12 @@ class Specification:
         )
 
     def field_type(self, fieldname):
+        warnings.warn(
+            "depreciated use datatype_factory from the datatype module",
+            DeprecationWarning,
+            2,
+        )
+
         datatype = self.field[fieldname]["datatype"]
         typemap = {
             "integer": IntegerDataType,
@@ -214,6 +224,15 @@ class Specification:
             return self.dataset[dataset]["entity-maximum"]
         else:
             return 100
+
+    def get_field_datatype_map(self):
+        return {key: value["datatype"] for key, value in self.field.items()}
+
+    def get_field_typology_map(self):
+        return {key: self.field_typology(key) for key in self.field.keys()}
+
+    def get_field_prefix_map(self):
+        return {key: self.field_prefix(key) for key in self.field.keys()}
 
     def get_dataset_typology(self, dataset):
         if dataset:
