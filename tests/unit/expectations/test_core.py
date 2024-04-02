@@ -1,11 +1,11 @@
 import pandas as pd
 import pydantic
-from digital_land.expectations.core import (
+from digital_land.expectations.utils import (
     transform_df_first_column_into_set,
     config_parser,
     QueryRunner,
-    ExpectationResponse,
 )
+from digital_land.expectations.response import ExpectationResponse
 
 
 def test_transform_first_col_into_set():

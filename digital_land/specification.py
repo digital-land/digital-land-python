@@ -233,3 +233,9 @@ class Specification:
 
     def get_field_prefix_map(self):
         return {key: self.field_prefix(key) for key in self.field.keys()}
+
+    def get_dataset_typology(self, dataset):
+        if dataset:
+            return self.dataset[dataset]["typology"]
+        else:
+            return None
