@@ -116,7 +116,7 @@ def test_ExpectationResponse__init__fails_validation():
             expectation_input={"test": "test1"},
             result=True,
             severity="invalid_string",
-            msg="Success",
+            message="Success",
             details=None,
             data_name="test",
             data_path="tes.sqlite3",

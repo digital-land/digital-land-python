@@ -69,7 +69,7 @@ def test_run_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
     assert responses[0]["checkpoint"] == "dataset"
     assert responses[0]["result"] == "True"
     assert responses[0]["severity"] == "warning"
-    assert responses[0]["msg"] == "No enities found in old-entities"
+    assert responses[0]["message"] == "No enities found in old-entities"
 
     assert len(issues) == 0
 
@@ -104,16 +104,25 @@ def test_run_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
         issues = list(DictReader(f))
 
     assert len(responses) == 1
-    assert responses[0]["checkpoint"] == "dataset"
+    assert (
+        responses[0]["response-id"] != ""
+    )  # Don't care what it is, as long as it's there
     assert responses[0]["result"] == "False"
+    assert responses[0]["message"] == "1 enities found in old-entities"
     assert responses[0]["severity"] == "warning"
-    assert responses[0]["msg"] == "1 enities found in old-entities"
+    assert responses[0]["checkpoint"] == "dataset"
+    assert responses[0]["data-name"] == "test"
 
     assert len(issues) == 1
-    assert issues[0]["response_id"] == responses[0]["response_id"]
+    assert (
+        issues[0]["response-id"] == responses[0]["response-id"]
+    )  # Should match the response
     assert issues[0]["scope"] == "row"
-    assert issues[0]["msg"] == "this entity should be retired"
+    assert issues[0]["message"] == "this entity should be retired"
     assert issues[0]["dataset"] == "test-dataset"
     assert issues[0]["organisation"] == "123"
-    assert issues[0]["table_name"] == "entity"
-    assert issues[0]["row_id"] == "1"
+    assert issues[0]["table-name"] == "entity"
+    assert issues[0]["row-id"] == "1"
+    assert issues[0]["rows"] == ""
+    assert issues[0]["row"] != ""  # Just check it's there
+    assert issues[0]["value"] == ""

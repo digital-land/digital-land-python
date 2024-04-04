@@ -920,7 +920,7 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
                 "table_name": "entity",
                 "row_id": str(entity["entity"]),
                 "row": entity,
-                "msg": "this entity should be retired",
+                "message": "this entity should be retired",
             }
             for entity in entities_in_old.to_dict(orient="records")
         ]
@@ -960,7 +960,7 @@ def check_json_field_is_not_blank(query_runner: QueryRunner, field: str):
                 "entity": entity["entity"],
                 "field": field,
                 "value": "",
-                "msg": f"{field} must be not be blank",
+                "message": f"{field} must be not be blank",
             }
             for entity in entities.flatten()
         ]
