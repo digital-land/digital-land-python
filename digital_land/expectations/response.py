@@ -13,7 +13,8 @@ import warnings
 
 from enum import Enum
 from pydantic.dataclasses import dataclass
-from dataclasses_json import dataclass_json
+from dataclasses_json import config, dataclass_json
+from dataclasses import field
 
 
 class SeverityEnum(str, Enum):
@@ -36,13 +37,13 @@ class SeverityEnum(str, Enum):
 class ExpectationResponse:
     """Class to keep inputs and results of expectations"""
 
-    response_id: str
+    response_id: str = field(metadata=config(field_name="response-id"))
     checkpoint: str
     result: bool
     severity: SeverityEnum
-    msg: str
+    message: str
     issues: list
-    data_name: str = None
+    data_name: str = field(metadata=config(field_name="data-name"))
     # data_path: str = None
     # description: Optional[str] = None
     # entry_date: Optional[str] = None
@@ -94,7 +95,7 @@ class ExpectationResponse:
         failure_count = 0
 
         if not self.result:
-            warnings.warn(self.msg)
+            warnings.warn(self.message)
             if self.severity == "critical":
                 failure_count = 1
 

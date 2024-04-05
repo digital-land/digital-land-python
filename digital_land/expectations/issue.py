@@ -4,6 +4,8 @@ expectation errors that can be recorded when running expectations
 """
 
 from pydantic.dataclasses import dataclass
+from dataclasses_json import config, dataclass_json
+from dataclasses import field
 
 
 def issue_factory(scope):
@@ -25,11 +27,12 @@ def issue_factory(scope):
 
 
 # TODO review below against pydantic classes to see if we're following best practice
+@dataclass_json
 @dataclass
 class Issue:
-    response_id: str
+    response_id: str = field(metadata=config(field_name="response-id"))
     scope: str
-    msg: str
+    message: str
 
     def keys(self):
         return self.__signature__.parameters.keys()
@@ -72,8 +75,8 @@ class OrganisationIssue(Issue):
 class FieldIssue(Issue):
     scope: str
     dataset: str
-    table_name: str
-    field_name: str
+    table_name: str = field(metadata=config(field_name="table-name"))
+    field_name: str = field(metadata=config(field_name="field-name"))
     organisation: str
 
     def __post_init__(self):
@@ -86,8 +89,8 @@ class FieldIssue(Issue):
 class RowGroupIssue(Issue):
     scope: str
     dataset: str
-    table_name: str
-    row_id: str
+    table_name: str = field(metadata=config(field_name="table-name"))
+    row_id: str = field(metadata=config(field_name="row-id"))
     rows: list
     organisation: str
 
@@ -101,8 +104,8 @@ class RowGroupIssue(Issue):
 class RowIssue(Issue):
     scope: str
     dataset: str
-    table_name: str
-    row_id: str
+    table_name: str = field(metadata=config(field_name="table-name"))
+    row_id: str = field(metadata=config(field_name="row-id"))
     row: dict
     organisation: str
 
@@ -116,7 +119,7 @@ class RowIssue(Issue):
 class ValueIssue(Issue):
     scope: str
     dataset: str
-    table_name: str
+    table_name: str = field(metadata=config(field_name="table-name"))
     field_name: str
     row_id: str
     value: str

@@ -21,23 +21,23 @@ class BaseCheckpoint:
         # each issue is going to have different fields, so define here what all of them are
         # this will take some iterations to get right
         self.response_fieldnames = [
-            "response_id",
+            "response-id",
             "result",
-            "msg",
+            "message",
             "severity",
             "responsibility",
             "checkpoint",
-            "data_name",
+            "data-name",
         ]
         self.issue_fieldnames = [
-            "response_id",
+            "response-id",
             "scope",
-            "msg",
+            "message",
             "dataset",
             "organisation",
-            "table_name",
-            "field_name",
-            "row_id",
+            "table-name",
+            "field-name",
+            "row-id",
             "rows",
             "row",
             "value",
@@ -72,7 +72,7 @@ class BaseCheckpoint:
             entry_date = now.isoformat()
         arguments = {**kwargs}
 
-        # Make a hash of this expecation, for now combine checkpoint name,
+        # Make a hash of this expectation, for now combine checkpoint name,
         # expectation name and the function name. Might want to adjust in future
         expectation_hash = hashlib.md5(
             self.checkpoint.encode()
@@ -96,11 +96,11 @@ class BaseCheckpoint:
             description=arguments.get("description", None),
             severity=expectation["severity"],
             result=result,
-            msg=msg,
+            message=msg,
             issues=validated_issues,
             # not convinced we need the below but leave in for now
             data_name=self.data_name,
-            data_path=self.data_path,
+            # data_path=self.data_path,
         )
 
     def run(self):
@@ -141,7 +141,7 @@ class BaseCheckpoint:
             if format == "csv":
                 dictwriter = DictWriter(f, fieldnames=self.issue_fieldnames)
                 dictwriter.writeheader()
-                dictwriter.writerows(issues)  # [issue.to_dict() for issue in issues])
+                dictwriter.writerows([issue.to_dict() for issue in issues])
             elif format == "json":
                 json.dump([issue.to_dict() for issue in issues], f)
             else:
