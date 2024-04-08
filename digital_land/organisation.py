@@ -37,8 +37,8 @@ class Organisation:
             self.organisation[row["organisation"]] = row
             self.organisation_lookup[row["organisation"]] = row["organisation"]
 
-            if "opendatacommunities" in row:
-                uri = row["opendatacommunities"].lower()
+            if "opendatacommunities-uri" in row:
+                uri = row["opendatacommunities-uri"].lower()
                 self.organisation_lookup[uri] = row["organisation"]
                 self.organisation_uri[row["organisation"].lower()] = uri
                 self.organisation_uri[uri] = uri
