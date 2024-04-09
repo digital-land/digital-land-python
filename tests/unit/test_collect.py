@@ -25,11 +25,11 @@ def prepared_response():
 
 
 @pytest.fixture
-def prepared_exception():
+def prepared_exception(exception_class):
     responses.add(
         responses.GET,
         "http://mock.url",
-        body=requests.ConnectionError("Mocked Connection Error"),
+        body=exception_class(f"Test {exception_class.__name__} Error"),
     )
 
 
@@ -91,10 +91,24 @@ def log_file(url):
 
 
 @responses.activate
-def test_get(collector, prepared_exception):
+@pytest.mark.parametrize(
+    "exception_class",
+    [
+        requests.exceptions.SSLError,
+        requests.ConnectionError,
+        requests.HTTPError,
+        requests.Timeout,
+        requests.TooManyRedirects,
+        requests.exceptions.MissingSchema,
+        requests.exceptions.ChunkedEncodingError,
+        requests.ConnectionError,
+        requests.exceptions.ContentDecodingError,
+    ],
+)
+def test_get(collector, prepared_exception, exception_class):
     url = "http://mock.url"
     log, content = collector.get(url)
 
     assert "status" not in log
-    assert log.get("exception") == "ConnectionError"
+    assert log.get("exception") == exception_class.__name__
     assert content is None
