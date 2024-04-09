@@ -76,7 +76,7 @@ class BaseCheckpoint:
         # expectation name and the function name. Might want to adjust in future
         expectation_hash = hashlib.md5(
             self.checkpoint.encode()
-            + expectation["name"].encode()
+            + self.data_name.encode()
             + expectation["function"].__name__.encode()
         ).hexdigest()
 
