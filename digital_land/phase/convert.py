@@ -11,6 +11,9 @@ from io import StringIO
 import pandas as pd
 from .load import Stream
 from .phase import Phase
+from digital_land.expectations.checkpoints.converted_resource import (
+    ConvertedResourceCheckpoint,
+)
 
 
 def detect_file_encoding(path):
@@ -187,11 +190,33 @@ class ConvertPhase(Phase):
 
         if converted_csv_file:
             f.close()
+            self.run_checkpoint(converted_csv_file)
             reader = read_csv(converted_csv_file)
         else:
             reader = f
 
         return reader
+
+    def run_checkpoint(self, path):
+        checkpoint = ConvertedResourceCheckpoint(data_path=path)
+        checkpoint.load()
+        checkpoint_result, issues = checkpoint.run()
+
+        if issues:
+            for issue in issues:
+                log_message = self.format_issue_message(issue)
+
+                if issue["severity"] == "error":
+                    logging.error(log_message)
+                elif issue["severity"] == "warning":
+                    logging.warning(log_message)
+                else:
+                    logging.info(log_message)
+        else:
+            logging.info(f"Checkpoint completed with result: {checkpoint_result}")
+
+    def format_issue_message(self, issue):
+        return f"Checkpoint Issue: {issue['message']} at line {issue.get('line_number', 'N/A')} (Severity: {issue['severity']})"
 
     def _find_zip_file(self, input_file, suffix=".gml"):
         zip_ = zipfile.ZipFile(input_file)

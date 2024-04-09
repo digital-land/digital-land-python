@@ -2,8 +2,11 @@ import pytest
 import os
 import spatialite
 import pandas as pd
-from csv import DictReader
+from csv import DictReader, DictWriter
 from digital_land.expectations.checkpoints.dataset import DatasetCheckpoint
+from digital_land.expectations.checkpoints.converted_resource import (
+    ConvertedResourceCheckpoint,
+)
 
 
 @pytest.fixture
@@ -41,6 +44,22 @@ def sqlite3_with_entity_tables_path(tmp_path):
         con.execute(create_old_entity_table_sql)
 
     return dataset_path
+
+
+@pytest.fixture
+def csv_path(tmp_path):
+    data = [
+        {"reference": "REF-001", "name": "Test 1"},
+        {"reference": "REF-002", "name": "Test 2"},
+        {"reference": "REF-001", "name": "Test 3"},  # Duplicate
+        {"reference": "INVALID-003", "name": "Test 4"},  # Invalid format
+    ]
+    csv_file = tmp_path / "test_data.csv"
+    with csv_file.open(mode="w", newline="") as f:
+        writer = DictWriter(f, fieldnames=["reference", "name"])
+        writer.writeheader()
+        writer.writerows(data)
+    return csv_file
 
 
 def test_run_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
@@ -132,3 +151,35 @@ def test_run_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
     assert issues[0]["rows"] == ""
     assert issues[0]["row"] != ""  # Just check it's there
     assert issues[0]["value"] == ""
+
+
+def test_check_for_duplicate_references(csv_path):
+    checkpoint = ConvertedResourceCheckpoint(data_path=csv_path)
+    checkpoint.load()
+
+    success, message, issues = checkpoint.check_for_duplicate_references()
+
+    assert success is True, "The function should successfully identify issues."
+    assert len(issues) == 1, "There should be one issue identified."
+    assert (
+        issues[0]["scope"] == "duplicate_reference"
+    ), "The issue should be identified as a duplicate reference."
+    assert (
+        "REF-001" in issues[0]["message"]
+    ), "REF-001 should be identified as a duplicate."
+
+
+def test_validate_references(csv_path):
+    checkpoint = ConvertedResourceCheckpoint(data_path=csv_path)
+    checkpoint.load()
+
+    success, message, issues = checkpoint.validate_references()
+
+    assert success is False, "The function should fail due to invalid references."
+    assert len(issues) == 1, "There should be one issue identified."
+    assert (
+        issues[0]["scope"] == "invalid_reference"
+    ), "The issue should be identified as an invalid reference."
+    assert (
+        "INVALID-003" in issues[0]["message"]
+    ), "INVALID-003 should be identified as invalid."
