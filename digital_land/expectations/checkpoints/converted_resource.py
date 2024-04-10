@@ -52,6 +52,11 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
                         "message": f"Duplicate reference '{ref}' found on rows: {', '.join(map(str, rows))}",
                         "rows": rows,
                         "reference": ref,
+                        "dataset": "dataset",
+                        "field_name": "reference",
+                        "row_id": str(rows[0]),
+                        "value": ref,
+                        "organisation": "organisation",
                     }
                 )
 
@@ -64,14 +69,19 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
             reader = csv.DictReader(csvfile)
             for row_number, row in enumerate(reader, start=1):
                 ref = row.get("reference")
-                # Check if reference is not populated (None or empty string)
+
                 if not ref:  # This will be True for both None and empty strings
                     issues.append(
                         {
                             "scope": "invalid_reference",
                             "message": f"Reference is missing on row {row_number}.",
                             "row": row_number,
-                            "reference": ref,  # This will be None or ''
+                            "reference": ref,
+                            "dataset": "dataset",
+                            "field_name": "reference",
+                            "row_id": str(row_number),
+                            "value": ref,
+                            "organisation": "organisation",
                         }
                     )
 
