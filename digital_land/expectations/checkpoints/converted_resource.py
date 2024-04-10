@@ -7,7 +7,6 @@
 # the primary different between checkpoints is how it loads expectations (i.e. where that are loaded from)
 from pathlib import Path
 import csv
-import re
 from .base import BaseCheckpoint
 
 
@@ -59,21 +58,21 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
         return True, "Checked for duplicate references.", issues
 
     def validate_references(self):
-        pattern = re.compile(r"^REF-\d+$")
         issues = []
 
         with self.csv_path.open(newline="") as csvfile:
             reader = csv.DictReader(csvfile)
             for row_number, row in enumerate(reader, start=1):
                 ref = row.get("reference")
-                if not pattern.match(ref):
+                # Check if reference is not populated (None or empty string)
+                if not ref:  # This will be True for both None and empty strings
                     issues.append(
                         {
                             "scope": "invalid_reference",
-                            "message": f"Invalid reference '{ref}' on row {row_number}.",
+                            "message": f"Reference is missing on row {row_number}.",
                             "row": row_number,
-                            "reference": ref,
+                            "reference": ref,  # This will be None or ''
                         }
                     )
 
-        return len(issues) == 0, "Checked for invalid references.", issues
+        return len(issues) == 0, "Checked for unpopulated references.", issues
