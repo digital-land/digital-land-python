@@ -19,6 +19,8 @@ def issue_factory(scope):
         "row-group": RowGroupIssue,
         "row": RowIssue,
         "value": ValueIssue,
+        "duplicate_reference": RowIssue,
+        "invalid_reference": ValueIssue,
     }
     if scope in SCOPE_MAP:
         return SCOPE_MAP[scope]
