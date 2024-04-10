@@ -200,7 +200,14 @@ class ConvertPhase(Phase):
     def run_checkpoint(self, path):
         checkpoint = ConvertedResourceCheckpoint(data_path=path)
         checkpoint.load()
-        checkpoint_result, issues = checkpoint.run()
+        result = checkpoint.run()
+
+        # Check if the result is not None and is iterable (unpackable)
+        if result is not None and isinstance(result, tuple) and len(result) == 2:
+            checkpoint_result, issues = result
+        else:
+            logging.error("Checkpoint did not return the expected result format.")
+            return
 
         if issues:
             for issue in issues:
