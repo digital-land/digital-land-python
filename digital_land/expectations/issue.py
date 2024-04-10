@@ -19,8 +19,8 @@ def issue_factory(scope):
         "row-group": RowGroupIssue,
         "row": RowIssue,
         "value": ValueIssue,
-        "duplicate_reference": RowIssue,
-        "invalid_reference": ValueIssue,
+        "duplicate_reference": DuplicateReferenceIssue,
+        "invalid_reference": InvalidReferenceIssue,
     }
     if scope in SCOPE_MAP:
         return SCOPE_MAP[scope]
@@ -129,5 +129,33 @@ class ValueIssue(Issue):
 
     def __post_init__(self):
         issue_scope = "value"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")
+
+
+@dataclass
+class DuplicateReferenceIssue(Issue):
+    dataset: str
+    field_name: str = field(metadata=config(field_name="field_name"))
+    duplicated_value: str = field(metadata=config(field_name="duplicated_value"))
+    rows: list = field(metadata=config(field_name="rows"))
+    organisation: str
+
+    def __post_init__(self):
+        issue_scope = "duplicate_reference"
+        if self.scope != issue_scope:
+            raise ValueError(f"scope must be '{issue_scope}'.")
+
+
+@dataclass
+class InvalidReferenceIssue(Issue):
+    dataset: str
+    field_name: str = field(metadata=config(field_name="field_name"))
+    invalid_value: str = field(metadata=config(field_name="invalid_value"))
+    row_id: str = field(metadata=config(field_name="row_id"))
+    organisation: str
+
+    def __post_init__(self):
+        issue_scope = "invalid_reference"
         if self.scope != issue_scope:
             raise ValueError(f"scope must be '{issue_scope}'.")
