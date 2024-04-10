@@ -137,7 +137,6 @@ class ValueIssue(Issue):
 class DuplicateReferenceIssue(Issue):
     dataset: str
     field_name: str = field(metadata=config(field_name="field_name"))
-    duplicated_value: str = field(metadata=config(field_name="duplicated_value"))
     rows: list = field(metadata=config(field_name="rows"))
     organisation: str
 
@@ -151,7 +150,6 @@ class DuplicateReferenceIssue(Issue):
 class InvalidReferenceIssue(Issue):
     dataset: str
     field_name: str = field(metadata=config(field_name="field_name"))
-    invalid_value: str = field(metadata=config(field_name="invalid_value"))
     row_id: str = field(metadata=config(field_name="row_id"))
     organisation: str
 
