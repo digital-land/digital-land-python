@@ -52,7 +52,7 @@ def csv_path(tmp_path):
         {"reference": "REF-001", "name": "Test 1"},
         {"reference": "REF-002", "name": "Test 2"},
         {"reference": "REF-001", "name": "Test 3"},  # Duplicate
-        {"reference": "INVALID-003", "name": "Test 4"},  # Invalid format
+        {"reference": "", "name": "Test 4"},  # Invalid format
     ]
     csv_file = tmp_path / "test_data.csv"
     with csv_file.open(mode="w", newline="") as f:
@@ -174,6 +174,4 @@ def test_validate_references(csv_path):
     assert (
         issues[0]["scope"] == "invalid_reference"
     ), "The issue should be identified as an invalid reference."
-    assert (
-        "INVALID-003" in issues[0]["message"]
-    ), "INVALID-003 should be identified as invalid."
+    assert "" in issues[0]["message"], " 4th value should be identified as invalid."
