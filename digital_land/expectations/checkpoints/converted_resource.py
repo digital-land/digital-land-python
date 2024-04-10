@@ -55,7 +55,7 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
                         "dataset": "dataset",
                         "field_name": "reference",
                         "row_id": str(rows[0]),
-                        "value": ref,
+                        "invalid_value": ref,
                         "organisation": "organisation",
                     }
                 )
@@ -80,7 +80,7 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
                             "dataset": "dataset",
                             "field_name": "reference",
                             "row_id": str(row_number),
-                            "value": ref,
+                            "invalid_value": ref,
                             "organisation": "organisation",
                         }
                     )
