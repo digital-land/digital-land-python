@@ -33,28 +33,29 @@ class Organisation:
             self.organisation = organisation
 
     def load_organisation(self):
-        for row in csv.DictReader(open(self.organisation_path)):
-            self.organisation[row["organisation"]] = row
-            self.organisation_lookup[row["organisation"]] = row["organisation"]
+        with open(self.organisation_path) as f:
+            for row in csv.DictReader(f):
+                self.organisation[row["organisation"]] = row
+                self.organisation_lookup[row["organisation"]] = row["organisation"]
 
-            if "opendatacommunities" in row:
-                uri = row["opendatacommunities"].lower()
-                self.organisation_lookup[uri] = row["organisation"]
-                self.organisation_uri[row["organisation"].lower()] = uri
-                self.organisation_uri[uri] = uri
-                self.organisation_uri[uri.replace("http:", "https:")] = uri
-                self.organisation_uri[uri.replace("/id/", "/doc/")] = uri
-                self.organisation_uri[
-                    uri.replace("/id/", "/doc/").replace("http:", "https:")
-                ] = uri
-                self.organisation_uri[uri_basename(uri)] = uri
-                self.organisation_uri[row["statistical-geography"].lower()] = uri
-                if "local-authority-eng" in row["organisation"]:
-                    dl_url = "https://digital-land.github.io/organisation/%s/" % (
-                        row["organisation"]
-                    )
-                    dl_url = dl_url.lower().replace("-eng:", "-eng/")
-                    self.organisation_uri[dl_url] = uri
+                if "opendatacommunities" in row:
+                    uri = row["opendatacommunities"].lower()
+                    self.organisation_lookup[uri] = row["organisation"]
+                    self.organisation_uri[row["organisation"].lower()] = uri
+                    self.organisation_uri[uri] = uri
+                    self.organisation_uri[uri.replace("http:", "https:")] = uri
+                    self.organisation_uri[uri.replace("/id/", "/doc/")] = uri
+                    self.organisation_uri[
+                        uri.replace("/id/", "/doc/").replace("http:", "https:")
+                    ] = uri
+                    self.organisation_uri[uri_basename(uri)] = uri
+                    self.organisation_uri[row["statistical-geography"].lower()] = uri
+                    if "local-authority-eng" in row["organisation"]:
+                        dl_url = "https://digital-land.github.io/organisation/%s/" % (
+                            row["organisation"]
+                        )
+                        dl_url = dl_url.lower().replace("-eng:", "-eng/")
+                        self.organisation_uri[dl_url] = uri
 
         for key, uri in self.organisation_uri.items():
             self.organisation_lookup[key] = self.organisation_lookup[

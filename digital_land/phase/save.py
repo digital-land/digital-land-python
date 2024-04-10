@@ -16,17 +16,21 @@ def save(stream, path=None, fieldnames=None, f=None):
         except StopIteration:
             return
 
-    if not f:
-        f = open(path, "w", newline="")
-    fieldnames = sorted(fieldnames)
-    writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-    writer.writeheader()
+    try:
+        if not f:
+            f = open(path, "w", newline="")
+        fieldnames = sorted(fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
 
-    if block:
-        writer.writerow(block["row"])
+        if block:
+            writer.writerow(block["row"])
 
-    for block in stream:
-        writer.writerow(block["row"])
+        for block in stream:
+            writer.writerow(block["row"])
+    finally:
+        if f is not None:
+            f.close()
 
 
 class SavePhase(Phase):
