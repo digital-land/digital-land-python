@@ -159,10 +159,10 @@ class ConvertPhase(Phase):
         return Stream(input_path, f=reader, log=self.log)
 
     def _read_text_file(self, input_path, encoding):
+        f = read_csv(input_path, encoding)
         self.log.mime_type = "text/csv" + self.charset
-        with read_csv(input_path, encoding) as f:
-            content = f.read(10)
-            f.seek(0)
+        content = f.read(10)
+        f.seek(0)
         converted_csv_file = None
 
         if content.lower().startswith("<!doctype "):

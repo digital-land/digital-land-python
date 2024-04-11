@@ -405,11 +405,11 @@ class Lookups:
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
         logging.debug("saving %s" % (path))
-        with open(path, "w", newline="") as f:
-            writer = csv.DictWriter(
-                f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
-            )
-            writer.writeheader()
+        f = open(path, "w", newline="")
+        writer = csv.DictWriter(
+            f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
+        )
+        writer.writeheader()
 
         entity_values = []
         if os.path.exists(self.old_entity_path):

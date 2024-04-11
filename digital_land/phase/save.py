@@ -4,6 +4,7 @@ import itertools
 from .phase import Phase
 
 
+# TODO: Add contextManager for f
 def save(stream, path=None, fieldnames=None, f=None):
     logging.debug(f"save {path} {fieldnames} {f}")
 
@@ -16,21 +17,23 @@ def save(stream, path=None, fieldnames=None, f=None):
         except StopIteration:
             return
 
-    try:
-        if not f:
-            f = open(path, "w", newline="")
-        fieldnames = sorted(fieldnames)
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
+    fieldnames = sorted(fieldnames)
+    if not f:
+        with open(path, "w", newline="") as f:
+            _save_to_csv(stream, fieldnames, f, block)
+    else:
+        _save_to_csv(stream, fieldnames, f, block)
 
-        if block:
-            writer.writerow(block["row"])
 
-        for block in stream:
-            writer.writerow(block["row"])
-    finally:
-        if f is not None:
-            f.close()
+def _save_to_csv(stream, fieldnames, f, block):
+    writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+
+    if block:
+        writer.writerow(block["row"])
+
+    for block in stream:
+        writer.writerow(block["row"])
 
 
 class SavePhase(Phase):
