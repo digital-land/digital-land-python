@@ -4,8 +4,9 @@ import spatialite
 import pandas as pd
 from csv import DictReader, DictWriter
 from digital_land.expectations.checkpoints.dataset import DatasetCheckpoint
-from digital_land.expectations.checkpoints.converted_resource import (
-    ConvertedResourceCheckpoint,
+from digital_land.expectations.expectation_functions.resource_validations import (
+    check_for_duplicate_references,
+    validate_references,
 )
 
 
@@ -148,15 +149,12 @@ def test_run_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
 
 
 def test_check_for_duplicate_references(csv_path):
-    checkpoint = ConvertedResourceCheckpoint(data_path=csv_path)
-    checkpoint.load()
+    issues = check_for_duplicate_references(csv_path)
 
-    success, message, issues = checkpoint.check_for_duplicate_references()
-
-    assert success is True, "The function should successfully identify issues."
+    assert issues, "The function should successfully identify issues."
     assert len(issues) == 1, "There should be one issue identified."
     assert (
-        issues[0]["scope"] == "duplicate_reference"
+        issues[0]["scope"] == "row-group"
     ), "The issue should be identified as a duplicate reference."
     assert (
         "REF-001" in issues[0]["message"]
@@ -164,14 +162,11 @@ def test_check_for_duplicate_references(csv_path):
 
 
 def test_validate_references(csv_path):
-    checkpoint = ConvertedResourceCheckpoint(data_path=csv_path)
-    checkpoint.load()
+    issues = validate_references(csv_path)
 
-    success, message, issues = checkpoint.validate_references()
-
-    assert success is False, "The function should fail due to invalid references."
+    assert issues, "The function should fail due to invalid references."
     assert len(issues) == 1, "There should be one issue identified."
     assert (
-        issues[0]["scope"] == "invalid_reference"
+        issues[0]["scope"] == "value"
     ), "The issue should be identified as an invalid reference."
     assert "" in issues[0]["message"], " 4th value should be identified as invalid."
