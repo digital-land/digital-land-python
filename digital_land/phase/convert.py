@@ -198,7 +198,7 @@ class ConvertPhase(Phase):
         return reader
 
     def run_checkpoint(self, path):
-        checkpoint = ConvertedResourceCheckpoint(data_path=path)
+        checkpoint = ConvertedResourceCheckpoint(dataset_path=path)
         checkpoint.load()
         result = checkpoint.run()
 
