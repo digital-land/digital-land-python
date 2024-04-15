@@ -4,7 +4,6 @@ import csv
 def check_for_duplicate_references(csv_path):
     duplicates = {}
     issues = []
-
     with csv_path.open(newline="") as csvfile:
         reader = csv.DictReader(csvfile)
         for row_number, row in enumerate(reader, start=1):
@@ -28,17 +27,15 @@ def check_for_duplicate_references(csv_path):
                 }
             )
 
-    return issues
+    return True, "Checked for duplicate references.", issues
 
 
 def validate_references(csv_path):
     issues = []
-
     with csv_path.open(newline="") as csvfile:
         reader = csv.DictReader(csvfile)
         for row_number, row in enumerate(reader, start=1):
             ref = row.get("reference")
-
             if not ref:  # This will be True for both None and empty strings
                 issues.append(
                     {
@@ -53,4 +50,4 @@ def validate_references(csv_path):
                     }
                 )
 
-    return issues
+    return len(issues) == 0, "Checked for unpopulated references.", issues
