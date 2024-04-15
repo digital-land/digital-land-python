@@ -123,7 +123,6 @@ class FactReferencePhase(EntityReferencePhase):
 
         field = row["field"]
         typology = self.get_field_typology_name(field)
-        logging.warning(typology)
 
         # TBD: infer if a field is a reference from the specification
         # could use field:datatype map to specificy reference and use that
