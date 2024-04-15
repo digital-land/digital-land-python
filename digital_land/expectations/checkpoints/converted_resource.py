@@ -48,12 +48,11 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
             if len(rows) > 1:
                 issues.append(
                     {
-                        "scope": "duplicate_reference",
+                        "scope": "row-group",
                         "message": f"Duplicate reference '{ref}' found on rows: {', '.join(map(str, rows))}",
-                        "rows": rows,
-                        "reference": ref,
                         "dataset": "dataset",
-                        "field_name": "reference",
+                        "table_name": "resource",
+                        "rows": rows,
                         "row_id": str(rows[0]),
                         "organisation": "organisation",
                     }
@@ -72,13 +71,13 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
                 if not ref:  # This will be True for both None and empty strings
                     issues.append(
                         {
-                            "scope": "invalid_reference",
+                            "scope": "value",
                             "message": f"Reference is missing on row {row_number}.",
-                            "row": row_number,
-                            "reference": ref,
                             "dataset": "dataset",
+                            "table_name": "resource",
                             "field_name": "reference",
                             "row_id": str(row_number),
+                            "value": ref,
                             "organisation": "organisation",
                         }
                     )
