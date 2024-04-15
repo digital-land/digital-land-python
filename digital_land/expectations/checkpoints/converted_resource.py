@@ -77,7 +77,7 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
                             "table_name": "resource",
                             "field_name": "reference",
                             "row_id": str(row_number),
-                            "value": ref,
+                            "value": "reference",
                             "organisation": "organisation",
                         }
                     )
