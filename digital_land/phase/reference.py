@@ -135,7 +135,6 @@ class FactReferencePhase(EntityReferencePhase):
             "policy",
             "legal-instrument",
         ]:
-            logging.warning(self.get_field_prefix(field))
             value_prefix, value_reference = split_curie(row["value"])
             prefix = prefix or value_prefix or self.get_field_prefix(field)
             reference = reference or value_reference
