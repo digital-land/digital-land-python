@@ -7,9 +7,14 @@ from ..expectation_functions.resource_validations import (
 
 
 class ConvertedResourceCheckpoint(BaseCheckpoint):
-    def __init__(self, data_path):
-        super().__init__("converted_resource", data_path)
-        self.csv_path = Path(data_path)
+    def __init__(self, dataset_path, typology, dataset=None):
+        super().__init__("converted_resource", dataset_path)
+        self.csv_path = Path(dataset_path)
+        if dataset:
+            self.dataset = dataset
+        else:
+            self.dataset = self.csv_path.stem
+        self.typology = typology
 
     def load(self):
         self.expectations = [
