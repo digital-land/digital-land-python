@@ -1,7 +1,7 @@
 import csv
 
 
-def check_for_duplicate_references(csv_path):
+def check_for_duplicate_references(csv_path, **kwargs):
     duplicates = {}
     issues = []
     with csv_path.open(newline="") as csvfile:
@@ -30,7 +30,7 @@ def check_for_duplicate_references(csv_path):
     return True, "Checked for duplicate references.", issues
 
 
-def validate_references(csv_path):
+def validate_references(csv_path, **kwargs):
     issues = []
     with csv_path.open(newline="") as csvfile:
         reader = csv.DictReader(csvfile)
