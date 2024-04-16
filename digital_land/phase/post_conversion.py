@@ -1,4 +1,4 @@
-from expectations.commands import run_converted_resource_checkpoint
+from ..expectations.commands import run_converted_resource_checkpoint
 
 
 class PostConversionPhase:
