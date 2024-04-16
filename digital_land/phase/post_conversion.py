@@ -10,19 +10,14 @@ class PostConversionPhase:
         typology,
         act_on_critical_error=False,
     ):
-        """
-        Initializes the PostConversionPhase with necessary parameters.
-        :param converted_resource_path: Path to the converted CSV file.
-        :param output_dir: Directory to store output files.
-        :param dataset: Dataset related information for the checkpoint.
-        :param typology: Typology information for the checkpoint.
-        :param act_on_critical_error: Whether to act on critical errors during the checkpoint.
-        """
         self.converted_resource_path = converted_resource_path
         self.output_dir = output_dir
         self.dataset = dataset
         self.typology = typology
         self.act_on_critical_error = act_on_critical_error
+
+    def process(self):
+        return self.run()
 
     def run(self):
         """
