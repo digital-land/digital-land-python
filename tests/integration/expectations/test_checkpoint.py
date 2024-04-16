@@ -67,7 +67,7 @@ def test_run_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
 
     assert len(responses) == 1
     assert responses[0]["checkpoint"] == "dataset"
-    assert responses[0]["result"] == "True"
+    assert responses[0]["passed"] == "True"
     assert responses[0]["severity"] == "warning"
     assert responses[0]["message"] == "No enities found in old-entities"
 
@@ -98,24 +98,24 @@ def test_run_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
     checkpoint.save(tmp_path)
 
     with open(os.path.join(tmp_path, "dataset", "test-responses.csv"), "r") as f:
-        responses = list(DictReader(f))
+        results = list(DictReader(f))
 
     with open(os.path.join(tmp_path, "dataset", "test-issues.csv"), "r") as f:
         issues = list(DictReader(f))
 
-    assert len(responses) == 1
+    assert len(results) == 1
     assert (
-        responses[0]["response-id"] != ""
+        results[0]["expectation-result"] != ""
     )  # Don't care what it is, as long as it's there
-    assert responses[0]["result"] == "False"
-    assert responses[0]["message"] == "1 enities found in old-entities"
-    assert responses[0]["severity"] == "warning"
-    assert responses[0]["checkpoint"] == "dataset"
-    assert responses[0]["data-name"] == "test"
+    assert results[0]["passed"] == "False"
+    assert results[0]["message"] == "1 enities found in old-entities"
+    assert results[0]["severity"] == "warning"
+    assert results[0]["checkpoint"] == "dataset"
+    assert results[0]["data-name"] == "test"
 
     assert len(issues) == 1
     assert (
-        issues[0]["response-id"] == responses[0]["response-id"]
+        issues[0]["expectation-result"] == results[0]["expectation-result"]
     )  # Should match the response
     assert issues[0]["scope"] == "row"
     assert issues[0]["message"] == "this entity should be retired"

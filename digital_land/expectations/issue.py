@@ -30,7 +30,7 @@ def issue_factory(scope):
 @dataclass_json
 @dataclass
 class Issue:
-    response_id: str = field(metadata=config(field_name="response-id"))
+    expectation_result: str = field(metadata=config(field_name="expectation-result"))
     scope: str
     message: str
 
