@@ -178,7 +178,7 @@ def pipeline_run(
             converted_resource_path=converted_resource_path,
             output_dir=output_path,
             dataset=dataset,
-            typology=specification.get_typology_for_dataset(dataset),
+            typology=specification.get_dataset_typology(dataset),
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
