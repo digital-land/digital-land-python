@@ -16,7 +16,7 @@ class PostConversionPhase:
         self.typology = typology
         self.act_on_critical_error = act_on_critical_error
 
-    def process(self):
+    def process(self, stream=None):
         return self.run()
 
     def run(self):
