@@ -125,6 +125,9 @@ class ConvertPhase(Phase):
         self.path = path
         self.log = dataset_resource_log
         self.charset = ""
+        self.converted_resource_path = (
+            None  # This will hold the path to the converted file
+        )
         # Allows for custom temporary directory to be specified
         # This allows symlink creation in case of /tmp & path being on different partitions
         if custom_temp_dir:
@@ -155,6 +158,8 @@ class ConvertPhase(Phase):
 
             # raise StopIteration()
             reader = iter(())
+        if self.output_path:
+            self.converted_resource_path = self.output_path
 
         return Stream(input_path, f=reader, log=self.log)
 
