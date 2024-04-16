@@ -155,7 +155,7 @@ def test_run_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
 
 
 def test_check_for_duplicate_references(csv_path):
-    issues = check_for_duplicate_references(csv_path)
+    _, _, issues = check_for_duplicate_references(csv_path)
 
     assert issues, "The function should successfully identify issues."
     assert len(issues) == 1, "There should be one issue identified."
@@ -168,7 +168,7 @@ def test_check_for_duplicate_references(csv_path):
 
 
 def test_validate_references(csv_path):
-    issues = validate_references(csv_path)
+    _, _, issues = validate_references(csv_path)
 
     assert issues, "The function should fail due to invalid references."
     assert len(issues) == 1, "There should be one issue identified."

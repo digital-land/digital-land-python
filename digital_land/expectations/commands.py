@@ -1,5 +1,5 @@
 from .checkpoints.dataset import DatasetCheckpoint
-from .checkpoints.converted_resource import CovertedResourceCheckpoint
+from .checkpoints.converted_resource import ConvertedResourceCheckpoint
 
 
 def run_dataset_checkpoint(
@@ -30,7 +30,7 @@ def run_converted_resource_checkpoint(
     """
     Function to run the expectation checkpoint for a converted resource
     """
-    checkpoint = CovertedResourceCheckpoint(converted_resource_path, dataset, typology)
+    checkpoint = ConvertedResourceCheckpoint(converted_resource_path, dataset, typology)
     checkpoint.load()
     checkpoint.run()
     checkpoint.save(output_dir, format="csv")
