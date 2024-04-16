@@ -5,7 +5,7 @@ from digital_land.expectations.utils import (
     config_parser,
     QueryRunner,
 )
-from digital_land.expectations.response import ExpectationResponse
+from digital_land.expectations.result import ExpectationResult
 
 
 def test_transform_first_col_into_set():
@@ -112,9 +112,9 @@ def test_config_parser():
 
 def test_ExpectationResponse__init__fails_validation():
     try:
-        ExpectationResponse(
+        ExpectationResult(
             expectation_input={"test": "test1"},
-            result=True,
+            passed=True,
             severity="invalid_string",
             message="Success",
             details=None,

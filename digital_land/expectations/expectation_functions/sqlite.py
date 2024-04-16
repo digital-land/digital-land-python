@@ -906,11 +906,11 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
     result = not len(entities_in_old) > 0
 
     if result:
-        msg = "No enities found in old-entities"
+        msg = "No retired enities found in the dataset."
         issues = []
 
     else:
-        msg = f"{len(entities_in_old)} enities found in old-entities"
+        msg = f"There are {len(entities_in_old)} enities which have been retired but are still present in the dataset."
 
         issues = [
             {
@@ -920,7 +920,7 @@ def check_old_entities(query_runner: QueryRunner, **kwargs):
                 "table_name": "entity",
                 "row_id": str(entity["entity"]),
                 "row": entity,
-                "message": "this entity should be retired",
+                "message": f"Entity {entity['entity']} has been retired but is still in the dataset. This needs investigating.",
             }
             for entity in entities_in_old.to_dict(orient="records")
         ]

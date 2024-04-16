@@ -6,7 +6,7 @@ import hashlib
 
 from csv import DictWriter
 
-from ..response import ExpectationResponse
+from ..result import ExpectationResult
 from ..exception import DataQualityException
 from ..issue import issue_factory
 
@@ -20,9 +20,9 @@ class BaseCheckpoint:
         self.issues = []
         # each issue is going to have different fields, so define here what all of them are
         # this will take some iterations to get right
-        self.response_fieldnames = [
-            "response-id",
-            "result",
+        self.result_fieldnames = [
+            "expectation-result",
+            "passed",
             "message",
             "severity",
             "responsibility",
@@ -30,7 +30,7 @@ class BaseCheckpoint:
             "data-name",
         ]
         self.issue_fieldnames = [
-            "response-id",
+            "expectation-result",
             "scope",
             "message",
             "dataset",
@@ -62,7 +62,7 @@ class BaseCheckpoint:
             key: value for (key, value) in expectation.items() if key not in non_kwargs
         }
 
-        result, msg, issues = expectation["function"](**kwargs)
+        passed, msg, issues = expectation["function"](**kwargs)
 
         # set some core attributes
         if getattr(self, "responses", None):
@@ -85,17 +85,19 @@ class BaseCheckpoint:
         validated_issues = []
         for issue in issues:
             issue_class = issue_factory(issue["scope"])
-            validated_issues.append(issue_class(**issue, response_id=expectation_hash))
+            validated_issues.append(
+                issue_class(**issue, expectation_result=expectation_hash)
+            )
 
-        return ExpectationResponse(
-            response_id=expectation_hash,
+        return ExpectationResult(
+            expectation_result=expectation_hash,
             checkpoint=self.checkpoint,
             entry_date=entry_date,
             name=expectation["name"],
             # description is optional
             description=arguments.get("description", None),
             severity=expectation["severity"],
-            result=result,
+            passed=passed,
             message=msg,
             issues=validated_issues,
             # not convinced we need the below but leave in for now
@@ -125,7 +127,7 @@ class BaseCheckpoint:
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:
             if format == "csv":
-                dictwriter = DictWriter(f, fieldnames=self.response_fieldnames)
+                dictwriter = DictWriter(f, fieldnames=self.result_fieldnames)
                 dictwriter.writeheader()
                 dictwriter.writerows(
                     [response.dict_for_export() for response in responses]

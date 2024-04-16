@@ -34,12 +34,12 @@ class SeverityEnum(str, Enum):
 # TODO write unit tests for this class
 @dataclass_json
 @dataclass
-class ExpectationResponse:
+class ExpectationResult:
     """Class to keep inputs and results of expectations"""
 
-    response_id: str = field(metadata=config(field_name="response-id"))
+    expectation_result: str = field(metadata=config(field_name="expectation-result"))
     checkpoint: str
-    result: bool
+    passed: bool
     severity: SeverityEnum
     message: str
     issues: list
@@ -94,7 +94,7 @@ class ExpectationResponse:
 
         failure_count = 0
 
-        if not self.result:
+        if not self.passed:
             warnings.warn(self.message)
             if self.severity == "critical":
                 failure_count = 1
