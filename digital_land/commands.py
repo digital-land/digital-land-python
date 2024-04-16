@@ -19,6 +19,7 @@ from digital_land.package.dataset import DatasetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
+from digital_land.phase.post_conversion import PostConversionPhase
 from digital_land.phase.default import DefaultPhase
 from digital_land.phase.dump import DumpPhase
 from digital_land.phase.factor import FactorPhase
@@ -161,6 +162,16 @@ def pipeline_run(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
             custom_temp_dir=custom_temp_dir,
+        ),
+        PostConversionPhase(
+            converted_resource_path=os.path.join(
+                custom_temp_dir, f"{resource}_converted.csv"
+            ),
+            output_dir=os.path.join(
+                os.path.dirname(output_path), "post_conversion_outputs"
+            ),
+            dataset=dataset,
+            typology=specification.get_typology_for_dataset(dataset),
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
