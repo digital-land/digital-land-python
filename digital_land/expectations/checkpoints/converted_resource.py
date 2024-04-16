@@ -14,12 +14,14 @@ BASE = [
         "name": "Check for Duplicate References",
         "severity": "error",
         "responsibility": "system",
+        "csv_path": None,
     },
     {
         "function": validate_references,
         "name": "Validate References",
         "severity": "error",
         "responsibility": "system",
+        "csv_path": None,
     },
 ]
 
@@ -49,6 +51,7 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
 
         # Assign a QueryRunner instance to each expectation
         for expectation in self.expectations:
+            expectation["csv_path"] = self.csv_path
             expectation["query_runner"] = QueryRunner(self.csv_path)
 
     def save(self, output_dir, format="csv"):
