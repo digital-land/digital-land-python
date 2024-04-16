@@ -169,11 +169,6 @@ def pipeline_run(
     converted_resource_path = convert_phase.converted_resource_path
 
     run_pipeline(
-        ConvertPhase(
-            path=input_path,
-            dataset_resource_log=dataset_resource_log,
-            custom_temp_dir=custom_temp_dir,
-        ),
         PostConversionPhase(
             converted_resource_path=converted_resource_path,
             output_dir=output_path,
