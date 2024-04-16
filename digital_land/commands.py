@@ -128,7 +128,6 @@ def pipeline_run(
     issue_log = IssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
-    converted_resource_path = custom_temp_dir / f"{resource}_converted.csv"
 
     # load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource)
