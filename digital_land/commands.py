@@ -128,6 +128,7 @@ def pipeline_run(
     issue_log = IssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
+    converted_resource_path = custom_temp_dir / f"{resource}_converted.csv"
 
     # load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource)
@@ -164,12 +165,8 @@ def pipeline_run(
             custom_temp_dir=custom_temp_dir,
         ),
         PostConversionPhase(
-            converted_resource_path=os.path.join(
-                custom_temp_dir, f"{resource}_converted.csv"
-            ),
-            output_dir=os.path.join(
-                os.path.dirname(output_path), "post_conversion_outputs"
-            ),
+            converted_resource_path=converted_resource_path,
+            output_dir=output_path,
             dataset=dataset,
             typology=specification.get_typology_for_dataset(dataset),
         ),
