@@ -71,7 +71,7 @@ class DatasetCheckpoint(BaseCheckpoint):
 
     def save(self, output_dir, format="csv"):
         responses_file_path = os.path.join(
-            output_dir, self.checkpoint, f"{self.data_name}-responses.csv"
+            output_dir, self.checkpoint, f"{self.data_name}-results.csv"
         )
         issues_file_path = os.path.join(
             output_dir, self.checkpoint, f"{self.data_name}-issues.csv"
