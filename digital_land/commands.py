@@ -157,20 +157,15 @@ def pipeline_run(
     if entry_date:
         default_values["entry-date"] = entry_date
 
-    convert_phase = ConvertPhase(
-        path=input_path,
-        dataset_resource_log=DatasetResourceLog(),
-        custom_temp_dir=custom_temp_dir,
-        output_path=output_path,
-    )
-
-    # Execute the ConvertPhase to set the converted_resource_path
-    convert_phase.process()
-    converted_resource_path = convert_phase.converted_resource_path
-
     run_pipeline(
+        ConvertPhase(
+            path=input_path,
+            dataset_resource_log=DatasetResourceLog(),
+            custom_temp_dir=custom_temp_dir,
+            output_path=output_path,
+        ),
         PostConversionPhase(
-            converted_resource_path=converted_resource_path,
+            converted_resource_path=input_path,
             output_dir=output_path,
             dataset=dataset,
             typology=specification.get_dataset_typology(dataset),
