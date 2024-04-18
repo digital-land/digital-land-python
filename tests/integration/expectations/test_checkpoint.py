@@ -63,7 +63,7 @@ def csv_path(tmp_path):
     return csv_file
 
 
-def test_run_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
+def test_dataset_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
     # load data
     test_entity_data = pd.DataFrame.from_dict({"entity": [1], "name": ["test1"]})
     test_old_entity_data = pd.DataFrame.from_dict({"old_entity": [100], "entity": [10]})
@@ -94,7 +94,7 @@ def test_run_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
     assert len(issues) == 0
 
 
-def test_run_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
+def test_dataset_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
     # load data
     test_entity_data = pd.DataFrame.from_dict(
         {
