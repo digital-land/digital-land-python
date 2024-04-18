@@ -122,7 +122,7 @@ class BaseCheckpoint:
                 "One or more expectations with severity RaiseError failed, see results for more details"
             )
 
-    def save_responses(self, responses, file_path, format="csv"):
+    def save_results(self, responses, file_path, format="csv"):
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:

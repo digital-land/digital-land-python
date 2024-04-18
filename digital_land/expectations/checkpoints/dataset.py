@@ -77,7 +77,7 @@ class DatasetCheckpoint(BaseCheckpoint):
             output_dir, self.checkpoint, f"{self.data_name}-issues.csv"
         )
 
-        self.save_responses(
+        self.save_results(
             self.responses,
             responses_file_path,
             format=format,
