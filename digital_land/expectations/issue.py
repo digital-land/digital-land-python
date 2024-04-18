@@ -120,8 +120,8 @@ class ValueIssue(Issue):
     scope: str
     dataset: str
     table_name: str = field(metadata=config(field_name="table-name"))
-    field_name: str
-    row_id: str
+    field_name: str = field(metadata=config(field_name="field-name"))
+    row_id: str = field(metadata=config(field_name="row-id"))
     value: str
     organisation: str
 

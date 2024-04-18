@@ -166,7 +166,7 @@ def pipeline_run(
         ),
         PostConversionPhase(
             converted_resource_path=input_path,
-            output_dir=output_path,
+            output_dir=os.path.dirname(output_path),
             dataset=dataset,
             typology=specification.get_dataset_typology(dataset),
         ),

@@ -17,7 +17,8 @@ class PostConversionPhase:
         self.act_on_critical_error = act_on_critical_error
 
     def process(self, stream=None):
-        return self.run()
+        self.run()
+        return stream
 
     def run(self):
         """
