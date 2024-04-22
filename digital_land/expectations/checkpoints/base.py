@@ -123,7 +123,6 @@ class BaseCheckpoint:
             )
 
     def save_results(self, results, file_path, format="csv"):
-
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:
             if format == "csv":

@@ -79,17 +79,17 @@ def test_dataset_checkpoint_success(tmp_path, sqlite3_with_entity_tables_path):
     checkpoint.run()
     checkpoint.save(tmp_path)
 
-    with open(os.path.join(tmp_path, "dataset", "test-responses.csv"), "r") as f:
-        responses = list(DictReader(f))
+    with open(os.path.join(tmp_path, "dataset", "test-results.csv"), "r") as f:
+        results = list(DictReader(f))
 
     with open(os.path.join(tmp_path, "dataset", "test-issues.csv"), "r") as f:
         issues = list(DictReader(f))
 
-    assert len(responses) == 1
-    assert responses[0]["checkpoint"] == "dataset"
-    assert responses[0]["passed"] == "True"
-    assert responses[0]["severity"] == "warning"
-    assert responses[0]["message"] == "No retired enities found in the dataset."
+    assert len(results) == 1
+    assert results[0]["checkpoint"] == "dataset"
+    assert results[0]["passed"] == "True"
+    assert results[0]["severity"] == "warning"
+    assert results[0]["message"] == "No retired enities found in the dataset."
 
     assert len(issues) == 0
 
@@ -117,7 +117,7 @@ def test_dataset_checkpoint_failure(tmp_path, sqlite3_with_entity_tables_path):
     checkpoint.run()
     checkpoint.save(tmp_path)
 
-    with open(os.path.join(tmp_path, "dataset", "test-responses.csv"), "r") as f:
+    with open(os.path.join(tmp_path, "dataset", "test-results.csv"), "r") as f:
         results = list(DictReader(f))
 
     with open(os.path.join(tmp_path, "dataset", "test-issues.csv"), "r") as f:
