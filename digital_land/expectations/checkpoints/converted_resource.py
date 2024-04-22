@@ -56,14 +56,18 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
 
     def save(self, output_dir, format="csv"):
         responses_file_path = os.path.join(
-            output_dir, self.checkpoint, f"{self.dataset}-responses.csv"
+            output_dir, self.checkpoint, f"{self.dataset}-results.csv"
         )
         issues_file_path = os.path.join(
             output_dir, self.checkpoint, f"{self.dataset}-issues.csv"
         )
 
-        self.save_responses(
-            self.responses,
+        import pdb
+
+        pdb.set_trace()
+
+        self.save_results(
+            self.results,
             responses_file_path,
             format=format,
         )

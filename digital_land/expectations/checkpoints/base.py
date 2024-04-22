@@ -16,7 +16,7 @@ class BaseCheckpoint:
         self.checkpoint = checkpoint
         self.data_path = data_path
         self.data_name = Path(data_path).stem
-        self.responses = []
+        self.results = []
         self.issues = []
         # each issue is going to have different fields, so define here what all of them are
         # this will take some iterations to get right
@@ -112,28 +112,26 @@ class BaseCheckpoint:
         self.failed_expectation_with_error_severity = 0
 
         for expectation in self.expectations:
-            response = self.run_expectation(expectation)
-            self.responses.append(response)
-            self.issues.extend(response.issues)
-            self.failed_expectation_with_error_severity += response.act_on_failure()
+            result = self.run_expectation(expectation)
+            self.results.append(result)
+            self.issues.extend(result.issues)
+            self.failed_expectation_with_error_severity += result.act_on_failure()
 
         if self.failed_expectation_with_error_severity > 0:
             raise DataQualityException(
                 "One or more expectations with severity RaiseError failed, see results for more details"
             )
 
-    def save_responses(self, responses, file_path, format="csv"):
+    def save_results(self, results, file_path, format="csv"):
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:
             if format == "csv":
                 dictwriter = DictWriter(f, fieldnames=self.result_fieldnames)
                 dictwriter.writeheader()
-                dictwriter.writerows(
-                    [response.dict_for_export() for response in responses]
-                )
+                dictwriter.writerows([result.dict_for_export() for result in results])
             elif format == "json":
-                json.dump([response.to_dict() for response in responses], f)
+                json.dump([result.to_dict() for result in results], f)
             else:
                 raise ValueError(f"format must be csv or json and cannot be {format}")
 

@@ -160,13 +160,11 @@ def pipeline_run(
     run_pipeline(
         ConvertPhase(
             path=input_path,
-            dataset_resource_log=DatasetResourceLog(),
+            dataset_resource_log=dataset_resource_log,
             custom_temp_dir=custom_temp_dir,
-            output_path=output_path,
         ),
         PostConversionPhase(
-            converted_resource_path=input_path,
-            output_dir=os.path.dirname(output_path),
+            output_dir=os.path.join("exxpectations", "post-conversion"),
             dataset=dataset,
             typology=specification.get_dataset_typology(dataset),
         ),
