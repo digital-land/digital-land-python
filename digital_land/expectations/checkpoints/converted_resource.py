@@ -62,10 +62,6 @@ class ConvertedResourceCheckpoint(BaseCheckpoint):
             output_dir, self.checkpoint, f"{self.dataset}-issues.csv"
         )
 
-        import pdb
-
-        pdb.set_trace()
-
         self.save_results(
             self.results,
             responses_file_path,

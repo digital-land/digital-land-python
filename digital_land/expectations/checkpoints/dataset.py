@@ -78,7 +78,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         )
 
         self.save_results(
-            self.responses,
+            self.results,
             responses_file_path,
             format=format,
         )
