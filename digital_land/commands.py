@@ -163,9 +163,6 @@ def pipeline_run(
             dataset_resource_log=dataset_resource_log,
             custom_temp_dir=custom_temp_dir,
         ),
-        PostConversionPhase(
-            issues=issue_log,
-        ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
         ConcatFieldPhase(concats=concats, log=column_field_log),
@@ -198,6 +195,9 @@ def pipeline_run(
         ),
         OrganisationPhase(organisation=organisation, issues=issue_log),
         FieldPrunePhase(fields=specification.current_fieldnames(schema)),
+        PostConversionPhase(  # Now badly named...
+            issues=issue_log,
+        ),
         EntityReferencePhase(
             dataset=dataset,
             prefix=specification.dataset_prefix(dataset),
