@@ -164,9 +164,7 @@ def pipeline_run(
             custom_temp_dir=custom_temp_dir,
         ),
         PostConversionPhase(
-            output_dir=os.path.join("exxpectations", "post-conversion"),
-            dataset=dataset,
-            typology=specification.get_dataset_typology(dataset),
+            issues=issue_log,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
