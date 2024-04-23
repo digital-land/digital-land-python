@@ -155,8 +155,6 @@ class ConvertPhase(Phase):
 
             # raise StopIteration()
             reader = iter(())
-        if self.output_path:
-            self.converted_resource_path = self.output_path
 
         return Stream(input_path, f=reader, log=self.log)
 
