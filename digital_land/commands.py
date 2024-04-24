@@ -137,6 +137,7 @@ def pipeline_run(
     default_fields = pipeline.default_fields(resource=resource)
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
+    redirect_lookups = pipeline.redirect_lookups()
 
     # load organisations
     organisation = Organisation(organisation_path, Path(pipeline.path))
@@ -199,7 +200,7 @@ def pipeline_run(
             prefix=specification.dataset_prefix(dataset),
         ),
         EntityPrefixPhase(dataset=dataset),
-        EntityLookupPhase(lookups),
+        EntityLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups),
         SavePhase(
             default_output_path("harmonised", input_path),
             fieldnames=intermediate_fieldnames,
@@ -215,7 +216,7 @@ def pipeline_run(
             field_typology_map=specification.get_field_typology_map(),
             field_prefix_map=specification.get_field_prefix_map(),
         ),
-        FactLookupPhase(lookups),
+        FactLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups),
         FactPrunePhase(),
         SavePhase(
             output_path,
