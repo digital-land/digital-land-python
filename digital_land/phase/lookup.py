@@ -24,6 +24,8 @@ class LookupPhase(Phase):
     lookup entity numbers by CURIE
     """
 
+    entity_field = None
+
     def __init__(self, lookups={}, redirect_lookups={}):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
@@ -83,10 +85,9 @@ class FactLookupPhase(LookupPhase):
     entity_field = "reference-entity"
 
 
-class PrintLookupPhase(Phase):
+class PrintLookupPhase(LookupPhase):
     def __init__(self, lookups={}, redirect_lookups={}):
-        self.lookups = lookups
-        self.redirect_lookups = redirect_lookups
+        super().__init__(lookups, redirect_lookups)
         self.entity_field = "entity"
         self.new_lookup_entries = []
 
@@ -94,39 +95,16 @@ class PrintLookupPhase(Phase):
         return self.lookups.get(key(**kwargs), "")
 
     def process(self, stream):
-        for block in stream:
+        for block in super().process(stream):
             row = block["row"]
-            entry_number = block["entry-number"]
-            prefix = row.get("prefix", "")
-            reference = row.get("reference", "")
-            if "," in reference:
-                reference = f'"{reference}"'
-            organisation = row.get("organisation", "")
-            if prefix:
-                if not row.get(self.entity_field, ""):
-                    row[self.entity_field] = (
-                        # by the resource and row number
-                        (
-                            self.entity_field == "entity"
-                            and self.lookup(prefix=prefix, entry_number=entry_number)
-                        )
-                        # TBD: fixup prefixes so this isn't needed ..
-                        # or by the organisation and the reference
-                        or self.lookup(
-                            prefix=prefix,
-                            organisation=organisation,
-                            reference=reference,
-                        )
-                    )
-                    if self.redirect_lookups:
-                        old_entity = row[self.entity_field]
-                        new_entity = self.redirect_lookups.get(old_entity, "")
-                        if new_entity and new_entity["status"] == "301":
-                            row[self.entity_field] = new_entity["entity"]
-                        elif new_entity and new_entity["status"] == "410":
-                            row[self.entity_field] = ""
 
             if not row[self.entity_field]:
+                entry_number = block["entry-number"]
+                prefix = row.get("prefix", "")
+                organisation = row.get("organisation", "")
+                reference = row.get("reference", "")
+                if "," in reference:
+                    reference = f'"{reference}"'
                 if prefix and organisation and reference:
                     new_lookup = {
                         "prefix": prefix,
