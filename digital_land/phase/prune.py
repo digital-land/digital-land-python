@@ -45,8 +45,9 @@ class EntityPrunePhase(Phase):
                 curie = f"{prefix}:{reference}"
                 line_number = block["line-number"]
                 entry_number = block["entry-number"]
+                entity_redirect = row.get("redirect", "")
 
-                if self.issues:
+                if self.issues and not entity_redirect:
                     if not reference:
                         self.issues.log_issue(
                             "entity",

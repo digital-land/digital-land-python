@@ -33,13 +33,13 @@ class LookupPhase(Phase):
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
 
-    def get_entity_number(self, old_entity):
-        new_entity = self.redirect_lookups.get(old_entity, "")
-        if new_entity and new_entity["status"] == "301":
-            return new_entity["entity"]
-        elif new_entity and new_entity["status"] == "410":
+    def get_entity_number(self, entity):
+        redirect_entity = self.redirect_lookups.get(entity, "")
+        if redirect_entity and redirect_entity["status"] == "301":
+            return redirect_entity["entity"]
+        elif redirect_entity and redirect_entity["status"] == "410":
             return ""
-        return old_entity
+        return entity
 
     def process(self, stream):
         for block in stream:
@@ -72,6 +72,8 @@ class LookupPhase(Phase):
                     )
                 if self.redirect_lookups:
                     new_entity = self.get_entity_number(row[self.entity_field])
+                    if new_entity == "" and row[self.entity_field]:
+                        row["redirect"] = "True"
                     row[self.entity_field] = new_entity
 
             yield block

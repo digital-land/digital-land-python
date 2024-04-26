@@ -42,3 +42,24 @@ class TestEntityPrunePhase:
 
         list(phase.process(input_stream))
         assert issues.rows[0]["issue-type"] == "unknown entity"
+
+    def test_update(self):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "dataset",
+                    "reference": "REF01",
+                    "entity": "",
+                    "redirect": "True",
+                },
+                "entry-number": 1,
+                "resource": "123",
+                "line-number": 2,
+            }
+        ]
+        issues = IssueLog()
+        resource_log = DatasetResourceLog()
+        phase = EntityPrunePhase(issues, resource_log)
+
+        list(phase.process(input_stream))
+        assert len(issues.rows) == 0
