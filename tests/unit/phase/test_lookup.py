@@ -42,107 +42,51 @@ class TestLookupPhase:
         ]
         lookups = {",dataset,1,local-authoritydnc": "1"}
         phase = LookupPhase(lookups=lookups)
-
         phase.entity_field = "entity"
-
         output = [block for block in phase.process(input_stream)]
 
         assert output[0]["row"]["entity"] == "1"
 
+    def test_process_entity_removed(self, get_input_stream, get_lookup):
+        input_stream = get_input_stream
+        lookups = get_lookup
+        issues = IssueLog()
+        redirect_lookups = {"1": {"entity": "", "status": "410"}}
+        phase = LookupPhase(
+            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+        )
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
 
-def test_process_410_redirect(get_input_stream, get_lookup):
-    input_stream = get_input_stream
-    lookups = get_lookup
-    redirect_lookups = {"1": {"entity": "", "status": "410"}}
-    phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
-    output = [block for block in phase.process(input_stream)]
+        # no issue raised for removed entity
+        assert output[0]["row"]["entity"] == ""
+        assert len(issues.rows) == 0
 
-    assert output[0]["row"]["entity"] == ""
+    def test_process_raise_issue(self, get_input_stream):
+        input_stream = get_input_stream
+        lookups = {",ancient-woodland,1,test": "1"}
+        issues = IssueLog()
+        redirect_lookups = {"10": {"entity": "", "status": "410"}}
+        phase = LookupPhase(
+            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+        )
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
 
-
-def test_process_301_redirect(get_input_stream, get_lookup):
-    input_stream = get_input_stream
-    lookups = get_lookup
-    redirect_lookups = {"1": {"entity": "2", "status": "301"}}
-    phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
-    output = [block for block in phase.process(input_stream)]
-
-    assert output[0]["row"]["entity"] == "2"
-
-
-def test_process_successful_lookup(get_input_stream, get_lookup):
-    input_stream = get_input_stream
-    lookups = get_lookup
-    phase = PrintLookupPhase(lookups=lookups)
-    output = [block for block in phase.process(input_stream)]
-
-    assert output[0]["row"]["entity"] == "1"
-
-
-def test_lookup_process_redirect(get_input_stream, get_lookup):
-    input_stream = get_input_stream
-    lookups = get_lookup
-    redirect_lookups = {"1": {"entity": "2", "status": "301"}}
-    phase = LookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
-    phase.entity_field = "entity"
-    output = [block for block in phase.process(input_stream)]
-
-    assert output[0]["row"]["entity"] == "2"
+        assert output[0]["row"]["entity"] == ""
+        assert issues.rows[0]["issue-type"] == "unknown entity"
 
 
-def test_process_no_redirection_found(get_input_stream, get_lookup):
-    input_stream = get_input_stream
-    lookups = get_lookup
-    redirect_lookups = {"10": {"entity": "20", "status": "301"}}
-    phase = LookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
-    phase.entity_field = "reference-entity"
-    output = [block for block in phase.process(input_stream)]
+class TestPrintLookupPhase:
+    def test_print_lookup_process(self, get_input_stream, get_lookup):
+        input_stream = get_input_stream
+        lookups = get_lookup
+        redirect_lookups = {"1": {"entity": "", "status": "410"}}
+        phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
+        output = [block for block in phase.process(input_stream)]
 
-    assert output[0]["row"]["reference-entity"] == "1"
-
-
-def test_process_returns_missing_reference(get_lookup):
-    input_stream = [
-        {
-            "row": {
-                "prefix": "ancient-woodland",
-                "reference": "",
-                "entity": "",
-            },
-            "entry-number": 1,
-            "line-number": 2,
-        }
-    ]
-    issues = IssueLog()
-    lookups = get_lookup
-    redirect_lookups = {"10": {"entity": "20", "status": "301"}}
-    phase = LookupPhase(
-        lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
-    )
-
-    list(phase.process(input_stream))
-    assert issues.rows[0]["issue-type"] == "unknown entity - missing reference"
-
-
-def test_process_returns_unknown_entity(get_lookup):
-    input_stream = [
-        {
-            "row": {
-                "prefix": "dataset",
-                "reference": "REF01",
-                "entity": "",
-            },
-            "entry-number": 1,
-            "resource": "123",
-            "line-number": 2,
-        }
-    ]
-    issues = IssueLog()
-    lookups = get_lookup
-    redirect_lookups = {"10": {"entity": "20", "status": "301"}}
-    phase = LookupPhase(
-        lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
-    )
-
-    list(phase.process(input_stream))
-    assert issues.rows[0]["issue-type"] == "unknown entity"
+        assert output[0]["row"]["entity"] == ""
+        assert len(phase.new_lookup_entries) == 1
+        assert phase.new_lookup_entries[0][0]["prefix"] == "dataset"
+        assert phase.new_lookup_entries[0][0]["organisation"] == "test"
+        assert phase.new_lookup_entries[0][0]["reference"] == "1"

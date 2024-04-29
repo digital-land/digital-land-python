@@ -34,46 +34,55 @@ class LookupPhase(Phase):
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
 
-    def get_entity_number(self, entity):
-        redirect_entity = self.redirect_lookups.get(entity, "")
-        if redirect_entity and redirect_entity["status"] == "301":
-            return redirect_entity["entity"]
-        elif redirect_entity and redirect_entity["status"] == "410":
-            return ""
+    def get_entity(self, block):
+        row = block["row"]
+        prefix = row.get("prefix", "")
+        reference = row.get("reference", "")
+        organisation = row.get("organisation", "").replace(
+            "local-authority-eng", "local-authority"
+        )
+        entry_number = block["entry-number"]
+
+        entity = (
+            # by the resource and row number
+            (
+                self.entity_field == "entity"
+                and self.lookup(prefix=prefix, entry_number=entry_number)
+            )
+            # TBD: fixup prefixes so this isn't needed ..
+            # or by the organisation and the reference
+            or self.lookup(
+                prefix=prefix,
+                organisation=organisation,
+                reference=reference,
+            )
+            # or by the CURIE
+            or self.lookup(prefix=prefix, reference=reference)
+        )
+        if self.redirect_lookups:
+            redirect_entity = self.redirect_lookups.get(entity, "")
+            if redirect_entity:
+                if redirect_entity["status"] == "301":
+                    return redirect_entity["entity"]
+                elif redirect_entity["status"] == "410":
+                    return None
         return entity
 
     def process(self, stream):
         for block in stream:
             row = block["row"]
-            entry_number = block["entry-number"]
             prefix = row.get("prefix", "")
             reference = row.get("reference", "")
-            organisation = row.get("organisation", "")
-            organisation = organisation.replace(
-                "local-authority-eng", "local-authority"
-            )
             curie = f"{prefix}:{reference}"
             line_number = block["line-number"]
 
             if prefix:
                 if not row.get(self.entity_field, ""):
-                    row[self.entity_field] = (
-                        # by the resource and row number
-                        (
-                            self.entity_field == "entity"
-                            and self.lookup(prefix=prefix, entry_number=entry_number)
-                        )
-                        # TBD: fixup prefixes so this isn't needed ..
-                        # or by the organisation and the reference
-                        or self.lookup(
-                            prefix=prefix,
-                            organisation=organisation,
-                            reference=reference,
-                        )
-                        # or by the CURIE
-                        or self.lookup(prefix=prefix, reference=reference)
-                    )
-                if not row.get("entity", ""):
+                    row[self.entity_field] = self.get_entity(block)
+
+                if row[self.entity_field] is None:
+                    row[self.entity_field] = ""
+                elif not row[self.entity_field]:
                     if self.issues:
                         if not reference:
                             self.issues.log_issue(
@@ -89,10 +98,6 @@ class LookupPhase(Phase):
                                 curie,
                                 line_number=line_number,
                             )
-                if self.redirect_lookups:
-                    new_entity = self.get_entity_number(row[self.entity_field])
-                    row[self.entity_field] = new_entity
-
             yield block
 
 
@@ -110,20 +115,23 @@ class PrintLookupPhase(LookupPhase):
         self.entity_field = "entity"
         self.new_lookup_entries = []
 
-    def lookup(self, **kwargs):
-        return self.lookups.get(key(**kwargs), "")
-
     def process(self, stream):
-        for block in super().process(stream):
+        for block in stream:
             row = block["row"]
+            entry_number = block["entry-number"]
+            prefix = row.get("prefix", "")
+            organisation = row.get("organisation", "")
+            reference = row.get("reference", "")
+            if "," in reference:
+                reference = f'"{reference}"'
+
+            if prefix:
+                if not row.get(self.entity_field, ""):
+                    row[self.entity_field] = self.get_entity(block)
+            if row[self.entity_field] is None:
+                row[self.entity_field] = ""
 
             if not row[self.entity_field]:
-                entry_number = block["entry-number"]
-                prefix = row.get("prefix", "")
-                organisation = row.get("organisation", "")
-                reference = row.get("reference", "")
-                if "," in reference:
-                    reference = f'"{reference}"'
                 if prefix and organisation and reference:
                     new_lookup = {
                         "prefix": prefix,
