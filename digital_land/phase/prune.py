@@ -1,5 +1,6 @@
 from .phase import Phase
 import logging
+import warnings
 
 
 class FieldPrunePhase(Phase):
@@ -30,7 +31,12 @@ class EntityPrunePhase(Phase):
     remove entries with a missing entity
     """
 
-    def __init__(self, dataset_resource_log=None):
+    def __init__(self, issue_log=None, dataset_resource_log=None):
+        self.issues = issue_log
+        if issue_log is not None:
+            warnings.warn(
+                "The 'issue_log' parameter is deprecated.", DeprecationWarning
+            )
         self.log = dataset_resource_log
 
     def process(self, stream):
