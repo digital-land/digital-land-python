@@ -200,15 +200,15 @@ def pipeline_run(
             prefix=specification.dataset_prefix(dataset),
         ),
         EntityPrefixPhase(dataset=dataset),
-        EntityLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups),
+        EntityLookupPhase(
+            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issue_log
+        ),
         SavePhase(
             default_output_path("harmonised", input_path),
             fieldnames=intermediate_fieldnames,
             enabled=save_harmonised,
         ),
-        EntityPrunePhase(
-            issue_log=issue_log, dataset_resource_log=dataset_resource_log
-        ),
+        EntityPrunePhase(dataset_resource_log=dataset_resource_log),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),

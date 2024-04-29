@@ -26,9 +26,10 @@ class LookupPhase(Phase):
 
     entity_field = None
 
-    def __init__(self, lookups={}, redirect_lookups={}):
+    def __init__(self, lookups={}, redirect_lookups={}, issue_log=None):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
+        self.issues = issue_log
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
@@ -51,6 +52,8 @@ class LookupPhase(Phase):
             organisation = organisation.replace(
                 "local-authority-eng", "local-authority"
             )
+            curie = f"{prefix}:{reference}"
+            line_number = block["line-number"]
 
             if prefix:
                 if not row.get(self.entity_field, ""):
@@ -70,10 +73,24 @@ class LookupPhase(Phase):
                         # or by the CURIE
                         or self.lookup(prefix=prefix, reference=reference)
                     )
+                if not row.get("entity", ""):
+                    if self.issues:
+                        if not reference:
+                            self.issues.log_issue(
+                                "entity",
+                                "unknown entity - missing reference",
+                                curie,
+                                line_number=line_number,
+                            )
+                        else:
+                            self.issues.log_issue(
+                                "entity",
+                                "unknown entity",
+                                curie,
+                                line_number=line_number,
+                            )
                 if self.redirect_lookups:
                     new_entity = self.get_entity_number(row[self.entity_field])
-                    if new_entity == "" and row[self.entity_field]:
-                        row["redirect"] = "True"
                     row[self.entity_field] = new_entity
 
             yield block

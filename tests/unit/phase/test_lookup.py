@@ -1,6 +1,7 @@
 import pytest
 
 from digital_land.phase.lookup import LookupPhase, PrintLookupPhase
+from digital_land.log import IssueLog
 
 
 @pytest.fixture
@@ -13,6 +14,7 @@ def get_input_stream():
                 "organisation": "test",
             },
             "entry-number": 1,
+            "line-number": 2,
         }
     ]
 
@@ -35,6 +37,7 @@ class TestLookupPhase:
                     "organisation": entry_organisation,
                 },
                 "entry-number": 1,
+                "line-number": 2,
             }
         ]
         lookups = {",dataset,1,local-authoritydnc": "1"}
@@ -96,3 +99,50 @@ def test_process_no_redirection_found(get_input_stream, get_lookup):
     output = [block for block in phase.process(input_stream)]
 
     assert output[0]["row"]["reference-entity"] == "1"
+
+
+def test_process_returns_missing_reference(get_lookup):
+    input_stream = [
+        {
+            "row": {
+                "prefix": "ancient-woodland",
+                "reference": "",
+                "entity": "",
+            },
+            "entry-number": 1,
+            "line-number": 2,
+        }
+    ]
+    issues = IssueLog()
+    lookups = get_lookup
+    redirect_lookups = {"10": {"entity": "20", "status": "301"}}
+    phase = LookupPhase(
+        lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+    )
+
+    list(phase.process(input_stream))
+    assert issues.rows[0]["issue-type"] == "unknown entity - missing reference"
+
+
+def test_process_returns_unknown_entity(get_lookup):
+    input_stream = [
+        {
+            "row": {
+                "prefix": "dataset",
+                "reference": "REF01",
+                "entity": "",
+            },
+            "entry-number": 1,
+            "resource": "123",
+            "line-number": 2,
+        }
+    ]
+    issues = IssueLog()
+    lookups = get_lookup
+    redirect_lookups = {"10": {"entity": "20", "status": "301"}}
+    phase = LookupPhase(
+        lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+    )
+
+    list(phase.process(input_stream))
+    assert issues.rows[0]["issue-type"] == "unknown entity"
