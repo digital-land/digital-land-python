@@ -78,15 +78,11 @@ class TestLookupPhase:
 
 
 class TestPrintLookupPhase:
-    def test_print_lookup_process(self, get_input_stream, get_lookup):
+    def test_process_does_not_produce_new_lookup(self, get_input_stream, get_lookup):
         input_stream = get_input_stream
         lookups = get_lookup
         redirect_lookups = {"1": {"entity": "", "status": "410"}}
         phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
-        output = [block for block in phase.process(input_stream)]
+        [block for block in phase.process(input_stream)]
 
-        assert output[0]["row"]["entity"] == ""
-        assert len(phase.new_lookup_entries) == 1
-        assert phase.new_lookup_entries[0][0]["prefix"] == "dataset"
-        assert phase.new_lookup_entries[0][0]["organisation"] == "test"
-        assert phase.new_lookup_entries[0][0]["reference"] == "1"
+        assert len(phase.new_lookup_entries) == 0
