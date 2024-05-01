@@ -77,6 +77,8 @@ class LookupPhase(Phase):
                     return redirect_entity["entity"]
                 elif redirect_entity["status"] == "410":
                     return ""
+            else:
+                return entity
         else:
             return entity
 
