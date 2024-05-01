@@ -25,6 +25,13 @@ def get_lookup():
 
 
 class TestLookupPhase:
+    def test_redirect_entity_entity_is_not_redirected(self):
+        redirects = {"101": {"entity": "101", "status": "310"}}
+        phase = LookupPhase(redirect_lookups=redirects)
+        input_entity = "401"
+        output_entity = phase.redirect_entity(input_entity)
+        assert output_entity == input_entity
+
     @pytest.mark.parametrize(
         "entry_organisation", ["local-authority-eng:DNC", "local-authority:DNC"]
     )
@@ -75,22 +82,6 @@ class TestLookupPhase:
 
         assert output[0]["row"]["entity"] == ""
         assert issues.rows[0]["issue-type"] == "unknown entity"
-
-    def test_redirect_entity_returns_correct_entity(self, get_input_stream, get_lookup):
-        input_stream = get_input_stream
-        lookups = get_lookup
-        issues = IssueLog()
-        redirect_lookups = {
-            "10": {"entity": "", "status": "410"},
-            "20": {"entity": "30", "status": "301"},
-        }
-        phase = LookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
-        )
-        phase.entity_field = "entity"
-        output = [block for block in phase.process(input_stream)]
-
-        assert output[0]["row"]["entity"] == "1"
 
 
 class TestPrintLookupPhase:
