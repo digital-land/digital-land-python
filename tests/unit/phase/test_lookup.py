@@ -1,9 +1,37 @@
 import pytest
 
 from digital_land.phase.lookup import LookupPhase, PrintLookupPhase
+from digital_land.log import IssueLog
+
+
+@pytest.fixture
+def get_input_stream():
+    return [
+        {
+            "row": {
+                "prefix": "dataset",
+                "reference": "1",
+                "organisation": "test",
+            },
+            "entry-number": 1,
+            "line-number": 2,
+        }
+    ]
+
+
+@pytest.fixture
+def get_lookup():
+    return {",dataset,1,test": "1"}
 
 
 class TestLookupPhase:
+    def test_redirect_entity_entity_is_not_redirected(self):
+        redirects = {"101": {"entity": "101", "status": "310"}}
+        phase = LookupPhase(redirect_lookups=redirects)
+        input_entity = "401"
+        output_entity = phase.redirect_entity(input_entity)
+        assert output_entity == input_entity
+
     @pytest.mark.parametrize(
         "entry_organisation", ["local-authority-eng:DNC", "local-authority:DNC"]
     )
@@ -16,67 +44,52 @@ class TestLookupPhase:
                     "organisation": entry_organisation,
                 },
                 "entry-number": 1,
+                "line-number": 2,
             }
         ]
         lookups = {",dataset,1,local-authoritydnc": "1"}
         phase = LookupPhase(lookups=lookups)
-
         phase.entity_field = "entity"
-
         output = [block for block in phase.process(input_stream)]
 
         assert output[0]["row"]["entity"] == "1"
 
+    def test_process_entity_removed(self, get_input_stream, get_lookup):
+        input_stream = get_input_stream
+        lookups = get_lookup
+        issues = IssueLog()
+        redirect_lookups = {"1": {"entity": "", "status": "410"}}
+        phase = LookupPhase(
+            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+        )
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
 
-def test_process_410_redirect():
-    input_stream = [
-        {
-            "row": {
-                "prefix": "dataset",
-                "reference": "1",
-                "organisation": "test",
-            },
-            "entry-number": 1,
-        }
-    ]
-    lookups = {",dataset,1,test": "1"}
-    redirect_lookups = {"1": {"entity": "", "status": "410"}}
-    phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
-    output = [block for block in phase.process(input_stream)]
+        # no issue raised for removed entity
+        assert output[0]["row"]["entity"] == ""
+        assert len(issues.rows) == 0
 
-    assert output[0]["row"]["entity"] == ""
+    def test_process_raise_issue(self, get_input_stream):
+        input_stream = get_input_stream
+        lookups = {",ancient-woodland,1,test": "1"}
+        issues = IssueLog()
+        redirect_lookups = {"10": {"entity": "", "status": "410"}}
+        phase = LookupPhase(
+            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+        )
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
 
-
-def test_process_301_redirect():
-    input_stream = [
-        {
-            "row": {
-                "prefix": "dataset",
-                "reference": "1",
-                "organisation": "test",
-            },
-            "entry-number": 1,
-        }
-    ]
-    lookups = {",dataset,1,test": "1"}
-    redirect_lookups = {"1": {"entity": "2", "status": "301"}}
-    phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
-    output = [block for block in phase.process(input_stream)]
-    assert output[0]["row"]["entity"] == "2"
+        assert output[0]["row"]["entity"] == ""
+        assert issues.rows[0]["issue-type"] == "unknown entity"
 
 
-def test_process_successful_lookup():
-    input_stream = [
-        {
-            "row": {
-                "prefix": "dataset",
-                "reference": "1",
-                "organisation": "test",
-            },
-            "entry-number": 1,
-        }
-    ]
-    lookups = {",dataset,1,test": "1"}
-    phase = PrintLookupPhase(lookups=lookups)
-    output = [block for block in phase.process(input_stream)]
-    assert output[0]["row"]["entity"] == "1"
+class TestPrintLookupPhase:
+    def test_process_does_not_produce_new_lookup(self, get_input_stream, get_lookup):
+        input_stream = get_input_stream
+        lookups = get_lookup
+        redirect_lookups = {"1": {"entity": "", "status": "410"}}
+        phase = PrintLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups)
+        [block for block in phase.process(input_stream)]
+
+        assert len(phase.new_lookup_entries) == 0
