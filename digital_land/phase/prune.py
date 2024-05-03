@@ -1,6 +1,5 @@
 from .phase import Phase
 import logging
-import warnings
 
 
 class FieldPrunePhase(Phase):
@@ -33,10 +32,6 @@ class EntityPrunePhase(Phase):
 
     def __init__(self, issue_log=None, dataset_resource_log=None):
         self.issues = issue_log
-        if issue_log is not None:
-            warnings.warn(
-                "The 'issue_log' parameter is deprecated.", DeprecationWarning
-            )
         self.log = dataset_resource_log
 
     def process(self, stream):
@@ -48,7 +43,21 @@ class EntityPrunePhase(Phase):
                 prefix = row.get("prefix", "")
                 reference = row.get("reference", "")
                 curie = f"{prefix}:{reference}"
+                line_number = block["line-number"]
                 entry_number = block["entry-number"]
+
+                if self.issues:
+                    if not reference:
+                        self.issues.log_issue(
+                            "entity",
+                            "unknown entity - missing reference",
+                            curie,
+                            line_number=line_number,
+                        )
+                    else:
+                        self.issues.log_issue(
+                            "entity", "unknown entity", curie, line_number=line_number
+                        )
 
                 logging.info(
                     f"{resource} row {entry_number}: missing entity for {curie}"
