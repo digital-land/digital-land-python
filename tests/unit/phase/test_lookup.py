@@ -83,6 +83,30 @@ class TestLookupPhase:
         assert output[0]["row"]["entity"] == ""
         assert issues.rows[0]["issue-type"] == "unknown entity"
 
+    def test_process_empty_prefix(self, get_lookup):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "",
+                    "reference": "1",
+                    "organisation": "test",
+                    "entity": "10",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = get_lookup
+        issues = IssueLog()
+        redirect_lookups = {}
+        phase = LookupPhase(
+            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+        )
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == "10"
+
 
 class TestPrintLookupPhase:
     def test_process_does_not_produce_new_lookup(self, get_input_stream, get_lookup):

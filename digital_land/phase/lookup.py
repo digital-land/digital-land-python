@@ -108,12 +108,11 @@ class LookupPhase(Phase):
                                     curie,
                                     line_number=line_number,
                                 )
-                        yield block
                     else:
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]
                         )
-                        yield block
+            yield block
 
 
 class EntityLookupPhase(LookupPhase):
