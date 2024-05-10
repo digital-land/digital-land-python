@@ -71,7 +71,7 @@ class FactPrunePhase(Phase):
         for block in stream:
             row = block["row"]
 
-            if not row.get("value", ""):
+            if row.get("value") is None:
                 continue
 
             yield block

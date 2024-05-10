@@ -154,7 +154,6 @@ class DatasetPackage(SqlitePackage):
         self.create_cursor()
         self.execute(
             "select entity, field, value from fact"
-            "  where value != ''"
             "  order by entity, field, entry_date"
         )
         results = self.cursor.fetchall()
