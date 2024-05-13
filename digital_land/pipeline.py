@@ -68,7 +68,7 @@ class Pipeline:
 
     def reader(self, filename):
         for row in self.file_reader(filename):
-            row["dataset"] = row.get("dataset", "") or row["pipeline"]
+            row["dataset"] = row.get("dataset", "") or row.get("pipeline", "")
             if row["dataset"] and row["dataset"] != self.name:
                 continue
             yield row
