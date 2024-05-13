@@ -71,10 +71,14 @@ schemas = {
         "fields": [
             "prefix",
             "resource",
+            "endpoint",
             "entry-number",
             "organisation",
             "reference",
             "entity",
+            "entry-date",
+            "start-date",
+            "end-date",
         ],
     },
 }
