@@ -23,6 +23,7 @@ from digital_land.commands import (
     pipeline_run,
     collection_add_source,
     add_endpoints_and_lookups,
+    collection_retire_endpoints_and_sources,
 )
 
 from digital_land.command_arguments import (
@@ -256,6 +257,13 @@ def expectations_run_converted_resource_checkpoint(
     spec = Specification(specification_dir)
     typology = spec.get_dataset_typology(dataset)
     run_converted_resource_checkpoint(data_path, output_dir, dataset, typology)
+
+
+@cli.command("retire-endpoints-and-sources")
+@collection_dir
+@click.argument("csv-path", nargs=1, type=click.Path())
+def retire_endpoints_cmd(collection_dir, csv_path):
+    return collection_retire_endpoints_and_sources(collection_dir, csv_path)
 
 
 # edit to add collection_name in

@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import logging
+import pandas as pd
 from pathlib import Path
 
 import geojson
@@ -82,6 +83,56 @@ def collection_save_csv(collection_dir):
     collection.load()
     collection.update()
     collection.save_csv()
+
+
+def collection_retire_endpoints_and_sources(
+    collection_dir, endpoints_sources_to_retire_csv_path
+):
+    """
+    Retires endpoints and sources based on a csv of endpoints and sources to remove.
+    Please note this requires an input csv with the columns: collection, endpoint and source.
+    This is a row corresponding to each source, endpoint and it's collection you want to retire.
+
+    Args:
+        collection_dir: The directory containing the collections.
+        endpoints_sources_to_retire_csv_path: The filepath to the csv containing endpoints and sources to retire.
+    """
+
+    try:
+        endpoints_sources_to_retire = pd.read_csv(endpoints_sources_to_retire_csv_path)
+
+        to_retire_by_collection = {}
+
+        # Get the unique collection names
+        unique_collections = endpoints_sources_to_retire["collection"].unique()
+
+        # Iterate over unique collection names
+        for current_collection_name in unique_collections:
+            # Filter the DataFrame for the current collection
+            collection_df = endpoints_sources_to_retire[
+                endpoints_sources_to_retire["collection"] == current_collection_name
+            ].copy()
+
+            # Remove the 'collection' column from the filtered DataFrame
+            collection_df.drop(columns=["collection"], inplace=True)
+
+            # Store the filtered DataFrame in the dictionary
+            to_retire_by_collection[current_collection_name] = collection_df
+
+        # Iterate through collection groups and apply retire_endpoints_and_sources function.
+        for collection_name, collection_df_to_retire in to_retire_by_collection.items():
+            collection = Collection(
+                name=collection_name, directory=f"{collection_dir}/{collection_name}"
+            )
+            collection.load()
+            collection.retire_endpoints_and_sources(
+                collection_name, collection_df_to_retire
+            )
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}. Please check the file paths and try again.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}.")
 
 
 #
