@@ -573,7 +573,7 @@ class Collection:
 
         print(type(collection.dir))
         print(type(collection_name))
-        print(type(collection_df_to_retire_df))
+        print(type(collection_df_to_retire))
 
         try:
             endpoint_csv_path = os.path.join(collection.dir, "endpoint.csv")
