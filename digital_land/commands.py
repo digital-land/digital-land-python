@@ -89,9 +89,8 @@ def collection_retire_endpoints_and_sources(
     collection_dir, endpoints_sources_to_retire_csv_path
 ):
     """
-    Retires endpoints and sources based on a csv of endpoints and sources to remove.
+    Retires endpoints and sources based on an input.csv.
     Please note this requires an input csv with the columns: collection, endpoint and source.
-    This is a row corresponding to each source, endpoint and it's collection you want to retire.
 
     Args:
         collection_dir: The directory containing the collections.
@@ -106,7 +105,7 @@ def collection_retire_endpoints_and_sources(
         # Get the unique collection names
         unique_collections = endpoints_sources_to_retire["collection"].unique()
 
-        # Iterate over unique collection names
+        # Iterate over unique collection names to create dictionary
         for current_collection_name in unique_collections:
             # Filter the DataFrame for the current collection
             collection_df = endpoints_sources_to_retire[
