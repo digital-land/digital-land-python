@@ -24,6 +24,7 @@ from digital_land.commands import (
     collection_add_source,
     add_endpoints_and_lookups,
     collection_retire_endpoints_and_sources,
+    organisation_create,
 )
 
 from digital_land.command_arguments import (
@@ -377,3 +378,20 @@ def add_redirections_cmd(csv_path, pipeline_dir):
         sys.exit(2)
 
     return add_redirections(csv_file_path, pipeline_dir)
+
+
+@cli.command("organisation-create", short_help="create the organisation.csv file")
+@click.option(
+    "--flattened-dir",
+    type=click.Path(exists=True),
+    default="flattened/",
+    help="Directory of flattened files.",
+)
+@click.option("--output-path", type=click.Path(), default=None, help="Output CSV path.")
+@click.pass_context
+def organisation_create_cmd(ctx, flattened_dir, output_path):
+    return organisation_create(
+        specification=ctx.obj["SPECIFICATION"],
+        flattened_dir=flattened_dir,
+        path=output_path,
+    )

@@ -11,6 +11,7 @@ from pathlib import Path
 import geojson
 import shapely
 
+from digital_land.package.organisation import OrganisationPackage
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -847,3 +848,10 @@ def add_redirections(csv_file_path, pipeline_dir):
                     }
                 )
     print("Redirections added to old-entity.csv")
+
+
+def organisation_create(specification, flattened_dir, **kwargs):
+    package = OrganisationPackage(
+        specification=specification, flattened_dir=flattened_dir, **kwargs
+    )
+    package.create()
