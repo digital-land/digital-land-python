@@ -86,8 +86,7 @@ def collection_save_csv(collection_dir):
 
 
 def collection_retire_endpoints_and_sources(
-    collection_dir,
-    endpoints_sources_to_retire_csv_path
+    collection_dir, endpoints_sources_to_retire_csv_path
 ):
     """
     Retires endpoints and sources based on an input.csv.
@@ -125,9 +124,7 @@ def collection_retire_endpoints_and_sources(
                 name=collection_name, directory=f"{collection_dir}/{collection_name}"
             )
             collection.load()
-            collection.retire_endpoints_and_sources(
-                collection_df_to_retire
-            )
+            collection.retire_endpoints_and_sources(collection_df_to_retire)
 
     except FileNotFoundError as e:
         print(f"Error: {e}. Please check the file paths and try again.")
