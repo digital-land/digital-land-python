@@ -127,7 +127,7 @@ def test_retire_endpoints_and_sources(tmp_path):
     )
 
     # Call the retire_endpoints_and_sources method
-    collection.retire_endpoints_and_sources(collection, collection_df_to_retire)
+    collection.retire_endpoints_and_sources(collection_df_to_retire)
 
     # Read updated endpoint and source CSV files
     updated_endpoint_df = pd.read_csv(endpoint_csv_path)
