@@ -94,6 +94,7 @@ def test_format_date():
             print(date)
             assert Collection.format_date(date) == check
 
+
 def test_retire_endpoints_and_sources(tmp_path):
 
     # Create a temporary directory for the test collection
@@ -122,10 +123,9 @@ def test_retire_endpoints_and_sources(tmp_path):
     collection = Collection(directory=str(test_collection_dir))
 
     # Mock dataframe for collection_df_to_retire
-    collection_df_to_retire = pd.DataFrame({
-        "endpoint": ["endpoint1", "endpoint3"],
-        "source": ["source2", "source3"]
-    })
+    collection_df_to_retire = pd.DataFrame(
+        {"endpoint": ["endpoint1", "endpoint3"], "source": ["source2", "source3"]}
+    )
 
     # Call the retire_endpoints_and_sources method
     collection.retire_endpoints_and_sources(collection, collection_df_to_retire)

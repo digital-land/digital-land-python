@@ -558,9 +558,7 @@ class Collection:
             "entry-date", datetime.utcnow().strftime("%Y-%m-%dT%H:%H:%M:%SZ")
         )
 
-    def retire_endpoints_and_sources(
-        collection, collection_df_to_retire
-    ) -> None:
+    def retire_endpoints_and_sources(collection, collection_df_to_retire) -> None:
         """
         This method should be called from commands.py with the correct input.csv format per unique collection.
 
@@ -583,17 +581,13 @@ class Collection:
 
             # Update end_date column in endpoint file
             endpoint_csv_df.loc[
-                endpoint_csv_df["endpoint"].isin(
-                    collection_df_to_retire["endpoint"]
-                ),
+                endpoint_csv_df["endpoint"].isin(collection_df_to_retire["endpoint"]),
                 "end-date",
             ] = today_date
 
             # Update end_date column in source file
             source_csv_df.loc[
-                source_csv_df["source"].isin(
-                    collection_df_to_retire["source"]
-                ),
+                source_csv_df["source"].isin(collection_df_to_retire["source"]),
                 "end-date",
             ] = today_date
 
