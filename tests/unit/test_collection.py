@@ -1,3 +1,4 @@
+from cmath import nan
 import pandas as pd
 
 from digital_land.register import hash_value, Item
@@ -139,11 +140,11 @@ def test_retire_endpoints_and_sources(tmp_path):
     # Check if the end-date column is updated correctly
     expected_endpoint_data = {
         "endpoint": {0: "endpoint1", 1: "endpoint2", 2: "endpoint3"},
-        "end-date": {0: today_date, 1: "", 2: today_date},
+        "end-date": {0: today_date, 1: nan, 2: today_date},
     }
     expected_source_data = {
         "source": {0: "source1", 1: "source2", 2: "source3"},
-        "end-date": {0: "", 1: today_date, 2: today_date},
+        "end-date": {0: nan, 1: today_date, 2: today_date},
     }
 
     assert updated_endpoint_df.to_dict() == expected_endpoint_data
