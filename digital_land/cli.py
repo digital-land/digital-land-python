@@ -387,11 +387,17 @@ def add_redirections_cmd(csv_path, pipeline_dir):
     default="flattened/",
     help="Directory of flattened files.",
 )
+@click.option(
+    "--specification-dir",
+    "-s",
+    type=click.Path(exists=True),
+    default="specification/",
+    help="Directory of specification files.",
+)
 @click.option("--output-path", type=click.Path(), default=None, help="Output CSV path.")
-@click.pass_context
-def organisation_create_cmd(ctx, flattened_dir, output_path):
+def organisation_create_cmd(flattened_dir, specification_dir, output_path):
     return organisation_create(
-        specification=ctx.obj["SPECIFICATION"],
+        specification_dir=specification_dir,
         flattened_dir=flattened_dir,
         path=output_path,
     )

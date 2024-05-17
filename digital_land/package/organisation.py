@@ -15,7 +15,7 @@ class OrganisationPackage(CsvPackage):
 
     def create(self):
         # get field names
-        org_field_names = self.specification.schema_field["organisation"]
+        org_field_names = self.specification.schema["organisation"]["fields"]
 
         # get get file list
         filenames = listdir(self.flattened_dir)

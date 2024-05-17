@@ -850,8 +850,6 @@ def add_redirections(csv_file_path, pipeline_dir):
     print("Redirections added to old-entity.csv")
 
 
-def organisation_create(specification, flattened_dir, **kwargs):
-    package = OrganisationPackage(
-        specification=specification, flattened_dir=flattened_dir, **kwargs
-    )
+def organisation_create(flattened_dir, **kwargs):
+    package = OrganisationPackage(flattened_dir=flattened_dir, **kwargs)
     package.create()
