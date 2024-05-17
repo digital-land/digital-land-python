@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 
 from digital_land.register import hash_value, Item
