@@ -579,6 +579,26 @@ class Collection:
             # Get today's date in the format YYYY-MM-DD
             today_date = datetime.now().strftime("%Y-%m-%d")
 
+            # Check if all endpoints and sources in collection_df_to_retire exist in CSV files
+            missing_endpoints = collection_df_to_retire[
+                ~collection_df_to_retire["endpoint"].isin(endpoint_csv_df["endpoint"])
+            ]
+            missing_sources = collection_df_to_retire[
+                ~collection_df_to_retire["source"].isin(source_csv_df["source"])
+            ]
+
+            if not missing_endpoints.empty or not missing_sources.empty:
+                print(
+                    "Error: Some endpoints or sources were not found in the CSV files:"
+                )
+                if not missing_endpoints.empty:
+                    print("Missing Endpoints:")
+                    print(missing_endpoints)
+                if not missing_sources.empty:
+                    print("Missing Sources:")
+                    print(missing_sources)
+                return
+
             # Update end_date column in endpoint file
             endpoint_csv_df.loc[
                 endpoint_csv_df["endpoint"].isin(collection_df_to_retire["endpoint"]),
