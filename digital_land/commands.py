@@ -86,14 +86,14 @@ def collection_save_csv(collection_dir):
 
 
 def collection_retire_endpoints_and_sources(
-    collection_dir, endpoints_sources_to_retire_csv_path
+    config_collections_dir, endpoints_sources_to_retire_csv_path
 ):
     """
     Retires endpoints and sources based on an input.csv.
     Please note this requires an input csv with the columns: collection, endpoint and source.
 
     Args:
-        collection_dir: The directory containing the collections.
+        config_collections_dir: The directory containing the collections.
         endpoints_sources_to_retire_csv_path: The filepath to the csv containing endpoints and sources to retire.
     """
 
@@ -121,7 +121,8 @@ def collection_retire_endpoints_and_sources(
         # Iterate through collection groups and apply retire_endpoints_and_sources function.
         for collection_name, collection_df_to_retire in to_retire_by_collection.items():
             collection = Collection(
-                name=collection_name, directory=f"{collection_dir}/{collection_name}"
+                name=collection_name,
+                directory=f"{config_collections_dir}/{collection_name}",
             )
             collection.load()
             collection.retire_endpoints_and_sources(collection_df_to_retire)

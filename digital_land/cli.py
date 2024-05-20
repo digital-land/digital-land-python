@@ -28,6 +28,7 @@ from digital_land.commands import (
 
 from digital_land.command_arguments import (
     collection_dir,
+    config_collections_dir,
     organisation_path,
     input_output_path,
     issue_dir,
@@ -260,10 +261,10 @@ def expectations_run_converted_resource_checkpoint(
 
 
 @cli.command("retire-endpoints-and-sources")
-@collection_dir
+@config_collections_dir
 @click.argument("csv-path", nargs=1, type=click.Path())
-def retire_endpoints_cmd(collection_dir, csv_path):
-    return collection_retire_endpoints_and_sources(collection_dir, csv_path)
+def retire_endpoints_cmd(config_collections_dir, csv_path):
+    return collection_retire_endpoints_and_sources(config_collections_dir, csv_path)
 
 
 # edit to add collection_name in

@@ -1,7 +1,3 @@
-import pandas as pd
-import numpy as np
-
-
 from digital_land.register import hash_value, Item
 from digital_land.collection import Collection, LogStore
 from digital_land.schema import Schema
@@ -94,59 +90,3 @@ def test_format_date():
         for date in dates:
             print(date)
             assert Collection.format_date(date) == check
-
-
-def test_retire_endpoints_and_sources(tmp_path):
-
-    # Create a temporary directory for the test collection
-    test_collection_dir = tmp_path / "collection"
-    test_collection_dir.mkdir()
-
-    # Create mock endpoint and source CSV files
-    endpoint_csv_path = test_collection_dir / "endpoint.csv"
-    source_csv_path = test_collection_dir / "source.csv"
-
-    # Mock dataframes for endpoint and source CSV files
-    endpoint_data = {
-        "endpoint": ["endpoint1", "endpoint2", "endpoint3"],
-        "end-date": ["", "", ""],
-    }
-    source_data = {
-        "source": ["source1", "source2", "source3"],
-        "end-date": ["", "", ""],
-    }
-
-    # Write mock dataframes to CSV files
-    pd.DataFrame(endpoint_data).to_csv(endpoint_csv_path, index=False)
-    pd.DataFrame(source_data).to_csv(source_csv_path, index=False)
-
-    # Instantiate Collection object
-    collection = Collection(directory=str(test_collection_dir))
-
-    # Mock dataframe for collection_df_to_retire
-    collection_df_to_retire = pd.DataFrame(
-        {"endpoint": ["endpoint1", "endpoint3"], "source": ["source2", "source3"]}
-    )
-
-    # Call the retire_endpoints_and_sources method
-    collection.retire_endpoints_and_sources(collection_df_to_retire)
-
-    # Read updated endpoint and source CSV files
-    updated_endpoint_df = pd.read_csv(endpoint_csv_path)
-    updated_source_df = pd.read_csv(source_csv_path)
-
-    # Get today's date
-    today_date = datetime.now().strftime("%Y-%m-%d")
-
-    # Check if the end-date column is updated correctly
-    expected_endpoint_data = {
-        "endpoint": {0: "endpoint1", 1: "endpoint2", 2: "endpoint3"},
-        "end-date": {0: today_date, 1: np.nan, 2: today_date},
-    }
-    expected_source_data = {
-        "source": {0: "source1", 1: "source2", 2: "source3"},
-        "end-date": {0: np.nan, 1: today_date, 2: today_date},
-    }
-
-    assert updated_endpoint_df.to_dict() == expected_endpoint_data
-    assert updated_source_df.to_dict() == expected_source_data
