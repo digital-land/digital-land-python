@@ -467,7 +467,7 @@ def test_collection_retire_endpoints_and_sources(tmp_path):
     updated_source_df = pd.read_csv(source_csv_path)
 
     # Get today's date
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
     # Check if the end-date column is updated correctly
     expected_endpoint_data = {
