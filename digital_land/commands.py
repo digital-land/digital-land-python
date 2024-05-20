@@ -19,6 +19,7 @@ from digital_land.package.dataset import DatasetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
+from digital_land.phase.post_conversion import PostConversionPhase
 from digital_land.phase.default import DefaultPhase
 from digital_land.phase.dump import DumpPhase
 from digital_land.phase.factor import FactorPhase
@@ -194,6 +195,9 @@ def pipeline_run(
         ),
         OrganisationPhase(organisation=organisation, issues=issue_log),
         FieldPrunePhase(fields=specification.current_fieldnames(schema)),
+        PostConversionPhase(  # Now badly named...
+            issues=issue_log,
+        ),
         EntityReferencePhase(
             dataset=dataset,
             prefix=specification.dataset_prefix(dataset),

@@ -193,6 +193,9 @@ class ConvertPhase(Phase):
 
         return reader
 
+    def format_issue_message(self, issue):
+        return f"Checkpoint Issue: {issue['message']} at line {issue.get('line_number', 'N/A')} (Severity: {issue['severity']})"
+
     def _find_zip_file(self, input_file, suffix=".gml"):
         zip_ = zipfile.ZipFile(input_file)
         files = zip_.namelist()
