@@ -21,6 +21,14 @@ def collection_dir(f):
     )(f)
 
 
+def config_collections_dir(f):
+    return click.option(
+        "--config-collections-dir",
+        type=click.Path(exists=True),
+        default="collection/",
+    )(f)
+
+
 def issue_dir(f):
     return click.option(
         "--issue-dir", "-i", type=click.Path(exists=True), default="issue/"
