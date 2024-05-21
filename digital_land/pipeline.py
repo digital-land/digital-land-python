@@ -194,7 +194,7 @@ class Pipeline:
             old_entity = row.get("old-entity", "")
             entity = row.get("entity", "")
             status = row.get("status", "")
-            if old_entity and entity and status:
+            if old_entity and status:
                 self.redirect_lookup[old_entity] = {"entity": entity, "status": status}
 
     def filters(self, resource=""):
