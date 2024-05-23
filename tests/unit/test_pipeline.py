@@ -29,7 +29,7 @@ class TestPipeLine:
 
         mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
 
-        p = Pipeline("anything", "whateva")
+        p = Pipeline("anything", "stuff")
         for key in p.lookup.keys():
             assert "local-authority-eng" not in key
 
@@ -280,12 +280,12 @@ class TestPipeLine:
         assert filters["field1"] == "resource_pattern"
 
     def test_endpoint_filter_precedence_over_default(self, pipeline):
-        filters = pipeline.filters(endpoints="endpoint1")
+        filters = pipeline.filters(endpoints=["endpoint1"])
         assert filters["field1"] == "endpoint_pattern"
         assert filters["field2"] == "default_pattern"
 
     def test_return_only_endpoint_filter(self, pipeline):
-        filters = pipeline.filters(endpoints="endpoint1")
+        filters = pipeline.filters(endpoints=["endpoint1"])
         assert filters["field1"] == "endpoint_pattern"
 
     def test_return_only_default_filter(self, pipeline):

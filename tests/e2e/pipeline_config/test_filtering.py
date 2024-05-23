@@ -21,7 +21,7 @@ def test_pipeline(tmp_path_factory):
 
 
 def test_apply_filter_against_endpoint(test_pipeline):
-    filters = test_pipeline.filters(endpoints="test-endpoint")
+    filters = test_pipeline.filters(endpoints=["test-endpoint"])
     assert filters["test-field2"] == "pattern2"
 
 
@@ -39,7 +39,7 @@ def test_error_on_multiple_patterns_for_same_field_and_endpoint(tmp_path_factory
     filter_df.to_csv(f"{pipeline_dir}/filter.csv", index=False)
 
     pipeline = Pipeline(str(pipeline_dir), "test-dataset")
-    filters = pipeline.filters(endpoints="test-endpoint")
+    filters = pipeline.filters(endpoints=["test-endpoint"])
     print(f"Filters for test-endpoint with conflicting patterns: {filters}")
     assert "test-field" in filters
     assert filters["test-field"] in ["pattern1", "pattern2"]

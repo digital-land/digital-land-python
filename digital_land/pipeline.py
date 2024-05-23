@@ -206,11 +206,11 @@ class Pipeline:
             if old_entity and entity and status:
                 self.redirect_lookup[old_entity] = {"entity": entity, "status": status}
 
-    def filters(self, resource="", endpoints=""):
+    def filters(self, resource="", endpoints=[]):
         d = self.filter.get("", {}).copy()
 
-        if endpoints:
-            endpoint_filters = self.filter.get(endpoints, {})
+        for endpoint in endpoints:
+            endpoint_filters = self.filter.get(endpoint, {})
             d.update(endpoint_filters)
 
         if resource:

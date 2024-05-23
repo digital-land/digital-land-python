@@ -219,7 +219,7 @@ def pipeline_run(
             columns=columns,
             log=column_field_log,
         ),
-        FilterPhase(filters=pipeline.filters(resource, endpoints)),
+        FilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
         PatchPhase(
             issues=issue_log,
             patches=patches,
