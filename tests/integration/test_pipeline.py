@@ -1,7 +1,6 @@
 import pytest
 import os
 import csv
-
 import pandas as pd
 from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
@@ -69,16 +68,6 @@ def get_test_column_csv_data_with_resources_and_endpoints(
 def get_test_column_csv_data_with_resource_endpoint_clash_ep_first(
     pipeline: str = "", resource: str = "", endpoint: str = ""
 ):
-    """
-    This function generates data to produce a valid column.csv file with clashing definitions
-    defined by resources and endpoints. The output file will have the endpoint column mapping
-    definition appear first in the column.csv file
-    :param pipeline:
-    :param resource:
-    :param endpoint:
-    :return: dict
-    """
-
     return {
         "dataset": [
             pipeline,
@@ -99,15 +88,6 @@ def get_test_column_csv_data_with_resource_endpoint_clash_ep_first(
 def get_test_column_csv_data_with_resource_endpoint_clash_res_first(
     pipeline: str = "", resource: str = "", endpoint: str = ""
 ):
-    """
-    This function generates data to produce a valid column.csv file with clashing definitions
-    defined by resources and endpoints. The output file will have the resource column mapping
-    definition appear first in the column.csv file
-    :param pipeline:
-    :param resource:
-    :param endpoint:
-    :return: dict
-    """
     return {
         "dataset": [
             pipeline,
@@ -162,7 +142,7 @@ def test_load_column_when_csv_contains_endpoints_and_resources(tmp_path):
     column_keys = list(pipeline.column.keys())
     column_values = list(pipeline.column.values())
 
-    # -- Asert --
+    # -- Assert --
     assert test_resource in column_keys
     assert test_endpoint in column_keys
 
@@ -192,7 +172,7 @@ def test_load_concat_when_csv_contains_endpoints_and_resources(tmp_path):
     concat_keys = list(pipeline.concat.keys())
     concat_values = list(pipeline.concat.values())
 
-    # -- Asert --
+    # -- Assert --
     # resource
     assert test_resource in concat_keys
 
@@ -274,7 +254,7 @@ def test_columns_when_csv_contains_endpoints_and_resources(tmp_path):
     pipeline = Pipeline(pipeline_dir, test_pipeline)
     columns = pipeline.columns(test_resource, test_endpoints)
 
-    # -- Asert --
+    # -- Assert --
     assert columns["name"] == "name"
     assert columns["objectid"] == "res-field-one"
     assert columns["dummy-fiel"] == "ep-field-one"
@@ -309,7 +289,7 @@ def test_columns_when_csv_contains_clashing_entries_res_first(tmp_path):
     pipeline = Pipeline(pipeline_dir, test_pipeline)
     columns = pipeline.columns(test_resource, test_endpoints)
 
-    # -- Asert --
+    # -- Assert --
     assert columns["name"] == "name"
     assert columns["ref"] == "res-ref"
     assert "ep_ref" not in columns
@@ -344,7 +324,7 @@ def test_columns_when_csv_contains_clashing_entries_ep_first(tmp_path):
     pipeline = Pipeline(pipeline_dir, test_pipeline)
     columns = pipeline.columns(test_resource, test_endpoints)
 
-    # -- Asert --
+    # -- Assert --
     assert columns["name"] == "name"
     assert columns["ref"] == "res-ref"
     assert "ep_ref" not in columns
@@ -373,7 +353,7 @@ def test_concatenations_when_csv_contains_endpoints_and_resources(tmp_path):
     pipeline = Pipeline(pipeline_dir, test_pipeline)
     concats = pipeline.concatenations(test_resource, test_endpoints)
 
-    # -- Asert --
+    # -- Assert --
     # resource
     concats_keys = concats.keys()
 
@@ -393,9 +373,7 @@ def test_concatenations_when_csv_contains_endpoints_and_resources(tmp_path):
     assert "i-field4" in concats["o-field2"]["fields"]
 
 
-def test_lookups_load_csv_success(
-    pipeline_dir,
-):
+def test_lookups_load_csv_success(pipeline_dir):
     """
     test csv loading functionality
     :param pipeline_dir:
@@ -408,9 +386,7 @@ def test_lookups_load_csv_success(
     assert len(lookups.entries) == expected_num_entries
 
 
-def test_lookups_load_csv_failure(
-    empty_pipeline_dir,
-):
+def test_lookups_load_csv_failure(empty_pipeline_dir):
     """
     test csv loading functionality when file absent
     :param pipeline_dir:
@@ -423,3 +399,33 @@ def test_lookups_load_csv_failure(
 
     expected_exception = "No such file or directory"
     assert expected_exception in str(fnf_err.value)
+
+
+def test_load_filter_when_csv_contains_endpoint(tmp_path):
+    # -- Arrange --
+    pipeline_dir = tmp_path / "pipeline"
+    pipeline_dir.mkdir()
+
+    test_pipeline = "test-pipeline"
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
+
+    # create the datasource file used by the Pipeline class
+    filter_data = {
+        "resource": ["", "", ""],
+        "endpoint": ["", test_endpoint, ""],
+        "field": ["field1", "field2", "field3"],
+        "pattern": ["pattern1", "pattern2", "pattern3"],
+    }
+    filters_data = pd.DataFrame.from_dict(filter_data)
+    filters_data.to_csv(f"{pipeline_dir}/filter.csv", index=False)
+
+    # -- Act --
+    pipeline = Pipeline(pipeline_dir, test_pipeline)
+
+    # -- Assert --
+    assert test_endpoint in pipeline.filter
+    assert pipeline.filter[test_endpoint]["field2"] == "pattern2"
+
+
+if __name__ == "__main__":
+    pytest.main()
