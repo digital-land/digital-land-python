@@ -93,7 +93,16 @@ class Pipeline:
 
     def load_filter(self):
         for row in self.reader("filter.csv"):
-            record = self.filter.setdefault(row["resource"], {})
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.filter.setdefault(resource, {})
+            elif endpoint:
+                record = self.filter.setdefault(endpoint, {})
+            else:
+                record = self.filter.setdefault("", {})
+
             record[row["field"]] = row["pattern"]
 
     def load_skip_patterns(self):
@@ -197,10 +206,17 @@ class Pipeline:
             if old_entity and status:
                 self.redirect_lookup[old_entity] = {"entity": entity, "status": status}
 
-    def filters(self, resource=""):
-        d = self.filter.get("", {})
+    def filters(self, resource="", endpoints=[]):
+        d = self.filter.get("", {}).copy()
+
+        for endpoint in endpoints:
+            endpoint_filters = self.filter.get(endpoint, {})
+            d.update(endpoint_filters)
+
         if resource:
-            d.update(self.filter.get(resource, {}))
+            resource_filters = self.filter.get(resource, {})
+            d.update(resource_filters)
+
         return d
 
     def columns(self, resource="", endpoints=[]):

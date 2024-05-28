@@ -91,7 +91,6 @@ def collection_retire_endpoints_and_sources(
     """
     Retires endpoints and sources based on an input.csv.
     Please note this requires an input csv with the columns: collection, endpoint and source.
-
     Args:
         config_collections_dir: The directory containing the collections.
         endpoints_sources_to_retire_csv_path: The filepath to the csv containing endpoints and sources to retire.
@@ -220,7 +219,7 @@ def pipeline_run(
             columns=columns,
             log=column_field_log,
         ),
-        FilterPhase(filters=pipeline.filters(resource)),
+        FilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
         PatchPhase(
             issues=issue_log,
             patches=patches,
