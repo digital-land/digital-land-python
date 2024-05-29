@@ -215,6 +215,7 @@ def pipeline_run(
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
         ConcatFieldPhase(concats=concats, log=column_field_log),
+        FilterPhase(filters=pipeline.filters(resource)),
         MapPhase(
             fieldnames=intermediate_fieldnames,
             columns=columns,
