@@ -69,10 +69,7 @@ class Collector:
 
     def strip_variable_content(self, content):
         # Define patterns for stripping timestamp and time
-        strip_exps = [
-            (re.compile(rb'"timestamp"\s*:\s*"[^"]*"\s*,?', re.IGNORECASE), rb""),
-            (re.compile(rb'"time"\s*:\s*"[^"]*"\s*,?', re.IGNORECASE), rb""),
-        ]
+        strip_exps = [(re.compile(rb'"timeStamp"\s*:\s*"[^"]*"\s*,?'), rb"")]
         for strip_exp, replacement in strip_exps:
             content = strip_exp.sub(replacement, content)
 

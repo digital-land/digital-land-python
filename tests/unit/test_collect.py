@@ -117,7 +117,7 @@ def test_get(collector, prepared_exception, exception_class):
 @responses.activate
 def test_strip_timestamp(collector, tmp_path):
     url = "http://test.timestamp"
-    json_with_timestamp = '{"data": "some data", "timestamp": "2023-06-03T12:00:00Z"}'
+    json_with_timestamp = '{"data": "some data", "timeStamp": "2023-06-03T12:00:00Z"}'
     responses.add(
         responses.GET,
         url,
