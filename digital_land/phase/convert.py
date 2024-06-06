@@ -1,6 +1,7 @@
 import csv
 from cchardet import UniversalDetector
 import logging
+import json_stream
 import os
 import os.path
 import sqlite3
@@ -114,6 +115,27 @@ def convert_features_to_csv(input_path, output_path=None):
     return output_path
 
 
+def convert_json_to_csv(input_path, output_path=None):
+
+    with open(input_path, "r") as json:
+        js = json_stream.load(json)
+
+        columns = None
+
+        for item in js.items():
+            if item[0] in ["columns"]:
+                columns = [x for x in item[1].persistent()]
+
+            if item[0] in ["data"] and columns is not None:
+                with open(output_path, "w") as csv_file:
+                    cw = csv.writer(csv_file)
+                    cw.writerow(columns)
+
+                return output_path
+
+            return convert_features_to_csv(input_path, output_path)
+
+
 class ConvertPhase(Phase):
     def __init__(
         self,
@@ -183,7 +205,7 @@ class ConvertPhase(Phase):
         elif content.lower().startswith("{"):
             logging.debug("%s looks like json", input_path)
             self.log.mime_type = "application/json" + self.charset
-            converted_csv_file = convert_features_to_csv(input_path, self.output_path)
+            converted_csv_file = convert_json_to_csv(input_path, self.output_path)
 
         if converted_csv_file:
             f.close()
