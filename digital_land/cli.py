@@ -347,7 +347,7 @@ def assign_entities_cmd(
         pipeline_dir,
         specification_dir,
         organisation_path,
-        endpoints,
+        [endpoints],
     )
 
 
