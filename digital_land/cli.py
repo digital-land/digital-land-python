@@ -310,6 +310,7 @@ def add_endpoint_and_lookups_cmd(
 @cli.command("assign-entities")
 @click.argument("resource-path", nargs=1, type=click.Path())
 @click.argument("collection-name", nargs=1, type=click.Path())
+@click.argument("endpoints", nargs=1, type=click.Path())
 @collection_dir
 @organisation_path
 @click.option(
@@ -319,6 +320,7 @@ def add_endpoint_and_lookups_cmd(
 def assign_entities_cmd(
     resource_path,
     collection_name,
+    endpoints,
     collection_dir,
     specification_dir,
     pipeline_dir,
@@ -345,6 +347,7 @@ def assign_entities_cmd(
         pipeline_dir,
         specification_dir,
         organisation_path,
+        endpoints,
     )
 
 

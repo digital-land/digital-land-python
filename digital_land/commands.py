@@ -552,6 +552,7 @@ def add_endpoints_and_lookups(
             organisation_path=organisation_path,
             tmp_dir=tmp_dir,
             dataset=dataset,
+            endpoints=resource_endpoints,
         )
 
 
@@ -570,6 +571,7 @@ def assign_entities(
     pipeline_dir,
     specification_dir,
     organisation_path,
+    endpoints,
     tmp_dir="./var/cache",
     dataset=None,
 ):
@@ -627,6 +629,7 @@ def assign_entities(
             specification=specification,
             tmp_dir=Path(tmp_dir).absolute(),
             org_csv_path=organisation_path,
+            endpoints=endpoints,
         )
         new_lookups.append(resource_lookups)
 
@@ -680,6 +683,7 @@ def get_resource_unidentified_lookups(
     organisations: list = [],
     tmp_dir: Path = None,
     org_csv_path: Path = None,
+    endpoints: list = [],
 ):
     # convert phase inputs
     # could alter resource_from_path to file from path and promote to a utils folder
@@ -703,7 +707,7 @@ def get_resource_unidentified_lookups(
 
     # map phase
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
-    columns = pipeline.columns(resource)
+    columns = pipeline.columns(resource, endpoints)
 
     # patch phase
     patches = pipeline.patches(resource=resource)
