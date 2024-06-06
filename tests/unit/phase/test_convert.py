@@ -56,3 +56,25 @@ class TestConvertPhase:
             files_after.extend(files)
 
         assert files_before == files_after
+
+    def test_process_efficient_json_format(self, tmp_path):
+        path = os.path.join(
+            os.getcwd(), "tests/data/resource_examples/json_efficient_format.resource"
+        )
+        output_path = os.path.join(
+            tmp_path, "converted/json_efficient_format.resource.csv"
+        )
+        log = DatasetResourceLog()
+        reader = ConvertPhase(
+            path, dataset_resource_log=log, output_path=output_path
+        ).process()
+
+        assert os.path.isfile(output_path)
+
+        headers = next(reader)
+        assert headers["line"][0] == "reference"
+        assert headers["line"][1] == "name"
+
+        block = next(reader)
+        assert block["line"][0] == "ref"
+        assert block["line"][1] == "name"

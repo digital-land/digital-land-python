@@ -116,10 +116,8 @@ def convert_features_to_csv(input_path, output_path=None):
 
 
 def convert_json_to_csv(input_path, output_path=None):
-
     with open(input_path, "r") as json:
         js = json_stream.load(json)
-
         columns = None
 
         for item in js.items():
@@ -131,9 +129,12 @@ def convert_json_to_csv(input_path, output_path=None):
                     cw = csv.writer(csv_file)
                     cw.writerow(columns)
 
+                    for row in item[1]:
+                        cw.writerow(row)
+
                 return output_path
 
-            return convert_features_to_csv(input_path, output_path)
+        return convert_features_to_csv(input_path, output_path)
 
 
 class ConvertPhase(Phase):
