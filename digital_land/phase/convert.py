@@ -115,24 +115,35 @@ def convert_features_to_csv(input_path, output_path=None):
     return output_path
 
 
+def save_efficient_json_as_csv(output_path, columns, data):
+    with open(output_path, "w") as csv_file:
+        cw = csv.writer(csv_file)
+        cw.writerow(columns)
+
+        for row in data:
+            cw.writerow(row)
+
+
 def convert_json_to_csv(input_path, output_path=None):
     with open(input_path, "r") as json:
         js = json_stream.load(json)
+
         columns = None
+        data = None
 
         for item in js.items():
             if item[0] in ["columns"]:
                 columns = [x for x in item[1].persistent()]
+                if data is not None:
+                    save_efficient_json_as_csv(output_path, columns, data)
+                    return output_path
 
-            if item[0] in ["data"] and columns is not None:
-                with open(output_path, "w") as csv_file:
-                    cw = csv.writer(csv_file)
-                    cw.writerow(columns)
-
-                    for row in item[1]:
-                        cw.writerow(row)
-
-                return output_path
+            if item[0] in ["data"]:
+                if columns is not None:
+                    save_efficient_json_as_csv(output_path, columns, item[1])
+                    return output_path
+                else:
+                    data = [x for x in item[1].persistent()]
 
         return convert_features_to_csv(input_path, output_path)
 
