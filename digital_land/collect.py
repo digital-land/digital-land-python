@@ -75,7 +75,6 @@ class Collector:
 
         # Clean up any trailing commas in the JSON content
         content = re.sub(rb",\s*}", b"}", content)
-        content = re.sub(rb",\s*]", b"]", content)
 
         return content
 
@@ -105,14 +104,12 @@ class Collector:
                 "Content-Type", ""
             ).startswith("text/html"):
                 content = response.content
-                print(content)
                 # Apply timestamp stripping for JSON/GeoJSON formats
                 if response.headers.get("Content-Type") in [
                     "application/json",
                     "application/geo+json",
                 ]:
                     content = self.strip_variable_content(content)
-        print(content)
         return log, content
 
     def fetch(
