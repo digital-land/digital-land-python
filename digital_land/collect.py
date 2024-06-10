@@ -7,6 +7,7 @@ import csv
 import hashlib
 import logging
 import os
+import re
 from datetime import datetime
 from enum import Enum
 from timeit import default_timer as timer
@@ -66,6 +67,17 @@ class Collector:
             with open(path, "wb") as f:
                 f.write(data)
 
+    def strip_variable_content(self, content):
+        # Define patterns for stripping timestamp and time
+        strip_exps = [(re.compile(rb'"timeStamp"\s*:\s*"[^"]*"\s*,?'), rb"")]
+        for strip_exp, replacement in strip_exps:
+            content = strip_exp.sub(replacement, content)
+
+        # Clean up any trailing commas in the JSON content
+        content = re.sub(rb",\s*}", b"}", content)
+
+        return content
+
     def get(self, url, log={}, verify_ssl=True, plugin="get"):
         logging.info("%s %s" % (plugin, url))
         log["ssl-verify"] = verify_ssl
@@ -92,7 +104,12 @@ class Collector:
                 "Content-Type", ""
             ).startswith("text/html"):
                 content = response.content
-
+                # Apply timestamp stripping for JSON/GeoJSON formats
+                if response.headers.get("Content-Type") in [
+                    "application/json",
+                    "application/geo+json",
+                ]:
+                    content = self.strip_variable_content(content)
         return log, content
 
     def fetch(

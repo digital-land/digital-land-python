@@ -112,3 +112,29 @@ def test_get(collector, prepared_exception, exception_class):
     assert "status" not in log
     assert log.get("exception") == exception_class.__name__
     assert content is None
+
+
+@responses.activate
+def test_strip_timestamp(collector, tmp_path):
+    url = "http://test.timestamp"
+    json_with_timestamp = '{"data": "some data", "timeStamp": "2023-06-03T12:00:00Z"}'
+    responses.add(
+        responses.GET,
+        url,
+        json=json.loads(json_with_timestamp),
+        content_type="application/json",
+    )
+
+    status = collector.fetch(url)
+
+    assert status == FetchStatus.OK
+    # Check that the timestamp is removed
+    expected_content = '{"data": "some data"}'
+    expected_hash = sha_digest(expected_content)
+    output_path = tmp_path / f"resource/{expected_hash}"
+
+    assert os.path.isfile(output_path)
+    assert open(output_path).read() == expected_content
+
+    log_content = read_log(collector, url)
+    assert log_content["resource"] == expected_hash
