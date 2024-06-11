@@ -212,7 +212,6 @@ def test_command_assign_entities(
     """
     collection_name = "ancient-woodland"
     dataset_name = "ancient-woodland"
-    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
@@ -223,7 +222,6 @@ def test_command_assign_entities(
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
-        endpoints=test_endpoint,
     )
 
     lookups = Lookups(pipeline_dir)
@@ -264,7 +262,6 @@ def test_cli_assign_entities_success(
 
     collection_name = "ancient-woodland"
     resource_path = "mock_csv.csv"
-    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     runner = CliRunner()
     result = runner.invoke(
@@ -272,7 +269,6 @@ def test_cli_assign_entities_success(
         [
             resource_path,
             collection_name,
-            test_endpoint,
             # these will be optional to the user but included here to point at files stored elsewhere
             "--collection-dir",
             collection_dir,
@@ -297,14 +293,12 @@ def test_cli_assign_entities_failure_resource_not_found(
 
     collection_name = "ancient-woodland"
     resource_path = ""
-    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     runner = CliRunner()
     result = runner.invoke(
         assign_entities_cmd,
         [
             resource_path,
             collection_name,
-            test_endpoint,
             # these will be optional to the user but included here to point at files stored elsewhere
             "--collection-dir",
             collection_dir,
@@ -335,11 +329,9 @@ def test_command_assign_entities_no_reference_log(
     collection_name = "ancient-woodland"
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
-    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
         collection=collection,
-        endpoints=test_endpoint,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
@@ -377,11 +369,9 @@ def test_command_assign_entities_resource_not_processed(
     collection_name = "ancient-woodland"
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
-    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     assign_entities(
         resource_file_paths=["unprocessed_resource.csv"],
         collection=collection,
-        endpoints=test_endpoint,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
@@ -407,11 +397,9 @@ def test_assign_entities_unique_assignment(
     collection_name = "ancient-woodland"
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
-    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
         collection=collection,
-        endpoints=test_endpoint,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
@@ -456,7 +444,6 @@ def test_assign_entities_unique_assignment(
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
         collection=collection,
-        endpoints=test_endpoint,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,

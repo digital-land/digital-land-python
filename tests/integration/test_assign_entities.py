@@ -259,8 +259,6 @@ def test_command_assign_entities(
     collection.load()
     dataset_resource_map = collection.dataset_resource_map()
     for dataset in dataset_resource_map:
-        for resource in dataset_resource_map[dataset]:
-            resource_endpoints = collection.resource_endpoints(resource)
         assign_entities(
             resource_file_paths=["mock_csv.csv"],
             collection=collection,
@@ -268,7 +266,6 @@ def test_command_assign_entities(
             organisation_path=organisation_path,
             pipeline_dir=pipeline_dir,
             dataset=dataset,
-            endpoints=resource_endpoints,
         )
 
     lookups = Lookups(pipeline_dir)

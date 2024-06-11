@@ -544,16 +544,14 @@ def add_endpoints_and_lookups(
             ):
                 resource_file_path = Path(collection_dir) / "resource" / resource
                 resources_to_assign.append(resource_file_path)
-        assign_entities(
-            resource_file_paths=resources_to_assign,
-            collection=collection,
-            pipeline_dir=pipeline_dir,
-            specification_dir=specification_dir,
-            organisation_path=organisation_path,
-            tmp_dir=tmp_dir,
-            dataset=dataset,
-            endpoints=resource_endpoints,
-        )
+    assign_entities(
+        resource_file_paths=resources_to_assign,
+        collection=collection,
+        pipeline_dir=pipeline_dir,
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        tmp_dir=tmp_dir,
+    )
 
 
 def resource_from_path(path):
@@ -568,12 +566,10 @@ def default_output_path(command, input_path):
 def assign_entities(
     resource_file_paths,
     collection,
-    dataset,
-    organisation,
     pipeline_dir,
     specification_dir,
     organisation_path,
-    endpoints,
+    dataset=None,
     tmp_dir="./var/cache",
 ):
     """
@@ -594,63 +590,77 @@ def assign_entities(
     print("New Lookups")
     print("======================================================================")
 
-    new_lookups = []
-
-    pipeline = Pipeline(pipeline_dir, dataset)
-    pipeline_name = pipeline.name
-
+    dataset_resource_map = collection.dataset_resource_map()
     for resource_file_path in resource_file_paths:
-        resource_lookups = get_resource_unidentified_lookups(
-            input_path=Path(resource_file_path),
-            dataset=dataset,
-            organisations=[organisation],
-            pipeline=pipeline,
-            specification=specification,
-            tmp_dir=Path(tmp_dir).absolute(),
-            org_csv_path=organisation_path,
-            endpoints=endpoints,
-        )
-        new_lookups.append(resource_lookups)
+        resource = os.path.splitext(os.path.basename(resource_file_path))[0]
+        resource_found = False
+        # Check if the resource is present in any dataset's resources
+        for dataset_key, resources in dataset_resource_map.items():
+            if resource in list(resources):
+                resource_found = True
+                continue
+            else:
+                logging.error(
+                    "Resource '%s' has not been processed by pipeline - no lookups added"
+                    % (resource)
+                )
+                break
+        if resource_found:
+            resource_endpoints = collection.resource_endpoints(resource)
+            for dataset in dataset_resource_map:
+                pipeline = Pipeline(pipeline_dir, dataset)
+                new_lookups = []
+                resource_lookups = get_resource_unidentified_lookups(
+                    input_path=Path(resource_file_path),
+                    dataset=dataset,
+                    organisations=collection.resource_organisations(resource),
+                    pipeline=pipeline,
+                    specification=specification,
+                    tmp_dir=Path(tmp_dir).absolute(),
+                    org_csv_path=organisation_path,
+                    endpoints=resource_endpoints,
+                )
+                new_lookups.append(resource_lookups)
 
-    # save new lookups to file
-    lookups = Lookups(pipeline_dir)
-    # Check if the lookups file exists, create it if not
-    if not os.path.exists(lookups.lookups_path):
-        with open(lookups.lookups_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(list(lookups.schema.fieldnames))
+                # save new lookups to file
+                lookups = Lookups(pipeline_dir)
+                # Check if the lookups file exists, create it if not
+                if not os.path.exists(lookups.lookups_path):
+                    with open(lookups.lookups_path, "w", newline="") as f:
+                        writer = csv.writer(f)
+                        writer.writerow(list(lookups.schema.fieldnames))
 
-    lookups.load_csv()
-    for new_lookup in new_lookups:
-        for idx, entry in enumerate(new_lookup):
-            lookups.add_entry(entry[0])
+                lookups.load_csv()
+                for new_lookup in new_lookups:
+                    for idx, entry in enumerate(new_lookup):
+                        lookups.add_entry(entry[0])
 
-    # save edited csvs
-    max_entity_num = lookups.get_max_entity(pipeline_name)
-    lookups.entity_num_gen.state["current"] = max_entity_num
-    lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
-        pipeline_name
-    )
-    lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
-        pipeline_name
-    )
+                # save edited csvs
+                max_entity_num = lookups.get_max_entity(dataset)
+                lookups.entity_num_gen.state["current"] = max_entity_num
+                lookups.entity_num_gen.state["range_max"] = (
+                    specification.get_dataset_entity_max(dataset)
+                )
+                lookups.entity_num_gen.state["range_min"] = (
+                    specification.get_dataset_entity_min(dataset)
+                )
 
-    # TO DO: Currently using pipeline_name to find dataset min, max, current
-    # This would not function properly if each resource had a different dataset
+                # TO DO: Currently using pipeline_name to find dataset min, max, current
+                # This would not function properly if each resource had a different dataset
 
-    collection.save_csv()
-    new_lookups = lookups.save_csv()
+                collection.save_csv()
+                new_lookups = lookups.save_csv()
 
-    for entity in new_lookups:
-        print(
-            entity["prefix"],
-            ",",
-            entity["organisation"],
-            ",",
-            entity["reference"],
-            ",",
-            entity["entity"],
-        )
+                for entity in new_lookups:
+                    print(
+                        entity["prefix"],
+                        ",",
+                        entity["organisation"],
+                        ",",
+                        entity["reference"],
+                        ",",
+                        entity["entity"],
+                    )
 
 
 def get_resource_unidentified_lookups(
