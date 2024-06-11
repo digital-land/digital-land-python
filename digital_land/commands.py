@@ -533,9 +533,9 @@ def add_endpoints_and_lookups(
 
     dataset_resource_map = collection.dataset_resource_map()
 
+    resources_to_assign = []
     #  searching for the specific resources that we have downloaded
     for dataset in dataset_resource_map:
-        resources_to_assign = []
         for resource in dataset_resource_map[dataset]:
             resource_endpoints = collection.resource_endpoints(resource)
             if any(
@@ -592,23 +592,15 @@ def assign_entities(
 
     dataset_resource_map = collection.dataset_resource_map()
     for resource_file_path in resource_file_paths:
-        resource = os.path.splitext(os.path.basename(resource_file_path))[0]
         resource_found = False
-        # Check if the resource is present in any dataset's resources
+        resource = os.path.splitext(os.path.basename(resource_file_path))[0]
         for dataset_key, resources in dataset_resource_map.items():
             if resource in list(resources):
                 resource_found = True
-                continue
-            else:
-                logging.error(
-                    "Resource '%s' has not been processed by pipeline - no lookups added"
-                    % (resource)
-                )
-                break
-        if resource_found:
-            resource_endpoints = collection.resource_endpoints(resource)
-            for dataset in dataset_resource_map:
+                dataset = dataset_key
                 pipeline = Pipeline(pipeline_dir, dataset)
+
+                resource_endpoints = collection.resource_endpoints(resource)
                 new_lookups = []
                 resource_lookups = get_resource_unidentified_lookups(
                     input_path=Path(resource_file_path),
@@ -662,6 +654,13 @@ def assign_entities(
                         entity["entity"],
                     )
 
+        # If no resource downloaded, log an error
+        if not resource_found:
+            logging.error(
+                "Resource '%s' has not been processed by pipeline - no lookups added"
+                % (resource)
+            )
+
 
 def get_resource_unidentified_lookups(
     input_path: Path,
@@ -690,7 +689,7 @@ def get_resource_unidentified_lookups(
     null_path = None
 
     # concat field phase
-    concats = pipeline.concatenations(resource)
+    concats = pipeline.concatenations(resource, endpoints)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
 
     # map phase
