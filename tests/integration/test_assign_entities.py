@@ -254,6 +254,7 @@ def test_command_assign_entities(
     consider it and filter the rows accordingly.
     """
     collection_name = "tree-preservation-order"
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
@@ -262,10 +263,12 @@ def test_command_assign_entities(
         assign_entities(
             resource_file_paths=["mock_csv.csv"],
             collection=collection,
+            organisation=["government-organisation:D1342"],
             specification_dir=specification_dir,
             organisation_path=organisation_path,
             pipeline_dir=pipeline_dir,
             dataset=dataset,
+            endpoints=test_endpoint,
         )
 
     lookups = Lookups(pipeline_dir)

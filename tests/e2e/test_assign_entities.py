@@ -212,16 +212,19 @@ def test_command_assign_entities(
     """
     collection_name = "ancient-woodland"
     dataset_name = "ancient-woodland"
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     collection = Collection(name=collection_name, directory=collection_dir)
-    collection.load()
 
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
         collection=collection,
+        dataset=dataset_name,
+        organisation=["government-organisation:D1342"],
+        pipeline_dir=pipeline_dir,
         specification_dir=specification_dir,
         organisation_path=organisation_path,
-        pipeline_dir=pipeline_dir,
+        endpoints=[test_endpoint],
     )
 
     lookups = Lookups(pipeline_dir)
@@ -261,14 +264,19 @@ def test_cli_assign_entities_success(
     """
 
     collection_name = "ancient-woodland"
+    dataset = "ancient-woodland"
     resource_path = "mock_csv.csv"
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     runner = CliRunner()
     result = runner.invoke(
         assign_entities_cmd,
         [
             resource_path,
+            test_endpoint,
             collection_name,
+            dataset,
+            "government-organisation:D1342",
             # these will be optional to the user but included here to point at files stored elsewhere
             "--collection-dir",
             collection_dir,
@@ -280,25 +288,35 @@ def test_cli_assign_entities_success(
             organisation_path,
         ],
     )
-
+    print("result:: ", result.stdout)
     assert result.exit_code == 0, f"{result.stdout}"
 
 
 def test_cli_assign_entities_failure_resource_not_found(
-    collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
+    caplog,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource,
 ):
     """
     Tests assign entities from cli when resource path is incorrect
     """
 
     collection_name = "ancient-woodland"
+    dataset = "ancient-woodland"
     resource_path = ""
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     runner = CliRunner()
     result = runner.invoke(
         assign_entities_cmd,
         [
             resource_path,
+            test_endpoint,
             collection_name,
+            dataset,
+            "government-organisation:D1342",
             # these will be optional to the user but included here to point at files stored elsewhere
             "--collection-dir",
             collection_dir,
@@ -310,8 +328,8 @@ def test_cli_assign_entities_failure_resource_not_found(
             organisation_path,
         ],
     )
-
     assert result.exit_code == 2, f"{result.stdout}"
+    assert "resource file not found" in caplog.text
 
 
 def test_command_assign_entities_no_reference_log(
@@ -327,60 +345,22 @@ def test_command_assign_entities_no_reference_log(
     with no reference
     """
     collection_name = "ancient-woodland"
+    dataset = "ancient-woodland"
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
         collection=collection,
+        organisation=["government-organisation:D1342"],
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
+        dataset=dataset,
+        endpoints=test_endpoint,
     )
-
     assert "No reference" in caplog.text
     assert "mock_csv" in caplog.text
-
-
-def test_command_assign_entities_resource_not_processed(
-    caplog,
-    collection_dir,
-    pipeline_dir,
-    specification_dir,
-    organisation_path,
-    mock_resource,
-):
-    """
-    This tests that the assign entities command logs a warning when there is an entry
-    with no reference
-    """
-
-    row1 = {
-        "reference": "Ref1",
-        "organisation": "government-organisation:D1342",
-        "value": "test",
-    }
-
-    mock_csv_path = Path("unprocessed_resource.csv")
-    with open(mock_csv_path, "w", encoding="utf-8") as f:
-        dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
-        dictwriter.writeheader()
-        dictwriter.writerow(row1)
-
-    collection_name = "ancient-woodland"
-    collection = Collection(name=collection_name, directory=collection_dir)
-    collection.load()
-    assign_entities(
-        resource_file_paths=["unprocessed_resource.csv"],
-        collection=collection,
-        specification_dir=specification_dir,
-        organisation_path=organisation_path,
-        pipeline_dir=pipeline_dir,
-    )
-
-    os.remove("unprocessed_resource.csv")
-
-    assert "unprocessed_resource" in caplog.text
-    assert "not been processed" in caplog.text
 
 
 def test_assign_entities_unique_assignment(
@@ -395,14 +375,19 @@ def test_assign_entities_unique_assignment(
     """
 
     collection_name = "ancient-woodland"
+    dataset = "ancient-woodland"
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
         collection=collection,
+        organisation=["government-organisation:D1342"],
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
+        dataset=dataset,
+        endpoints=test_endpoint,
     )
 
     lookups_first_call = Lookups(pipeline_dir)
@@ -444,9 +429,12 @@ def test_assign_entities_unique_assignment(
     assign_entities(
         resource_file_paths=["mock_csv.csv"],
         collection=collection,
+        organisation=["government-organisation:D1342"],
         specification_dir=specification_dir,
         organisation_path=organisation_path,
         pipeline_dir=pipeline_dir,
+        dataset=dataset,
+        endpoints=test_endpoint,
     )
 
     lookups_second_call = Lookups(pipeline_dir)
