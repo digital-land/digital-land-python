@@ -535,20 +535,15 @@ def add_endpoints_and_lookups(
 
     resources_to_assign = []
     #  searching for the specific resources that we have downloaded
-    print("dataset_resource_map:: ", dataset_resource_map)
     for dataset in dataset_resource_map:
         for resource in dataset_resource_map[dataset]:
-            print("yes:: ", resource)
             resource_endpoints = collection.resource_endpoints(resource)
-            print(resource_endpoints)
             if any(
                 endpoint in [new_endpoint["endpoint"] for new_endpoint in endpoints]
                 for endpoint in resource_endpoints
             ):
-                print("yes2")
                 resource_file_path = Path(collection_dir) / "resource" / resource
                 resources_to_assign.append(resource_file_path)
-                print(resources_to_assign)
         assign_entities(
             resource_file_paths=resources_to_assign,
             collection=collection,

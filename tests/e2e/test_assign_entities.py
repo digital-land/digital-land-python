@@ -288,7 +288,6 @@ def test_cli_assign_entities_success(
             organisation_path,
         ],
     )
-    print("result:: ", result.stdout)
     assert result.exit_code == 0, f"{result.stdout}"
 
 
