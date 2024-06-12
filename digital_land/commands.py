@@ -533,9 +533,9 @@ def add_endpoints_and_lookups(
 
     dataset_resource_map = collection.dataset_resource_map()
 
-    resources_to_assign = []
     #  searching for the specific resources that we have downloaded
     for dataset in dataset_resource_map:
+        resources_to_assign = []
         for resource in dataset_resource_map[dataset]:
             resource_endpoints = collection.resource_endpoints(resource)
             if any(
