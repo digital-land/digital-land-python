@@ -56,6 +56,9 @@ def cli(ctx, debug, dataset, pipeline_dir, specification_dir):
     ctx.obj["DATASET"] = dataset
     ctx.obj["DEBUG"] = debug
 
+    if debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
 
 @cli.command("fetch")
 @click.argument("url")
