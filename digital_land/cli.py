@@ -312,7 +312,10 @@ def add_endpoint_and_lookups_cmd(
 
 @cli.command("assign-entities")
 @click.argument("resource-path", nargs=1, type=click.Path())
+@click.argument("endpoints", nargs=1, type=click.Path())
 @click.argument("collection-name", nargs=1, type=click.Path())
+@click.argument("dataset", nargs=1, type=click.Path())
+@click.argument("organisation", nargs=1, type=click.Path())
 @collection_dir
 @organisation_path
 @click.option(
@@ -321,7 +324,10 @@ def add_endpoint_and_lookups_cmd(
 @click.option("--pipeline-dir", "-p", type=click.Path(exists=True), default="pipeline/")
 def assign_entities_cmd(
     resource_path,
+    endpoints,
     collection_name,
+    dataset,
+    organisation,
     collection_dir,
     specification_dir,
     pipeline_dir,
@@ -345,9 +351,12 @@ def assign_entities_cmd(
     return assign_entities(
         [resource_file_path],
         collection,
+        dataset,
+        [organisation],
         pipeline_dir,
         specification_dir,
         organisation_path,
+        [endpoints],
     )
 
 

@@ -547,11 +547,13 @@ def add_endpoints_and_lookups(
         assign_entities(
             resource_file_paths=resources_to_assign,
             collection=collection,
+            dataset=dataset,
+            organisation=collection.resource_organisations(resource),
             pipeline_dir=pipeline_dir,
             specification_dir=specification_dir,
             organisation_path=organisation_path,
+            endpoints=resource_endpoints,
             tmp_dir=tmp_dir,
-            dataset=dataset,
         )
 
 
@@ -567,11 +569,13 @@ def default_output_path(command, input_path):
 def assign_entities(
     resource_file_paths,
     collection,
+    dataset,
+    organisation,
     pipeline_dir,
     specification_dir,
     organisation_path,
+    endpoints,
     tmp_dir="./var/cache",
-    dataset=None,
 ):
     """
     Assigns entities for the given resources in the given collection. The resources must have sources already added to the collection
@@ -591,85 +595,63 @@ def assign_entities(
     print("New Lookups")
     print("======================================================================")
 
-    dataset_resource_map = collection.dataset_resource_map()
     new_lookups = []
 
-    pipeline_name = None
-    # establish pipeline if dataset is known - else have to find dataset for each resource
-    if dataset is not None:
-        pipeline = Pipeline(pipeline_dir, dataset)
-        pipeline_name = pipeline.name
+    pipeline = Pipeline(pipeline_dir, dataset)
+    pipeline_name = pipeline.name
 
     for resource_file_path in resource_file_paths:
-        resource = os.path.splitext(os.path.basename(resource_file_path))[0]
-        # Find dataset for resource if not given
-        if dataset is None:
-            for dataset_key, resources in dataset_resource_map.items():
-                if resource in list(resources):
-                    dataset = dataset_key
-                    continue
-            # Check whether dataset was found in dataset resource map in case resource hasn't been run through pipeline
-            if dataset is not None:
-                pipeline = Pipeline(pipeline_dir, dataset)
-                pipeline_name = pipeline.name
-            else:
-                logging.error(
-                    "Resource '%s' has not been processed by pipeline - no lookups added"
-                    % (resource)
-                )
-                break
-
         resource_lookups = get_resource_unidentified_lookups(
             input_path=Path(resource_file_path),
             dataset=dataset,
-            organisations=collection.resource_organisations(resource),
+            organisations=organisation,
             pipeline=pipeline,
             specification=specification,
             tmp_dir=Path(tmp_dir).absolute(),
             org_csv_path=organisation_path,
+            endpoints=endpoints,
         )
         new_lookups.append(resource_lookups)
 
-    if pipeline_name is not None:
-        # save new lookups to file
-        lookups = Lookups(pipeline_dir)
-        # Check if the lookups file exists, create it if not
-        if not os.path.exists(lookups.lookups_path):
-            with open(lookups.lookups_path, "w", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(list(lookups.schema.fieldnames))
+    # save new lookups to file
+    lookups = Lookups(pipeline_dir)
+    # Check if the lookups file exists, create it if not
+    if not os.path.exists(lookups.lookups_path):
+        with open(lookups.lookups_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(list(lookups.schema.fieldnames))
 
-        lookups.load_csv()
-        for new_lookup in new_lookups:
-            for idx, entry in enumerate(new_lookup):
-                lookups.add_entry(entry[0])
+    lookups.load_csv()
+    for new_lookup in new_lookups:
+        for idx, entry in enumerate(new_lookup):
+            lookups.add_entry(entry[0])
 
-        # save edited csvs
-        max_entity_num = lookups.get_max_entity(pipeline_name)
-        lookups.entity_num_gen.state["current"] = max_entity_num
-        lookups.entity_num_gen.state["range_max"] = (
-            specification.get_dataset_entity_max(pipeline_name)
+    # save edited csvs
+    max_entity_num = lookups.get_max_entity(pipeline_name)
+    lookups.entity_num_gen.state["current"] = max_entity_num
+    lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
+        pipeline_name
+    )
+    lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
+        pipeline_name
+    )
+
+    # TO DO: Currently using pipeline_name to find dataset min, max, current
+    # This would not function properly if each resource had a different dataset
+
+    collection.save_csv()
+    new_lookups = lookups.save_csv()
+
+    for entity in new_lookups:
+        print(
+            entity["prefix"],
+            ",",
+            entity["organisation"],
+            ",",
+            entity["reference"],
+            ",",
+            entity["entity"],
         )
-        lookups.entity_num_gen.state["range_min"] = (
-            specification.get_dataset_entity_min(pipeline_name)
-        )
-
-        # TO DO: Currently using pipeline_name to find dataset min, max, current
-        # This would not function properly if each resource had a different dataset
-
-        collection.save_csv()
-        new_lookups = lookups.save_csv()
-
-        for entity in new_lookups:
-            print(
-                entity["prefix"],
-                ",",
-                entity["organisation"],
-                ",",
-                entity["reference"],
-                ",",
-                entity["entity"],
-            )
 
 
 def get_resource_unidentified_lookups(
@@ -680,6 +662,7 @@ def get_resource_unidentified_lookups(
     organisations: list = [],
     tmp_dir: Path = None,
     org_csv_path: Path = None,
+    endpoints: list = [],
 ):
     # convert phase inputs
     # could alter resource_from_path to file from path and promote to a utils folder
@@ -691,6 +674,8 @@ def get_resource_unidentified_lookups(
     print("----------------------------------------------------------------------")
     print(f">>> organisations:{organisations}")
     print(f">>> resource:{resource}")
+    print(f">>> endpoints:{endpoints}")
+    print(f">>> dataset:{dataset}")
     print("----------------------------------------------------------------------")
 
     # normalise phase inputs
@@ -703,7 +688,7 @@ def get_resource_unidentified_lookups(
 
     # map phase
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
-    columns = pipeline.columns(resource)
+    columns = pipeline.columns(resource, endpoints)
 
     # patch phase
     patches = pipeline.patches(resource=resource)
