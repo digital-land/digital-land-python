@@ -52,9 +52,9 @@ def load_csv(path, encoding="UTF-8", log=None):
     return Stream(path, f=f, log=log)
 
 
-def execute(command):
+def execute(command, env=os.environ):
     logging.debug("execute: %s", command)
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 
     try:
         outs, errs = proc.communicate(timeout=600)
@@ -93,6 +93,8 @@ def convert_features_to_csv(input_path, output_path=None):
             "-oo",
             "DOWNLOAD_SCHEMA=NO",
             "-lco",
+            "MAX_LINE_SIZE=-1",
+            "-lco",
             "GEOMETRY=AS_WKT",
             "-lco",
             "LINEFORMAT=CRLF",
@@ -107,7 +109,8 @@ def convert_features_to_csv(input_path, output_path=None):
             "10",
             output_path,
             input_path,
-        ]
+        ],
+        env=dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0"),
     )
     if not os.path.isfile(output_path):
         return None
