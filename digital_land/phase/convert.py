@@ -99,6 +99,8 @@ def convert_features_to_csv(input_path, output_path=None):
             "-lco",
             "GEOMETRY=AS_WKT",
             "-lco",
+            "GEOMETRY_NAME=WKT",
+            "-lco",
             "LINEFORMAT=CRLF",
             "-f",
             "CSV",
