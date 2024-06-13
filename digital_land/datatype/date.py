@@ -11,6 +11,7 @@ class DateDataType(DataType):
             "%Y-%m-%d",
             "%Y%m%d",
             "%Y-%m-%dT%H:%M:%S.000Z",
+            "%Y-%m-%dT%H:%M:%S.000",
             "%Y-%m-%dT%H:%M:%S.%fZ",
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S",
