@@ -54,7 +54,9 @@ def load_csv(path, encoding="UTF-8", log=None):
 
 def execute(command, env=os.environ):
     logging.debug("execute: %s", command)
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    proc = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+    )
 
     try:
         outs, errs = proc.communicate(timeout=600)
