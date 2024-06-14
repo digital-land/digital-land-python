@@ -412,6 +412,7 @@ def organisation_create_cmd(flattened_dir, dataset_dir, specification_dir, outpu
 
 
 @cli.command("organisation-check", short_help="check the organisation.csv file")
+@click.option("--input-path", type=click.Path(), default=None, help="Input CSV path.")
 @click.option(
     "--specification-dir",
     "-s",
@@ -431,8 +432,9 @@ def organisation_create_cmd(flattened_dir, dataset_dir, specification_dir, outpu
     default="dataset/organisation-check.csv",
     help="Output CSV path.",
 )
-def organisation_check_cmd(specification_dir, lpa_path, output_path):
+def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path):
     return organisation_check(
+        path=input_path,
         specification_dir=specification_dir,
         lpa_path=lpa_path,
         output_path=output_path,
