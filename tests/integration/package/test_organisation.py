@@ -1,4 +1,5 @@
 import pytest
+import json
 import csv
 import os
 import urllib.request
@@ -62,6 +63,34 @@ flattened_data = {
 }
 
 
+dataset_data = {
+    "government-organisation.csv": (
+        "dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology",
+        [
+            {
+                "dataset": "government-organisation",
+                "entity": "600001",
+                "entry_date": "2023-10-06",
+                "json": json.dumps(
+                    {
+                        "twitter": "luhc",
+                        "website": "https://www.gov.uk/government/organisations/department-for-levelling-up-housing-and-communities",
+                        "wikidata": "Q601819",
+                        "wikipedia": "Department_for_Levelling_Up",
+                    }
+                ),
+                "name": "Department for Levelling Up, Housing and Communities",
+                "organisation_entity": "600001",
+                "prefix": "government-organisation",
+                "reference": "D1342",
+                "start_date": "2021-09-20",
+                "typology": "organisation",
+            }
+        ],
+    )
+}
+
+
 @pytest.fixture(scope="session")
 def flattened_dir(tmp_path_factory):
     flattened_dir = tmp_path_factory.mktemp("flattened")
@@ -76,6 +105,20 @@ def flattened_dir(tmp_path_factory):
     return flattened_dir
 
 
+@pytest.fixture(scope="session")
+def dataset_dir(tmp_path_factory):
+    dataset_dir = tmp_path_factory.mktemp("dataset")
+
+    for filename, (fieldnames, rows) in dataset_data.items():
+        with open(os.path.join(dataset_dir, filename), "w") as f:
+            writer = csv.DictWriter(f, fieldnames.split(","))
+            writer.writeheader()
+            for row in rows:
+                writer.writerow(row)
+
+    return dataset_dir
+
+
 # Check a row contains the data we expect, and only the data we expect
 def check_row(row, expected):
     for key, value in expected.items():
@@ -86,7 +129,41 @@ def check_row(row, expected):
             assert row[key] == ""
 
 
-def test_organisation_package(
+expected_row = {
+    "addressbase-custodian": "",
+    "billing-authority": "",
+    "census-area": "",
+    "combined-authority": "",
+    "company": "",
+    "dataset": "government-organisation",
+    "end-date": "",
+    "entity": "600001",
+    "entry-date": "2023-10-06",
+    "esd-inventory": "",
+    "local-authority-type": "",
+    "local-resilience-forum": "",
+    "local-planning-authority": "",
+    "local-authority-district": "",
+    "name": "Department for Levelling Up, Housing and Communities",
+    "national-park": "",
+    "notes": "",
+    "official-name": "",
+    "opendatacommunities-uri": "",
+    "organisation": "government-organisation:D1342",
+    "parliament-thesaurus": "",
+    "prefix": "government-organisation",
+    "reference": "D1342",
+    "region": "",
+    "shielding-hub": "",
+    "start-date": "2021-09-20",
+    "statistical-geography": "",
+    "website": "https://www.gov.uk/government/organisations/department-for-levelling-up-housing-and-communities",
+    "wikidata": "Q601819",
+    "wikipedia": "Department_for_Levelling_Up",
+}
+
+
+def test_organisation_package_from_flattened(
     tmp_path,
     specification_dir,
     flattened_dir,
@@ -105,38 +182,26 @@ def test_organisation_package(
         rows = [row for row in csv.DictReader(f)]
 
         assert len(rows) == 1
-        check_row(
-            rows[0],
-            {
-                "addressbase-custodian": "",
-                "billing-authority": "",
-                "census-area": "",
-                "combined-authority": "",
-                "company": "",
-                "dataset": "government-organisation",
-                "end-date": "",
-                "entity": "600001",
-                "entry-date": "2023-10-06",
-                "esd-inventory": "",
-                "local-authority-type": "",
-                "local-resilience-forum": "",
-                "local-planning-authority": "",
-                "local-authority-district": "",
-                "name": "Department for Levelling Up, Housing and Communities",
-                "national-park": "",
-                "notes": "",
-                "official-name": "",
-                "opendatacommunities-uri": "",
-                "organisation": "government-organisation:D1342",
-                "parliament-thesaurus": "",
-                "prefix": "government-organisation",
-                "reference": "D1342",
-                "region": "",
-                "shielding-hub": "",
-                "start-date": "2021-09-20",
-                "statistical-geography": "",
-                "website": "https://www.gov.uk/government/organisations/department-for-levelling-up-housing-and-communities",
-                "wikidata": "Q601819",
-                "wikipedia": "Department_for_Levelling_Up",
-            },
-        )
+        check_row(rows[0], expected_row)
+
+
+def test_organisation_package_from_dataset(
+    tmp_path,
+    specification_dir,
+    dataset_dir,
+):
+    package = OrganisationPackage(
+        specification_dir=specification_dir,
+        dataset_dir=dataset_dir,
+        path=os.path.join(tmp_path, "organisation.csv"),
+    )
+
+    # create package
+    package.create()
+
+    # Check the output
+    with open(package.path, "r", encoding="UTF8", newline="") as f:
+        rows = [row for row in csv.DictReader(f)]
+
+        assert len(rows) == 1
+        check_row(rows[0], expected_row)
