@@ -25,6 +25,7 @@ from digital_land.commands import (
     add_endpoints_and_lookups,
     collection_retire_endpoints_and_sources,
     organisation_create,
+    organisation_check,
 )
 
 from digital_land.command_arguments import (
@@ -407,4 +408,32 @@ def organisation_create_cmd(flattened_dir, dataset_dir, specification_dir, outpu
         flattened_dir=flattened_dir,
         dataset_dir=dataset_dir,
         path=output_path,
+    )
+
+
+@cli.command("organisation-check", short_help="check the organisation.csv file")
+@click.option(
+    "--specification-dir",
+    "-s",
+    type=click.Path(exists=True),
+    default="specification/",
+    help="Directory of specification files.",
+)
+@click.option(
+    "--lpa-path",
+    type=click.Path(),
+    default="var/cache/local-planning-authority.csv",
+    help="Path of LPA CSV path.",
+)
+@click.option(
+    "--output-path",
+    type=click.Path(),
+    default="dataset/organisation-check.csv",
+    help="Output CSV path.",
+)
+def organisation_check_cmd(specification_dir, lpa_path, output_path):
+    return organisation_check(
+        specification_dir=specification_dir,
+        lpa_path=lpa_path,
+        output_path=output_path,
     )
