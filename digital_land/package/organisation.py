@@ -1,11 +1,15 @@
+import os
 import csv
 import sys
 import json
+import requests
 import logging
-from os import listdir
 from pathlib import Path
 
 from .csv import CsvPackage
+
+DATASET_URL = "https://files.planning.data.gov.uk/organisation-collection/dataset/"
+DATASET_CACHE = "var/cache/organisation-collection/dataset/"
 
 logger = logging.getLogger(__name__)
 
@@ -73,20 +77,23 @@ class OrganisationPackage(CsvPackage):
         super().__init__("organisation", tables={"organisation": None}, **kwargs)
 
     def create(self):
+        # Not specified either, download to cache
+        if self.dataset_dir is None and self.flattened_dir is None:
+            self.dataset_dir = DATASET_CACHE
+            self.fetch_dataset()
+
         if self.dataset_dir:
             return self.create_from_dataset()
 
         if self.flattened_dir:
             return self.create_from_flattened()
 
-        raise RuntimeError("Neither flattened nor dataset directory specified.")
-
     def create_from_flattened(self):
         # get field names
         org_field_names = self.specification.schema["organisation"]["fields"]
 
         # get get file list
-        filenames = listdir(self.flattened_dir)
+        filenames = os.listdir(self.flattened_dir)
         filenames = [filename for filename in filenames if filename.endswith(".csv")]
 
         orgs = []
@@ -111,7 +118,7 @@ class OrganisationPackage(CsvPackage):
         org_field_names = self.specification.schema["organisation"]["fields"]
 
         # get get file list
-        filenames = listdir(self.dataset_dir)
+        filenames = os.listdir(self.dataset_dir)
         filenames = [filename for filename in filenames if filename.endswith(".csv")]
 
         orgs = []
@@ -242,3 +249,18 @@ class OrganisationPackage(CsvPackage):
                 odcs[row["opendatacommunities-uri"]] = organisation
 
         save_issues(issues, output_path)
+
+    def fetch_dataset(self):
+        os.makedirs(self.dataset_dir, exist_ok=True)
+
+        with open(
+            os.path.join(self.specification.specification_dir, "dataset.csv"), "r"
+        ) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["typology"] == "organisation" and row["end-date"] == "":
+                    csv_name = row["dataset"] + ".csv"
+                    r = requests.get(DATASET_URL + csv_name)
+                    if r.status_code == 200:
+                        with open(os.path.join(self.dataset_dir, csv_name), "wb") as t:
+                            t.write(r.content)
