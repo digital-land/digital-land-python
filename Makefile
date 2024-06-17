@@ -21,6 +21,7 @@ ifeq ($(UNAME),Darwin)
 endif
 	sudo apt-get update 
 	sudo apt-get install gdal-bin
+	gdalinfo --version
 endif
 ifndef SQLDIFF
 ifeq ($(UNAME),Darwin)
