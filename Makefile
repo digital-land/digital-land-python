@@ -19,9 +19,7 @@ ifndef GDAL
 ifeq ($(UNAME),Darwin)
 	$(error GDAL tools not found in PATH)
 endif
-	sudo apt-get update 
-	sudo apt-get install gdal-bin
-	gdalinfo --version
+	./bin/install_gdal_linux.sh
 endif
 ifndef SQLDIFF
 ifeq ($(UNAME),Darwin)
