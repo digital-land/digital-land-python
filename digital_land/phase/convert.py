@@ -111,7 +111,8 @@ def convert_features_to_csv(input_path, output_path=None):
             "10",
             output_path,
             input_path,
-        ]
+        ],
+        env=dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0"),
     )
     if not os.path.isfile(output_path):
         return None
