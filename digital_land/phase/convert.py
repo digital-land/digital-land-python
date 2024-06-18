@@ -90,7 +90,7 @@ def convert_features_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
 
-    logging.warning(os.environ)
+    logging.warning(dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0"))
 
     execute(
         [
@@ -115,7 +115,7 @@ def convert_features_to_csv(input_path, output_path=None):
             output_path,
             input_path,
         ],
-        env=dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0"),
+        # env=dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0"),
     )
     if not os.path.isfile(output_path):
         return None
