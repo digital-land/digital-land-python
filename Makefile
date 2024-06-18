@@ -19,7 +19,13 @@ ifndef GDAL
 ifeq ($(UNAME),Darwin)
 	$(error GDAL tools not found in PATH)
 endif
-	sudo ./bin/install_gdal_linux.sh
+	sudo apt-get install build-essential python-all-dev wget
+	wget https://github.com/OSGeo/gdal/releases/download/v3.9.0/gdal-3.9.0.tar.gz
+	tar xvfz gdal-3.9.0.tar
+	cd gdal-3.9.0; \
+	./configure --with-python; \
+	make; \
+	sudo make install;
 endif
 ifndef SQLDIFF
 ifeq ($(UNAME),Darwin)
