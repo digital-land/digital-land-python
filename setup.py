@@ -44,6 +44,7 @@ setup(
         "validators",
         "xlrd==1.2.0",
         "openpyxl",
+        "numpy<2",
         "Shapely==2.0.2",
         "SPARQLWrapper",
         "geojson",
