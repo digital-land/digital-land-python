@@ -385,14 +385,23 @@ def add_redirections_cmd(csv_path, pipeline_dir):
 @click.option(
     "--flattened-dir",
     type=click.Path(exists=True),
-    # default="flattened/",
     help="Directory of flattened files.",
 )
 @click.option(
     "--dataset-dir",
     type=click.Path(exists=True),
-    # default="dataset/",
     help="Directory of dataset files.",
+)
+@click.option(
+    "--download-url",
+    type=click.STRING,
+    help="URL to downlaod dataset from",
+)
+@click.option(
+    "--cache-dir",
+    type=click.Path(),
+    default="var/cache/organisation-collection/dataset/",
+    help="Cache directory for downloaded files.",
 )
 @click.option(
     "--specification-dir",
@@ -402,11 +411,15 @@ def add_redirections_cmd(csv_path, pipeline_dir):
     help="Directory of specification files.",
 )
 @click.option("--output-path", type=click.Path(), default=None, help="Output CSV path.")
-def organisation_create_cmd(flattened_dir, dataset_dir, specification_dir, output_path):
+def organisation_create_cmd(
+    flattened_dir, dataset_dir, specification_dir, download_url, cache_dir, output_path
+):
     return organisation_create(
         specification_dir=specification_dir,
         flattened_dir=flattened_dir,
         dataset_dir=dataset_dir,
+        download_url=download_url,
+        cache_dir=cache_dir,
         path=output_path,
     )
 
