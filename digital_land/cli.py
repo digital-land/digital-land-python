@@ -24,6 +24,8 @@ from digital_land.commands import (
     collection_add_source,
     add_endpoints_and_lookups,
     collection_retire_endpoints_and_sources,
+    organisation_create,
+    organisation_check,
 )
 
 from digital_land.command_arguments import (
@@ -377,3 +379,76 @@ def add_redirections_cmd(csv_path, pipeline_dir):
         sys.exit(2)
 
     return add_redirections(csv_file_path, pipeline_dir)
+
+
+@cli.command("organisation-create", short_help="create the organisation.csv file")
+@click.option(
+    "--flattened-dir",
+    type=click.Path(exists=True),
+    help="Directory of flattened files.",
+)
+@click.option(
+    "--dataset-dir",
+    type=click.Path(exists=True),
+    help="Directory of dataset files.",
+)
+@click.option(
+    "--download-url",
+    type=click.STRING,
+    help="URL to downlaod dataset from",
+)
+@click.option(
+    "--cache-dir",
+    type=click.Path(),
+    default="var/cache/organisation-collection/dataset/",
+    help="Cache directory for downloaded files.",
+)
+@click.option(
+    "--specification-dir",
+    "-s",
+    type=click.Path(exists=True),
+    default="specification/",
+    help="Directory of specification files.",
+)
+@click.option("--output-path", type=click.Path(), default=None, help="Output CSV path.")
+def organisation_create_cmd(
+    flattened_dir, dataset_dir, specification_dir, download_url, cache_dir, output_path
+):
+    return organisation_create(
+        specification_dir=specification_dir,
+        flattened_dir=flattened_dir,
+        dataset_dir=dataset_dir,
+        download_url=download_url,
+        cache_dir=cache_dir,
+        path=output_path,
+    )
+
+
+@cli.command("organisation-check", short_help="check the organisation.csv file")
+@click.option("--input-path", type=click.Path(), default=None, help="Input CSV path.")
+@click.option(
+    "--specification-dir",
+    "-s",
+    type=click.Path(exists=True),
+    default="specification/",
+    help="Directory of specification files.",
+)
+@click.option(
+    "--lpa-path",
+    type=click.Path(),
+    default="var/cache/local-planning-authority.csv",
+    help="Path of LPA CSV path.",
+)
+@click.option(
+    "--output-path",
+    type=click.Path(),
+    default="dataset/organisation-check.csv",
+    help="Output CSV path.",
+)
+def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path):
+    return organisation_check(
+        path=input_path,
+        specification_dir=specification_dir,
+        lpa_path=lpa_path,
+        output_path=output_path,
+    )
