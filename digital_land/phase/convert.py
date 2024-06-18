@@ -91,7 +91,7 @@ def convert_features_to_csv(input_path, output_path=None):
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
 
     env = os.environ.copy()
-    env["OGR_GEOJSON_MAX_OBJ_SIZE"] = "0"
+    # env["OGR_GEOJSON_MAX_OBJ_SIZE"] = "0"
     logging.warning(env)
 
     returncode, outs, errs = execute(
