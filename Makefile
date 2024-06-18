@@ -20,6 +20,7 @@ ifeq ($(UNAME),Darwin)
 	$(error GDAL tools not found in PATH)
 endif
 	# sudo add-apt-repository ppa:ubuntugis
+	sudo add-apt-repository ppa:gdal
 	sudo apt update
 	sudo apt install gdal
 	gdalinfo --version
