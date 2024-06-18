@@ -19,7 +19,7 @@ ifndef GDAL
 ifeq ($(UNAME),Darwin)
 	$(error GDAL tools not found in PATH)
 endif
-	sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
+	sudo add-apt-repository ppa:ubuntugis/ubuntugis-stable
 	sudo apt-get update
 	sudo apt-get install gdal-bin
 	gdalinfo --version
