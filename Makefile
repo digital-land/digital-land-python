@@ -21,7 +21,7 @@ ifeq ($(UNAME),Darwin)
 endif
 	# sudo add-apt-repository ppa:ubuntugis
 	sudo apt update
-	sudo apt install gdal-bin
+	sudo apt install gdal
 	gdalinfo --version
 endif
 ifndef SQLDIFF
