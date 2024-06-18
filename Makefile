@@ -19,7 +19,7 @@ ifndef GDAL
 ifeq ($(UNAME),Darwin)
 	$(error GDAL tools not found in PATH)
 endif
-	./bin/install_gdal_linux.sh
+	sudo ./bin/install_gdal_linux.sh
 endif
 ifndef SQLDIFF
 ifeq ($(UNAME),Darwin)
