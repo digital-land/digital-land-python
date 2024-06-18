@@ -19,9 +19,9 @@ ifndef GDAL
 ifeq ($(UNAME),Darwin)
 	$(error GDAL tools not found in PATH)
 endif
-	sudo add-apt-repository ppa:ubuntugis
-	sudo apt-get update
-	sudo apt-get install gdal-bin
+	# sudo add-apt-repository ppa:ubuntugis
+	sudo apt update
+	sudo apt install gdal-bin
 	gdalinfo --version
 endif
 ifndef SQLDIFF
