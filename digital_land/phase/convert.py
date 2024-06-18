@@ -89,6 +89,9 @@ def read_excel(path):
 def convert_features_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
+
+    logging.warning(os.environ)
+
     execute(
         [
             "ogr2ogr",
