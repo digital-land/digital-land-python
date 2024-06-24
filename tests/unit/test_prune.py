@@ -8,24 +8,23 @@ from digital_land.phase.save import SavePhase
 from digital_land.phase.prune import FactPrunePhase
 
 test_data = [
-    {"row": {"value": "42", "end-date": "1999-12-31"}},
-    {"row": {"value": "", "end-date": "1999-12-31"}},
-    {"row": {"value": "42", "end-date": ""}},
-    {"row": {"value": "", "end-date": ""}},
+    {"field": "name", "value": "Testy McTestFace"},
+    {"field": "name", "value": ""},
+    {"field": "end-date", "value": "1999-12-31"},
+    {"field": "end-date", "value": ""},
 ]
 
 expected_output = [
-    {"value": "42", "end-date": "1999-12-31"},
-    {"end-date": "1999-12-31"},
-    {"value": "42", "end-date": ""},
-    {"": ""},
+    test_data[0],
+    test_data[2],
+    test_data[3],
 ]
 
 
 class TestPhase(Phase):
     def process(self, _):
         for block in test_data:
-            yield block
+            yield {"row": block}
 
 
 def TestPrunePipeline():
