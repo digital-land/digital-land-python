@@ -116,6 +116,8 @@ def convert_features_to_csv(input_path, output_path=None):
 
 
 def save_efficient_json_as_csv(output_path, columns, data):
+    if not output_path:
+        output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(output_path, "w") as csv_file:
         cw = csv.writer(csv_file)
         cw.writerow(columns)
