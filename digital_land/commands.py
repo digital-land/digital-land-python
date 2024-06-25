@@ -394,6 +394,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
 
     if all(os.path.isfile(path) for path in temp_geojson_files):
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
+        env = dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
         for temp_path in temp_geojson_files:
             responseCode, _, _ = execute(
                 [
@@ -405,7 +406,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                     "-append",
                     rfc7946_geojson_path,
                     temp_path,
-                ]
+                ],
+                env=env,
             )
 
             if responseCode != 0:
@@ -420,7 +422,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                         "-append",
                         rfc7946_geojson_path,
                         temp_path,
-                    ]
+                    ],
+                    env=env,
                 )
             # clear up input geojson file
             if os.path.isfile(temp_path):
