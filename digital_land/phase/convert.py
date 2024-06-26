@@ -125,6 +125,8 @@ def save_efficient_json_as_csv(output_path, columns, data):
 
 
 def convert_json_to_csv(input_path, output_path=None):
+    if not output_path:
+        output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(input_path, "r") as json:
         js = json_stream.load(json)
 
