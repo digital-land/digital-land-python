@@ -175,7 +175,6 @@ class ConvertPhase(Phase):
                 os.makedirs(output_dir)
 
     def process(self, stream=None):
-        print("hello from process")
         input_path = self.path
 
         reader = self._read_binary_file(input_path)
