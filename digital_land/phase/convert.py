@@ -116,8 +116,6 @@ def convert_features_to_csv(input_path, output_path=None):
 
 
 def save_efficient_json_as_csv(output_path, columns, data):
-    if not output_path:
-        output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(output_path, "w") as csv_file:
         cw = csv.writer(csv_file)
         cw.writerow(columns)
@@ -127,6 +125,8 @@ def save_efficient_json_as_csv(output_path, columns, data):
 
 
 def convert_json_to_csv(input_path, output_path=None):
+    if not output_path:
+        output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(input_path, "r") as json:
         js = json_stream.load(json)
 
@@ -175,6 +175,7 @@ class ConvertPhase(Phase):
                 os.makedirs(output_dir)
 
     def process(self, stream=None):
+        print("hello from process")
         input_path = self.path
 
         reader = self._read_binary_file(input_path)
