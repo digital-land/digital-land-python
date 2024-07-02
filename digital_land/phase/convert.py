@@ -101,7 +101,6 @@ def read_excel(path):
 def convert_features_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
-    gdal_version = get_gdal_version()
     execute(
         [
             "ogr2ogr",
@@ -127,7 +126,7 @@ def convert_features_to_csv(input_path, output_path=None):
         ],
         env=(
             dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
-            if gdal_version >= Version("3.5.2")
+            if get_gdal_version() >= Version("3.5.2")
             else os.environ
         ),
     )
