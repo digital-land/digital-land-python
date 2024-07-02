@@ -4,14 +4,26 @@ import logging
 import json_stream
 import os
 import os.path
+import re
 import sqlite3
 import subprocess
 import tempfile
 import zipfile
+from packaging.version import Version
 from io import StringIO
 import pandas as pd
 from .load import Stream
 from .phase import Phase
+
+
+def get_gdal_version():
+    out, _ = subprocess.Popen(
+        ["ogr2ogr", "--version"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    ).communicate()
+
+    return Version(re.compile(r"GDAL\s([0-9.]+),").match(out.decode("ascii")).group(1))
 
 
 def detect_file_encoding(path):
@@ -89,6 +101,7 @@ def read_excel(path):
 def convert_features_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
+    gdal_version = get_gdal_version()
     execute(
         [
             "ogr2ogr",
@@ -110,7 +123,11 @@ def convert_features_to_csv(input_path, output_path=None):
             output_path,
             input_path,
         ],
-        env=dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0"),
+        env=(
+            dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
+            if gdal_version >= Version("3.5.2")
+            else os.environ
+        ),
     )
     if not os.path.isfile(output_path):
         return None
