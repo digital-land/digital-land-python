@@ -4,7 +4,6 @@ import logging
 import json_stream
 import os
 import os.path
-import re
 import sqlite3
 import subprocess
 import tempfile
@@ -14,16 +13,7 @@ from io import StringIO
 import pandas as pd
 from .load import Stream
 from .phase import Phase
-
-
-def get_gdal_version():
-    out, _ = subprocess.Popen(
-        ["ogr2ogr", "--version"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-    ).communicate()
-
-    return Version(re.compile(r"GDAL\s([0-9.]+),").match(out.decode("ascii")).group(1))
+from ..utils.gdal_utils import get_gdal_version
 
 
 def detect_file_encoding(path):

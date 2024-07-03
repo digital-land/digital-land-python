@@ -2,11 +2,9 @@ from collections import OrderedDict
 import csv
 import itertools
 import os
-import re
 import sys
 import json
 import logging
-import subprocess
 from packaging.version import Version
 import pandas as pd
 from pathlib import Path
@@ -49,6 +47,7 @@ from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from .register import hash_value
+from .utils.gdal_utils import get_gdal_version
 
 logger = logging.getLogger(__name__)
 
@@ -63,16 +62,6 @@ def collect(endpoint_path, collection_dir, pipeline):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
     collector = Collector(pipeline.name, Path(collection_dir))
     collector.collect(endpoint_path)
-
-
-def get_gdal_version():
-    out, _ = subprocess.Popen(
-        ["ogr2ogr", "--version"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-    ).communicate()
-
-    return Version(re.compile(r"GDAL\s([0-9.]+),").match(out.decode("ascii")).group(1))
 
 
 #
