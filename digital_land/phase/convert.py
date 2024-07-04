@@ -8,10 +8,12 @@ import sqlite3
 import subprocess
 import tempfile
 import zipfile
+from packaging.version import Version
 from io import StringIO
 import pandas as pd
 from .load import Stream
 from .phase import Phase
+from ..utils.gdal_utils import get_gdal_version
 
 
 def detect_file_encoding(path):
@@ -52,9 +54,11 @@ def load_csv(path, encoding="UTF-8", log=None):
     return Stream(path, f=f, log=log)
 
 
-def execute(command):
+def execute(command, env=os.environ):
     logging.debug("execute: %s", command)
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+    )
 
     try:
         outs, errs = proc.communicate(timeout=600)
@@ -95,6 +99,8 @@ def convert_features_to_csv(input_path, output_path=None):
             "-lco",
             "GEOMETRY=AS_WKT",
             "-lco",
+            "GEOMETRY_NAME=WKT",
+            "-lco",
             "LINEFORMAT=CRLF",
             "-f",
             "CSV",
@@ -107,7 +113,12 @@ def convert_features_to_csv(input_path, output_path=None):
             "10",
             output_path,
             input_path,
-        ]
+        ],
+        env=(
+            dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
+            if get_gdal_version() >= Version("3.5.2")
+            else os.environ
+        ),
     )
     if not os.path.isfile(output_path):
         return None

@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import logging
+from packaging.version import Version
 import pandas as pd
 from pathlib import Path
 
@@ -46,6 +47,7 @@ from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from .register import hash_value
+from .utils.gdal_utils import get_gdal_version
 
 logger = logging.getLogger(__name__)
 
@@ -394,6 +396,11 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
 
     if all(os.path.isfile(path) for path in temp_geojson_files):
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
+        env = (
+            dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
+            if get_gdal_version() >= Version("3.5.2")
+            else os.environ
+        )
         for temp_path in temp_geojson_files:
             responseCode, _, _ = execute(
                 [
@@ -405,7 +412,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                     "-append",
                     rfc7946_geojson_path,
                     temp_path,
-                ]
+                ],
+                env=env,
             )
 
             if responseCode != 0:
@@ -420,7 +428,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                         "-append",
                         rfc7946_geojson_path,
                         temp_path,
-                    ]
+                    ],
+                    env=env,
                 )
             # clear up input geojson file
             if os.path.isfile(temp_path):
