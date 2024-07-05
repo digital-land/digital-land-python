@@ -11,6 +11,19 @@ from .csv import CsvPackage
 logger = logging.getLogger(__name__)
 
 
+source_filenames = [
+    "development-corporation.csv",
+    "government-organisation.csv",
+    "local-authority.csv",
+    "national-park-authority.csv",
+    "nonprofit.csv",
+    "public-authority.csv",
+    "passenger-transport-executive.csv",
+    "regional-park-authority.csv",
+    "waste-authority.csv",
+]
+
+
 def load_lpas(path):
     lpas = {}
     for row in csv.DictReader(open(path)):
@@ -97,13 +110,14 @@ class OrganisationPackage(CsvPackage):
         # get field names
         org_field_names = self.specification.schema["organisation"]["fields"]
 
-        # get get file list
-        filenames = os.listdir(self.flattened_dir)
-        filenames = [filename for filename in filenames if filename.endswith(".csv")]
-
         orgs = []
-        for file in filenames:
+        for file in source_filenames:
             filepath = Path(self.flattened_dir) / file
+
+            if not os.path.exists(filepath):
+                logger.warn("{filepath} not found.")
+                continue
+
             with open(filepath, newline="") as f:
                 for row in csv.DictReader(f):
                     # hack to replace "_" with "-" in fieldnames
@@ -122,13 +136,14 @@ class OrganisationPackage(CsvPackage):
         # get field names
         org_field_names = self.specification.schema["organisation"]["fields"]
 
-        # get get file list
-        filenames = os.listdir(self.dataset_dir)
-        filenames = [filename for filename in filenames if filename.endswith(".csv")]
-
         orgs = []
-        for file in filenames:
+        for file in source_filenames:
             filepath = Path(self.dataset_dir) / file
+
+            if not os.path.exists(filepath):
+                logger.warn("{filepath} not found.")
+                continue
+
             with open(filepath, newline="") as f:
                 for row in csv.DictReader(f):
                     # Only process rows with an organisation_entity
