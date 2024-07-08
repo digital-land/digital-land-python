@@ -10,6 +10,7 @@ from .csv import CsvPackage
 
 logger = logging.getLogger(__name__)
 
+# TODO: These files should be read from the spec, rather than being hard-coded.
 
 source_filenames = [
     "development-corporation.csv",
