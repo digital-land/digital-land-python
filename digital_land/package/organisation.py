@@ -155,13 +155,13 @@ class OrganisationPackage(CsvPackage):
                                     row["dataset"] + ":" + row["reference"]
                                 )
 
-                        # Add in the stuff rom the JSON
-                        for k, v in json.loads(row["json"]).items():
-                            row[k] = v
+                            # Add in the stuff rom the JSON
+                            for k, v in json.loads(row["json"]).items():
+                                row[k] = v
 
-                        orgs.append(
-                            {k: v for k, v in row.items() if k in org_field_names}
-                        )
+                            orgs.append(
+                                {k: v for k, v in row.items() if k in org_field_names}
+                            )
 
         self.write(org_field_names, orgs)
 
