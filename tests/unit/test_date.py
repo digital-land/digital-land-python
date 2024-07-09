@@ -31,6 +31,8 @@ def test_date_normalise():
     assert date.normalise("Jan-20") == "2020-01-01"
     assert date.normalise("144892800000") == "1974-08-05"
     assert date.normalise("-521164800000") == "1953-06-27"
+    assert date.normalise("2024-07-03T13:49:47.676511+01:00") == "2024-07-03"
+    assert date.normalise("2024-07-03T13:49:47.676511") == "2024-07-03"
 
     # risky attempts ..
     assert date.normalise("2020-13-12") == "2020-12-13"
