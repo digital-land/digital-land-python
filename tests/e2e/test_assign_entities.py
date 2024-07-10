@@ -1,3 +1,4 @@
+import logging
 import pytest
 import os
 import csv
@@ -348,18 +349,19 @@ def test_command_assign_entities_no_reference_log(
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
     test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
-    assign_entities(
-        resource_file_paths=["mock_csv.csv"],
-        collection=collection,
-        organisation=["government-organisation:D1342"],
-        specification_dir=specification_dir,
-        organisation_path=organisation_path,
-        pipeline_dir=pipeline_dir,
-        dataset=dataset,
-        endpoints=test_endpoint,
-    )
-    assert "No reference" in caplog.text
-    assert "mock_csv" in caplog.text
+    with caplog.at_level(logging.INFO):
+        assign_entities(
+            resource_file_paths=["mock_csv.csv"],
+            collection=collection,
+            organisation=["government-organisation:D1342"],
+            specification_dir=specification_dir,
+            organisation_path=organisation_path,
+            pipeline_dir=pipeline_dir,
+            dataset=dataset,
+            endpoints=test_endpoint,
+        )
+        assert "No reference" in caplog.text
+        assert "mock_csv" in caplog.text
 
 
 def test_assign_entities_unique_assignment(
