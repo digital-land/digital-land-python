@@ -152,7 +152,7 @@ class PrintLookupPhase(LookupPhase):
                     }
                     self.new_lookup_entries.append([new_lookup])
                 elif not reference:
-                    logging.error(
+                    logging.info(
                         "No reference found for entry: "
                         + str(entry_number)
                         + " in resource: "
