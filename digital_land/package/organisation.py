@@ -116,7 +116,7 @@ class OrganisationPackage(CsvPackage):
             filepath = Path(self.flattened_dir) / file
 
             if not os.path.exists(filepath):
-                logger.warn("{filepath} not found.")
+                logger.warning("{filepath} not found.")
                 continue
 
             with open(filepath, newline="") as f:
@@ -142,7 +142,7 @@ class OrganisationPackage(CsvPackage):
             filepath = Path(self.dataset_dir) / file
 
             if not os.path.exists(filepath):
-                logger.warn("{filepath} not found.")
+                logger.warning("{filepath} not found.")
                 continue
 
             with open(filepath, newline="") as f:
