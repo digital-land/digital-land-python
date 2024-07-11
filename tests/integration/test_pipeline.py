@@ -209,7 +209,18 @@ def test_columns():
         "un": "one",
         "una": "one",
         "uno": "one",
+        "quatre": "four",
     }
+
+
+def test_resource_column_mapping_takes_priority():
+    p = Pipeline("tests/data/pipeline/", "pipeline-one")
+    column = p.columns("some-resource")
+
+    assert "quatre" not in column
+    assert "quatro" in column
+    assert "un" in column
+    assert "due" in column
 
 
 def test_resource_specific_columns():
