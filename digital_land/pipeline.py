@@ -234,6 +234,11 @@ class Pipeline:
         for key in general_columns:
             if key in result:
                 continue
+            if (
+                general_columns[key] in endpoint_columns.values()
+                or general_columns[key] in resource_columns.values()
+            ):
+                continue
             result[key] = general_columns[key]
         return result
 
