@@ -68,7 +68,8 @@ class IssueLog(Log):
     def add_severity_column(self, severity_mapping_path):
         # Load only the 'severity' column from severity_mapping
         severity_mapping = pd.read_csv(
-            severity_mapping_path, usecols=["issue-type", "severity", "description"]
+            severity_mapping_path,
+            usecols=["issue-type", "severity", "description", "responsibility"],
         )
 
         # Convert the existing log data to a DataFrame
@@ -87,6 +88,7 @@ class IssueLog(Log):
             # Add the new 'severity' column to the log data
             self.fieldnames.append("severity")
             self.fieldnames.append("description")
+            self.fieldnames.append("responsibility")
             self.rows = merged_df.to_dict(orient="records")
 
     def appendErrorMessage(self, mapping_path):

@@ -41,7 +41,7 @@ def test_add_severity_column(issue_log_data):
     # Confirm 'severity' field is not added to the fieldnames beforehand
     assert "severity" not in issue.fieldnames
     assert "description" not in issue.fieldnames
-
+    assert "responsibility" not in issue.fieldnames
     with patch("pandas.read_csv", return_value=pd.DataFrame(issue_log_data)):
         # Call the add_severity_column method with the fake severity_mapping
         issue.add_severity_column("fake_file_path.csv")
@@ -49,8 +49,10 @@ def test_add_severity_column(issue_log_data):
     # Check if the 'severity' field is added to fieldnames
     assert "severity" in issue.fieldnames
     assert "description" in issue.fieldnames
+    assert "responsibility" in issue.fieldnames
     assert issue.rows[0]["severity"] == "sev1"
     assert issue.rows[0]["description"] == "desc1"
+    assert issue.rows[0]["responsibility"] == "internal"
 
 
 def test_appendErrorMessage(issue_log_data, mapping_data):
