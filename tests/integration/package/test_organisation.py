@@ -64,6 +64,7 @@ flattened_data = {
 
 
 dataset_data = {
+    # This should be in the output file - it's one of the included files, and has the right typology
     "government-organisation.csv": (
         "dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology",
         [
@@ -88,6 +89,7 @@ dataset_data = {
             }
         ],
     ),
+    # This one shouldn't be in the output file - it's got the right typology, but isn't one of the included files.
     "null-organisation.csv": (
         "dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology",
         [
@@ -112,6 +114,7 @@ dataset_data = {
             }
         ],
     ),
+    # This one shouldn't be in the output file - it's one of the included files, but it's got the right typology.
     "local-authority.csv": (
         "dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology",
         [
