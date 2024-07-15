@@ -7,7 +7,7 @@ from digital_land.phase.combine import combine_geometries, FactCombinePhase
 
 def test_combine_geometries():
     expected_geometry = shapely.wkt.loads(
-        "MULTIPOLYGON (((30 10, 10 20, 17 33, 10 40, 20 40, 40 40, 45 40, 36 28, 30 10)))"
+        "MULTIPOLYGON (((40 10, 15 5, 5 10, 10 20, 17 33, 10 40, 20 40, 40 40, 45 40, 36 28, 31 13, 40 10)))"
     )
 
     combined_wkt = combine_geometries(
