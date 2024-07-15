@@ -13,6 +13,7 @@ import geojson
 import shapely
 
 from digital_land.package.organisation import OrganisationPackage
+from digital_land.phase.check import CheckPhase
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -260,6 +261,7 @@ def pipeline_run(
             fieldnames=intermediate_fieldnames,
             enabled=save_harmonised,
         ),
+        CheckPhase(issues=issue_log),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
