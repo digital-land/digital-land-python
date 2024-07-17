@@ -3,11 +3,16 @@ import pandas as pd
 
 
 class CheckPhase(Phase):
-    def __init__(self, issues=None):
+    def __init__(self, harmonised_path=None, issues=None, enabled=False):
         self.issues = issues
+        self.harmonised_path = harmonised_path
+        self.enabled = enabled
 
     def process(self, stream):
-        df = pd.DataFrame.from_records([block["row"] for block in stream])
+        print("path in check:", self.harmonised_path)
+        csv_path = self.harmonised_path
+        # csv_path = "test.csv"
+        df = pd.read_csv(csv_path)
         df = df[df.duplicated(["reference", "end-date"])]
-        df.to_csv("test.csv")
+        print(df.head(5))
         yield from stream

@@ -209,6 +209,9 @@ def pipeline_run(
     if entry_date:
         default_values["entry-date"] = entry_date
 
+    harmonised_path = default_output_path("harmonised", input_path)
+    save_harmonised = True
+
     run_pipeline(
         ConvertPhase(
             path=input_path,
@@ -261,7 +264,9 @@ def pipeline_run(
             fieldnames=intermediate_fieldnames,
             enabled=save_harmonised,
         ),
-        CheckPhase(issues=issue_log),
+        CheckPhase(
+            harmonised_path=harmonised_path, issues=issue_log, enabled=save_harmonised
+        ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
