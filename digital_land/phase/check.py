@@ -1,5 +1,5 @@
 from digital_land.phase.phase import Phase
-import duckdb
+from datetime import datetime
 
 
 class CheckPhase(Phase):
@@ -10,26 +10,26 @@ class CheckPhase(Phase):
 
     def process(self, stream):
         print("path in check:", self.harmonised_path)
-
+        print("check time", datetime.now().strftime("%Y-%m-%d:%H:%M:%S.%f"))
         # csv_path = self.harmonised_path
-        csv_path = "test.csv"
-        duckdb.read_csv(csv_path)
-        sql = f"""
-        SELECT "reference", "end-date", COUNT(*)
-        FROM '{csv_path}'
-        GROUP BY "reference", "end-date"
-        HAVING COUNT(*) > 1
-        """
-        result = duckdb.sql(sql).df()
-        if len(result) > 1:
-            duplicate_references = result["references"].tolist()
-            for reference in duplicate_references:
-                self.issues.log(
-                    "duplicate reference",
-                    reference,
-                    "There are multiple entries in the resource with the same reference",
-                )
+        # # csv_path = "test.csv"
+        # duckdb.read_csv(csv_path)
+        # sql = f"""
+        # SELECT "reference", "end-date", COUNT(*)
+        # FROM '{csv_path}'
+        # GROUP BY "reference", "end-date"
+        # HAVING COUNT(*) > 1
+        # """
+        # result = duckdb.sql(sql).df()
+        # if len(result) > 1:
+        #     duplicate_references = result["references"].tolist()
+        #     for reference in duplicate_references:
+        #         self.issues.log(
+        #             "duplicate reference",
+        #             reference,
+        #             "There are multiple entries in the resource with the same reference",
+        #         )
 
-            print("duplicate references:", duplicate_references)
+        #     print("duplicate references:", duplicate_references)
 
         yield from stream

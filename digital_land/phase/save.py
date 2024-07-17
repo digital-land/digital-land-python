@@ -2,6 +2,7 @@ import csv
 import logging
 import itertools
 import os
+from datetime import datetime
 from .phase import Phase
 
 
@@ -46,7 +47,6 @@ class SavePhase(Phase):
         fieldnames=None,
         enabled=True,
     ):
-        print("hello from save init")
         self.path = path
         self.f = f
         self.fieldnames = fieldnames
@@ -54,6 +54,7 @@ class SavePhase(Phase):
 
     def process(self, stream):
         print("path in save:", self.path)
+        print("save time", datetime.now().strftime("%Y-%m-%d:%H:%M:%S.%f"))
         if self.enabled:
             stream, save_stream = itertools.tee(stream)
             save(
