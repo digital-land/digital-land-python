@@ -64,6 +64,7 @@ flattened_data = {
 
 
 dataset_data = {
+    # This should be in the output file - it's one of the included files, and has the right typology
     "government-organisation.csv": (
         "dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology",
         [
@@ -87,7 +88,68 @@ dataset_data = {
                 "typology": "organisation",
             }
         ],
-    )
+    ),
+    # This one shouldn't be in the output file - it's got the right typology, but isn't one of the included files.
+    "null-organisation.csv": (
+        "dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology",
+        [
+            {
+                "dataset": "null-organisation",
+                "entity": "600001",
+                "entry_date": "2023-10-06",
+                "json": json.dumps(
+                    {
+                        "twitter": "x",
+                        "website": "http://localhost",
+                        "wikidata": "Q601819",
+                        "wikipedia": "Nowhere",
+                    }
+                ),
+                "name": "The Null Organisation",
+                "organisation_entity": "900001",
+                "prefix": "null-organisation",
+                "reference": "D9876",
+                "start_date": "2021-09-20",
+                "typology": "organisation",
+            }
+        ],
+    ),
+    # This one shouldn't be in the output file - it's one of the included files, but it's got the right typology.
+    "local-authority.csv": (
+        "dataset,end_date,entity,entry_date,geojson,geometry,json,name,organisation_entity,point,prefix,reference,start_date,typology",
+        [
+            {
+                "dataset": "local-authority",
+                "entity": "195",
+                "entry_date": "2024-06-26",
+                "json": json.dumps(
+                    {
+                        "addressbase-custodian": "4720",
+                        "billing-authority": "E4704",
+                        "combined-authority": "WYCA",
+                        "local-authority-district": "E08000035",
+                        "local-authority-type": "MD",
+                        "local-planning-authority": "E60000071",
+                        "local-resilience-forum": "west-yorkshire",
+                        "opendatacommunities-uri": "http://opendatacommunities.org/id/metropolitan-district-council/leeds",
+                        "parliament-thesaurus": "42600",
+                        "region": "E12000003",
+                        "statistical-geography": "E08000035",
+                        "twitter": "LeedsCC_News",
+                        "website": "https://www.leeds.gov.uk",
+                        "wikidata": "Q6515870",
+                        "wikipedia": "Leeds_City_Council",
+                    }
+                ),
+                "name": "Leeds City Council",
+                "organisation_entity": "195",
+                "prefix": "local-authority",
+                "reference": "LDS",
+                "start_date": "1905-06-08",
+                "typology": "test",
+            }
+        ],
+    ),
 }
 
 
