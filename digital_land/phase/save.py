@@ -1,10 +1,12 @@
 import csv
 import logging
 import itertools
+import os
 from .phase import Phase
 
 
 def save(stream, path=None, fieldnames=None, f=None):
+    # We need to check if output dir exists
     logging.debug(f"save {path} {fieldnames} {f}")
 
     if fieldnames:
@@ -15,6 +17,9 @@ def save(stream, path=None, fieldnames=None, f=None):
             fieldnames = block["row"].keys()
         except StopIteration:
             return
+
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
 
     if not f:
         f = open(path, "w", newline="")
@@ -41,12 +46,14 @@ class SavePhase(Phase):
         fieldnames=None,
         enabled=True,
     ):
+        print("hello from save init")
         self.path = path
         self.f = f
         self.fieldnames = fieldnames
         self.enabled = enabled
 
     def process(self, stream):
+        print("path in save:", self.path)
         if self.enabled:
             stream, save_stream = itertools.tee(stream)
             save(
