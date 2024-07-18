@@ -576,10 +576,6 @@ def resource_from_path(path):
 
 def default_output_path(command, input_path):
     directory = "" if command in ["harmonised", "transformed"] else "var/"
-    print(
-        "path from default path: ",
-        f"{directory}{command}/{resource_from_path(input_path)}.csv",
-    )
     return f"{directory}{command}/{resource_from_path(input_path)}.csv"
 
 

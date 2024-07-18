@@ -5,7 +5,6 @@ from .phase import Phase
 
 
 def save(stream, path=None, fieldnames=None, f=None):
-    # We need to check if output dir exists
     logging.debug(f"save {path} {fieldnames} {f}")
 
     if fieldnames:
