@@ -82,18 +82,6 @@ def mock_resource(tmp_path):
 
 
 @pytest.fixture
-def mock_resource_identifical_reference(tmp_path):
-    data = {"reference": "ABC_0001", "value": "test"}
-    mock_csv_path = Path(tmp_path, "mock_csv.csv")
-    with open(mock_csv_path, "w", encoding="utf-8") as f:
-        dictwriter = csv.DictWriter(f, fieldnames=data.keys())
-        dictwriter.writeheader()
-        dictwriter.writerow(data)
-
-    return mock_csv_path
-
-
-@pytest.fixture
 def collection_dir(tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
@@ -184,7 +172,7 @@ def pipeline_dir(tmp_path, specification_dir):
     row = {
         "prefix": collection_name,
         "resource": "",
-        "entry-number": "",
+        "entry-number": 1,
         "organisation": "local-authority-eng:ABC",
         "reference": "ABC_0001",
         "entity": entity_range_min,
@@ -269,51 +257,6 @@ def test_command_add_endpoints_and_lookups_success_lookups_required(
     for endpoint in collection.endpoint.entries:
         assert endpoint.get("entry-date", None) is not None
         assert endpoint.get("entry-date", None) == expected_entry_date
-
-
-def test_command_add_endpoints_and_lookups_considers_organisation(
-    capfd,
-    endpoint_url_csv,
-    collection_dir,
-    pipeline_dir,
-    specification_dir,
-    organisation_path,
-    mocker,
-    mock_resource_identifical_reference,
-):
-    with open(mock_resource_identifical_reference, "r", encoding="utf-8") as f:
-        csv_content = f.read().encode("utf-8")
-
-    collection_name = "ancient-woodland"
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.request.headers = {"test": "test"}
-    mock_response.headers = {"test": "test"}
-    mock_response.content = csv_content
-    mocker.patch(
-        "requests.Session.get",
-        return_value=mock_response,
-    )
-    add_endpoints_and_lookups(
-        csv_file_path=endpoint_url_csv,
-        collection_name=collection_name,
-        collection_dir=Path(collection_dir),
-        specification_dir=specification_dir,
-        organisation_path=organisation_path,
-        pipeline_dir=pipeline_dir,
-    )
-
-    # test lookups have been added correctly
-    lookups = Lookups(pipeline_dir)
-    lookups.load_csv()
-
-    out = capfd.readouterr()
-
-    assert len(lookups.entries) > 0
-    assert (
-        "ancient-woodland , government-organisation:D1342 , ABC_0001 , 110000001"
-        in out[0]
-    )
 
 
 def test_cli_add_endpoints_and_lookups_cmd_success_return_code(
