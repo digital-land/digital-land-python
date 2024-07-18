@@ -1,7 +1,6 @@
 import csv
 import logging
 import itertools
-import os
 from .phase import Phase
 
 
@@ -17,8 +16,6 @@ def save(stream, path=None, fieldnames=None, f=None):
         except StopIteration:
             return
 
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
     if not f:
         f = open(path, "w", newline="")
     fieldnames = sorted(fieldnames)
