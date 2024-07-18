@@ -1,8 +1,6 @@
 import csv
 import logging
 import itertools
-import os
-from datetime import datetime
 from .phase import Phase
 
 
@@ -18,9 +16,6 @@ def save(stream, path=None, fieldnames=None, f=None):
             fieldnames = block["row"].keys()
         except StopIteration:
             return
-
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
 
     if not f:
         f = open(path, "w", newline="")
@@ -53,8 +48,6 @@ class SavePhase(Phase):
         self.enabled = enabled
 
     def process(self, stream):
-        print("path in save:", self.path)
-        print("save time", datetime.now().strftime("%Y-%m-%d:%H:%M:%S.%f"))
         if self.enabled:
             stream, save_stream = itertools.tee(stream)
             save(

@@ -13,7 +13,7 @@ import geojson
 import shapely
 
 from digital_land.package.organisation import OrganisationPackage
-from digital_land.phase.check import CheckPhase
+from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -209,9 +209,6 @@ def pipeline_run(
     if entry_date:
         default_values["entry-date"] = entry_date
 
-    harmonised_path = default_output_path("harmonised", input_path)
-    save_harmonised = True
-
     run_pipeline(
         ConvertPhase(
             path=input_path,
@@ -264,9 +261,6 @@ def pipeline_run(
             fieldnames=intermediate_fieldnames,
             enabled=save_harmonised,
         ),
-        CheckPhase(
-            harmonised_path=harmonised_path, issues=issue_log, enabled=save_harmonised
-        ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
@@ -282,6 +276,8 @@ def pipeline_run(
             fieldnames=specification.factor_fieldnames(),
         ),
     )
+
+    issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
