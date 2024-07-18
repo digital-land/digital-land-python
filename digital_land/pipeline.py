@@ -177,14 +177,13 @@ class Pipeline:
 
             # composite key, ordered by specificity
             resource_lookup = self.lookup.setdefault(row.get("resource", ""), {})
-            if entry_number:
-                resource_lookup[
-                    lookup_key(
-                        entry_number=entry_number,
-                        prefix=prefix,
-                        reference=reference,
-                    )
-                ] = row["entity"]
+            resource_lookup[
+                lookup_key(
+                    entry_number=entry_number,
+                    prefix=prefix,
+                    reference=reference,
+                )
+            ] = row["entity"]
 
             organisation = row.get("organisation", "")
             # replace local-authority-eng while we migrate
