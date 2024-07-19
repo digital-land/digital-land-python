@@ -1,8 +1,8 @@
 import duckdb
+import logging
 
 
 def duplicate_reference_check(issues=None, csv_path=None):
-    # csv_path = "test.csv"
     try:
         duckdb.read_csv(csv_path)
         sql = f"""
@@ -12,7 +12,7 @@ def duplicate_reference_check(issues=None, csv_path=None):
             "entry-date",
             COUNT(*) AS count,
             STRING_AGG("entry-number", ',') AS entry_numbers
-        FROM read_csv_auto('{csv_path}')
+        FROM read_csv('{csv_path}')
         WHERE "field" IN ('reference')
         GROUP BY "field", "value", "entry-date";
         """
@@ -23,16 +23,21 @@ def duplicate_reference_check(issues=None, csv_path=None):
                 issues.log_issue(
                     "reference",
                     "duplicate reference",
-                    row["reference"],
-                    entry_number=entry_number,
+                    row["value"],
+                    entry_number=int(entry_number),
+                    line_number=None,  # fix this
                     message="Reference must be unique in resource",
                 )
                 print(
                     "issue for reference",
-                    row["reference"],
+                    row["value"],
                     "for entry number",
                     entry_number,
                 )
     except Exception as e:
-        print(e)
+        logging.warning(
+            "Duplicate reference check for csv at path: %s has failed" % (csv_path)
+        )
+        logging.warning(e)
+        # Ask Owen about this
     return issues
