@@ -4,20 +4,21 @@ import os
 from digital_land.check import duplicate_reference_check
 from digital_land.log import IssueLog
 
+transformed_headers = [
+    "end-date",
+    "entity",
+    "entry-date",
+    "entry-number",
+    "fact",
+    "field",
+    "reference-entity",
+    "resource",
+    "start-date",
+    "value",
+]
+
 
 def test_duplicate_reference_check(tmp_path):
-    transformed_headers = [
-        "end-date",
-        "entity",
-        "entry-date",
-        "entry-number",
-        "fact",
-        "field",
-        "reference-entity",
-        "resource",
-        "start-date",
-        "value",
-    ]
     transformed_rows = [
         {
             "entity": 7010002598,
@@ -60,18 +61,6 @@ def test_duplicate_reference_check(tmp_path):
 
 
 def test_duplicate_reference_check_no_duplicate_reference(tmp_path):
-    transformed_headers = [
-        "end-date",
-        "entity",
-        "entry-date",
-        "entry-number",
-        "fact",
-        "field",
-        "reference-entity",
-        "resource",
-        "start-date",
-        "value",
-    ]
     transformed_rows = [
         {
             "entity": 7010002598,
@@ -107,18 +96,6 @@ def test_duplicate_reference_check_no_duplicate_reference(tmp_path):
 
 
 def test_duplicate_reference_check_different_entry_date(tmp_path):
-    transformed_headers = [
-        "end-date",
-        "entity",
-        "entry-date",
-        "entry-number",
-        "fact",
-        "field",
-        "reference-entity",
-        "resource",
-        "start-date",
-        "value",
-    ]
     transformed_rows = [
         {
             "entity": 7010002598,
@@ -147,18 +124,6 @@ def test_duplicate_reference_check_different_entry_date(tmp_path):
 
 
 def test_duplicate_reference_check_no_reference(tmp_path):
-    transformed_headers = [
-        "end-date",
-        "entity",
-        "entry-date",
-        "entry-number",
-        "fact",
-        "field",
-        "reference-entity",
-        "resource",
-        "start-date",
-        "value",
-    ]
     transformed_rows = [
         {
             "entity": 7010002598,
