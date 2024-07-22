@@ -2,9 +2,9 @@ import duckdb
 import logging
 
 
+# TODO This might need to move into expectations as it is a form of data checking
 def duplicate_reference_check(issues=None, csv_path=None):
     try:
-        duckdb.read_csv(csv_path)
         sql = f"""
         SELECT
             "field",
@@ -26,15 +26,11 @@ def duplicate_reference_check(issues=None, csv_path=None):
                         "reference values are not unique",
                         row["value"],
                         entry_number=int(entry_number),
-                        line_number=None,  # Can't get line number as we are outside pipeline
+                        line_number=int(entry_number)
+                        + 1,  # TODO Check this makes sense in all cases
                         message="Reference must be unique in resource",
                     )
-        else:
-            logging.warning(
-                "Duplicate reference check: No references found for %s" % (csv_path)
-            )
     except Exception as e:
-        logging.warning("Duplicate reference check: Failed for %s" % (csv_path))
-        logging.warning(e)
-        # What do we do in here?
+        logging.error("Duplicate reference check: Failed for %s" % (csv_path))
+        logging.error(e)
     return issues
