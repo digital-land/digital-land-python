@@ -23,7 +23,7 @@ def duplicate_reference_check(issues=None, csv_path=None):
                 for entry_number in row["entry_numbers"].split(","):
                     issues.log_issue(
                         "reference",
-                        "duplicate reference",
+                        "reference values are not unique",
                         row["value"],
                         entry_number=int(entry_number),
                         line_number=None,  # Can't get line number as we are outside pipeline

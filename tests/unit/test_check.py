@@ -57,7 +57,7 @@ def test_duplicate_reference_check(tmp_path):
     assert issues.rows[1]["entry-number"] == 2
 
     assert issues.rows[0]["field"] == "reference"
-    assert issues.rows[0]["issue-type"] == "duplicate reference"
+    assert issues.rows[0]["issue-type"] == "reference values are not unique"
 
 
 def test_duplicate_reference_check_no_duplicate_reference(tmp_path):
