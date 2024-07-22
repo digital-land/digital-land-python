@@ -25,19 +25,13 @@ def duplicate_reference_check(issues=None, csv_path=None):
                     "duplicate reference",
                     row["value"],
                     entry_number=int(entry_number),
-                    line_number=None,  # fix this
+                    line_number=None,  # Can't get line number as we are outside pipeline
                     message="Reference must be unique in resource",
-                )
-                print(
-                    "issue for reference",
-                    row["value"],
-                    "for entry number",
-                    entry_number,
                 )
     except Exception as e:
         logging.warning(
             "Duplicate reference check for csv at path: %s has failed" % (csv_path)
         )
         logging.warning(e)
-        # Ask Owen about this
+        # What do we do in here?
     return issues
