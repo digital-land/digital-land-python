@@ -13,6 +13,7 @@ import geojson
 import shapely
 
 from digital_land.package.organisation import OrganisationPackage
+from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -275,6 +276,8 @@ def pipeline_run(
             fieldnames=specification.factor_fieldnames(),
         ),
     )
+
+    issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
