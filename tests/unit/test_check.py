@@ -123,7 +123,7 @@ def test_duplicate_reference_check_different_entry_date(tmp_path):
     assert len(issues.rows) == 0
 
 
-def test_duplicate_reference_check_no_reference(tmp_path):
+def test_duplicate_reference_check_no_reference(tmp_path, caplog):
     transformed_rows = [
         {
             "entity": 7010002598,
@@ -147,8 +147,10 @@ def test_duplicate_reference_check_no_reference(tmp_path):
         dictwriter.writerows(transformed_rows)
 
     issues = IssueLog()
-    issues = duplicate_reference_check(issues=issues, csv_path=transformed_csv_path)
+    with caplog.at_level(logging.WARNING):
+        issues = duplicate_reference_check(issues=issues, csv_path=transformed_csv_path)
     assert len(issues.rows) == 0
+    assert "No references" in caplog.text
 
 
 def test_duplicate_reference_check_empty_file(tmp_path, caplog):
@@ -159,4 +161,17 @@ def test_duplicate_reference_check_empty_file(tmp_path, caplog):
     with caplog.at_level(logging.WARNING):
         issues = duplicate_reference_check(issues=issues, csv_path=transformed_csv_path)
     assert len(issues.rows) == 0
-    assert "Duplicate reference check" in caplog.text
+    assert "Failed" in caplog.text
+
+
+def test_duplicate_reference_check_headers_only_file(tmp_path, caplog):
+    transformed_csv_path = os.path.join(tmp_path, "empty.csv")
+    with open(transformed_csv_path, "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=transformed_headers)
+        dictwriter.writeheader()
+
+    issues = IssueLog()
+    with caplog.at_level(logging.WARNING):
+        issues = duplicate_reference_check(issues=issues, csv_path=transformed_csv_path)
+    assert len(issues.rows) == 0
+    assert "No references" in caplog.text
