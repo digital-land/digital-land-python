@@ -107,19 +107,49 @@ class Pipeline:
 
     def load_skip_patterns(self):
         for row in self.reader("skip.csv"):
-            record = self.skip_pattern.setdefault(row["resource"], [])
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.skip_pattern.setdefault(resource, [])
+            elif endpoint:
+                record = self.skip_pattern.setdefault(endpoint, [])
+            else:
+                record = self.skip_pattern.setdefault("", [])
+
             record.append(row["pattern"])
 
     def load_patch(self):
         for row in self.reader("patch.csv"):
-            record = self.patch.setdefault(row["resource"], {})
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.patch.setdefault(resource, {})
+            elif endpoint:
+                record = self.patch.setdefault(endpoint, {})
+            else:
+                record = self.patch.setdefault("", {})
+
+            row["field"] = row.get("field", "")
+            row["pattern"] = row.get("pattern", "")
+
             record = record.setdefault(row["field"], {})
             record[row["pattern"]] = row["value"]
 
     def load_default_fields(self):
         # TBD: rename default-field.csv
         for row in self.reader("default.csv"):
-            record = self.default_field.setdefault(row.get("resource", ""), {})
+            resource = row.get("resource", "")
+            endpoint = row.get("endpoint", "")
+
+            if resource:
+                record = self.default_field.setdefault(resource, {})
+            elif endpoint:
+                record = self.default_field.setdefault(endpoint, {})
+            else:
+                record = self.default_field.setdefault("", {})
+
             record[row["field"]] = row["default-field"]
 
     def load_default_values(self):
@@ -242,33 +272,51 @@ class Pipeline:
             result[key] = general_columns[key]
         return result
 
-    def skip_patterns(self, resource=""):
+    def skip_patterns(self, resource="", endpoints=[]):
         if not resource:
             return self.skip_pattern.get("", {})
+        endpoint_patterns = []
+        for endpoint in endpoints:
+            endpoint_patterns.extend(self.skip_pattern.get(endpoint, []))
 
-        return self.skip_pattern.get(resource, []) + self.skip_pattern.get("", [])
+        return (
+            self.skip_pattern.get(resource, [])
+            + self.skip_pattern.get("", [])
+            + endpoint_patterns
+        )
 
-    def patches(self, resource=""):
+    def patches(self, resource="", endpoints=[]):
         general_patch = self.patch.get("", {})
         if not resource:
             return general_patch
 
         resource_patch = self.patch.get(resource, {})
+        endpoint_patch = {}
 
-        result = {}
+        for endpoint in endpoints:
+            endpoint_patch = {**endpoint_patch, **self.patch.get(endpoint, {})}
+
+        result = {**endpoint_patch, **resource_patch}
+
         for field, patch in resource_patch.items():
-            result[field] = {**patch, **general_patch.pop(field, {})}
+            result[field] = {**general_patch.pop(field, {}), **patch}
 
         # Merge any remaining general defaults into the result
         result.update(general_patch)
 
         return result
 
-    def default_fields(self, resource=None):
+    def default_fields(self, resource=None, endpoints=[]):
         config = self.default_field
+
         d = config.get("", {})
+
         for key, value in config.get(resource, {}).items():
             d[key] = value
+
+        for endpoint in endpoints:
+            for key, value in config.get(endpoint, {}).items():
+                d[key] = value
         return d
 
     def default_values(self, endpoints=None):

@@ -39,6 +39,12 @@ class TestPipeLine:
         assert isinstance(pattern, list)
         assert "^Unnamed: 0," in pattern
 
+    def test_skip_patterns_with_endpoint(self):
+        p = Pipeline("tests/data/pipeline/", "pipeline-one")
+        pattern = p.skip_patterns("test_resource", ["test_endpoint"])
+        assert isinstance(pattern, list)
+        assert "^,,,*\\(OUT, FULL etc\\),yyyy-mm-dd,,*$" in pattern
+
     def test_patches(self):
         p = Pipeline("tests/data/pipeline/", "pipeline-one")
         patches = p.patches()
@@ -52,6 +58,12 @@ class TestPipeLine:
     def test_default_fields(self):
         p = Pipeline("tests/data/pipeline", "pipeline-one")
         assert p.default_fields() == {"field-integer": "field-two"}
+
+    def test_default_fields_with_endpoint(self):
+        p = Pipeline("tests/data/pipeline", "pipeline-four")
+        assert p.default_fields("test_resource", ["test_endpoint"]) == {
+            "description": "desc"
+        }
 
     def test_resource_specific_default_fields(self):
         p = Pipeline("tests/data/pipeline", "pipeline-one")

@@ -181,12 +181,12 @@ def pipeline_run(
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
     # load pipeline configuration
-    skip_patterns = pipeline.skip_patterns(resource)
+    skip_patterns = pipeline.skip_patterns(resource, endpoints)
     columns = pipeline.columns(resource, endpoints=endpoints)
     concats = pipeline.concatenations(resource, endpoints=endpoints)
-    patches = pipeline.patches(resource=resource)
+    patches = pipeline.patches(resource=resource, endpoints=endpoints)
     lookups = pipeline.lookups(resource=resource)
-    default_fields = pipeline.default_fields(resource=resource)
+    default_fields = pipeline.default_fields(resource=resource, endpoints=endpoints)
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
     redirect_lookups = pipeline.redirect_lookups()
@@ -696,7 +696,7 @@ def get_resource_unidentified_lookups(
     null_path = None
 
     # concat field phase
-    concats = pipeline.concatenations(resource)
+    concats = pipeline.concatenations(resource, endpoints)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
 
     # map phase
@@ -704,13 +704,13 @@ def get_resource_unidentified_lookups(
     columns = pipeline.columns(resource, endpoints)
 
     # patch phase
-    patches = pipeline.patches(resource=resource)
+    patches = pipeline.patches(resource=resource, endpoints=endpoints)
 
     # harmonize phase
     issue_log = IssueLog(dataset=dataset, resource=resource)
 
     # default phase
-    default_fields = pipeline.default_fields(resource=resource)
+    default_fields = pipeline.default_fields(resource=resource, endpoints=endpoints)
     default_values = pipeline.default_values(endpoints=[])
 
     if len(organisations) == 1:
@@ -744,7 +744,7 @@ def get_resource_unidentified_lookups(
             columns=columns,
             log=column_field_log,
         ),
-        FilterPhase(filters=pipeline.filters(resource)),
+        FilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
         PatchPhase(
             issues=issue_log,
             patches=patches,
