@@ -692,7 +692,7 @@ def get_resource_unidentified_lookups(
     print("----------------------------------------------------------------------")
 
     # normalise phase inputs
-    skip_patterns = pipeline.skip_patterns(resource)
+    skip_patterns = pipeline.skip_patterns(resource, endpoints)
     null_path = None
 
     # concat field phase
