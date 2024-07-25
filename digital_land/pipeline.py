@@ -298,11 +298,12 @@ class Pipeline:
 
         result = {**endpoint_patch, **resource_patch}
 
-        for field, patch in resource_patch.items():
-            result[field] = {**general_patch.pop(field, {}), **patch}
-
         # Merge any remaining general defaults into the result
-        result.update(general_patch)
+        for field, patch in general_patch.items():
+            if field not in result:
+                result[field] = patch
+            else:
+                result[field] = {**patch, **result[field]}
 
         return result
 

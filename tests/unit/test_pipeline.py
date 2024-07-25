@@ -39,7 +39,7 @@ class TestPipeLine:
         assert isinstance(pattern, list)
         assert "^Unnamed: 0," in pattern
 
-    def test_skip_patterns_with_endpoint(self):
+    def test_endpoint_specific_skip_patterns(self):
         p = Pipeline("tests/data/pipeline/", "pipeline-one")
         pattern = p.skip_patterns("test_resource", ["test_endpoint"])
         assert isinstance(pattern, list)
@@ -55,11 +55,16 @@ class TestPipeLine:
         patches = p.patches("resource-one")
         assert patches == {"field-one": {"something": "else", "pat": "val"}}
 
+    def test_endpoint_specific_patches(self):
+        p = Pipeline("tests/data/pipeline/", "pipeline-one")
+        patches = p.patches("test_resource", ["test_endpoint"])
+        assert patches == {"field-one": {"before": "after", "pat": "val"}}
+
     def test_default_fields(self):
         p = Pipeline("tests/data/pipeline", "pipeline-one")
         assert p.default_fields() == {"field-integer": "field-two"}
 
-    def test_default_fields_with_endpoint(self):
+    def test_endpoint_specific_default_fields(self):
         p = Pipeline("tests/data/pipeline", "pipeline-four")
         assert p.default_fields("test_resource", ["test_endpoint"]) == {
             "description": "desc"
