@@ -57,11 +57,21 @@ class LookupPhase(Phase):
                 organisation=organisation,
                 reference=reference,
             )
+        )
+        if not entity:
             # TBD this needs to specifically not match unless the organisation and other columns
             # are empty in the lookups.csv probably isn't a change here.
             # or by the CURIE
-            or self.lookup(prefix=prefix, reference=reference)
-        )
+            entity = self.lookup(prefix=prefix, reference=reference)
+
+            if entity in self.lookups.values():
+                associated_keys = [
+                    key for key, value in self.lookups.items() if value == entity
+                ]
+                for key in associated_keys:
+                    parts = key.split(",")
+                    if len(parts) > 3 and parts[3]:
+                        entity = ""
 
         return entity
 

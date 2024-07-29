@@ -82,6 +82,18 @@ def mock_resource(tmp_path):
 
 
 @pytest.fixture
+def mock_resource_identical_reference(tmp_path):
+    data = {"reference": "ABC_0001", "value": "test"}
+    mock_csv_path = Path(tmp_path, "mock_csv.csv")
+    with open(mock_csv_path, "w", encoding="utf-8") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=data.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(data)
+
+    return mock_csv_path
+
+
+@pytest.fixture
 def collection_dir(tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
@@ -172,7 +184,7 @@ def pipeline_dir(tmp_path, specification_dir):
     row = {
         "prefix": collection_name,
         "resource": "",
-        "entry-number": 1,
+        "entry-number": "",
         "organisation": "local-authority-eng:ABC",
         "reference": "ABC_0001",
         "entity": entity_range_min,
@@ -483,6 +495,65 @@ def test_add_endpoints_with_invalid_license_raises_value_error(
             organisation_path=organisation_path,
         )
     assert "Licence 'non-existent-license' is not a valid licence" in str(excinfo.value)
+
+
+def test_command_add_endpoints_and_lookups_considers_organisation(
+    endpoint_url_csv,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mocker,
+    mock_resource_identical_reference,
+    capfd,
+):
+    """
+    When assigning new lookups we need to make sure new lookups are assigned even when a lookup with the same reference already exists for an organisation.
+    """
+
+    with open(mock_resource_identical_reference, "r", encoding="utf-8") as f:
+        csv_content = f.read().encode("utf-8")
+
+    collection_name = "ancient-woodland"
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.request.headers = {"test": "test"}
+    mock_response.headers = {"test": "test"}
+    mock_response.content = csv_content
+    mocker.patch(
+        "requests.Session.get",
+        return_value=mock_response,
+    )
+    add_endpoints_and_lookups(
+        csv_file_path=endpoint_url_csv,
+        collection_name=collection_name,
+        collection_dir=Path(collection_dir),
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        pipeline_dir=pipeline_dir,
+    )
+
+    # test endpoints and sources have been added
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    assert len(collection.source.entries) > 0
+    assert len(collection.endpoint.entries) > 0
+
+    # check logs
+    assert len(collection.log.entries) > 0
+
+    # test lookups have been added correctly, including
+    lookups = Lookups(pipeline_dir)
+    lookups.load_csv()
+    out = capfd.readouterr()
+
+    # assert to verify new lookup with the same reference is added
+    assert len(lookups.entries) > 0
+    assert (
+        "ancient-woodland , government-organisation:D1342 , ABC_0001 , 110000001"
+        in out[0]
+    )
 
 
 # adding endpoint requirements
