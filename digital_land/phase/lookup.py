@@ -73,7 +73,14 @@ class LookupPhase(Phase):
                 ]
                 for key in associated_keys:
                     parts = key.split(",")
-                    if len(parts) > 3 and parts[3]:
+                    if (
+                        len(parts) > 3
+                        and parts[3]
+                        and any(
+                            value in parts[3]
+                            for value in ["authority", "development", "government"]
+                        )
+                    ):
                         entity = ""
 
         return entity
