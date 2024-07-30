@@ -12,8 +12,7 @@ def duplicate_reference_check(issues=None, csv_path=None):
         ddf.columns = ddf.columns.str.replace("-", "_")
         filtered_ddf = ddf[ddf["field"] == "reference"]
 
-        filtered_df = filtered_ddf.compute()
-        filtered_df[filtered_df["field"] == "reference"]
+        filtered_df = filtered_ddf.compute()  # noqa
         conn.execute("CREATE TABLE filtered_table AS SELECT * FROM filtered_df")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, entry_date);"
