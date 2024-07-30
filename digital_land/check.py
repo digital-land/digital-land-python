@@ -1,22 +1,37 @@
 import duckdb
 import logging
+import dask.dataframe as dd
 
 
 # TODO This might need to move into expectations as it is a form of data checking
 def duplicate_reference_check(issues=None, csv_path=None):
     try:
-        sql = f"""
+        conn = duckdb.connect()
+
+        ddf = dd.read_csv(csv_path)
+        ddf.columns = ddf.columns.str.replace("-", "_")
+        filtered_ddf = ddf[ddf["field"] == "reference"]
+
+        filtered_df = filtered_ddf.compute()  # noqa
+        conn.execute("CREATE TABLE filtered_table AS SELECT * FROM filtered_df")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, entry_date);"
+        )
+        # SQL query to identify duplicate references
+        sql = """
         SELECT
             "field",
             "value",
-            "entry-date",
+            "entry_date",
             COUNT(*) AS count,
-            STRING_AGG("entry-number", ',') AS entry_numbers
-        FROM read_csv('{csv_path}')
-        WHERE "field" IN ('reference')
-        GROUP BY "field", "value", "entry-date";
+            STRING_AGG("entry_number"::TEXT, ',') AS entry_numbers
+        FROM filtered_table
+        GROUP BY "field", "value", "entry_date"
+        HAVING COUNT(*) > 1;
         """
-        count_table = duckdb.sql(sql).df()
+
+        count_table = conn.execute(sql).fetchdf()
+
         if len(count_table) >= 1:
             duplicate_references = count_table[count_table["count"] > 1]
             for idx, row in duplicate_references.iterrows():
@@ -33,4 +48,7 @@ def duplicate_reference_check(issues=None, csv_path=None):
     except Exception as e:
         logging.error("Duplicate reference check: Failed for %s" % (csv_path))
         logging.error(e)
+    finally:
+        conn.execute("DROP TABLE IF EXISTS filtered_table;")
+        conn.close()
     return issues
