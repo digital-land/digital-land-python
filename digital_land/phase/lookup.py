@@ -64,6 +64,9 @@ class LookupPhase(Phase):
             # or by the CURIE
             entity = self.lookup(prefix=prefix, reference=reference)
 
+            # When obtaining an entity number using only the prefix and reference, check if the
+            # lookup includes an associated organisation. If it does, do not use the entity number,
+            # as it is organisation specific.
             if entity in self.lookups.values():
                 associated_keys = [
                     key for key, value in self.lookups.items() if value == entity
