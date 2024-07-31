@@ -1,11 +1,6 @@
 import re
 from .phase import Phase
 
-VALID_CATEGORIES = {
-    "tree-preservation-zone": ["area", "group", "woodland"],
-    # Add other categorical fields and their valid values here
-}
-
 
 class PatchPhase(Phase):
     patch = {}
@@ -19,12 +14,6 @@ class PatchPhase(Phase):
         self.patch = patches
 
     def apply_patch(self, fieldname, value):
-        # Validate categorical fields
-        if fieldname in VALID_CATEGORIES:
-            valid_values = VALID_CATEGORIES[fieldname]
-            if value not in valid_values:
-                self.issues.log_issue(fieldname, "invalid category values", value)
-
         # Apply patches
         patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
         for pattern, replacement in patches.items():
