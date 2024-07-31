@@ -6,6 +6,7 @@ VALID_CATEGORIES = {
     # Add other categorical fields and their valid values here
 }
 
+
 class PatchPhase(Phase):
     patch = {}
 
@@ -33,7 +34,7 @@ class PatchPhase(Phase):
                 if newvalue != value:
                     self.issues.log_issue(fieldname, "patch", value)
                 return newvalue
-        
+
         return value
 
     def process(self, stream):
