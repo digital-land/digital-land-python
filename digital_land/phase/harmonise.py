@@ -7,6 +7,7 @@ import logging
 import warnings
 import os
 import csv
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -176,61 +177,76 @@ class HarmonisePhase(Phase):
     def get_category_fields(self):
         category_fields = {}
         if self.specification:
-            query_result = self.specification.recreate_query(self.dataset)
-            for _, row in query_result.iterrows():
-                dataset, field = row["dataset"], row["field"]
-                if dataset not in category_fields:
-                    category_fields[dataset] = []
-                category_fields[dataset].append(field)
+            for _, row in self.specification.get_category_fields_query().iterrows():
+                category_fields.setdefault(row["dataset"], []).append(row["field"])
         return category_fields
 
     def get_valid_categories(self):
         valid_category_values = {}
         category_fields = self.get_category_fields()
 
-        is_dataset_in_fields = any(
-            self.dataset in fields for fields in category_fields.values()
-        )
-        if not is_dataset_in_fields:
+        if self.dataset not in category_fields:
             print(
                 f"Dataset {self.dataset} not found in category fields. Skipping CSV processing."
             )
             return valid_category_values
 
-        base_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
-        )
-        csv_file = os.path.join(base_path, "dataset", f"{self.dataset}.csv")
+        csv_file = self._get_csv_file_path()
         print("Processing CSV FILE:", csv_file)
 
         if os.path.exists(csv_file):
-            with open(csv_file, mode="r") as file:
-                csv_reader = csv.DictReader(file)
-                for row in csv_reader:
-                    category = row.get("prefix")
-                    reference = row.get("reference")
-                    if category and reference:
-                        if category not in valid_category_values:
-                            valid_category_values[category] = []
-                        valid_category_values[category].append(reference.lower())
+            valid_category_values = self._read_csv_file(csv_file)
         else:
-            print(f"CSV file {csv_file} does not exist.")
+            print(
+                f"CSV file {csv_file} does not exist. Attempting to download from URL."
+            )
+            self.download_dataset_file()
 
         print("Valid categories from CSV files:", valid_category_values)
         return valid_category_values
 
+    def _get_csv_file_path(self):
+        base_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+        )
+        return os.path.join(base_path, "var", "cache", f"{self.dataset}.csv")
+
+    def _read_csv_file(self, csv_file):
+        valid_category_values = {}
+        with open(csv_file, mode="r") as file:
+            for row in csv.DictReader(file):
+                category, reference = row.get("prefix"), row.get("reference")
+                if category and reference:
+                    valid_category_values.setdefault(category, []).append(
+                        reference.lower()
+                    )
+        return valid_category_values
+
+    def download_dataset_file(self):
+        csv_file = self._get_csv_file_path()
+        url = f"https://files.planning.data.gov.uk/dataset/{self.dataset}.csv"
+
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+
+            with open(csv_file, "wb") as file:
+                file.write(response.content)
+
+            print(f"Downloaded dataset file from {url}")
+        except requests.HTTPError as e:
+            print(f"Failed to download dataset file: {e}")
+
     def validate_categorical_fields(self, fieldname, value):
         valid_values = self.get_valid_categories()
-
         if not valid_values:
             return
 
         value_lower = value.lower()
 
         if fieldname in ["reference", "name"]:
-            is_valid = any(
-                value_lower in valid_values[category] for category in valid_values
-            )
-            if not is_valid:
+            if not any(
+                value_lower in references for references in valid_values.values()
+            ):
                 print("Issue was logged:", fieldname, value)
                 self.issues.log_issue(fieldname, "invalid category values", value)

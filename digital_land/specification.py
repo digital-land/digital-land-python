@@ -249,7 +249,7 @@ class Specification:
         else:
             return None
 
-    def recreate_query(self):
+    def get_category_fields_query(self):
         category_fields = self.field_df[self.field_df["typology"] == "category"][
             "field"
         ]
