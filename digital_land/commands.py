@@ -231,6 +231,7 @@ def pipeline_run(
         ),
         HarmonisePhase(
             field_datatype_map=specification.get_field_datatype_map(),
+            specification=specification,
             issues=issue_log,
             dataset=dataset,
         ),
