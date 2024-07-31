@@ -13,6 +13,7 @@ import geojson
 import shapely
 
 from digital_land.package.organisation import OrganisationPackage
+from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -180,12 +181,12 @@ def pipeline_run(
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
     # load pipeline configuration
-    skip_patterns = pipeline.skip_patterns(resource)
+    skip_patterns = pipeline.skip_patterns(resource, endpoints)
     columns = pipeline.columns(resource, endpoints=endpoints)
     concats = pipeline.concatenations(resource, endpoints=endpoints)
-    patches = pipeline.patches(resource=resource)
+    patches = pipeline.patches(resource=resource, endpoints=endpoints)
     lookups = pipeline.lookups(resource=resource)
-    default_fields = pipeline.default_fields(resource=resource)
+    default_fields = pipeline.default_fields(resource=resource, endpoints=endpoints)
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
     redirect_lookups = pipeline.redirect_lookups()
@@ -230,7 +231,6 @@ def pipeline_run(
         ),
         HarmonisePhase(
             field_datatype_map=specification.get_field_datatype_map(),
-            specification=specification,
             issues=issue_log,
             dataset=dataset,
         ),
@@ -276,6 +276,8 @@ def pipeline_run(
             fieldnames=specification.factor_fieldnames(),
         ),
     )
+
+    issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
@@ -690,11 +692,11 @@ def get_resource_unidentified_lookups(
     print("----------------------------------------------------------------------")
 
     # normalise phase inputs
-    skip_patterns = pipeline.skip_patterns(resource)
+    skip_patterns = pipeline.skip_patterns(resource, endpoints)
     null_path = None
 
     # concat field phase
-    concats = pipeline.concatenations(resource)
+    concats = pipeline.concatenations(resource, endpoints)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
 
     # map phase
@@ -702,13 +704,13 @@ def get_resource_unidentified_lookups(
     columns = pipeline.columns(resource, endpoints)
 
     # patch phase
-    patches = pipeline.patches(resource=resource)
+    patches = pipeline.patches(resource=resource, endpoints=endpoints)
 
     # harmonize phase
     issue_log = IssueLog(dataset=dataset, resource=resource)
 
     # default phase
-    default_fields = pipeline.default_fields(resource=resource)
+    default_fields = pipeline.default_fields(resource=resource, endpoints=endpoints)
     default_values = pipeline.default_values(endpoints=[])
 
     if len(organisations) == 1:
@@ -742,7 +744,7 @@ def get_resource_unidentified_lookups(
             columns=columns,
             log=column_field_log,
         ),
-        FilterPhase(filters=pipeline.filters(resource)),
+        FilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
         PatchPhase(
             issues=issue_log,
             patches=patches,

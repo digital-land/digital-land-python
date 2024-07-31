@@ -1,4 +1,5 @@
-pipeline,resource,field,default-field,entry-date,start-date,end-date
-"pipeline-one",,"field-integer","field-two",,,
-"pipeline-one","resource-one","field-integer","field-other-integer",,,
-"pipeline-three",,"name","address",,,
+pipeline,resource,field,default-field,entry-date,start-date,end-date,endpoint
+"pipeline-one",,"field-integer","field-two",,,,
+"pipeline-one","resource-one","field-integer","field-other-integer",,,,
+"pipeline-three",,"name","address",,,,
+"pipeline-four",,"description","desc",,,,test_endpoint

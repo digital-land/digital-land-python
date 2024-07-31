@@ -53,6 +53,8 @@ setup(
         "dataclasses-json",
         "pydantic",
         "json-stream",
+        "duckdb",
+        "dask[dataframe]",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],

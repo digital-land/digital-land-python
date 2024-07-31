@@ -438,5 +438,38 @@ def test_load_filter_when_csv_contains_endpoint(tmp_path):
     assert pipeline.filter[test_endpoint]["field2"] == "pattern2"
 
 
+def test_load_patch_when_csv_contains_endpoint(tmp_path):
+    # -- Arrange --
+    pipeline_dir = tmp_path / "pipeline"
+    pipeline_dir.mkdir()
+
+    test_pipeline = "test-pipeline"
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
+
+    # create the datasource file used by the Pipeline class
+    patch_data = {
+        "resource": ["", "", ""],
+        "endpoint": ["", test_endpoint, ""],
+        "field": ["field1", "grade", "field2"],
+        "pattern": ["pattern1", "^1$", "pattern2"],
+        "value": ["value1", "I", "value2"],
+    }
+    patches_data = pd.DataFrame.from_dict(patch_data)
+    patches_data.to_csv(f"{pipeline_dir}/patch.csv", index=False)
+
+    # -- Act --
+    pipeline = Pipeline(pipeline_dir, test_pipeline)
+    patch = pipeline.patches("test_resource", [test_endpoint])
+
+    # -- Assert --
+    assert test_endpoint in pipeline.patch
+    assert pipeline.patch[test_endpoint]["grade"] == {"^1$": "I"}
+    assert {
+        "grade": {"^1$": "I"},
+        "field1": {"pattern1": "value1"},
+        "field2": {"pattern2": "value2"},
+    } in [patch]
+
+
 if __name__ == "__main__":
     pytest.main()
