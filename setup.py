@@ -55,7 +55,7 @@ setup(
         "json-stream",
         "duckdb",
         "dask[dataframe]",
-        "pyarrow=8.0.0",
+        "pyarrow==8.0.0",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
