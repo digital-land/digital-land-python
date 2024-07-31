@@ -176,3 +176,47 @@ def test_get_field_datatype_name_raises_error_for_missing_mapping():
     phase = HarmonisePhase(field_datatype_map=field_datatype_map)
     with pytest.raises(ValueError):
         phase.get_field_datatype_name("reference")
+
+
+def test_validate_categorical_fields():
+    issues = IssueLog()
+    field_datatype_map = {
+        "reference": "string",
+        "name": "string",
+        "description": "string",
+        "document-url": "url",
+        "documentation-url": "url",
+        "organisation": "string",
+    }
+
+    h = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues,
+        dataset="article-4-direction",
+    )
+
+    # Mock the get_valid_categories method to return specific valid values
+    h.get_valid_categories = lambda: {
+        "prefix": ["valid_reference", "another_valid_reference"]
+    }
+
+    # Test with a valid reference
+    h.validate_categorical_fields("reference", "valid_reference")
+    assert len(issues.rows) == 0
+
+    # Test with an invalid reference
+    h.validate_categorical_fields("reference", "invalid_reference")
+    assert len(issues.rows) == 1
+    assert issues.rows[0]["field"] == "reference"
+    assert issues.rows[0]["issue-type"] == "invalid category values"
+    assert issues.rows[0]["value"] == "invalid_reference"
+
+    # Test with a valid name
+    h.validate_categorical_fields("name", "another_valid_reference")
+    assert len(issues.rows) == 1
+
+    h.validate_categorical_fields("name", "invalid_name")
+    assert len(issues.rows) == 2
+    assert issues.rows[1]["field"] == "name"
+    assert issues.rows[1]["issue-type"] == "invalid category values"
+    assert issues.rows[1]["value"] == "invalid_name"

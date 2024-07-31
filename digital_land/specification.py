@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 import logging
 import warnings
+import pandas as pd
 
 from .datatype.address import AddressDataType
 from .datatype.datatype import DataType
@@ -37,7 +38,9 @@ class Specification:
         self.schema_field = {}
         self.typology = {}
         self.pipeline = {}
-
+        self.dataset_df = pd.DataFrame()
+        self.field_df = pd.DataFrame()
+        self.dataset_field_df = pd.DataFrame()
         self.load_dataset(path)
         self.load_schema(path)
         self.load_dataset_schema(path)
@@ -46,12 +49,14 @@ class Specification:
         self.load_schema_field(path)
         self.load_typology(path)
         self.load_pipeline(path)
+        self.load_dataset_field(path)
 
         self.index_field()
         self.index_schema()
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
+        self.dataset_df = pd.read_csv(os.path.join(path, "dataset.csv"))
         for row in reader:
             self.dataset_names.append(row["dataset"])
             self.dataset[row["dataset"]] = row
@@ -76,9 +81,13 @@ class Specification:
 
     def load_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "field.csv")))
+        self.field_df = pd.read_csv(os.path.join(path, "field.csv"))
         for row in reader:
             self.field_names.append(row["field"])
             self.field[row["field"]] = row
+
+    def load_dataset_field(self, path):
+        self.dataset_field_df = pd.read_csv(os.path.join(path, "dataset-field.csv"))
 
     def load_schema_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "schema-field.csv")))
@@ -239,3 +248,14 @@ class Specification:
             return self.dataset[dataset]["typology"]
         else:
             return None
+
+    def recreate_query(self):
+        category_fields = self.field_df[self.field_df["typology"] == "category"][
+            "field"
+        ]
+
+        result = self.dataset_field_df[
+            self.dataset_field_df["field"].isin(category_fields)
+        ][["dataset", "field"]]
+
+        return result

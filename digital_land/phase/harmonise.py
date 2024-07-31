@@ -1,11 +1,12 @@
 from datetime import datetime
-
 from .phase import Phase
 from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
 import logging
 import warnings
+import os
+import csv
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,7 @@ class HarmonisePhase(Phase):
             o = {}
 
             for field in row:
+                self.validate_categorical_fields(field, row[field])
                 o[field] = self.harmonise_field(field, row[field])
 
             # remove future entry dates
@@ -125,7 +127,7 @@ class HarmonisePhase(Phase):
                     (o["GeoX"], o["GeoY"]) = [str(x), str(y)]
                 except Exception as e:
                     logger.error(
-                        f"Exception occured while fetching geoX, geoY cordinates: {e}"
+                        f"Exception occurred while fetching geoX, geoY coordinates: {e}"
                     )
 
             # ensure typology fields are a CURIE
@@ -170,3 +172,65 @@ class HarmonisePhase(Phase):
             block["row"] = o
 
             yield block
+
+    def get_category_fields(self):
+        category_fields = {}
+        if self.specification:
+            query_result = self.specification.recreate_query(self.dataset)
+            for _, row in query_result.iterrows():
+                dataset, field = row["dataset"], row["field"]
+                if dataset not in category_fields:
+                    category_fields[dataset] = []
+                category_fields[dataset].append(field)
+        return category_fields
+
+    def get_valid_categories(self):
+        valid_category_values = {}
+        category_fields = self.get_category_fields()
+
+        is_dataset_in_fields = any(
+            self.dataset in fields for fields in category_fields.values()
+        )
+        if not is_dataset_in_fields:
+            print(
+                f"Dataset {self.dataset} not found in category fields. Skipping CSV processing."
+            )
+            return valid_category_values
+
+        base_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+        )
+        csv_file = os.path.join(base_path, "dataset", f"{self.dataset}.csv")
+        print("Processing CSV FILE:", csv_file)
+
+        if os.path.exists(csv_file):
+            with open(csv_file, mode="r") as file:
+                csv_reader = csv.DictReader(file)
+                for row in csv_reader:
+                    category = row.get("prefix")
+                    reference = row.get("reference")
+                    if category and reference:
+                        if category not in valid_category_values:
+                            valid_category_values[category] = []
+                        valid_category_values[category].append(reference.lower())
+        else:
+            print(f"CSV file {csv_file} does not exist.")
+
+        print("Valid categories from CSV files:", valid_category_values)
+        return valid_category_values
+
+    def validate_categorical_fields(self, fieldname, value):
+        valid_values = self.get_valid_categories()
+
+        if not valid_values:
+            return
+
+        value_lower = value.lower()
+
+        if fieldname in ["reference", "name"]:
+            is_valid = any(
+                value_lower in valid_values[category] for category in valid_values
+            )
+            if not is_valid:
+                print("Issue was logged:", fieldname, value)
+                self.issues.log_issue(fieldname, "invalid category values", value)
