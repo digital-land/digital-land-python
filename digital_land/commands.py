@@ -889,26 +889,27 @@ def download_categorical_fields(dataset):
     # Check if the dataset parameter matches any field value
     field_match = category_fields_query[category_fields_query["field"] == dataset]
 
-    # If there's a field match, just download the given dataset parameter
-    if not field_match.empty:
-        combined_matches = pd.DataFrame([{"dataset": dataset}])
-    else:
-        combined_matches = matching_datasets
+    # Combine both matches
+    combined_matches = pd.concat(
+        [matching_datasets, field_match], ignore_index=True
+    ).drop_duplicates(subset=["dataset", "field"])
 
+    print("COMBINED MATCHES: ", combined_matches)
     if combined_matches.empty:
         print(f"No datasets found matching the given parameter: {dataset}")
         return
 
     for _, row in combined_matches.iterrows():
-        dataset_name = row["dataset"]
-        csv_file = f"var/cache/{dataset_name}.csv"
-        url = f"{base_url}{dataset_name}.csv"
+
+        file_name = row["field"]
+        csv_file = f"var/cache/{file_name}.csv"
+        url = f"{base_url}{file_name}.csv"
         print("DATASET URL: ", url)
         try:
             response = requests.get(url)
             response.raise_for_status()
             with open(csv_file, "wb") as file:
                 file.write(response.content)
-            print(f"Downloaded {dataset_name} dataset from {url}")
+            print(f"Downloaded {file_name} dataset from {url}")
         except requests.HTTPError as e:
-            print(f"Failed to download {dataset_name} dataset: {e}")
+            print(f"Failed to download {file_name} dataset: {e}")
