@@ -3,6 +3,7 @@ import csv
 import itertools
 import os
 import sys
+import requests
 import json
 import logging
 from packaging.version import Version
@@ -873,3 +874,22 @@ def organisation_check(**kwargs):
     lpa_path = kwargs.pop("lpa_path")
     package = OrganisationPackage(**kwargs)
     package.check(lpa_path, output_path)
+
+
+def download_categorical_fields(dataset):
+    base_url = "https://files.planning.data.gov.uk/dataset/"
+    specification = Specification("specification/")
+    category_fields_query = specification.get_category_fields_query(dataset)
+
+    for _, row in category_fields_query.iterrows():
+        dataset_name = row["dataset"]
+        csv_file = f"var/cache/{dataset_name}.csv"
+        url = f"{base_url}{dataset_name}.csv"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(csv_file, "wb") as file:
+                file.write(response.content)
+            print(f"Downloaded {dataset_name} dataset from {url}")
+        except requests.HTTPError as e:
+            print(f"Failed to download {dataset_name} dataset: {e}")

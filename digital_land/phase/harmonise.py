@@ -1,5 +1,6 @@
 from datetime import datetime
 from .phase import Phase
+from pathlib import Path
 from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
@@ -7,7 +8,6 @@ import logging
 import warnings
 import os
 import csv
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,9 @@ class HarmonisePhase(Phase):
     def get_category_fields(self):
         category_fields = {}
         if self.specification:
-            for _, row in self.specification.get_category_fields_query().iterrows():
+            for _, row in self.specification.get_category_fields_query(
+                self.dataset
+            ).iterrows():
                 category_fields.setdefault(row["dataset"], []).append(row["field"])
         return category_fields
 
@@ -197,19 +199,14 @@ class HarmonisePhase(Phase):
         if os.path.exists(csv_file):
             valid_category_values = self._read_csv_file(csv_file)
         else:
-            print(
-                f"CSV file {csv_file} does not exist. Attempting to download from URL."
-            )
-            self.download_dataset_file()
+            print(f"CSV file {csv_file} does not exist.")
 
         print("Valid categories from CSV files:", valid_category_values)
         return valid_category_values
 
     def _get_csv_file_path(self):
-        base_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
-        )
-        return os.path.join(base_path, "var", "cache", f"{self.dataset}.csv")
+        base_path = Path(__file__).resolve().parents[5]
+        return base_path / "var" / "cache" / f"{self.dataset}.csv"
 
     def _read_csv_file(self, csv_file):
         valid_category_values = {}
@@ -221,21 +218,6 @@ class HarmonisePhase(Phase):
                         reference.lower()
                     )
         return valid_category_values
-
-    def download_dataset_file(self):
-        csv_file = self._get_csv_file_path()
-        url = f"https://files.planning.data.gov.uk/dataset/{self.dataset}.csv"
-
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-
-            with open(csv_file, "wb") as file:
-                file.write(response.content)
-
-            print(f"Downloaded dataset file from {url}")
-        except requests.HTTPError as e:
-            print(f"Failed to download dataset file: {e}")
 
     def validate_categorical_fields(self, fieldname, value):
         valid_values = self.get_valid_categories()
