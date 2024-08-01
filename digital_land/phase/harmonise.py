@@ -208,15 +208,12 @@ class HarmonisePhase(Phase):
         return base_path / "var" / "cache" / f"{self.dataset}.csv"
 
     def _read_csv_file(self, csv_file):
-        valid_category_values = {"reference": [], "name": []}
+        valid_category_values = {"reference": []}
         with open(csv_file, mode="r") as file:
             for row in csv.DictReader(file):
                 reference = row.get("reference")
-                name = row.get("name")
                 if reference:
                     valid_category_values["reference"].append(reference.lower())
-                if name:
-                    valid_category_values["name"].append(name.lower())
         return valid_category_values
 
     def validate_categorical_fields(self, fieldname, value):
@@ -225,9 +222,7 @@ class HarmonisePhase(Phase):
             valid_values = self.get_valid_categories()
             value_lower = value.lower()
 
-            # Check against the name and reference lists
-            if value_lower not in valid_values.get(
-                "name"
-            ) and value_lower not in valid_values.get("reference"):
+            # Check against the reference list
+            if value_lower not in valid_values.get("reference"):
                 print("Issue was logged:", fieldname, value)
                 self.issues.log_issue(fieldname, "invalid category values", value)

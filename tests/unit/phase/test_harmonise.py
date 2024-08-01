@@ -200,7 +200,6 @@ def test_validate_categorical_fields():
     # Mock the get_valid_categories method to return specific valid values
     h.get_valid_categories = lambda: {
         "reference": ["valid_reference", "another_valid_reference"],
-        "name": ["valid_name", "another_valid_name"],
     }
 
     # Test with a valid reference
@@ -213,16 +212,3 @@ def test_validate_categorical_fields():
     assert issues.rows[0]["field"] == "reference"
     assert issues.rows[0]["issue-type"] == "invalid category values"
     assert issues.rows[0]["value"] == "invalid_reference"
-
-    # Test with a valid name
-    h.validate_categorical_fields("name", "another_valid_name")
-    assert (
-        len(issues.rows) == 1
-    )  # Only the previous invalid reference issue should be logged
-
-    # Test with an invalid name
-    h.validate_categorical_fields("name", "invalid_name")
-    assert len(issues.rows) == 2
-    assert issues.rows[1]["field"] == "name"
-    assert issues.rows[1]["issue-type"] == "invalid category values"
-    assert issues.rows[1]["value"] == "invalid_name"
