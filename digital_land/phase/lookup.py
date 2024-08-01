@@ -30,6 +30,15 @@ class LookupPhase(Phase):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
         self.issues = issue_log
+        self.reverse_lookups = self.build_reverse_lookups()
+
+    def build_reverse_lookups(self):
+        reverse_lookups = {}
+        for key, value in self.lookups.items():
+            if value not in reverse_lookups:
+                reverse_lookups[value] = []
+            reverse_lookups[value].append(key)
+        return reverse_lookups
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
@@ -67,21 +76,15 @@ class LookupPhase(Phase):
             # When obtaining an entity number using only the prefix and reference, check if the
             # lookup includes an associated organisation. If it does, do not use the entity number,
             # as it is organisation specific.
-            if entity in self.lookups.values():
-                associated_keys = [
-                    key for key, value in self.lookups.items() if value == entity
-                ]
-                for key in associated_keys:
+            if entity in self.reverse_lookups:
+                keywords = {"authority", "development", "government"}
+                for key in self.reverse_lookups[entity]:
                     parts = key.split(",")
-                    if (
-                        len(parts) > 3
-                        and parts[3]
-                        and any(
-                            value in parts[3]
-                            for value in ["authority", "development", "government"]
-                        )
+                    if len(parts) > 3 and any(
+                        keyword in parts[3] for keyword in keywords
                     ):
                         entity = ""
+                        break
 
         return entity
 
