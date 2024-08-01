@@ -181,8 +181,7 @@ def test_get_field_datatype_name_raises_error_for_missing_mapping():
 def test_validate_categorical_fields():
     issues = IssueLog()
     field_datatype_map = {
-        "reference": "string",
-        "name": "string",
+        "field": "string",
         "description": "string",
         "document-url": "url",
         "documentation-url": "url",
@@ -195,9 +194,13 @@ def test_validate_categorical_fields():
         dataset="article-4-direction",
     )
 
+    # Mock the get_category_fields method to return the fields that should be validated
+    h.get_category_fields = lambda: {"article-4-direction": ["reference", "name"]}
+
     # Mock the get_valid_categories method to return specific valid values
     h.get_valid_categories = lambda: {
-        "prefix": ["valid_reference", "another_valid_reference"]
+        "reference": ["valid_reference", "another_valid_reference"],
+        "name": ["valid_name", "another_valid_name"],
     }
 
     # Test with a valid reference
@@ -212,9 +215,12 @@ def test_validate_categorical_fields():
     assert issues.rows[0]["value"] == "invalid_reference"
 
     # Test with a valid name
-    h.validate_categorical_fields("name", "another_valid_reference")
-    assert len(issues.rows) == 1
+    h.validate_categorical_fields("name", "another_valid_name")
+    assert (
+        len(issues.rows) == 1
+    )  # Only the previous invalid reference issue should be logged
 
+    # Test with an invalid name
     h.validate_categorical_fields("name", "invalid_name")
     assert len(issues.rows) == 2
     assert issues.rows[1]["field"] == "name"

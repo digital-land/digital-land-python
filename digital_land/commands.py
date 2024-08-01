@@ -879,12 +879,31 @@ def organisation_check(**kwargs):
 def download_categorical_fields(dataset):
     base_url = "https://files.planning.data.gov.uk/dataset/"
     specification = Specification("specification/")
-    category_fields_query = specification.get_category_fields_query(dataset)
+    category_fields_query = specification.get_all_category_fields_query()
 
-    for _, row in category_fields_query.iterrows():
+    # Find datasets where the dataset column matches the given parameter
+    matching_datasets = category_fields_query[
+        category_fields_query["dataset"] == dataset
+    ]
+
+    # Check if the dataset parameter matches any field value
+    field_match = category_fields_query[category_fields_query["field"] == dataset]
+
+    # If there's a field match, just download the given dataset parameter
+    if not field_match.empty:
+        combined_matches = pd.DataFrame([{"dataset": dataset}])
+    else:
+        combined_matches = matching_datasets
+
+    if combined_matches.empty:
+        print(f"No datasets found matching the given parameter: {dataset}")
+        return
+
+    for _, row in combined_matches.iterrows():
         dataset_name = row["dataset"]
         csv_file = f"var/cache/{dataset_name}.csv"
         url = f"{base_url}{dataset_name}.csv"
+        print("DATASET URL: ", url)
         try:
             response = requests.get(url)
             response.raise_for_status()

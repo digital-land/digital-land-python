@@ -189,19 +189,18 @@ class HarmonisePhase(Phase):
 
         if self.dataset not in category_fields:
             print(
-                f"Dataset {self.dataset} not found in category fields. Skipping CSV processing."
+                f"Dataset {self.dataset} not found in category fields. Skipping valid categories CSV processing."
             )
             return valid_category_values
 
         csv_file = self._get_csv_file_path()
-        print("Processing CSV FILE:", csv_file)
+        print("Processing valid categories CSV FILE:", csv_file)
 
         if os.path.exists(csv_file):
             valid_category_values = self._read_csv_file(csv_file)
         else:
             print(f"CSV file {csv_file} does not exist.")
 
-        print("Valid categories from CSV files:", valid_category_values)
         return valid_category_values
 
     def _get_csv_file_path(self):
@@ -209,26 +208,26 @@ class HarmonisePhase(Phase):
         return base_path / "var" / "cache" / f"{self.dataset}.csv"
 
     def _read_csv_file(self, csv_file):
-        valid_category_values = {}
+        valid_category_values = {"reference": [], "name": []}
         with open(csv_file, mode="r") as file:
             for row in csv.DictReader(file):
-                category, reference = row.get("prefix"), row.get("reference")
-                if category and reference:
-                    valid_category_values.setdefault(category, []).append(
-                        reference.lower()
-                    )
+                reference = row.get("reference")
+                name = row.get("name")
+                if reference:
+                    valid_category_values["reference"].append(reference.lower())
+                if name:
+                    valid_category_values["name"].append(name.lower())
         return valid_category_values
 
     def validate_categorical_fields(self, fieldname, value):
-        valid_values = self.get_valid_categories()
-        if not valid_values:
-            return
+        category_fields = self.get_category_fields()
+        if fieldname in category_fields.get(self.dataset, []):
+            valid_values = self.get_valid_categories()
+            value_lower = value.lower()
 
-        value_lower = value.lower()
-
-        if fieldname in ["reference", "name"]:
-            if not any(
-                value_lower in references for references in valid_values.values()
-            ):
+            # Check against the name and reference lists
+            if value_lower not in valid_values.get(
+                "name"
+            ) and value_lower not in valid_values.get("reference"):
                 print("Issue was logged:", fieldname, value)
                 self.issues.log_issue(fieldname, "invalid category values", value)
