@@ -4,6 +4,7 @@ import pytest
 from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.specification import Specification
 from digital_land.log import IssueLog
+import os
 
 from ..conftest import FakeDictReader
 
@@ -194,13 +195,19 @@ def test_validate_categorical_fields():
         dataset="article-4-direction",
     )
 
-    # Mock the get_category_fields method to return the fields that should be validated
-    h.get_category_fields = lambda: {"article-4-direction": ["reference", "name"]}
+    # Mock the _get_csv_file_path method to avoid file system dependencies
+    h._get_csv_file_path = lambda: "mock_path.csv"
 
-    # Mock the get_valid_categories method to return specific valid values
-    h.get_valid_categories = lambda: {
+    # Mock the os.path.exists to always return True for the CSV file existence check
+    os.path.exists = lambda path: True
+
+    # Mock the _read_csv_file method to return specific valid values
+    h._read_csv_file = lambda csv_file: {
         "reference": ["valid_reference", "another_valid_reference"],
     }
+
+    # Mock the get_category_fields method to return the expected category fields
+    h.get_category_fields = lambda: {"article-4-direction": ["reference", "name"]}
 
     # Test with a valid reference
     h.validate_categorical_fields("reference", "valid_reference")
