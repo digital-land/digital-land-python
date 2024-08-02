@@ -881,30 +881,19 @@ def download_categorical_fields(dataset):
     specification = Specification("specification/")
     category_fields_query = specification.get_all_category_fields_query()
 
-    # Find datasets where the dataset column matches the given parameter
-    matching_datasets = category_fields_query[
-        category_fields_query["dataset"] == dataset
-    ]
+    combined_matches = category_fields_query[
+        (category_fields_query["dataset"] == dataset)
+        | (category_fields_query["field"] == dataset)
+    ].drop_duplicates(subset=["dataset", "field"])
 
-    # Check if the dataset parameter matches any field value
-    field_match = category_fields_query[category_fields_query["field"] == dataset]
-
-    # Combine both matches
-    combined_matches = pd.concat(
-        [matching_datasets, field_match], ignore_index=True
-    ).drop_duplicates(subset=["dataset", "field"])
-
-    print("COMBINED MATCHES: ", combined_matches)
     if combined_matches.empty:
-        print(f"No datasets found matching the given parameter: {dataset}")
         return
 
     for _, row in combined_matches.iterrows():
-
         file_name = row["field"]
         csv_file = f"var/cache/{file_name}.csv"
         url = f"{base_url}{file_name}.csv"
-        print("DATASET URL: ", url)
+        print("DATASET URL:", url)
         try:
             response = requests.get(url)
             response.raise_for_status()

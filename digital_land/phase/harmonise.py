@@ -175,33 +175,27 @@ class HarmonisePhase(Phase):
             yield block
 
     def get_category_fields(self):
-        category_fields = {}
-        if self.specification:
-            for _, row in self.specification.get_category_fields_query(
-                self.dataset
-            ).iterrows():
-                category_fields.setdefault(row["dataset"], []).append(row["field"])
-        return category_fields
+        if not self.specification:
+            return {}
+
+        category_fields = self.specification.get_category_fields_query(self.dataset)
+        return category_fields.groupby("dataset")["field"].apply(list).to_dict()
 
     def get_valid_categories(self):
-        valid_category_values = {}
         category_fields = self.get_category_fields()
-
         if self.dataset not in category_fields:
             print(
                 f"Dataset {self.dataset} not found in category fields. Skipping valid categories CSV processing."
             )
-            return valid_category_values
+            return {}
 
         csv_file = self._get_csv_file_path()
-        print("Processing valid categories CSV FILE:", csv_file)
 
-        if os.path.exists(csv_file):
-            valid_category_values = self._read_csv_file(csv_file)
-        else:
+        if not os.path.exists(csv_file):
             print(f"CSV file {csv_file} does not exist.")
+            return {}
 
-        return valid_category_values
+        return self._read_csv_file(csv_file)
 
     def _get_csv_file_path(self):
         base_path = Path(__file__).resolve().parents[5]
@@ -210,19 +204,23 @@ class HarmonisePhase(Phase):
     def _read_csv_file(self, csv_file):
         valid_category_values = {"reference": []}
         with open(csv_file, mode="r") as file:
-            for row in csv.DictReader(file):
-                reference = row.get("reference")
-                if reference:
-                    valid_category_values["reference"].append(reference.lower())
+            valid_category_values["reference"] = [
+                row["reference"].lower()
+                for row in csv.DictReader(file)
+                if row.get("reference")
+            ]
         return valid_category_values
 
     def validate_categorical_fields(self, fieldname, value):
-        category_fields = self.get_category_fields()
-        if fieldname in category_fields.get(self.dataset, []):
-            valid_values = self.get_valid_categories()
-            value_lower = value.lower()
+        csv_file = self._get_csv_file_path()
+        if not os.path.exists(csv_file):
+            return
 
-            # Check against the reference list
-            if value_lower not in valid_values.get("reference"):
-                print("Issue was logged:", fieldname, value)
-                self.issues.log_issue(fieldname, "invalid category values", value)
+        category_fields = self.get_category_fields()
+        if fieldname not in category_fields.get(self.dataset, []):
+            return
+
+        valid_values = self.get_valid_categories()
+        if value.lower() not in valid_values.get("reference", []):
+            print("Issue was logged:", fieldname, value)
+            self.issues.log_issue(fieldname, "invalid category values", value)

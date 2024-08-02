@@ -253,22 +253,10 @@ class Specification:
         category_fields = self.field_df[self.field_df["typology"] == "category"][
             "field"
         ]
-
-        result = self.dataset_field_df[
+        return self.dataset_field_df[
             self.dataset_field_df["field"].isin(category_fields)
         ][["dataset", "field"]]
-
-        return result
 
     def get_category_fields_query(self, dataset):
-        category_fields = self.field_df[self.field_df["typology"] == "category"][
-            "field"
-        ]
-
-        result = self.dataset_field_df[
-            self.dataset_field_df["field"].isin(category_fields)
-        ][["dataset", "field"]]
-
-        filtered_result = result[result["dataset"] == dataset]
-
-        return filtered_result
+        result = self.get_all_category_fields_query()
+        return result[result["dataset"] == dataset]
