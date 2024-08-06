@@ -203,6 +203,10 @@ class Specification:
             return fieldname
         return self.field_typology(field["parent-field"])
 
+    def field_dataset(self, fieldname):
+
+        return self.field_dataset()
+
     def index_field(self):
         self.field_schema = {}
         for schema, s in self.schema_field.items():
@@ -255,7 +259,7 @@ class Specification:
         ]
         return self.dataset_field_df[
             self.dataset_field_df["field"].isin(category_fields)
-        ][["dataset", "field"]]
+        ][["dataset", "field", "field-dataset"]]
 
     def get_category_fields_query(self, dataset):
         result = self.get_all_category_fields_query()
