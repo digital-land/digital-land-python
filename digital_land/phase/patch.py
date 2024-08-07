@@ -14,7 +14,6 @@ class PatchPhase(Phase):
         self.patch = patches
 
     def apply_patch(self, fieldname, value):
-        # Apply patches
         patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
         for pattern, replacement in patches.items():
             match = re.match(pattern, value, flags=re.IGNORECASE)
