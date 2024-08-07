@@ -881,7 +881,7 @@ def download_categorical_fields(dataset):
     specification = Specification("specification/")
 
     try:
-        category_fields_query = specification.get_all_category_fields_query()
+        category_fields_query = specification.get_category_fields_query()
     except KeyError as e:
         print(f"Error in getting category fields query: {e}")
         return

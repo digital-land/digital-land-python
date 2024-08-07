@@ -253,14 +253,11 @@ class Specification:
         else:
             return None
 
-    def get_all_category_fields_query(self):
+    def get_category_fields_query(self, dataset=None):
         category_fields = self.field_df[self.field_df["typology"] == "category"][
             "field"
         ]
-        return self.dataset_field_df[
+        query = self.dataset_field_df[
             self.dataset_field_df["field"].isin(category_fields)
         ][["dataset", "field", "field-dataset"]]
-
-    def get_category_fields_query(self, dataset):
-        result = self.get_all_category_fields_query()
-        return result[result["dataset"] == dataset]
+        return query if dataset is None else query[query["dataset"] == dataset]

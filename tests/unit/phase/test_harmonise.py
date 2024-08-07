@@ -195,12 +195,10 @@ def test_validate_categorical_fields():
         dataset="article-4-direction",
     )
 
-    # Mock the _get_csv_file_path, os.path.exists, and _read_csv_file methods
-    with patch.object(h, "_get_csv_file_path", return_value="mock_path.csv"), patch(
-        "os.path.exists", return_value=True
-    ), patch.object(
+    # Mock the os.path.exists method
+    with patch("os.path.exists", return_value=True), patch.object(
         h,
-        "_read_csv_file",
+        "get_valid_categories",
         return_value={"reference": ["valid_reference", "another_valid_reference"]},
     ), patch.object(
         h,

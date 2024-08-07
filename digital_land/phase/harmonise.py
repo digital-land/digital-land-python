@@ -189,19 +189,16 @@ class HarmonisePhase(Phase):
             )
             return {}
 
-        csv_file = self._get_csv_file_path()
-
+        csv_file = (
+            Path(__file__).resolve().parents[5]
+            / "var"
+            / "cache"
+            / f"{self.dataset}.csv"
+        )
         if not os.path.exists(csv_file):
             print(f"CSV file {csv_file} does not exist.")
             return {}
 
-        return self._read_csv_file(csv_file)
-
-    def _get_csv_file_path(self):
-        base_path = Path(__file__).resolve().parents[5]
-        return base_path / "var" / "cache" / f"{self.dataset}.csv"
-
-    def _read_csv_file(self, csv_file):
         valid_category_values = {"reference": []}
         with open(csv_file, mode="r") as file:
             valid_category_values["reference"] = [
@@ -212,7 +209,12 @@ class HarmonisePhase(Phase):
         return valid_category_values
 
     def validate_categorical_fields(self, fieldname, value):
-        csv_file = self._get_csv_file_path()
+        csv_file = (
+            Path(__file__).resolve().parents[5]
+            / "var"
+            / "cache"
+            / f"{self.dataset}.csv"
+        )
         if not os.path.exists(csv_file):
             return
 
