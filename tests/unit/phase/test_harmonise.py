@@ -4,8 +4,8 @@ import pytest
 from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.specification import Specification
 from digital_land.log import IssueLog
-import os
 
+from unittest.mock import patch
 from ..conftest import FakeDictReader
 
 
@@ -195,27 +195,26 @@ def test_validate_categorical_fields():
         dataset="article-4-direction",
     )
 
-    # Mock the _get_csv_file_path method to avoid file system dependencies
-    h._get_csv_file_path = lambda: "mock_path.csv"
+    # Mock the _get_csv_file_path, os.path.exists, and _read_csv_file methods
+    with patch.object(h, "_get_csv_file_path", return_value="mock_path.csv"), patch(
+        "os.path.exists", return_value=True
+    ), patch.object(
+        h,
+        "_read_csv_file",
+        return_value={"reference": ["valid_reference", "another_valid_reference"]},
+    ), patch.object(
+        h,
+        "get_category_fields",
+        return_value={"article-4-direction": ["reference", "name"]},
+    ):
 
-    # Mock the os.path.exists to always return True for the CSV file existence check
-    os.path.exists = lambda path: True
+        # Test with a valid reference
+        h.validate_categorical_fields("reference", "valid_reference")
+        assert len(issues.rows) == 0
 
-    # Mock the _read_csv_file method to return specific valid values
-    h._read_csv_file = lambda csv_file: {
-        "reference": ["valid_reference", "another_valid_reference"],
-    }
-
-    # Mock the get_category_fields method to return the expected category fields
-    h.get_category_fields = lambda: {"article-4-direction": ["reference", "name"]}
-
-    # Test with a valid reference
-    h.validate_categorical_fields("reference", "valid_reference")
-    assert len(issues.rows) == 0
-
-    # Test with an invalid reference
-    h.validate_categorical_fields("reference", "invalid_reference")
-    assert len(issues.rows) == 1
-    assert issues.rows[0]["field"] == "reference"
-    assert issues.rows[0]["issue-type"] == "invalid category values"
-    assert issues.rows[0]["value"] == "invalid_reference"
+        # Test with an invalid reference
+        h.validate_categorical_fields("reference", "invalid_reference")
+        assert len(issues.rows) == 1
+        assert issues.rows[0]["field"] == "reference"
+        assert issues.rows[0]["issue-type"] == "invalid category values"
+        assert issues.rows[0]["value"] == "invalid_reference"
