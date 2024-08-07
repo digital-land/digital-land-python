@@ -184,9 +184,6 @@ class HarmonisePhase(Phase):
     def get_valid_categories(self):
         category_fields = self.get_category_fields()
         if self.dataset not in category_fields:
-            print(
-                f"Dataset {self.dataset} not found in category fields. Skipping valid categories CSV processing."
-            )
             return {}
 
         csv_file = (
@@ -196,7 +193,7 @@ class HarmonisePhase(Phase):
             / f"{self.dataset}.csv"
         )
         if not os.path.exists(csv_file):
-            print(f"CSV file {csv_file} does not exist.")
+            logging.warning("No CSV file found for categorical dataset in cache.")
             return {}
 
         valid_category_values = {"reference": []}

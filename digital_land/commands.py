@@ -908,4 +908,6 @@ def download_categorical_fields(dataset):
                 file.write(response.content)
             print(f"Downloaded {file_name} dataset from {url}")
         except requests.HTTPError as e:
-            print(f"Failed to download {file_name} dataset: {e}")
+            logging.warning(
+                f"Could not download valid dataset file for categorical field. Error: {e}"
+            )
