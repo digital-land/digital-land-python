@@ -22,6 +22,10 @@ class DateDataType(DataType):
             "%Y %m %d",
             "%Y.%m.%d",
             "%Y-%d-%m",  # risky!
+            "%Y-%m",
+            "%Y.%m",
+            "%Y/%m",
+            "%Y %m",
             "%Y",
             "%Y.0",
             "%d/%m/%Y %H:%M:%S",
