@@ -37,6 +37,7 @@ def test_date_normalise():
     assert date.normalise("2024-07-04T13:41:46.708402345678") == "2024-07-04"
     assert date.normalise("2024-07-04T13:41:46.708402345678+01:00") == "2024-07-04"
     assert date.normalise("2024-07-04T13:41:46.708402345678Z") == "2024-07-04"
+    assert date.normalise("1969-07") == "1969-07-01"
 
     # risky attempts ..
     assert date.normalise("2020-13-12") == "2020-12-13"

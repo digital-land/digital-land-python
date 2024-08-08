@@ -41,6 +41,7 @@ class DateDataType(DataType):
             "%B %Y",
             "%m/%d/%Y",  # risky!
             "%s",
+            "%Y-%m",
         ]:
             try:
                 date = datetime.strptime(value, pattern)
