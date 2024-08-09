@@ -3,6 +3,7 @@ import csv
 import itertools
 import os
 import sys
+import requests
 import json
 import logging
 from packaging.version import Version
@@ -231,6 +232,7 @@ def pipeline_run(
         ),
         HarmonisePhase(
             field_datatype_map=specification.get_field_datatype_map(),
+            specification=specification,
             issues=issue_log,
             dataset=dataset,
         ),
@@ -872,3 +874,40 @@ def organisation_check(**kwargs):
     lpa_path = kwargs.pop("lpa_path")
     package = OrganisationPackage(**kwargs)
     package.check(lpa_path, output_path)
+
+
+def download_categorical_fields(dataset):
+    base_url = "https://files.planning.data.gov.uk/dataset/"
+    specification = Specification("specification/")
+
+    try:
+        category_fields_query = specification.get_category_fields_query()
+    except KeyError as e:
+        print(f"Error in getting category fields query: {e}")
+        return
+
+    combined_matches = category_fields_query[
+        (category_fields_query["dataset"] == dataset)
+        | (category_fields_query["field"] == dataset)
+        | (category_fields_query["field-dataset"] == dataset)
+    ].drop_duplicates(subset=["dataset", "field", "field-dataset"])
+
+    if combined_matches.empty:
+        return
+
+    for _, row in combined_matches.iterrows():
+        file_name = (
+            row["field-dataset"] if pd.notna(row["field-dataset"]) else row["field"]
+        )
+        csv_file = f"var/cache/{file_name}.csv"
+        url = f"{base_url}{file_name}.csv"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(csv_file, "wb") as file:
+                file.write(response.content)
+            print(f"Downloaded {file_name} dataset from {url}")
+        except requests.HTTPError as e:
+            logging.warning(
+                f"Could not download valid dataset file for categorical field. Error: {e}"
+            )

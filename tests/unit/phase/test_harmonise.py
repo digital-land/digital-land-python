@@ -5,6 +5,7 @@ from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.specification import Specification
 from digital_land.log import IssueLog
 
+from unittest.mock import patch
 from ..conftest import FakeDictReader
 
 
@@ -176,3 +177,42 @@ def test_get_field_datatype_name_raises_error_for_missing_mapping():
     phase = HarmonisePhase(field_datatype_map=field_datatype_map)
     with pytest.raises(ValueError):
         phase.get_field_datatype_name("reference")
+
+
+def test_validate_categorical_fields():
+    issues = IssueLog()
+    field_datatype_map = {
+        "field": "string",
+        "description": "string",
+        "document-url": "url",
+        "documentation-url": "url",
+        "organisation": "string",
+    }
+
+    h = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues,
+        dataset="article-4-direction",
+    )
+
+    # Mock the os.path.exists method
+    with patch("os.path.exists", return_value=True), patch.object(
+        h,
+        "get_valid_categories",
+        return_value={"reference": ["valid_reference", "another_valid_reference"]},
+    ), patch.object(
+        h,
+        "get_category_fields",
+        return_value={"article-4-direction": ["reference", "name"]},
+    ):
+
+        # Test with a valid reference
+        h.validate_categorical_fields("reference", "valid_reference")
+        assert len(issues.rows) == 0
+
+        # Test with an invalid reference
+        h.validate_categorical_fields("reference", "invalid_reference")
+        assert len(issues.rows) == 1
+        assert issues.rows[0]["field"] == "reference"
+        assert issues.rows[0]["issue-type"] == "invalid category values"
+        assert issues.rows[0]["value"] == "invalid_reference"
