@@ -44,4 +44,13 @@ class IntegerDataType(DataType):
                 )
             return ""
 
+        if n < 0:
+            if issues:
+                issues.log(
+                    "numeric value is not positive",
+                    value,
+                    f"Integer {value} must be positive",
+                )
+            return ""
+
         return self.format(n)

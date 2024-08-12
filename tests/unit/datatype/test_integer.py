@@ -47,3 +47,11 @@ def test_integer_normalise():
     assert issue["issue-type"] == "too large"
     assert issue["value"] == "69"
     assert issues.rows == []
+
+    integer = IntegerDataType()
+
+    integer.normalise("-1", issues=issues)
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "numeric value is not positive"
+    assert issue["value"] == "-1"
+    assert issues.rows == []

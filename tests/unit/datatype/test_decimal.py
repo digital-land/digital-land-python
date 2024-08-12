@@ -54,3 +54,11 @@ def test_decimal_normalise():
     assert issue["issue-type"] == "too large"
     assert issue["value"] == "69.9"
     assert issues.rows == []
+
+    decimal = DecimalDataType()
+
+    decimal.normalise("-1", issues=issues)
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "numeric value is not positive"
+    assert issue["value"] == "-1"
+    assert issues.rows == []

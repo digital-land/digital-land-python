@@ -46,6 +46,15 @@ class DecimalDataType(DataType):
                 )
             return ""
 
+        if d < 0.0:
+            if issues:
+                issues.log(
+                    "numeric value is not positive",
+                    value,
+                    f"Decimal {value} must be positive",
+                )
+            return ""
+
         return self.format(d)
 
     # taken from FAQs in decimal documentation
