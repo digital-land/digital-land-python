@@ -50,7 +50,7 @@ def test_integer_normalise():
 
     integer = IntegerDataType()
 
-    integer.normalise("-1", issues=issues)
+    integer.normalise("-1.0", issues=issues)
     issue = issues.rows.pop()
     assert issue["issue-type"] == "numeric value is not positive"
     assert issue["value"] == "-1"
