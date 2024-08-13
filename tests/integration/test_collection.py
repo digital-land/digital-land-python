@@ -234,7 +234,7 @@ def test_collection_without_log_and_resource_csvs(tmp_path):
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
-            "User-Agent": "DLUHC Digital Land",
+            "User-Agent": "MHCLG Planning Data Collector",
         },
         "resource": "test",
         "response-headers": {
@@ -347,7 +347,7 @@ def test_collection_update_fixture(tmp_path):
                 "Accept": "*/*",
                 "Accept-Encoding": "gzip, deflate",
                 "Connection": "keep-alive",
-                "User-Agent": "DLUHC Digital Land",
+                "User-Agent": "MHCLG Planning Data Collector",
             },
             "resource": "test",
             "response-headers": {

@@ -31,7 +31,7 @@ class FetchStatus(Enum):
 
 
 class Collector:
-    user_agent = "DLUHC Digital Land"
+    user_agent = "MHCLG Planning Data Collector"
     resource_dir = "collection/resource/"
     log_dir = "collection/log/"
 
