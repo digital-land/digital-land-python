@@ -61,7 +61,7 @@ This command allows for adding multiple endpoints and lookups for
 datasets within a given collection, driven by entries in a csv file.
 
 Detailed instructions for running this command can be found in the Data Operations manual
-within the DLUHC technical documentation repository.
+within the MHCLG technical documentation repository.
 
 **Use with caution**
 
