@@ -25,7 +25,7 @@ setup(
     description="Data pipeline tools to collect data and process it into a dataset",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
-    author="DHCLG Digital Land Team",
+    author="MHCLG Digital Land Team",
     author_email="DigitalLand@communities.gov.uk",
     license="MIT",
     url="https://github.com/digital-land/digital-land-python",
