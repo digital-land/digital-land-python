@@ -159,14 +159,21 @@ class Collector:
 
         log["elapsed"] = str(round(timer() - start, 3))
 
-        if content:
-            status = FetchStatus.OK
-            log["resource"] = self.save_content(content)
-        else:
-            status = FetchStatus.FAILED
+        status = self.save_resource(content, log_path, log)
 
         self.save_log(log_path, log)
         return status
+
+    def save_resource(self, content, url, log):
+        if content:
+            try:
+                log["resource"] = self.save_content(content)
+                return FetchStatus.OK
+            except Exception as exception:
+                logging.warning(f"Failed to save data from '{url} ({exception})")
+                log["exception"] = type(exception).__name__
+
+        return FetchStatus.FAILED
 
     def collect(self, endpoint_path):
         for row in csv.DictReader(open(endpoint_path, newline="")):
