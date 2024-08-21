@@ -155,7 +155,7 @@ class DatasetPackage(SqlitePackage):
         self.execute(
             "select entity, field, value from fact"
             "  where value != '' or field == 'end-date'"
-            "  order by entity, field, entry_date"
+            "  order by entity, field, priority desc, entry_date"
         )
         results = self.cursor.fetchall()
 
