@@ -3,7 +3,8 @@ from .datatype import DataType
 
 
 class DecimalDataType(DataType):
-    def __init__(self, precision=6, minimum=None, maximum=None):
+    def __init__(self, precision=6, minimum=0.0, maximum=None):
+        # Setting default as 0.0 for minimum value. This will be applied for all decimal data.
         self.precision = precision
         self.minimum = minimum
         self.maximum = maximum
