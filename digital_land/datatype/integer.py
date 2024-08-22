@@ -5,6 +5,7 @@ strip_re = re.compile(r"\.0+$")
 
 
 class IntegerDataType(DataType):
+    # Setting default as 0 for minimum value. This will be applied for all integer data.
     def __init__(self, minimum=0, maximum=None):
         self.minimum = minimum
         self.maximum = maximum
