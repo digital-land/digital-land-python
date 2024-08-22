@@ -5,7 +5,7 @@ strip_re = re.compile(r"\.0+$")
 
 
 class IntegerDataType(DataType):
-    def __init__(self, minimum=None, maximum=None):
+    def __init__(self, minimum=0, maximum=None):
         self.minimum = minimum
         self.maximum = maximum
 
@@ -41,15 +41,6 @@ class IntegerDataType(DataType):
                     "too large",
                     value,
                     f"{issues.fieldname} must be lower than {self.maximum}",
-                )
-            return ""
-
-        if n < 0:
-            if issues:
-                issues.log(
-                    "numeric value is not positive",
-                    value,
-                    f"Integer {value} must be positive",
                 )
             return ""
 

@@ -3,7 +3,7 @@ from .datatype import DataType
 
 
 class DecimalDataType(DataType):
-    def __init__(self, precision=6, minimum=None, maximum=None):
+    def __init__(self, precision=6, minimum=0.0, maximum=None):
         self.precision = precision
         self.minimum = minimum
         self.maximum = maximum
@@ -43,15 +43,6 @@ class DecimalDataType(DataType):
                     "too large",
                     value,
                     f"{issues.fieldname} must be lower than {self.maximum}",
-                )
-            return ""
-
-        if d < 0.0:
-            if issues:
-                issues.log(
-                    "numeric value is not positive",
-                    value,
-                    f"Decimal {value} must be positive",
                 )
             return ""
 
