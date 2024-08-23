@@ -15,7 +15,6 @@ class LatitudeDataType(DataType):
     def normalise(self, value, issues=None):
         # remove commas ..
         value = value.replace(",", "")
-        value = value.replace("£", "")
 
         try:
             d = Decimal(value)
