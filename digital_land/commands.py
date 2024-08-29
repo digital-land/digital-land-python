@@ -76,8 +76,10 @@ def collection_list_resources(collection_dir):
         print(resource_path(resource, directory=collection_dir))
 
 
-def collection_pipeline_makerules(collection_dir):
-    collection = Collection(name=None, directory=collection_dir)
+def collection_pipeline_makerules(collection_dir, org_path):
+    collection = Collection(
+        name=None, directory=collection_dir, organisation_path=org_path
+    )
     collection.load()
     collection.pipeline_makerules()
 
@@ -295,10 +297,16 @@ def dataset_create(
     dataset,
     specification,
     issue_dir="issue",
+    column_field_dir="var/column-field",
+    dataset_resource_dir="var/dataset-resource",
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
+
+    # Set up initial objects
+    column_field_dir = Path(column_field_dir)
+    dataset_resource_dir = Path(dataset_resource_dir)
     organisation = Organisation(organisation_path, Path(pipeline.path))
     package = DatasetPackage(
         dataset,
@@ -308,7 +316,10 @@ def dataset_create(
     )
     package.create()
     for path in input_paths:
+        path_obj = Path(path)
         package.load_transformed(path)
+        package.load_column_fields(column_field_dir / dataset / path_obj.name)
+        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
     package.load_entities()
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
