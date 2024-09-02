@@ -289,7 +289,9 @@ class ConvertPhase(Phase):
         if excel_reader:
             logging.debug(f"{input_path} looks like excel")
             self.log.mime_type = "application/vnd.ms-excel"
-            return excel_reader
+            csv_path = convert_features_to_csv(excel_reader, self.output_path)
+            encoding = detect_file_encoding(csv_path)
+            return read_csv(csv_path, encoding)
 
         # Then try zip
         if zipfile.is_zipfile(input_path):
