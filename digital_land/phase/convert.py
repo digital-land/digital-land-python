@@ -279,10 +279,13 @@ class ConvertPhase(Phase):
 
     def _read_binary_file(self, input_path):
         # First try excel
+        print("trying excel...")
         excel = read_excel(input_path)
         if excel is not None:
+            print("yes excel")
             logging.debug(f"{input_path} looks like excel")
             self.log.mime_type = "application/vnd.ms-excel"
+            print("o/p path:: ", self.output_path)
             if not self.output_path:
                 self.output_path = tempfile.NamedTemporaryFile(
                     suffix=".csv", delete=False
@@ -294,6 +297,7 @@ class ConvertPhase(Phase):
                 encoding="utf-8",
                 quoting=csv.QUOTE_ALL,
             )
+            print("converted to csv")
             return read_csv(self.output_path, encoding="utf-8")
 
         # Then try zip
