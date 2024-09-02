@@ -9,7 +9,6 @@ import subprocess
 import tempfile
 import zipfile
 from packaging.version import Version
-from io import StringIO
 import pandas as pd
 from .load import Stream
 from .phase import Phase
@@ -80,12 +79,7 @@ def read_excel(path):
     except:  # noqa: E722
         return None
 
-    string = excel.to_csv(
-        index=None, header=True, encoding="utf-8", quoting=csv.QUOTE_ALL
-    )
-    f = StringIO(string)
-
-    return f
+    return excel
 
 
 def convert_features_to_csv(input_path, output_path=None):
@@ -285,11 +279,22 @@ class ConvertPhase(Phase):
 
     def _read_binary_file(self, input_path):
         # First try excel
-        excel_reader = read_excel(input_path)
-        if excel_reader:
+        excel = read_excel(input_path)
+        if excel is not None:
             logging.debug(f"{input_path} looks like excel")
             self.log.mime_type = "application/vnd.ms-excel"
-            return excel_reader
+            if not self.output_path:
+                self.output_path = tempfile.NamedTemporaryFile(
+                    suffix=".csv", delete=False
+                ).name
+            excel.to_csv(
+                self.output_path,
+                index=False,
+                header=True,
+                encoding="utf-8",
+                quoting=csv.QUOTE_ALL,
+            )
+            return read_csv(self.output_path, encoding="utf-8")
 
         # Then try zip
         if zipfile.is_zipfile(input_path):
