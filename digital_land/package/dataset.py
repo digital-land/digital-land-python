@@ -1,7 +1,6 @@
 import csv
 import json
 import logging
-import re
 from decimal import Decimal
 
 import shapely.wkt
@@ -243,17 +242,20 @@ class DatasetPackage(SqlitePackage):
             self.insert("fact-resource", fact_resource_fields, row, upsert=True)
 
     def load_column_fields(self, path):
-        m = re.search(r"/([a-f0-9]+).csv$", path)
-        resource = m.group(1)
 
         fields = self.specification.schema["column-field"]["fields"]
 
         logging.info(f"loading column_fields from {path}")
 
+        self.connect()
+        self.create_cursor()
         for row in csv.DictReader(open(path, newline="")):
-            row["resource"] = resource
+            row["resource"] = path.stem
             row["dataset"] = self.dataset
             self.insert("column-field", fields, row)
+
+        self.commit()
+        self.disconnect()
 
     def load_issues(self, path):
         self.connect()
@@ -271,8 +273,13 @@ class DatasetPackage(SqlitePackage):
 
         logging.info(f"loading dataset-resource from {path}")
 
+        self.connect()
+        self.create_cursor()
         for row in csv.DictReader(open(path, newline="")):
             self.insert("dataset-resource", fields, row)
+
+        self.commit()
+        self.disconnect()
 
     def load_transformed(self, path):
 

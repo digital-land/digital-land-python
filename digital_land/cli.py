@@ -122,6 +122,7 @@ def convert_cmd(input_path, output_path):
 @organisation_path
 @column_field_dir
 @dataset_resource_dir
+@issue_dir
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_create_cmd(
@@ -131,6 +132,7 @@ def dataset_create_cmd(
     organisation_path,
     column_field_dir,
     dataset_resource_dir,
+    issue_dir,
 ):
     return dataset_create(
         input_paths=input_paths,
@@ -141,6 +143,7 @@ def dataset_create_cmd(
         specification=ctx.obj["SPECIFICATION"],
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
+        issue_dir=issue_dir,
     )
 
 
