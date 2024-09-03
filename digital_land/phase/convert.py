@@ -83,6 +83,7 @@ def read_excel(path):
 
 
 def convert_features_to_csv(input_path, output_path=None):
+    print("yes")
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     execute(
@@ -126,10 +127,12 @@ def save_efficient_json_as_csv(output_path, columns, data):
         cw.writerow(columns)
 
         for row in data:
+            print("row: ", row)
             cw.writerow(row)
 
 
 def convert_json_to_csv(input_path, output_path=None):
+    print("i am here: ", output_path)
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(input_path, "r") as json:
@@ -222,6 +225,7 @@ class ConvertPhase(Phase):
                 return None
 
         elif content.lower().startswith("{"):
+            print("looks like json")
             logging.debug("%s looks like json", input_path)
             self.log.mime_type = "application/json" + self.charset
             converted_csv_file = convert_json_to_csv(input_path, self.output_path)
