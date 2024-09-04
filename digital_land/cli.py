@@ -175,6 +175,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @column_field_dir
 @dataset_resource_dir
 @organisation_path
+@collection_dir
 @click.pass_context
 def pipeline_command(
     ctx,
@@ -189,6 +190,7 @@ def pipeline_command(
     organisations,
     entry_date,
     custom_temp_dir,
+    collection_dir,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -203,6 +205,7 @@ def pipeline_command(
         specification,
         input_path,
         output_path,
+        collection_dir=collection_dir,
         issue_dir=issue_dir,
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,

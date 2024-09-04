@@ -160,7 +160,7 @@ def pipeline_run(
     specification,
     input_path,
     output_path,
-    collection_dir="./collection",  # TBD: remove, replaced by endpoints, organisations and entry_date
+    collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     null_path=None,  # TBD: remove this
     issue_dir=None,
     organisation_path=None,
