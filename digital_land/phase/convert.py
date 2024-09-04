@@ -104,6 +104,8 @@ def convert_features_to_csv(input_path, output_path=None):
             "LINEFORMAT=CRLF",
             "-f",
             "CSV",
+            "-mapFieldType",
+            "String=String",
             "-nlt",
             "MULTIPOLYGON",
             "-nln",
