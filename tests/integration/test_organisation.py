@@ -6,7 +6,8 @@ import logging
 class TestOrganisation:
     def test_organisation_lookup(self):
         organisation = Organisation(
-            organisation_path="tests/data/listed-building/organisation.csv"
+            organisation_path="tests/data/listed-building/organisation.csv",
+            pipeline_dir=None,
         )
 
         assert organisation.lookup("Borchester") == ""
@@ -68,7 +69,8 @@ class TestOrganisation:
             logging.warning(type(org_match))
             dictwriter.writerow(org_match)
         organisation = Organisation(
-            organisation_path="tests/data/listed-building/organisation.csv"
+            organisation_path="tests/data/listed-building/organisation.csv",
+            pipeline_dir=None,
         )
         assert (
             organisation.lookup("local-authority-eng:BRW") == "local-authority-eng:BRW"

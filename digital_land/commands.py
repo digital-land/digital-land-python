@@ -76,10 +76,8 @@ def collection_list_resources(collection_dir):
         print(resource_path(resource, directory=collection_dir))
 
 
-def collection_pipeline_makerules(collection_dir, org_path):
-    collection = Collection(
-        name=None, directory=collection_dir, organisation_path=org_path
-    )
+def collection_pipeline_makerules(collection_dir):
+    collection = Collection(name=None, directory=collection_dir)
     collection.load()
     collection.pipeline_makerules()
 
@@ -194,7 +192,9 @@ def pipeline_run(
     redirect_lookups = pipeline.redirect_lookups()
 
     # load organisations
-    organisation = Organisation(organisation_path, Path(pipeline.path))
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
 
     # load the resource default values from the collection
     if not endpoints:
@@ -307,7 +307,9 @@ def dataset_create(
     # Set up initial objects
     column_field_dir = Path(column_field_dir)
     dataset_resource_dir = Path(dataset_resource_dir)
-    organisation = Organisation(organisation_path, Path(pipeline.path))
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
     package = DatasetPackage(
         dataset,
         organisation=organisation,
@@ -731,7 +733,9 @@ def get_resource_unidentified_lookups(
     schema = specification.pipeline[pipeline.name]["schema"]
 
     # organisation phase
-    organisation = Organisation(org_csv_path, Path(pipeline.path))
+    organisation = Organisation(
+        organisation_path=org_csv_path, pipeline_dir=Path(pipeline.path)
+    )
 
     # print lookups phase
     pipeline_lookups = pipeline.lookups()

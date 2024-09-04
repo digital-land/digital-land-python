@@ -22,7 +22,7 @@ class Organisation:
     organisation_uri = {}
     organisation_lookup = {}
 
-    def __init__(self, organisation_path=None, pipeline_dir=None, organisation=None):
+    def __init__(self, organisation_path, pipeline_dir, organisation=None):
         if organisation_path:
             self.organisation_path = organisation_path
         if pipeline_dir:

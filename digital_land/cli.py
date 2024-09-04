@@ -103,9 +103,8 @@ def collection_pipeline_makerules_cmd(collection_dir):
 
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
 @collection_dir
-@organisation_path
-def collection_save_csv_cmd(collection_dir, organisation_path):
-    return collection_save_csv(collection_dir, organisation_path)
+def collection_save_csv_cmd(collection_dir):
+    return collection_save_csv(collection_dir)
 
 
 #
