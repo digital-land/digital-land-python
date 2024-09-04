@@ -118,10 +118,21 @@ def convert_cmd(input_path, output_path):
 
 @cli.command("dataset-create", short_help="create a dataset from processed resources")
 @click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
-@click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @organisation_path
+@column_field_dir
+@dataset_resource_dir
+@issue_dir
+@click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
-def dataset_create_cmd(ctx, input_paths, output_path, organisation_path):
+def dataset_create_cmd(
+    ctx,
+    input_paths,
+    output_path,
+    organisation_path,
+    column_field_dir,
+    dataset_resource_dir,
+    issue_dir,
+):
     return dataset_create(
         input_paths=input_paths,
         output_path=output_path,
@@ -129,6 +140,9 @@ def dataset_create_cmd(ctx, input_paths, output_path, organisation_path):
         pipeline=ctx.obj["PIPELINE"],
         dataset=ctx.obj["DATASET"],
         specification=ctx.obj["SPECIFICATION"],
+        column_field_dir=column_field_dir,
+        dataset_resource_dir=dataset_resource_dir,
+        issue_dir=issue_dir,
     )
 
 
@@ -161,6 +175,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @column_field_dir
 @dataset_resource_dir
 @organisation_path
+@collection_dir
 @click.pass_context
 def pipeline_command(
     ctx,
@@ -175,6 +190,7 @@ def pipeline_command(
     organisations,
     entry_date,
     custom_temp_dir,
+    collection_dir,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -189,6 +205,7 @@ def pipeline_command(
         specification,
         input_path,
         output_path,
+        collection_dir=collection_dir,
         issue_dir=issue_dir,
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
