@@ -35,6 +35,15 @@ def issue_dir(f):
     )(f)
 
 
+def operational_issue_dir(f):
+    return click.option(
+        "--operational-issue-dir",
+        "-i",
+        type=click.Path(exists=True),
+        default="operational_issue/",
+    )(f)
+
+
 def column_field_dir(f):
     return click.option(
         "--column-field-dir",

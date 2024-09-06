@@ -17,7 +17,12 @@ from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
-from digital_land.log import DatasetResourceLog, IssueLog, ColumnFieldLog
+from digital_land.log import (
+    DatasetResourceLog,
+    IssueLog,
+    ColumnFieldLog,
+    OperationalIssueLog,
+)
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
 from digital_land.phase.combine import FactCombinePhase
@@ -163,6 +168,7 @@ def pipeline_run(
     collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     null_path=None,  # TBD: remove this
     issue_dir=None,
+    operational_issue_dir=None,
     organisation_path=None,
     save_harmonised=False,
     column_field_dir=None,
@@ -177,6 +183,7 @@ def pipeline_run(
     schema = specification.pipeline[pipeline.name]["schema"]
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
     issue_log = IssueLog(dataset=dataset, resource=resource)
+    operational_issue_log = OperationalIssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
@@ -256,7 +263,10 @@ def pipeline_run(
         ),
         EntityPrefixPhase(dataset=dataset),
         EntityLookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issue_log
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issue_log,
+            operational_issue_log=operational_issue_log,
         ),
         SavePhase(
             default_output_path("harmonised", input_path),
@@ -282,6 +292,7 @@ def pipeline_run(
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+    operational_issue_log.save(operational_issue_dir=operational_issue_dir)
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
 

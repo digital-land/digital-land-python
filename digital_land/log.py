@@ -1,4 +1,5 @@
 import csv
+import os
 from datetime import datetime
 import pandas as pd
 import yaml
@@ -105,6 +106,26 @@ class IssueLog(Log):
             ]
             if not mapping_row["description"].empty:
                 row["description"] = mapping_row["description"].values[0]
+
+
+class OperationalIssueLog(IssueLog):
+    def save(self, operational_issue_dir=None, path=None, f=None):
+        if not path:
+            path = os.path.join(
+                *[
+                    operational_issue_dir,
+                    datetime.now().isoformat()[:10],
+                    self.dataset,
+                    self.resource + ".csv",
+                ]
+            )
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if not f:
+            f = open(path, "w", newline="")
+        writer = csv.DictWriter(f, self.fieldnames)
+        writer.writeheader()
+        for row in self.rows:
+            writer.writerow(row)
 
 
 class ColumnFieldLog(Log):

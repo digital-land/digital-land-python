@@ -26,10 +26,17 @@ class LookupPhase(Phase):
 
     entity_field = None
 
-    def __init__(self, lookups={}, redirect_lookups={}, issue_log=None):
+    def __init__(
+        self,
+        lookups={},
+        redirect_lookups={},
+        issue_log=None,
+        operational_issue_log=None,
+    ):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
         self.issues = issue_log
+        self.operational_issues = operational_issue_log
         self.reverse_lookups = self.build_reverse_lookups()
 
     def build_reverse_lookups(self):
@@ -131,6 +138,13 @@ class LookupPhase(Phase):
                                     curie,
                                     line_number=line_number,
                                 )
+                                if self.operational_issues:
+                                    self.operational_issues.log_issue(
+                                        "entity",
+                                        "unknown entity",
+                                        curie,
+                                        line_number=line_number,
+                                    )
                     else:
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]
