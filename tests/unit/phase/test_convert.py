@@ -101,3 +101,27 @@ class TestConvertPhase:
         block = next(reader)
         assert block["line"][0] == "ref"
         assert block["line"][1] == "name"
+
+    def test_process_xlsx_file(self, tmp_path):
+        path = os.path.join(
+            os.getcwd(),
+            "tests/data/resource_examples/xlsx_res.xlsx",
+        )
+        output_path = os.path.join(tmp_path, "converted/xlsx_res.csv")
+        log = DatasetResourceLog()
+        reader = ConvertPhase(
+            path, dataset_resource_log=log, output_path=output_path
+        ).process()
+
+        assert os.path.isfile(output_path)
+
+        headers = next(reader)
+        assert headers["line"][0] == "Organisation URL"
+        assert headers["line"][1] == "Organisation Label"
+
+        block = next(reader)
+        assert (
+            block["line"][0]
+            == "http://opendatacommunities.org/id/district-council/south-cambridgeshire"
+        )
+        assert block["line"][1] == "South Cambridgeshire District Council"

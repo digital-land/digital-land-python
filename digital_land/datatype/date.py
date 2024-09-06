@@ -10,6 +10,8 @@ class DateDataType(DataType):
         for pattern in [
             "%Y-%m-%d",
             "%Y%m%d",
+            "%Y/%m/%d %H:%M:%S%z",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%d %H:%M:%S+00",  # added to handle ogr2ogr unix time conversion
             "%Y-%m-%dT%H:%M:%S.000Z",
             "%Y-%m-%dT%H:%M:%S.000",
             "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -22,6 +24,10 @@ class DateDataType(DataType):
             "%Y %m %d",
             "%Y.%m.%d",
             "%Y-%d-%m",  # risky!
+            "%Y-%m",
+            "%Y.%m",
+            "%Y/%m",
+            "%Y %m",
             "%Y",
             "%Y.0",
             "%d/%m/%Y %H:%M:%S",

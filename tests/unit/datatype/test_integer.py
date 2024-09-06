@@ -16,6 +16,7 @@ def test_integer_normalise():
     assert integer.normalise(" 0123 ") == "123"
 
     issues = IssueLog()
+    issues.fieldname = "Hectares"
     assert integer.normalise("foo", issues=issues) == ""
 
     issue = issues.rows.pop()
@@ -46,4 +47,13 @@ def test_integer_normalise():
     issue = issues.rows.pop()
     assert issue["issue-type"] == "too large"
     assert issue["value"] == "69"
+    assert issues.rows == []
+
+    integer = IntegerDataType()
+
+    integer.normalise("-1.0", issues=issues)
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "too small"
+    assert issue["value"] == "-1"
+    assert issue["message"] == f"{issues.fieldname} must be larger than 0"
     assert issues.rows == []

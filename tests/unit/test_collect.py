@@ -138,3 +138,23 @@ def test_strip_timestamp(collector, tmp_path):
 
     log_content = read_log(collector, url)
     assert log_content["resource"] == expected_hash
+
+
+def test_save_resource(collector, tmp_path):
+    log = {}
+    url = "http://some.url"
+    status = collector.save_resource(b"some data", url, log)
+
+    assert status == FetchStatus.OK
+    output_path = tmp_path / f"resource/{sha_digest('some data')}"
+    assert os.path.isfile(output_path)
+    assert open(output_path).read() == "some data"
+
+
+def test_resource_not_bytes(collector):
+    log = {}
+    url = "http://other.url"
+    status = collector.save_resource("Unicode data", url, log)
+
+    assert status == FetchStatus.FAILED
+    assert log["exception"] == "TypeError"

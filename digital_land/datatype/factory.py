@@ -8,14 +8,16 @@ from .multipolygon import MultiPolygonDataType
 from .point import PointDataType
 from .string import StringDataType
 from .uri import URIDataType
+from .latitude import LatitudeDataType
+from .longitude import LongitudeDataType
 
 
 def datatype_factory(datatype_name):
     typemap = {
         "integer": IntegerDataType,
         "decimal": DecimalDataType,
-        "latitude": DecimalDataType,
-        "longitude": DecimalDataType,
+        "latitude": LatitudeDataType,
+        "longitude": LongitudeDataType,
         "string": StringDataType,
         "address": AddressDataType,
         "text": StringDataType,  # TODO do we need dedicated type for Text?

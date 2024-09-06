@@ -145,7 +145,9 @@ def test_load_old_entities_entities_outside_of_range_are_removed(tmp_path):
     }
 
     specification = Specification(schema=schema, field=field)
-    organisation = Organisation(organisation={})
+    organisation = Organisation(
+        organisation_path=None, pipeline_dir=None, organisation={}
+    )
 
     # write data to csv as we only seem to load from csv
     data = [
@@ -216,7 +218,8 @@ def test_entry_date_upsert_uploads_newest_date(
     sqlite3_path = os.path.join(tmp_path, f"{dataset}.sqlite3")
 
     organisation = Organisation(
-        organisation_csv, Path(os.path.dirname(blank_patch_csv))
+        organisation_path=organisation_csv,
+        pipeline_dir=Path(os.path.dirname(blank_patch_csv)),
     )
     package = DatasetPackage(
         "conservation-area",
@@ -257,6 +260,7 @@ def test_entry_date_upsert_uploads_newest_date(
             "entity": 44006677,
             "fact": "1f90248fd06e49accd42b80e43d58beeac300f942f1a9f71da4b64865356b1f3",
             "field": "name",
+            "priority": None,
             "entry_date": "2022-11-02",
             "reference_entity": "",
             "start_date": "",
@@ -315,7 +319,9 @@ def test_load_issues_uploads_issues_from_csv(tmp_path):
     }
 
     specification = Specification(schema=schema, field=field)
-    organisation = Organisation(organisation={})
+    organisation = Organisation(
+        organisation_path=None, pipeline_dir=None, organisation={}
+    )
 
     # write data to csv as we only seem to load from csv
     data = [
@@ -379,7 +385,8 @@ def test_entry_date_upsert_uploads_blank_fields(
     sqlite3_path = os.path.join(tmp_path, f"{dataset}.sqlite3")
 
     organisation = Organisation(
-        organisation_csv, Path(os.path.dirname(blank_patch_csv))
+        organisation_path=organisation_csv,
+        pipeline_dir=Path(os.path.dirname(blank_patch_csv)),
     )
     package = DatasetPackage(
         "conservation-area",
@@ -420,6 +427,7 @@ def test_entry_date_upsert_uploads_blank_fields(
             "entity": 44006677,
             "fact": "1f90248fd06e49accd42b80e43d58beeac300f942f1a9f71da4b64865356b1f3",
             "field": "name",
+            "priority": None,
             "entry_date": "2022-11-02",
             "reference_entity": "",
             "start_date": "",
