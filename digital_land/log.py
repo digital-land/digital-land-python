@@ -109,16 +109,25 @@ class IssueLog(Log):
 
 
 class OperationalIssueLog(IssueLog):
+    def get_now(self):
+        return datetime.now().isoformat()
+
     def save(self, operational_issue_dir=None, path=None, f=None):
-        if not path:
+        if (
+            not path and operational_issue_dir
+        ):  # Create path if not specified and operational issue dir is given
             path = os.path.join(
                 *[
                     operational_issue_dir,
-                    datetime.now().isoformat()[:10],
+                    self.get_now()[:10],
                     self.dataset,
                     self.resource + ".csv",
                 ]
             )
+        elif (
+            not path
+        ):  # Else if not given path and operational issue dir isn't specified then don't save
+            return
         os.makedirs(os.path.dirname(path), exist_ok=True)
         if not f:
             f = open(path, "w", newline="")

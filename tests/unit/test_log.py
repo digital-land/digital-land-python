@@ -1,7 +1,9 @@
 import pytest
-from digital_land.log import IssueLog
+from digital_land.log import IssueLog, OperationalIssueLog
 from unittest.mock import patch, mock_open
+from datetime import datetime
 import pandas as pd
+import os
 
 
 @pytest.fixture
@@ -74,3 +76,59 @@ def test_appendErrorMessage(issue_log_data, mapping_data):
 
     assert issue.rows[0]["description"] == "desc1"
     assert issue.rows[1]["description"] == "appended description"
+
+
+def mocked_get_now():
+    return datetime(2023, 1, 31, 0, 0, 0).isoformat()
+
+
+def test_operationalIssueLog_save(tmp_path_factory):
+    dataset = "dataset"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(dataset=dataset, resource=resource)
+    operational_issue_dir = tmp_path_factory.mktemp("operational_issue")
+
+    with patch(
+        "digital_land.log.OperationalIssueLog.get_now", side_effect=mocked_get_now
+    ):
+        operational_issue.save(operational_issue_dir=operational_issue_dir)
+
+        assert os.path.isfile(
+            os.path.join(
+                operational_issue_dir, "2023-01-31/" + dataset + "/" + resource + ".csv"
+            )
+        )
+
+
+def test_operationalIssueLog_save_path_given(tmp_path_factory):
+    dataset = "dataset"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(dataset=dataset, resource=resource)
+    operational_issue_dir = tmp_path_factory.mktemp("operational_issue")
+    tmp_dir = tmp_path_factory.mktemp("logdir")
+    path = os.path.join(tmp_dir, "opissuelog.csv")
+
+    with patch(
+        "digital_land.log.OperationalIssueLog.get_now", side_effect=mocked_get_now
+    ):
+        operational_issue.save(operational_issue_dir=operational_issue_dir, path=path)
+
+        assert os.path.isfile(path)
+
+
+def test_operationalIssueLog_save_no_operational_dir():
+    dataset = "dataset"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(dataset=dataset, resource=resource)
+
+    files_before = []
+    for root, dirs, files in os.walk(os.getcwd()):
+        files_before.extend(files)
+
+    operational_issue.save()
+
+    files_after = []
+    for root, dirs, files in os.walk(os.getcwd()):
+        files_after.extend(files)
+
+    assert files_before == files_after
