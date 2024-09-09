@@ -21,3 +21,12 @@ fact,entry-date
 fact,reference-entity
 fact,start-date
 fact,value
+tree-preservation-zone-type,end-date
+tree-preservation-zone-type,entity
+tree-preservation-zone-type,entry-date
+tree-preservation-zone-type,name
+tree-preservation-zone-type,notes
+tree-preservation-zone-type,prefix
+tree-preservation-zone-type,reference
+tree-preservation-zone-type,start-date
+tree-preservation-zone-type,description

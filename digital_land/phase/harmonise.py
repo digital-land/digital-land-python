@@ -1,6 +1,5 @@
 from datetime import datetime
 from .phase import Phase
-from pathlib import Path
 from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
@@ -86,6 +85,9 @@ class HarmonisePhase(Phase):
         return datatype.normalise(value, issues=self.issues)
 
     def process(self, stream):
+        category_fields = self.get_category_fields()
+        valid_category_values = self.get_valid_category_values(category_fields)
+
         for block in stream:
             row = block["row"]
             self.issues.resource = block["resource"]
@@ -95,7 +97,14 @@ class HarmonisePhase(Phase):
             o = {}
 
             for field in row:
-                self.validate_categorical_fields(field, row[field])
+                if field in category_fields:
+                    value = row[field]
+                    if field in valid_category_values:
+                        if value.lower() not in valid_category_values[field]:
+                            self.issues.log_issue(
+                                field, "invalid category value", value
+                            )
+
                 o[field] = self.harmonise_field(field, row[field])
 
             # remove future entry dates
@@ -176,50 +185,27 @@ class HarmonisePhase(Phase):
 
     def get_category_fields(self):
         if not self.specification:
-            return {}
+            return []
 
-        category_fields = self.specification.get_category_fields_query(self.dataset)
-        return category_fields.groupby("dataset")["field"].apply(list).to_dict()
+        return self.specification.get_category_fields(self.dataset)
 
-    def get_valid_categories(self):
-        category_fields = self.get_category_fields()
-        if self.dataset not in category_fields:
-            return {}
+    def get_valid_category_values(self, category_fields):
+        valid_category_values = {}
 
-        csv_file = (
-            Path(__file__).resolve().parents[5]
-            / "var"
-            / "cache"
-            / f"{self.dataset}.csv"
-        )
-        if not os.path.exists(csv_file):
-            logging.warning("No CSV file found for categorical dataset in cache.")
-            return {}
+        for category_field in category_fields:
+            csv_file = f"var/cache/{category_field}.csv"
 
-        valid_category_values = {"reference": []}
-        with open(csv_file, mode="r") as file:
-            valid_category_values["reference"] = [
-                row["reference"].lower()
-                for row in csv.DictReader(file)
-                if row.get("reference")
-            ]
+            if not os.path.exists(csv_file):
+                logging.warning(
+                    f"Unable to check category values for '{category_field}' as file {csv_file} was not found."
+                )
+                continue
+
+            with open(csv_file, mode="r") as file:
+                valid_category_values[category_field] = [
+                    row["reference"].lower()
+                    for row in csv.DictReader(file)
+                    if row.get("reference")
+                ]
+
         return valid_category_values
-
-    def validate_categorical_fields(self, fieldname, value):
-        csv_file = (
-            Path(__file__).resolve().parents[5]
-            / "var"
-            / "cache"
-            / f"{self.dataset}.csv"
-        )
-        if not os.path.exists(csv_file):
-            return
-
-        category_fields = self.get_category_fields()
-        if fieldname not in category_fields.get(self.dataset, []):
-            return
-
-        valid_values = self.get_valid_categories()
-        if value.lower() not in valid_values.get("reference", []):
-            print("Issue was logged:", fieldname, value)
-            self.issues.log_issue(fieldname, "invalid category values", value)

@@ -25,3 +25,8 @@ reference-entity,,string,1,,,,,
 field,,string,1,,,,,
 value,,string,1,,,,,
 geometry,Geometry,multipolygon,1,,,,,
+notes,,string,1,text,,,,
+prefix,,string,1,text,,,,
+reference,,string,1,text,,,,
+description,,string,1,text,,,,
+tree-preservation-zone-type,A category of tree preservation zone,string,1,category,,Tree preservation zone type,,category

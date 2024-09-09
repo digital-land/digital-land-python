@@ -11,6 +11,7 @@ def test_dataset_names():
         "dataset-one",
         "dataset-two",
         "dataset-three",
+        "tree-preservation-zone-type",
     ]
 
 
@@ -27,6 +28,7 @@ def test_schema_names():
         "schema-two",
         "schema-three",
         "fact",
+        "tree-preservation-zone-type",
     ]
 
 
@@ -97,6 +99,11 @@ def test_field_names():
             "reference-entity",
             "fact",
             "geometry",
+            "notes",
+            "prefix",
+            "reference",
+            "description",
+            "tree-preservation-zone-type",
         ]
     )
 
@@ -137,6 +144,11 @@ def test_current_fieldnames():
             "resource",
             "value",
             "geometry",
+            "description",
+            "notes",
+            "prefix",
+            "reference",
+            "tree-preservation-zone-type",
         ]
     )
 

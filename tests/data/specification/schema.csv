@@ -3,3 +3,4 @@ schema-one,First Schema,Description one
 schema-two,,
 schema-three,Third Schema,Description
 fact,,
+tree-preservation-zone-type,Tree preservation zone type,Types of zone covered by the tree preservation order,

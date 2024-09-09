@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 import logging
 import warnings
-import pandas as pd
 
 from .datatype.address import AddressDataType
 from .datatype.datatype import DataType
@@ -31,6 +30,7 @@ class Specification:
         self.schema = {}
         self.schema_names = []
         self.dataset_schema = {}
+        self.dataset_field = {}
         self.field = {}
         self.field_names = []
         self.datatype = {}
@@ -38,9 +38,6 @@ class Specification:
         self.schema_field = {}
         self.typology = {}
         self.pipeline = {}
-        self.dataset_df = pd.DataFrame()
-        self.field_df = pd.DataFrame()
-        self.dataset_field_df = pd.DataFrame()
         self.load_dataset(path)
         self.load_schema(path)
         self.load_dataset_schema(path)
@@ -56,7 +53,6 @@ class Specification:
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
-        self.dataset_df = pd.read_csv(os.path.join(path, "dataset.csv"))
         for row in reader:
             self.dataset_names.append(row["dataset"])
             self.dataset[row["dataset"]] = row
@@ -81,13 +77,15 @@ class Specification:
 
     def load_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "field.csv")))
-        self.field_df = pd.read_csv(os.path.join(path, "field.csv"))
         for row in reader:
             self.field_names.append(row["field"])
             self.field[row["field"]] = row
 
     def load_dataset_field(self, path):
-        self.dataset_field_df = pd.read_csv(os.path.join(path, "dataset-field.csv"))
+        reader = csv.DictReader(open(os.path.join(path, "dataset-field.csv")))
+        for row in reader:
+            fields = self.dataset_field.setdefault(row["dataset"], [])
+            fields.append(row["field"])
 
     def load_schema_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "schema-field.csv")))
@@ -253,11 +251,15 @@ class Specification:
         else:
             return None
 
-    def get_category_fields_query(self, dataset=None):
-        category_fields = self.field_df[self.field_df["typology"] == "category"][
-            "field"
+    def get_category_fields(self, dataset):
+        return [
+            field
+            for field in self.dataset_field.get(dataset, [])
+            if dataset in self.dataset_field
+            and field
+            in [
+                field
+                for field, data in self.field.items()
+                if data["typology"] == "category"
+            ]
         ]
-        query = self.dataset_field_df[
-            self.dataset_field_df["field"].isin(category_fields)
-        ][["dataset", "field", "field-dataset"]]
-        return query if dataset is None else query[query["dataset"] == dataset]
