@@ -126,15 +126,10 @@ class OperationalIssueLog(IssueLog):
             )
         elif (
             not path
-        ):  # Else if not given path and operational issue dir isn't specified then don't save
+        ):  # Else if path not given and operational issue dir isn't specified then don't save
             return
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        if not f:
-            f = open(path, "w", newline="")
-        writer = csv.DictWriter(f, self.fieldnames)
-        writer.writeheader()
-        for row in self.rows:
-            writer.writerow(row)
+        super().save(path=path, f=f)
 
 
 class ColumnFieldLog(Log):
