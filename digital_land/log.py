@@ -119,8 +119,8 @@ class OperationalIssueLog(IssueLog):
             path = os.path.join(
                 *[
                     operational_issue_dir,
-                    self.get_now()[:10],
                     self.dataset,
+                    self.get_now()[:10],
                     self.resource + ".csv",
                 ]
             )

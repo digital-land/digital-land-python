@@ -95,7 +95,7 @@ def test_operationalIssueLog_save(tmp_path_factory):
 
         assert os.path.isfile(
             os.path.join(
-                operational_issue_dir, "2023-01-31/" + dataset + "/" + resource + ".csv"
+                operational_issue_dir, dataset + "/2023-01-31/" + resource + ".csv"
             )
         )
 
