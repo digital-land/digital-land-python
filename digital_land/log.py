@@ -126,8 +126,8 @@ class OperationalIssueLog(IssueLog):
             )
         elif (
             not path
-        ):  # Else if path not given and operational issue dir isn't specified then don't save
-            return
+        ):  # Else if path not given and operational issue dir isn't specified then raise exception
+            raise Exception("Operational issue log directory/path not given")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         super().save(path=path, f=f)
 

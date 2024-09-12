@@ -168,7 +168,7 @@ def pipeline_run(
     collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     null_path=None,  # TBD: remove this
     issue_dir=None,
-    operational_issue_dir=None,
+    operational_issue_dir="operational_issue/",
     organisation_path=None,
     save_harmonised=False,
     column_field_dir=None,
