@@ -48,6 +48,8 @@ from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
+from digital_land.api import API
+
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
 
@@ -173,6 +175,7 @@ def pipeline_run(
     organisations=[],
     entry_date="",
 ):
+    api = API(url="https://www.planning.data.gov.uk", cache_dir="var/cache")
     resource = resource_from_path(input_path)
     dataset = dataset
     schema = specification.pipeline[pipeline.name]["schema"]
@@ -204,6 +207,11 @@ def pipeline_run(
         endpoints = collection.resource_endpoints(resource)
         organisations = collection.resource_organisations(resource)
         entry_date = collection.resource_start_date(resource)
+
+    # Load valid category values
+    valid_category_values = api.get_valid_category_values(
+        specification.get_category_fields(dataset)
+    )
 
     # resource specific default values
     if len(organisations) == 1:
@@ -237,6 +245,7 @@ def pipeline_run(
             specification=specification,
             issues=issue_log,
             dataset=dataset,
+            valid_category_values=valid_category_values,
         ),
         DefaultPhase(
             default_fields=default_fields,

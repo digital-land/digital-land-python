@@ -187,6 +187,9 @@ def test_validate_categorical_fields():
         specification=specification,
         issues=issues,
         dataset="tree-preservation-zone",
+        valid_category_values={
+            "tree-preservation-zone-type": ["area", "group", "woodland"]
+        },
     )
 
     reader = FakeDictReader(
@@ -201,7 +204,7 @@ def test_validate_categorical_fields():
                 "reference": "2",
                 "name": "Test TPO 2",
                 "description": "Test",
-                "tree-preservation-zone-type": "pizza",
+                "tree-preservation-zone-type": "tree",
             },
         ],
     )
@@ -209,8 +212,10 @@ def test_validate_categorical_fields():
     output = list(h.process(reader))
 
     assert len(output) == 2
+    # check the fields are set in the output
     assert output[0]["row"]["tree-preservation-zone-type"] == "area"
-    assert output[1]["row"]["tree-preservation-zone-type"] == "pizza"
+    assert output[1]["row"]["tree-preservation-zone-type"] == "tree"
 
     assert len(issues.rows) == 1
+    # but we get an issue generated
     assert issues.rows[0]["issue-type"] == "invalid category value"

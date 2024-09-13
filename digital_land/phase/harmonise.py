@@ -48,12 +48,18 @@ MANDATORY_FIELDS_DICT = {
 
 class HarmonisePhase(Phase):
     def __init__(
-        self, field_datatype_map=None, specification=None, issues=None, dataset=None
+        self,
+        field_datatype_map=None,
+        specification=None,
+        issues=None,
+        dataset=None,
+        valid_category_values={},
     ):
         self.field_datatype_map = field_datatype_map
         self.specification = specification
         self.issues = issues
         self.dataset = dataset
+        self.valid_category_values = valid_category_values
 
     def get_field_datatype_name(self, fieldname):
         if self.field_datatype_map:
@@ -85,8 +91,6 @@ class HarmonisePhase(Phase):
         return datatype.normalise(value, issues=self.issues)
 
     def process(self, stream):
-        category_fields = self.get_category_fields()
-        valid_category_values = self.get_valid_category_values(category_fields)
 
         for block in stream:
             row = block["row"]
@@ -97,13 +101,10 @@ class HarmonisePhase(Phase):
             o = {}
 
             for field in row:
-                if field in category_fields:
+                if field in self.valid_category_values:
                     value = row[field]
-                    if field in valid_category_values:
-                        if value.lower() not in valid_category_values[field]:
-                            self.issues.log_issue(
-                                field, "invalid category value", value
-                            )
+                    if value.lower() not in self.valid_category_values[field]:
+                        self.issues.log_issue(field, "invalid category value", value)
 
                 o[field] = self.harmonise_field(field, row[field])
 
