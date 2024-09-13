@@ -82,4 +82,13 @@ def test_operationalIssueLog_save_no_operational_dir():
     operational_issue = OperationalIssueLog(dataset=dataset, resource=resource)
 
     with pytest.raises(Exception):
-        operational_issue.save()
+        operational_issue.save(performance_dir="perf/")
+
+
+def test_operationalIssueLog_save_no_performance_dir():
+    dataset = "dataset"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(dataset=dataset, resource=resource)
+
+    with pytest.raises(Exception):
+        operational_issue.save(operational_issue_dir="op/")

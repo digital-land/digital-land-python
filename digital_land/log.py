@@ -112,12 +112,13 @@ class OperationalIssueLog(IssueLog):
     def get_now(self):
         return datetime.now().isoformat()
 
-    def save(self, operational_issue_dir=None, path=None, f=None):
+    def save(self, operational_issue_dir=None, performance_dir=None, path=None, f=None):
         if (
-            not path and operational_issue_dir
+            not path and operational_issue_dir and performance_dir
         ):  # Create path if not specified and operational issue dir is given
             path = os.path.join(
                 *[
+                    performance_dir,
                     operational_issue_dir,
                     self.dataset,
                     self.get_now()[:10],
@@ -127,7 +128,9 @@ class OperationalIssueLog(IssueLog):
         elif (
             not path
         ):  # Else if path not given and operational issue dir isn't specified then raise exception
-            raise Exception("Operational issue log directory/path not given")
+            raise Exception(
+                "Operational issue log directory/path or performance directory not given"
+            )
         os.makedirs(os.path.dirname(path), exist_ok=True)
         super().save(path=path, f=f)
 
