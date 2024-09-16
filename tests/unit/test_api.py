@@ -113,4 +113,5 @@ def test_get_categorical_field_from_cache_no_data(mocker):
     api = API("http://test", "/test/cache-dir")
     values = api.get_valid_category_values(["tree-preservation-zone-type"])
 
-    assert values == {"tree-preservation-zone-type": []}
+    # Empty files aren't put in the list
+    assert values == {}
