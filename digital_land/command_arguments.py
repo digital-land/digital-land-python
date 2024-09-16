@@ -35,21 +35,12 @@ def issue_dir(f):
     )(f)
 
 
-def performance_dir(f):
-    return click.option(
-        "--performance-dir",
-        "-i",
-        type=click.Path(exists=True),
-        default="performance/",
-    )(f)
-
-
 def operational_issue_dir(f):
     return click.option(
         "--operational-issue-dir",
         "-i",
         type=click.Path(),
-        default="operational_issue/",
+        default="performance/operational_issue/",
     )(f)
 
 
