@@ -99,7 +99,7 @@ class CSVItemStore(CSVStore):
                     continue
 
                 # Read the CSV file into a DataFrame
-                df = pd.read_csv(csv_file_path)
+                df = pd.read_csv(csv_file_path, keep_default_na=False)
 
                 # Fill missing 'entry-date' with folder date if applicable
                 if "entry-date" not in df.columns:

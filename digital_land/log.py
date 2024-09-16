@@ -169,7 +169,6 @@ class OperationalIssueLog(IssueLog):
             self.load_log_items(operational_issue_directory=operational_issue_directory)
 
     def update(self):
-        print("latest entry date:: ", self.operational_issues.latest_entry_date())
         self.load_log_items(after=self.operational_issues.latest_entry_date())
 
     def save_csv(self, directory=None):
