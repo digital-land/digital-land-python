@@ -156,7 +156,9 @@ class OperationalIssueLog(IssueLog):
         self.operational_issues.load(directory=operational_issue_directory, after=after)
 
     def load(self, operational_issue_directory=None):
-
+        operational_issue_directory = (
+            operational_issue_directory or self.operational_issue_dir
+        )
         # Try to load issue store from csv first
         try:
             self.operational_issues.load_csv(directory=operational_issue_directory)
