@@ -112,9 +112,10 @@ class IssueLog(Log):
 
 
 class OperationalIssueLog(IssueLog):
-    def __init__(self, dataset="", resource=""):
+    def __init__(self, dataset="", resource="", operational_issue_dir=None):
         super().__init__(dataset, resource)
         self.operational_issues = CSVItemStore(Schema("operational-issue"))
+        self.operational_issue_dir = operational_issue_dir
 
     def get_now(self):
         return datetime.now().isoformat()
@@ -147,6 +148,9 @@ class OperationalIssueLog(IssueLog):
         or new issue items have been created by running the pipeline. If 'after' is not None, only log items after the
         specified date / time will be loaded.
         """
+        operational_issue_directory = (
+            operational_issue_directory or self.operational_issue_dir
+        )
 
         logging.info("loading Operational issue files")
         self.operational_issues.load(directory=operational_issue_directory, after=after)

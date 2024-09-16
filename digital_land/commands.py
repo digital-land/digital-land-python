@@ -95,7 +95,7 @@ def collection_save_csv(collection_dir):
 
 
 def operational_issue_save_csv(operational_issue_dir):
-    operationalIssues = OperationalIssueLog(name=None, directory=operational_issue_dir)
+    operationalIssues = OperationalIssueLog(operational_issue_dir=operational_issue_dir)
     operationalIssues.load()
     operationalIssues.update()
     operationalIssues.save_csv()
