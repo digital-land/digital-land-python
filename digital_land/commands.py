@@ -94,6 +94,13 @@ def collection_save_csv(collection_dir):
     collection.save_csv()
 
 
+def operational_issue_save_csv(operational_issue_dir):
+    operationalIssues = OperationalIssueLog(name=None, directory=operational_issue_dir)
+    operationalIssues.load()
+    operationalIssues.update()
+    operationalIssues.save_csv()
+
+
 def collection_retire_endpoints_and_sources(
     config_collections_dir, endpoints_sources_to_retire_csv_path
 ):

@@ -18,6 +18,7 @@ from digital_land.commands import (
     dataset_dump,
     dataset_dump_flattened,
     collection_save_csv,
+    operational_issue_save_csv,
     convert,
     dataset_create,
     pipeline_run,
@@ -107,6 +108,14 @@ def collection_pipeline_makerules_cmd(collection_dir):
 @collection_dir
 def collection_save_csv_cmd(collection_dir):
     return collection_save_csv(collection_dir)
+
+
+@cli.command(
+    "operational-issue-save-csv", short_help="save Operational Issues as CSV package"
+)
+@operational_issue_dir
+def operational_issue_save_csv_cmd(operational_issue_dir):
+    return operational_issue_save_csv(operational_issue_dir)
 
 
 #
