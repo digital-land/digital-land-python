@@ -4,9 +4,6 @@ from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
 import logging
-import warnings
-import os
-import csv
 
 logger = logging.getLogger(__name__)
 
@@ -49,37 +46,21 @@ MANDATORY_FIELDS_DICT = {
 class HarmonisePhase(Phase):
     def __init__(
         self,
-        field_datatype_map=None,
-        specification=None,
+        field_datatype_map,
         issues=None,
         dataset=None,
         valid_category_values={},
     ):
         self.field_datatype_map = field_datatype_map
-        self.specification = specification
         self.issues = issues
         self.dataset = dataset
         self.valid_category_values = valid_category_values
 
     def get_field_datatype_name(self, fieldname):
-        if self.field_datatype_map:
-            try:
-                datatype_name = self.field_datatype_map[fieldname]
-            except KeyError:
-                raise ValueError(f"field {fieldname} does not have a datatype mapping")
-
-        elif self.specification:
-            warnings.warn(
-                "providing specification is depreciated please provide field_datatype_map instead",
-                DeprecationWarning,
-                2,
-            )
-            datatype_name = self.specification.field[fieldname]["datatype"]
-
-        else:
-            raise ValueError("please provide field_datatype_map")
-
-        return datatype_name
+        try:
+            return self.field_datatype_map[fieldname]
+        except KeyError:
+            raise ValueError(f"field {fieldname} does not have a datatype mapping")
 
     def harmonise_field(self, fieldname, value):
         if not value:
@@ -183,30 +164,3 @@ class HarmonisePhase(Phase):
             block["row"] = o
 
             yield block
-
-    def get_category_fields(self):
-        if not self.specification:
-            return []
-
-        return self.specification.get_category_fields(self.dataset)
-
-    def get_valid_category_values(self, category_fields):
-        valid_category_values = {}
-
-        for category_field in category_fields:
-            csv_file = f"var/cache/{category_field}.csv"
-
-            if not os.path.exists(csv_file):
-                logging.warning(
-                    f"Unable to check category values for '{category_field}' as file {csv_file} was not found."
-                )
-                continue
-
-            with open(csv_file, mode="r") as file:
-                valid_category_values[category_field] = [
-                    row["reference"].lower()
-                    for row in csv.DictReader(file)
-                    if row.get("reference")
-                ]
-
-        return valid_category_values

@@ -26,7 +26,6 @@ from digital_land.commands import (
     collection_retire_endpoints_and_sources,
     organisation_create,
     organisation_check,
-    download_categorical_fields,
 )
 
 from digital_land.command_arguments import (
@@ -470,13 +469,3 @@ def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path)
         lpa_path=lpa_path,
         output_path=output_path,
     )
-
-
-@cli.command(
-    "download-categorical-fields", short_help="Download categorical fields datasets"
-)
-@click.option(
-    "--dataset", required=True, help="Dataset for which to download categorical fields"
-)
-def download_categorical_fields_cmd(dataset):
-    download_categorical_fields(dataset)

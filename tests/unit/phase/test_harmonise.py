@@ -93,7 +93,9 @@ def test_harmonise_geometry_present_no_point_field():
     specification = Specification("tests/data/specification")
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues, dataset="tree")
+    h = HarmonisePhase(
+        specification.get_field_datatype_map(), issues=issues, dataset="tree"
+    )
     reader = FakeDictReader(
         [
             {
@@ -162,15 +164,6 @@ def test_get_field_datatype_name_uses_field_datatype_map():
     assert datatype_name == "string"
 
 
-def test_get_field_datatype_name_riases_warning_for_spec():
-    spec = Specification()
-    spec.field = {"reference": {"datatype": "string"}}
-    phase = HarmonisePhase(specification=spec)
-    with pytest.warns(DeprecationWarning):
-        datatype_name = phase.get_field_datatype_name("reference")
-    assert datatype_name == "string"
-
-
 def test_get_field_datatype_name_raises_error_for_missing_mapping():
     field_datatype_map = {}
     phase = HarmonisePhase(field_datatype_map=field_datatype_map)
@@ -184,7 +177,7 @@ def test_validate_categorical_fields():
     issues = IssueLog()
 
     h = HarmonisePhase(
-        specification=specification,
+        specification.get_field_datatype_map(),
         issues=issues,
         dataset="tree-preservation-zone",
         valid_category_values={
