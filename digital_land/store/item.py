@@ -88,9 +88,7 @@ class CSVItemStore(CSVStore):
         for csv_file_path in sorted(glob.glob(csv_files_path)):
             try:
                 # Extract the date from the folder name (2 levels up from the file)
-                dirdate_str = os.path.basename(
-                    os.path.dirname(os.path.dirname(csv_file_path))
-                )
+                dirdate_str = os.path.basename(os.path.dirname(csv_file_path))
                 dirdate = datetime.fromisoformat(dirdate_str)
 
                 # If the folder's date is before 'startdate', skip it
