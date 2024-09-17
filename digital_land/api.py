@@ -23,7 +23,8 @@ class API:
         dataset: dataaset name
         overwrite: overwrite file is it already exists (otherwise will just return)
         csv_path: file to download to (otherwise <cache-dir>/dataset/<dataset-name>.csv)
-        Returns: None. The file fill be downloaded to the given path or cache, unless an exception occurs.
+        Returns: None.
+        The file fill be downloaded to the given path or cache, unless an exception occurs.
         """
         if csv_path is None:
             csv_path = os.path.join(self.cache_dir, "dataset", f"{dataset}.csv")
@@ -48,7 +49,8 @@ class API:
     ) -> typing.Mapping[str, typing.Iterable[str]]:
         """gets the valid caregory values.
         category_fields: Iterable category fields to get valid values for
-        Returns: Mapping of field to valid values. If the valid values cannot be obtained, it will be omitted.
+        Returns: Mapping of field to valid values.
+        If the valid values cannot be obtained, that field will be omitted.
         """
         valid_category_values = {}
 
