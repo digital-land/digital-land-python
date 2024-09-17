@@ -8,6 +8,8 @@ from collections import defaultdict
 from digital_land.collection import Collection
 from digital_land.specification import Specification
 
+from digital_land.configuration.main import Config
+
 from digital_land.commands import (
     add_redirections,
     assign_entities,
@@ -445,6 +447,11 @@ def organisation_create_cmd(
     default="dataset/organisation-check.csv",
     help="Output CSV path.",
 )
+@click.command()
+@click.option("--source", required=True)
+@click.option(
+    "--specification-dir", type=click.Path(exists=True), default="specification/"
+)
 def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path):
     return organisation_check(
         path=input_path,
@@ -452,3 +459,28 @@ def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path)
         lpa_path=lpa_path,
         output_path=output_path,
     )
+
+
+@cli.command("config-create", short_help="create a dataset from processed resources")
+@click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
+@organisation_path
+@click.pass_context
+def config_create_cmd(ctx, config_path):
+    """
+    A function which builds an empty configuration database based on the spec
+    """
+    config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
+    config.create()
+
+
+@cli.command("config-load", short_help="create a dataset from processed resources")
+@click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
+@organisation_path
+@click.pass_context
+def config_load_cmd(ctx, config_path):
+
+    config = Config(
+        path="pipeline/config.sqlite3", specification=ctx.obj["SPECIFICATION"]
+    )
+    tables = {key: ctx["PPIPELINE"].path for key in config.tables.keys()}
+    config.load(tables)

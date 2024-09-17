@@ -340,7 +340,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     elif isinstance(csv_path, Path):
         dataset_name = csv_path.stem
     else:
-        logging.error(f"Can't extract datapackage name from {csv_path}")
+        logging.error(f"Can't extract  datapackage name from {csv_path}")
         sys.exit(-1)
 
     flattened_csv_path = os.path.join(flattened_dir, f"{dataset_name}.csv")
