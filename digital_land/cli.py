@@ -458,7 +458,6 @@ def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path)
 
 @cli.command("config-create", short_help="create a dataset from processed resources")
 @click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
-@organisation_path
 @click.pass_context
 def config_create_cmd(ctx, config_path):
     """
@@ -470,7 +469,6 @@ def config_create_cmd(ctx, config_path):
 
 @cli.command("config-load", short_help="create a dataset from processed resources")
 @click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
-@organisation_path
 @click.pass_context
 def config_load_cmd(ctx, config_path):
 
