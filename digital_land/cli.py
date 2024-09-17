@@ -447,11 +447,6 @@ def organisation_create_cmd(
     default="dataset/organisation-check.csv",
     help="Output CSV path.",
 )
-@click.command()
-@click.option("--source", required=True)
-@click.option(
-    "--specification-dir", type=click.Path(exists=True), default="specification/"
-)
 def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path):
     return organisation_check(
         path=input_path,
