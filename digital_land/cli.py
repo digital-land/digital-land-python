@@ -475,5 +475,5 @@ def config_load_cmd(ctx, config_path):
     config = Config(
         path="pipeline/config.sqlite3", specification=ctx.obj["SPECIFICATION"]
     )
-    tables = {key: ctx["PPIPELINE"].path for key in config.tables.keys()}
+    tables = {key: ctx.obj["PPIPELINE"].path for key in config.tables.keys()}
     config.load(tables)
