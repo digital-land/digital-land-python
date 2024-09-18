@@ -472,8 +472,6 @@ def config_create_cmd(ctx, config_path):
 @click.pass_context
 def config_load_cmd(ctx, config_path):
 
-    config = Config(
-        path="pipeline/config.sqlite3", specification=ctx.obj["SPECIFICATION"]
-    )
-    tables = {key: ctx.obj["PPIPELINE"].path for key in config.tables.keys()}
+    config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
+    tables = {key: ctx.obj["PIPELINE"].path for key in config.tables.keys()}
     config.load(tables)
