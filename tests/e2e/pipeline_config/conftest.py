@@ -33,6 +33,12 @@ def test_dirs(tmp_path_factory):
     datasource_log_dir = tmp_path_factory.mktemp(
         "column_datasource-log", numbered=False
     )
+    dataset_resource_dir = tmp_path_factory.mktemp(
+        "column_dataset-resource", numbered=False
+    )
+    converted_resource_dir = tmp_path_factory.mktemp(
+        "column_converted-resource", numbered=False
+    )
 
     output_dir = tmp_path_factory.mktemp("column_output", numbered=False)
 
@@ -72,6 +78,8 @@ def test_dirs(tmp_path_factory):
         "transformed_dir": transformed_dir,
         "issues_log_dir": issues_log_dir,
         "datasource_log_dir": datasource_log_dir,
+        "dataset_resource_dir": dataset_resource_dir,
+        "converted_resource_dir": converted_resource_dir,
     }
 
 
