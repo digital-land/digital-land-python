@@ -1,21 +1,27 @@
 #!/usr/bin/env -S py.test -svv
 import os
+import csv
 import pytest
 
-from digital_land.log import DatasetResourceLog
+from digital_land.log import DatasetResourceLog, ConvertedResourceLog
 from digital_land.phase.convert import ConvertPhase
 
 
 class TestConvertPhase:
     def test_process_xlsm_is_loaded(self):
         path = os.path.join(os.getcwd(), "tests/data/brentwood.xlsm")
-        log = DatasetResourceLog()
-        reader = ConvertPhase(path, dataset_resource_log=log).process()
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
+        reader = ConvertPhase(
+            path,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
+        ).process()
         block = next(reader)
         assert block["resource"] == "brentwood"
         assert block["line-number"] == 1
         assert "OrganisationURI" in block["line"]
-        assert log.mime_type == "application/vnd.ms-excel"
+        assert dataset_resource_log.mime_type == "application/vnd.ms-excel"
 
     @pytest.mark.parametrize(
         "input_path",
@@ -30,10 +36,25 @@ class TestConvertPhase:
     def test_process_file_is_saved_to_output_path(self, input_path, tmp_path):
         path = os.path.join(os.getcwd(), input_path)
         output_path = os.path.join(tmp_path, "converted/geojson.csv")
-        log = DatasetResourceLog()
-        ConvertPhase(path, dataset_resource_log=log, output_path=output_path).process()
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
+        ConvertPhase(
+            path,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
+            output_path=output_path,
+        ).process()
 
         assert os.path.isfile(output_path)
+        converted_resource_log_path = os.path.join(tmp_path, "converted-resource.csv")
+
+        converted_resource_log.save(converted_resource_log_path)
+        with open(converted_resource_log_path, "r") as f:
+            rows = [r for r in csv.DictReader(f)]
+
+            assert len(rows) == 1
+            assert rows[0]["return-code"] == "0"
+
         # os.remove(os.path.join(os.getcwd(), "converted/geojson.csv"))
 
     def test_process_converted_file_not_saved(self):
@@ -45,10 +66,12 @@ class TestConvertPhase:
             os.getcwd(),
             "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
         )
-        log = DatasetResourceLog()
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
         ConvertPhase(
             path,
-            dataset_resource_log=log,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
         ).process()
 
         files_after = []
@@ -64,9 +87,13 @@ class TestConvertPhase:
         output_path = os.path.join(
             tmp_path, "converted/json_efficient_format.resource.csv"
         )
-        log = DatasetResourceLog()
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
         reader = ConvertPhase(
-            path, dataset_resource_log=log, output_path=output_path
+            path,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
+            output_path=output_path,
         ).process()
 
         assert os.path.isfile(output_path)
@@ -87,9 +114,13 @@ class TestConvertPhase:
         output_path = os.path.join(
             tmp_path, "converted/json_efficient_format_data_first.resource.csv"
         )
-        log = DatasetResourceLog()
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
         reader = ConvertPhase(
-            path, dataset_resource_log=log, output_path=output_path
+            path,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
+            output_path=output_path,
         ).process()
 
         assert os.path.isfile(output_path)
@@ -108,9 +139,13 @@ class TestConvertPhase:
             "tests/data/resource_examples/xlsx_res.xlsx",
         )
         output_path = os.path.join(tmp_path, "converted/xlsx_res.csv")
-        log = DatasetResourceLog()
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
         reader = ConvertPhase(
-            path, dataset_resource_log=log, output_path=output_path
+            path,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
+            output_path=output_path,
         ).process()
 
         assert os.path.isfile(output_path)

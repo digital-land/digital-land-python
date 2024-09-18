@@ -177,8 +177,8 @@ class ConvertPhase(Phase):
         output_path=None,
     ):
         self.path = path
-        self.log = dataset_resource_log
-        self.converted_log = converted_resource_log
+        self.dataset_resource_log = dataset_resource_log
+        self.converted_resource_log = converted_resource_log
         self.charset = ""
         # Allows for custom temporary directory to be specified
         # This allows symlink creation in case of /tmp & path being on different partitions
@@ -211,26 +211,26 @@ class ConvertPhase(Phase):
             # raise StopIteration()
             reader = iter(())
 
-        return Stream(input_path, f=reader, log=self.log)
+        return Stream(input_path, f=reader, log=self.dataset_resource_log)
 
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
-        self.log.mime_type = "text/csv" + self.charset
+        self.dataset_resource_log.mime_type = "text/csv" + self.charset
         content = f.read(10)
         f.seek(0)
         converted_csv_file = None
 
         if content.lower().startswith("<!doctype "):
-            self.log.mime_type = "text/html" + self.charset
+            self.dataset_resource_log.mime_type = "text/html" + self.charset
             logging.warn("%s has <!doctype, IGNORING!", input_path)
             f.close()
             return None
 
         elif content.lower().startswith(("<?xml ", "<wfs:")):
             logging.debug("%s looks like xml", input_path)
-            self.log.mime_type = "application/xml" + self.charset
+            self.dataset_resource_log.mime_type = "application/xml" + self.charset
             converted_csv_file = convert_features_to_csv(
-                input_path, self.output_path, log=self.converted_log
+                input_path, self.output_path, log=self.converted_resource_log
             )
             if not converted_csv_file:
                 f.close()
@@ -239,9 +239,9 @@ class ConvertPhase(Phase):
 
         elif content.lower().startswith("{"):
             logging.debug("%s looks like json", input_path)
-            self.log.mime_type = "application/json" + self.charset
+            self.dataset_resource_log.mime_type = "application/json" + self.charset
             converted_csv_file = convert_json_to_csv(
-                input_path, self.output_path, log=self.converted_log
+                input_path, self.output_path, log=self.converted_resource_log
             )
 
         if converted_csv_file:
@@ -300,7 +300,7 @@ class ConvertPhase(Phase):
         excel = read_excel(input_path)
         if excel is not None:
             logging.debug(f"{input_path} looks like excel")
-            self.log.mime_type = "application/vnd.ms-excel"
+            self.dataset_resource_log.mime_type = "application/vnd.ms-excel"
             if not self.output_path:
                 self.output_path = tempfile.NamedTemporaryFile(
                     suffix=".csv", delete=False
@@ -312,17 +312,20 @@ class ConvertPhase(Phase):
                 encoding="utf-8",
                 quoting=csv.QUOTE_ALL,
             )
+            self.converted_resource_log.return_code = "0"
+            self.converted_resource_log.command = "_read_binary_file: excel"
+
             return read_csv(self.output_path, encoding="utf-8")
 
         # Then try zip
         if zipfile.is_zipfile(input_path):
             logging.debug(f"{input_path} looks like zip")
-            self.log.mime_type = "application/zip"
+            self.dataset_resource_log.mime_type = "application/zip"
 
             internal_path, mime_type = self.find_internal_path(input_path)
             if internal_path:
-                self.log.internal_path = internal_path
-                self.log.internal_mime_type = mime_type
+                self.dataset_resource_log.internal_path = internal_path
+                self.dataset_resource_log.internal_mime_type = mime_type
                 temp_path = tempfile.NamedTemporaryFile(
                     suffix=".zip", **self.temp_file_extra_kwargs
                 ).name
@@ -338,11 +341,13 @@ class ConvertPhase(Phase):
             conn = sqlite3.connect(input_path)
             cursor = conn.cursor()
             cursor.execute("pragma quick_check")
+            self.converted_resource_log.return_code = 0
+            self.converted_resource_log.commmand = "sqlite3"
         except:  # noqa: E722
             pass
         else:
             logging.debug(f"{input_path} looks like SQLite")
-            self.log.mime_type = "application/geopackage+sqlite3"
+            self.dataset_resource_log.mime_type = "application/geopackage+sqlite3"
             csv_path = convert_features_to_csv(input_path, self.output_path)
             encoding = detect_file_encoding(csv_path)
             return read_csv(csv_path, encoding)
