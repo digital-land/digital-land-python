@@ -163,9 +163,9 @@ class ConvertedResourceLog(Log):
         "dataset",
         "resource",
         "command",
+        "return-code",
         "env",
         "gdal-version",
-        "return-code",
         "stdout",
         "stderr",
     ]
@@ -179,20 +179,16 @@ class ConvertedResourceLog(Log):
         self.stdout = ""
         self.stderr = ""
 
-    def add(self):
+    def add(self, command, return_code, env="", gdal_version="", stdout="", stderr=""):
         self.rows.append(
             {
                 "dataset": self.dataset,
                 "resource": self.resource,
-                "command": self.command,
-                "env": self.env,
-                "gdal-version": self.gdal_version,
-                "return-code": self.return_code,
-                "stdout": self.stdout,
-                "stderr": self.stderr,
+                "command": command,
+                "return-code": return_code,
+                "env": env,
+                "gdal-version": gdal_version,
+                "stdout": stdout,
+                "stderr": stderr,
             }
         )
-
-    def save(self, *args, **kwargs):
-        self.add()
-        super().save(*args, **kwargs)

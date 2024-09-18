@@ -82,7 +82,7 @@ def read_excel(path):
     return excel
 
 
-def convert_features_to_csv(input_path, output_path=None, log=None):
+def convert_features_to_csv(input_path, output_path=None, converted_resource_log=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
 
@@ -118,13 +118,15 @@ def convert_features_to_csv(input_path, output_path=None, log=None):
 
     rc, outs, errs = execute(command, env=env)
 
-    if log:
-        log.command = " ".join(command)
-        log.env = str(env)
-        log.gdal_version = str(gdal_version)
-        log.return_code = rc
-        log.stdout = outs
-        log.errs = errs
+    if converted_resource_log:
+        converted_resource_log.add(
+            command=" ".join(command),
+            env=str(env),
+            gdal_version=str(gdal_version),
+            return_code=rc,
+            stdout=outs,
+            stderr=errs,
+        )
 
     if not os.path.isfile(output_path):
         return None
@@ -141,7 +143,7 @@ def save_efficient_json_as_csv(output_path, columns, data):
             cw.writerow(row)
 
 
-def convert_json_to_csv(input_path, output_path=None, log=None):
+def convert_json_to_csv(input_path, output_path=None, converted_resource_log=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(input_path, "r") as json:
@@ -164,7 +166,9 @@ def convert_json_to_csv(input_path, output_path=None, log=None):
                 else:
                     data = [x for x in item[1].persistent()]
 
-        return convert_features_to_csv(input_path, output_path, log=log)
+        return convert_features_to_csv(
+            input_path, output_path, converted_resource_log=converted_resource_log
+        )
 
 
 class ConvertPhase(Phase):
@@ -230,7 +234,9 @@ class ConvertPhase(Phase):
             logging.debug("%s looks like xml", input_path)
             self.dataset_resource_log.mime_type = "application/xml" + self.charset
             converted_csv_file = convert_features_to_csv(
-                input_path, self.output_path, log=self.converted_resource_log
+                input_path,
+                self.output_path,
+                converted_resource_log=self.converted_resource_log,
             )
             if not converted_csv_file:
                 f.close()
@@ -241,7 +247,9 @@ class ConvertPhase(Phase):
             logging.debug("%s looks like json", input_path)
             self.dataset_resource_log.mime_type = "application/json" + self.charset
             converted_csv_file = convert_json_to_csv(
-                input_path, self.output_path, log=self.converted_resource_log
+                input_path,
+                self.output_path,
+                converted_resource_log=self.converted_resource_log,
             )
 
         if converted_csv_file:
@@ -312,8 +320,10 @@ class ConvertPhase(Phase):
                 encoding="utf-8",
                 quoting=csv.QUOTE_ALL,
             )
-            self.converted_resource_log.return_code = "0"
-            self.converted_resource_log.command = "_read_binary_file: excel"
+            if self.converted_resource_log:
+                self.converted_resource_log.add(
+                    command="INTERNAL: excel", return_code=0
+                )
 
             return read_csv(self.output_path, encoding="utf-8")
 
@@ -341,8 +351,10 @@ class ConvertPhase(Phase):
             conn = sqlite3.connect(input_path)
             cursor = conn.cursor()
             cursor.execute("pragma quick_check")
-            self.converted_resource_log.return_code = 0
-            self.converted_resource_log.commmand = "sqlite3"
+            if self.converted_resource_log:
+                self.converted_resource_log.add(
+                    command="INTERNAL: sqlite3", return_code=0
+                )
         except:  # noqa: E722
             pass
         else:
