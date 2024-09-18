@@ -51,6 +51,14 @@ def dataset_resource_dir(f):
     )(f)
 
 
+def converted_resource_dir(f):
+    return click.option(
+        "--converted-resource-dir",
+        type=click.Path(exists=True),
+        default="var/converted-resource/",
+    )(f)
+
+
 def endpoint_path(f):
     return click.option(
         "--endpoint-path",

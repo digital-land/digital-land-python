@@ -17,7 +17,12 @@ from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
-from digital_land.log import DatasetResourceLog, IssueLog, ColumnFieldLog
+from digital_land.log import (
+    DatasetResourceLog,
+    IssueLog,
+    ColumnFieldLog,
+    ConvertedResourceLog,
+)
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
 from digital_land.phase.combine import FactCombinePhase
@@ -143,10 +148,12 @@ def convert(input_path, output_path, custom_temp_dir=None):
     if not output_path:
         output_path = default_output_path("converted", input_path)
     dataset_resource_log = DatasetResourceLog()
+    converted_resource_log = ConvertedResourceLog()
     run_pipeline(
         ConvertPhase(
             input_path,
             dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
             custom_temp_dir=custom_temp_dir,
         ),
         DumpPhase(output_path),
@@ -167,6 +174,7 @@ def pipeline_run(
     save_harmonised=False,
     column_field_dir=None,
     dataset_resource_dir=None,
+    converted_resource_dir=None,
     custom_temp_dir=None,  # TBD: rename to "tmpdir"
     endpoints=[],
     organisations=[],
@@ -179,6 +187,7 @@ def pipeline_run(
     issue_log = IssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
+    converted_resource_log = ConvertedResourceLog(dataset=dataset, resource=resource)
 
     # load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource, endpoints)
@@ -215,6 +224,7 @@ def pipeline_run(
         ConvertPhase(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
             custom_temp_dir=custom_temp_dir,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
@@ -284,6 +294,7 @@ def pipeline_run(
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
+    converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
 
 
 #

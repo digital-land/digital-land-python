@@ -156,3 +156,43 @@ class DatasetResourceLog(Log):
     def save(self, *args, **kwargs):
         self.add()
         super().save(*args, **kwargs)
+
+
+class ConvertedResourceLog(Log):
+    fieldnames = [
+        "dataset",
+        "resource",
+        "command",
+        "env",
+        "gdal-version",
+        "return-code",
+        "stdout",
+        "stderr",
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.command = ""
+        self.env = ""
+        self.gdal_version = ""
+        self.return_code = None
+        self.stdout = ""
+        self.stderr = ""
+
+    def add(self):
+        self.rows.append(
+            {
+                "dataset": self.dataset,
+                "resource": self.resource,
+                "command": self.command,
+                "env": self.env,
+                "gdal-version": self.gdal_version,
+                "return-code": self.return_code,
+                "stdout": self.stdout,
+                "stderr": self.stderr,
+            }
+        )
+
+    def save(self, *args, **kwargs):
+        self.add()
+        super().save(*args, **kwargs)

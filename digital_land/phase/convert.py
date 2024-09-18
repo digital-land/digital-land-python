@@ -82,38 +82,50 @@ def read_excel(path):
     return excel
 
 
-def convert_features_to_csv(input_path, output_path=None):
+def convert_features_to_csv(input_path, output_path=None, log=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
-    execute(
-        [
-            "ogr2ogr",
-            "-oo",
-            "DOWNLOAD_SCHEMA=NO",
-            "-lco",
-            "GEOMETRY=AS_WKT",
-            "-lco",
-            "GEOMETRY_NAME=WKT",
-            "-lco",
-            "LINEFORMAT=CRLF",
-            "-f",
-            "CSV",
-            "-nlt",
-            "MULTIPOLYGON",
-            "-nln",
-            "MERGED",
-            "--config",
-            "OGR_WKT_PRECISION",
-            "10",
-            output_path,
-            input_path,
-        ],
-        env=(
-            dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
-            if get_gdal_version() >= Version("3.5.2")
-            else os.environ
-        ),
+
+    gdal_version = get_gdal_version()
+
+    command = [
+        "ogr2ogr",
+        "-oo",
+        "DOWNLOAD_SCHEMA=NO",
+        "-lco",
+        "GEOMETRY=AS_WKT",
+        "-lco",
+        "GEOMETRY_NAME=WKT",
+        "-lco",
+        "LINEFORMAT=CRLF",
+        "-f",
+        "CSV",
+        "-nlt",
+        "MULTIPOLYGON",
+        "-nln",
+        "MERGED",
+        "--config",
+        "OGR_WKT_PRECISION",
+        "10",
+        output_path,
+        input_path,
+    ]
+    env = (
+        dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
+        if gdal_version >= Version("3.5.2")
+        else dict(os.environ)
     )
+
+    rc, outs, errs = execute(command, env=env)
+
+    if log:
+        log.command = " ".join(command)
+        log.env = str(env)
+        log.gdal_version = str(gdal_version)
+        log.return_code = rc
+        log.stdout = outs
+        log.errs = errs
+
     if not os.path.isfile(output_path):
         return None
 
@@ -129,7 +141,7 @@ def save_efficient_json_as_csv(output_path, columns, data):
             cw.writerow(row)
 
 
-def convert_json_to_csv(input_path, output_path=None):
+def convert_json_to_csv(input_path, output_path=None, log=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(input_path, "r") as json:
@@ -152,7 +164,7 @@ def convert_json_to_csv(input_path, output_path=None):
                 else:
                     data = [x for x in item[1].persistent()]
 
-        return convert_features_to_csv(input_path, output_path)
+        return convert_features_to_csv(input_path, output_path, log=log)
 
 
 class ConvertPhase(Phase):
@@ -160,11 +172,13 @@ class ConvertPhase(Phase):
         self,
         path=None,
         dataset_resource_log=None,
+        converted_resource_log=None,
         custom_temp_dir=None,
         output_path=None,
     ):
         self.path = path
         self.log = dataset_resource_log
+        self.converted_log = converted_resource_log
         self.charset = ""
         # Allows for custom temporary directory to be specified
         # This allows symlink creation in case of /tmp & path being on different partitions
@@ -215,7 +229,9 @@ class ConvertPhase(Phase):
         elif content.lower().startswith(("<?xml ", "<wfs:")):
             logging.debug("%s looks like xml", input_path)
             self.log.mime_type = "application/xml" + self.charset
-            converted_csv_file = convert_features_to_csv(input_path, self.output_path)
+            converted_csv_file = convert_features_to_csv(
+                input_path, self.output_path, log=self.converted_log
+            )
             if not converted_csv_file:
                 f.close()
                 logging.warning("conversion from XML to CSV failed")
@@ -224,7 +240,9 @@ class ConvertPhase(Phase):
         elif content.lower().startswith("{"):
             logging.debug("%s looks like json", input_path)
             self.log.mime_type = "application/json" + self.charset
-            converted_csv_file = convert_json_to_csv(input_path, self.output_path)
+            converted_csv_file = convert_json_to_csv(
+                input_path, self.output_path, log=self.converted_log
+            )
 
         if converted_csv_file:
             f.close()
