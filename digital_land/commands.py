@@ -44,6 +44,7 @@ from digital_land.phase.normalise import NormalisePhase
 from digital_land.phase.organisation import OrganisationPhase
 from digital_land.phase.parse import ParsePhase
 from digital_land.phase.patch import PatchPhase
+from digital_land.phase.priority import PriorityPhase
 from digital_land.phase.pivot import PivotPhase
 from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrunePhase
@@ -274,6 +275,7 @@ def pipeline_run(
             enabled=save_harmonised,
         ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
+        PriorityPhase(),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),
