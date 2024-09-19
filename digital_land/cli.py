@@ -113,8 +113,10 @@ def collection_save_csv_cmd(collection_dir):
     "operational-issue-save-csv", short_help="save Operational Issues as CSV package"
 )
 @operational_issue_dir
-def operational_issue_save_csv_cmd(operational_issue_dir):
-    return operational_issue_save_csv(operational_issue_dir)
+@click.pass_context
+def operational_issue_save_csv_cmd(ctx, operational_issue_dir):
+    dataset = ctx.obj["DATASET"]
+    return operational_issue_save_csv(operational_issue_dir, dataset)
 
 
 #

@@ -74,7 +74,7 @@ class CSVItemStore(CSVStore):
         """Gets the latest entry date from the issue"""
         return self._latest_entry_date
 
-    def load_items(self, directory=None, after=None):
+    def load_items(self, directory=None, after=None, dataset=None):
         csv_files_path = os.path.join(directory, "*/*/*.csv")
 
         if after:
@@ -117,6 +117,9 @@ class CSVItemStore(CSVStore):
                         logging.debug(
                             f"Skipping item with entry-date {item['entry-date']}"
                         )
+                        continue
+                    # Skip items that are for a different dataset
+                    if dataset and item["dataset"] != dataset:
                         continue
                     self.add_entry(item)  # Add the entry using the add_entry method
 

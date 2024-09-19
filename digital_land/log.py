@@ -152,7 +152,9 @@ class OperationalIssueLog(IssueLog):
         )
 
         logging.info("loading Operational issue files")
-        self.operational_issues.load(directory=operational_issue_directory, after=after)
+        self.operational_issues.load(
+            directory=operational_issue_directory, after=after, dataset=self.dataset
+        )
 
     def load(self, operational_issue_directory=None):
         operational_issue_directory = (
@@ -175,7 +177,10 @@ class OperationalIssueLog(IssueLog):
         directory = directory or self.operational_issue_dir
 
         logging.info("saving csv")
-        self.operational_issues.save_csv(directory=directory)
+        print("dataset:", self.dataset)
+        self.operational_issues.save_csv(
+            directory=os.path.join(directory, self.dataset)
+        )
 
 
 class ColumnFieldLog(Log):
