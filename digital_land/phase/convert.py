@@ -351,10 +351,6 @@ class ConvertPhase(Phase):
             conn = sqlite3.connect(input_path)
             cursor = conn.cursor()
             cursor.execute("pragma quick_check")
-            if self.converted_resource_log:
-                self.converted_resource_log.add(
-                    command="INTERNAL: sqlite3", return_code=0
-                )
         except:  # noqa: E722
             pass
         else:
