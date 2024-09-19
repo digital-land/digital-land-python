@@ -159,36 +159,20 @@ class DatasetResourceLog(Log):
 
 
 class ConvertedResourceLog(Log):
-    fieldnames = [
-        "dataset",
-        "resource",
-        "command",
-        "return-code",
-        "env",
-        "gdal-version",
-        "stdout",
-        "stderr",
-    ]
+    Success = "success"
+    Failed = "failed"
+
+    fieldnames = ["dataset", "resource", "status", "exception"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.command = ""
-        self.env = ""
-        self.gdal_version = ""
-        self.return_code = None
-        self.stdout = ""
-        self.stderr = ""
 
-    def add(self, command, return_code, env="", gdal_version="", stdout="", stderr=""):
+    def add(self, status, exception=""):
         self.rows.append(
             {
                 "dataset": self.dataset,
                 "resource": self.resource,
-                "command": command,
-                "return-code": return_code,
-                "env": env,
-                "gdal-version": gdal_version,
-                "stdout": stdout,
-                "stderr": stderr,
+                "status": status,
+                "exception": exception,
             }
         )

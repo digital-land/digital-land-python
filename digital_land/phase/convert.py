@@ -13,6 +13,11 @@ import pandas as pd
 from .load import Stream
 from .phase import Phase
 from ..utils.gdal_utils import get_gdal_version
+from digital_land.log import ConvertedResourceLog
+
+
+class ConversionError(Exception):
+    pass
 
 
 def detect_file_encoding(path):
@@ -82,7 +87,7 @@ def read_excel(path):
     return excel
 
 
-def convert_features_to_csv(input_path, output_path=None, converted_resource_log=None):
+def convert_features_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
 
@@ -118,14 +123,9 @@ def convert_features_to_csv(input_path, output_path=None, converted_resource_log
 
     rc, outs, errs = execute(command, env=env)
 
-    if converted_resource_log:
-        converted_resource_log.add(
-            command=" ".join(command),
-            env=str(env),
-            gdal_version=str(gdal_version),
-            return_code=rc,
-            stdout=outs,
-            stderr=errs,
+    if rc != 0:
+        raise ConversionError(
+            f"ogr2ogr failed ({rc}). stdout='{outs}', stderr='{errs}'. gdal version {gdal_version}"
         )
 
     if not os.path.isfile(output_path):
@@ -134,7 +134,7 @@ def convert_features_to_csv(input_path, output_path=None, converted_resource_log
     return output_path
 
 
-def save_efficient_json_as_csv(output_path, columns, data, converted_resource_log=None):
+def save_efficient_json_as_csv(output_path, columns, data):
     with open(output_path, "w") as csv_file:
         cw = csv.writer(csv_file)
         cw.writerow(columns)
@@ -142,13 +142,8 @@ def save_efficient_json_as_csv(output_path, columns, data, converted_resource_lo
         for row in data:
             cw.writerow(row)
 
-        if converted_resource_log:
-            converted_resource_log.add(
-                command="INTERNAL: efficient json", return_code=0
-            )
 
-
-def convert_json_to_csv(input_path, output_path=None, converted_resource_log=None):
+def convert_json_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(input_path, "r") as json:
@@ -165,7 +160,6 @@ def convert_json_to_csv(input_path, output_path=None, converted_resource_log=Non
                         output_path,
                         columns,
                         data,
-                        converted_resource_log=converted_resource_log,
                     )
                     return output_path
 
@@ -175,14 +169,14 @@ def convert_json_to_csv(input_path, output_path=None, converted_resource_log=Non
                         output_path,
                         columns,
                         item[1],
-                        converted_resource_log=converted_resource_log,
                     )
                     return output_path
                 else:
                     data = [x for x in item[1].persistent()]
 
         return convert_features_to_csv(
-            input_path, output_path, converted_resource_log=converted_resource_log
+            input_path,
+            output_path,
         )
 
 
@@ -215,22 +209,34 @@ class ConvertPhase(Phase):
     def process(self, stream=None):
         input_path = self.path
 
-        reader = self._read_binary_file(input_path)
+        try:
+            reader = self._read_binary_file(input_path)
 
-        if not reader:
-            encoding = detect_file_encoding(input_path)
-            if encoding:
-                logging.debug("encoding detected: %s", encoding)
-                self.charset = ";charset=" + encoding
-                reader = self._read_text_file(input_path, encoding)
+            if not reader:
+                encoding = detect_file_encoding(input_path)
+                if encoding:
+                    logging.debug("encoding detected: %s", encoding)
+                    self.charset = ";charset=" + encoding
+                    reader = self._read_text_file(input_path, encoding)
 
-        if not reader:
-            logging.debug("failed to create reader, cannot process %s", input_path)
+            if not reader:
+                raise ConversionError(
+                    f"failed to create reader, cannot process {input_path}"
+                )
 
-            # raise StopIteration()
-            reader = iter(())
+                # raise StopIteration()
+                reader = iter(())
 
-        return Stream(input_path, f=reader, log=self.dataset_resource_log)
+            if self.converted_resource_log:
+                self.converted_resource_log.add(ConvertedResourceLog.Success)
+
+            return Stream(input_path, f=reader, log=self.dataset_resource_log)
+
+        except Exception as ex:
+            if self.converted_resource_log:
+                self.converted_resource_log.add(ConvertedResourceLog.Failed, str(ex))
+
+            return Stream(input_path, f=iter(()), log=self.dataset_resource_log)
 
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
@@ -251,7 +257,6 @@ class ConvertPhase(Phase):
             converted_csv_file = convert_features_to_csv(
                 input_path,
                 self.output_path,
-                converted_resource_log=self.converted_resource_log,
             )
             if not converted_csv_file:
                 f.close()
@@ -264,7 +269,6 @@ class ConvertPhase(Phase):
             converted_csv_file = convert_json_to_csv(
                 input_path,
                 self.output_path,
-                converted_resource_log=self.converted_resource_log,
             )
 
         if converted_csv_file:
@@ -335,10 +339,6 @@ class ConvertPhase(Phase):
                 encoding="utf-8",
                 quoting=csv.QUOTE_ALL,
             )
-            if self.converted_resource_log:
-                self.converted_resource_log.add(
-                    command="INTERNAL: excel", return_code=0
-                )
 
             return read_csv(self.output_path, encoding="utf-8")
 

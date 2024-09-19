@@ -53,7 +53,8 @@ class TestConvertPhase:
             rows = [r for r in csv.DictReader(f)]
 
             assert len(rows) == 1
-            assert rows[0]["return-code"] == "0"
+            assert rows[0]["status"] == "success"
+            assert rows[0]["exception"] == ""
 
         # os.remove(os.path.join(os.getcwd(), "converted/geojson.csv"))
 
@@ -160,3 +161,28 @@ class TestConvertPhase:
             == "http://opendatacommunities.org/id/district-council/south-cambridgeshire"
         )
         assert block["line"][1] == "South Cambridgeshire District Council"
+
+    def test_conversion_throws_exception(self, tmp_path):
+        input_path = "tests/data/resource_examples/kml-bad.resource"
+
+        path = os.path.join(os.getcwd(), input_path)
+        output_path = os.path.join(tmp_path, "converted/kml.csv")
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
+        ConvertPhase(
+            path,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
+            output_path=output_path,
+        ).process()
+
+        assert not os.path.isfile(output_path)
+        converted_resource_log_path = os.path.join(tmp_path, "converted-resource.csv")
+
+        converted_resource_log.save(converted_resource_log_path)
+        with open(converted_resource_log_path, "r") as f:
+            rows = [r for r in csv.DictReader(f)]
+
+            assert len(rows) == 1
+            assert rows[0]["status"] == "failed"
+            assert rows[0]["exception"].startswith("ogr2ogr failed (1)")
