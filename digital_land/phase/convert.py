@@ -134,13 +134,18 @@ def convert_features_to_csv(input_path, output_path=None, converted_resource_log
     return output_path
 
 
-def save_efficient_json_as_csv(output_path, columns, data):
+def save_efficient_json_as_csv(output_path, columns, data, converted_resource_log=None):
     with open(output_path, "w") as csv_file:
         cw = csv.writer(csv_file)
         cw.writerow(columns)
 
         for row in data:
             cw.writerow(row)
+
+        if converted_resource_log:
+            converted_resource_log.add(
+                command="INTERNAL: efficient json", return_code=0
+            )
 
 
 def convert_json_to_csv(input_path, output_path=None, converted_resource_log=None):
@@ -156,12 +161,22 @@ def convert_json_to_csv(input_path, output_path=None, converted_resource_log=Non
             if item[0] in ["columns"]:
                 columns = [x for x in item[1].persistent()]
                 if data is not None:
-                    save_efficient_json_as_csv(output_path, columns, data)
+                    save_efficient_json_as_csv(
+                        output_path,
+                        columns,
+                        data,
+                        converted_resource_log=converted_resource_log,
+                    )
                     return output_path
 
             if item[0] in ["data"]:
                 if columns is not None:
-                    save_efficient_json_as_csv(output_path, columns, item[1])
+                    save_efficient_json_as_csv(
+                        output_path,
+                        columns,
+                        item[1],
+                        converted_resource_log=converted_resource_log,
+                    )
                     return output_path
                 else:
                     data = [x for x in item[1].persistent()]
