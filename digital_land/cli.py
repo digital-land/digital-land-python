@@ -31,6 +31,7 @@ from digital_land.commands import (
 from digital_land.command_arguments import (
     collection_dir,
     config_collections_dir,
+    operational_issue_dir,
     organisation_path,
     input_output_path,
     issue_dir,
@@ -176,6 +177,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @dataset_resource_dir
 @organisation_path
 @collection_dir
+@operational_issue_dir
 @click.pass_context
 def pipeline_command(
     ctx,
@@ -191,6 +193,7 @@ def pipeline_command(
     entry_date,
     custom_temp_dir,
     collection_dir,
+    operational_issue_dir,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -207,6 +210,7 @@ def pipeline_command(
         output_path,
         collection_dir=collection_dir,
         issue_dir=issue_dir,
+        operational_issue_dir=operational_issue_dir,
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
         organisation_path=organisation_path,
