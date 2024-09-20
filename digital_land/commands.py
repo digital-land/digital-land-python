@@ -188,7 +188,7 @@ def pipeline_run(
     operational_issue_log = OperationalIssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
-    api = API(url="https://files.planning.data.gov.uk", cache_dir="var/cache")
+    api = API(specification=specification)
 
     # load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource, endpoints)
@@ -215,9 +215,7 @@ def pipeline_run(
         entry_date = collection.resource_start_date(resource)
 
     # Load valid category values
-    valid_category_values = api.get_valid_category_values(
-        specification.get_category_fields(dataset=dataset)
-    )
+    valid_category_values = api.get_valid_category_values(dataset)
 
     # resource specific default values
     if len(organisations) == 1:

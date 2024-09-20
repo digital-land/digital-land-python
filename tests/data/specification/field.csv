@@ -30,3 +30,5 @@ prefix,,string,1,text,,,,
 reference,,string,1,text,,,,
 description,,string,1,text,,,,
 tree-preservation-zone-type,A category of tree preservation zone,string,1,category,,Tree preservation zone type,,category
+conservation-area-document-type,,string,1,category,,Conservation area document type,,category
+document-type,,string,1,category,,Document type,,category

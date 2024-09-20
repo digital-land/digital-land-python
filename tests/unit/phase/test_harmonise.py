@@ -197,7 +197,7 @@ def test_validate_categorical_fields():
                 "reference": "2",
                 "name": "Test TPO 2",
                 "description": "Test",
-                "tree-preservation-zone-type": "tree",
+                "tree-preservation-zone-type": "other",
             },
         ],
     )
@@ -207,7 +207,46 @@ def test_validate_categorical_fields():
     assert len(output) == 2
     # check the fields are set in the output
     assert output[0]["row"]["tree-preservation-zone-type"] == "area"
-    assert output[1]["row"]["tree-preservation-zone-type"] == "tree"
+    assert output[1]["row"]["tree-preservation-zone-type"] == "other"
+
+    assert len(issues.rows) == 1
+    # but we get an issue generated
+    assert issues.rows[0]["issue-type"] == "invalid category value"
+
+
+def test_validate_categorical_field_dataset():
+    specification = Specification("tests/data/specification")
+
+    issues = IssueLog()
+
+    h = HarmonisePhase(
+        specification.get_field_datatype_map(),
+        issues=issues,
+        dataset="conservation-area-document",
+        valid_category_values={
+            "document-type": ["area-apprai", "notice", "designa", "area-map"]
+        },
+    )
+
+    reader = FakeDictReader(
+        [
+            {
+                "reference": "1",
+                "document-type": "notice",
+            },
+            {
+                "reference": "2",
+                "document-type": "other",
+            },
+        ],
+    )
+
+    output = list(h.process(reader))
+
+    assert len(output) == 2
+    # check the fields are set in the output
+    assert output[0]["row"]["document-type"] == "notice"
+    assert output[1]["row"]["document-type"] == "other"
 
     assert len(issues.rows) == 1
     # but we get an issue generated

@@ -49,7 +49,7 @@ class HarmonisePhase(Phase):
         field_datatype_map,
         issues=None,
         dataset=None,
-        valid_category_values={},
+        valid_category_values={},  # { field: list of valid values }
     ):
         self.field_datatype_map = field_datatype_map
         self.issues = issues
@@ -82,7 +82,7 @@ class HarmonisePhase(Phase):
             o = {}
 
             for field in row:
-                if field in self.valid_category_values:
+                if field in self.valid_category_values.keys():
                     value = row[field]
                     if value.lower() not in self.valid_category_values[field]:
                         self.issues.log_issue(field, "invalid category value", value)

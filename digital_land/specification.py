@@ -31,6 +31,7 @@ class Specification:
         self.schema_names = []
         self.dataset_schema = {}
         self.dataset_field = {}
+        self.dataset_field_dataset = {}
         self.field = {}
         self.field_names = []
         self.datatype = {}
@@ -84,8 +85,13 @@ class Specification:
     def load_dataset_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset-field.csv")))
         for row in reader:
-            fields = self.dataset_field.setdefault(row["dataset"], [])
-            fields.append(row["field"])
+            dataset = row["dataset"]
+            field = row["field"]
+            fields = self.dataset_field.setdefault(dataset, [])
+            fields.append(field)
+
+            self.dataset_field_dataset.setdefault(dataset, {})
+            self.dataset_field_dataset[dataset][field] = row["field-dataset"]
 
     def load_schema_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "schema-field.csv")))

@@ -3,3 +3,4 @@ dataset-one,"First Dataset","Text of first dataset",
 dataset-two,"Second Dataset","Text of first dataset",
 dataset-three,"Third Dataset","Text of third dataset",
 tree-preservation-zone-type,"Types of zone covered by the tree preservation order","Tree preservation zone type",category
+conservation-area-document-type,,"Conservation area document type",category
