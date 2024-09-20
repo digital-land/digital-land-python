@@ -273,6 +273,22 @@ class SqlitePackage(Package):
             for fields in index_fields:
                 self.create_index(table, fields)
 
+    def drop_index(self, table, fields, name=None):
+        if type(fields) is not list:
+            fields = [fields]
+        cols = [colname(field) for field in fields if not field.endswith("-geom")]
+        if not name:
+            name = colname(table) + "_on_" + "__".join(cols) + "_index"
+        if cols:
+            logging.info("dropping index %s" % (name))
+            self.execute("DROP INDEX IF EXISTS %s;" % (name))
+        # TODO add support to drop spatialite indexes if they're needed
+
+    def drop_indexes(self):
+        for table, index_fields in self.indexes.items():
+            for fields in index_fields:
+                self.drop_index(table, fields)
+
     def create_database(self):
         if os.path.exists(self.path):
             os.remove(self.path)

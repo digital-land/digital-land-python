@@ -64,6 +64,7 @@ class Config(SqlitePackage):
     def create(self):
         # indexes are created
         self.create_database()
+        self.create_indexes()
         self.disconnect()
 
     # TODO currently this just sits ont he config class I'm wondering
@@ -73,18 +74,22 @@ class Config(SqlitePackage):
         # TODO should we replace this with an entity organisation  object that can be queried
         # instead of directly running query
         self.connect()
+        self.create_cursor()
         self.cursor.execute(
             f"select organisation from entity_organisation where entity_minimum <= {entity} and entity_maximum >= {entity}"
         )
         row = self.cursor.fetchone()
 
         result = row[0] if row else None
-        self.disconnect
+        self.disconnect()
 
         return result
 
     def load(self, tables=None):
         tables = tables or self.tables
         self.connect()
+        self.create_cursor()
+        self.drop_indexes()
         super().load(tables)
+        self.create_indexes()
         self.disconnect()

@@ -5,8 +5,23 @@ from digital_land.specification import Specification
 from digital_land.configuration.main import Config
 
 
-@pytest.fixture(scope="module")
-def test_spec():
+def mock_init(self):
+    self.dataset = {}
+    self.dataset_names = []
+    self.schema = {}
+    self.schema_names = []
+    self.dataset_schema = {}
+    self.field = {}
+    self.field_names = []
+    self.datatype = {}
+    self.datatype_names = []
+    self.schema_field = {}
+    self.typology = {}
+    self.pipeline = {}
+
+
+@pytest.fixture()
+def test_spec(mocker):
     """
     A test specification for this module, may need to be updated if the spec
     changes
@@ -47,6 +62,7 @@ def test_spec():
             ],
         }
     }
+    mocker.patch("digital_land.specification.Specification.__init__", mock_init)
     spec = Specification()
     spec.field = field
     spec.schema = schema
@@ -110,3 +126,25 @@ class TestConfig:
 
         assert "entity_organisation" in tables
         assert row_count == 1
+
+    def test_get_entity_organisation_returns_organisation(self, test_spec, tmp_path):
+        test_data = [
+            {
+                "dataset": "conservation-area",
+                "entity-minimum": 44000001,
+                "entity-maximum": 44000001,
+                "organisation": "local-authority:SAL",
+            }
+        ]
+        sqlite_path = tmp_path / "config.sqlite"
+        tables = {"entity-organisation": str(tmp_path)}
+        config = Config(path=sqlite_path, specification=test_spec, tables=tables)
+        test_df = pd.DataFrame(test_data)
+        test_df.to_csv(tmp_path / "entity-organisation.csv")
+        config.create()
+
+        tables = {"entity-organisation": str(tmp_path)}
+        config.load(tables)
+
+        org = config.get_entity_organisation(44000001)
+        assert org == "local-authority:SAL"

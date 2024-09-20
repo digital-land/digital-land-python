@@ -10,20 +10,20 @@ class PriorityPhase(Phase):
 
     def __init__(self, config: Config = None):
         # if not connection:s
-        # TODO Update to config.sqlite3
-        # TODO need to generate config.sqlite somewhere for use here
         # TODO causes errors when not supplied i think we should add this default in
         # a higher up level
         # connection = sqlite3.connect("var/cache/pipeline.sqlite3")
         self.default_priority = 2
         if config:
             self.config = config
-        # if connection:
-        #     self.cursor = connection.cursor()
         else:
+            self.config = None
             logging.error(
                 f"No config provided so priority defaults to {self.default_priority}"
             )
+
+        # if connection:
+        #     self.cursor = connection.cursor()
 
     # move to config class
 
@@ -44,3 +44,7 @@ class PriorityPhase(Phase):
             else:
                 block["priority"] = self.default_priority
             yield block
+
+            # if no config is supplied then default priority should be set
+            # if config supplied and no match then deafult priority should be used
+            # if match then use priority

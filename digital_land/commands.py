@@ -48,8 +48,12 @@ from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
+
+from digital_land.configuration.main import Config
+
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
+
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +176,7 @@ def pipeline_run(
     endpoints=[],
     organisations=[],
     entry_date="",
+    config_path="var/cache/config.sqlite3",
 ):
     resource = resource_from_path(input_path)
     dataset = dataset
@@ -192,6 +197,10 @@ def pipeline_run(
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
     redirect_lookups = pipeline.redirect_lookups()
 
+    # load config db
+    # TODO get more information from the config
+    config = Config(path=config_path, specification=Specification)
+
     # load organisations
     organisation = Organisation(organisation_path, Path(pipeline.path))
 
@@ -210,6 +219,7 @@ def pipeline_run(
     if entry_date:
         default_values["entry-date"] = entry_date
 
+    # TODO Migrate all of this into a function in the Pipeline function
     run_pipeline(
         ConvertPhase(
             path=input_path,
@@ -263,7 +273,7 @@ def pipeline_run(
             enabled=save_harmonised,
         ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
-        PriorityPhase(),
+        PriorityPhase(config=config),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),

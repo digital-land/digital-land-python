@@ -158,6 +158,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
 @click.option("--custom-temp-dir", help="default temporary directory", default=None)
+@click.option("--config-path", help="Path  to a configuration sqlite", default=None)
 @input_output_path
 @issue_dir
 @column_field_dir
@@ -177,6 +178,7 @@ def pipeline_command(
     organisations,
     entry_date,
     custom_temp_dir,
+    config_path,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -200,6 +202,7 @@ def pipeline_command(
         organisations=organisations,
         entry_date=entry_date,
         custom_temp_dir=custom_temp_dir,
+        config_path=config_path,
     )
 
 
