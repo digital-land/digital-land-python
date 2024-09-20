@@ -7,6 +7,7 @@ import click
 from collections import defaultdict
 from digital_land.collection import Collection
 from digital_land.specification import Specification
+from digital_land.profile import profile
 
 from digital_land.commands import (
     add_redirections,
@@ -125,6 +126,7 @@ def convert_cmd(input_path, output_path):
 @issue_dir
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
+@profile(sort_by='tottime', lines_to_print=100) # Decorate with profile and output results sorted by total-time
 def dataset_create_cmd(
     ctx,
     input_paths,
@@ -179,6 +181,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @collection_dir
 @operational_issue_dir
 @click.pass_context
+@profile(sort_by='tottime', lines_to_print=100) # Decorate with profile and output results sorted by total-time
 def pipeline_command(
     ctx,
     input_path,
