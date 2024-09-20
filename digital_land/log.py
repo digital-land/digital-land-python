@@ -162,7 +162,9 @@ class OperationalIssueLog(IssueLog):
         )
         # Try to load issue store from csv first
         try:
-            self.operational_issues.load_csv(directory=operational_issue_directory)
+            self.operational_issues.load_csv(
+                directory=os.path.join(operational_issue_directory, self.dataset)
+            )
             logging.info("Operational Issues loaded from CSV")
         except FileNotFoundError:
             logging.info(

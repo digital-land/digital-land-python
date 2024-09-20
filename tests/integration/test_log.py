@@ -49,3 +49,83 @@ def test_operationalIssueLog_save_path_given(tmp_path_factory):
         )
 
         assert os.path.isfile(path)
+
+
+def test_operationalIssueLog_load_log_items():
+    dataset = "listed-building-outline"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(
+        dataset=dataset,
+        resource=resource,
+        operational_issue_dir="tests/data/listed-building/performance/operational_issue/",
+    )
+
+    operational_issue.load_log_items()
+    assert len(operational_issue.operational_issues.entries) == 1
+    assert (
+        operational_issue.operational_issues.entries[0]["issue-type"]
+        == "unknown entity"
+    )
+    assert (
+        operational_issue.operational_issues.entries[0]["value"]
+        == "listed-building-outline:2"
+    )
+    assert operational_issue.operational_issues.entries[0]["dataset"] == dataset
+
+
+def test_operationalIssueLog_load_log_items_after():
+    dataset = "listed-building-outline"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(
+        dataset=dataset,
+        resource=resource,
+        operational_issue_dir="tests/data/listed-building/performance/operational_issue/",
+    )
+
+    operational_issue.load_log_items(after="2030-09-20")
+    assert len(operational_issue.operational_issues.entries) == 0
+
+
+def test_operationalIssueLog_load():
+    dataset = "listed-building-outline"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(
+        dataset=dataset,
+        resource=resource,
+        operational_issue_dir="tests/data/listed-building/performance/operational_issue/",
+    )
+
+    operational_issue.load()
+    assert len(operational_issue.operational_issues.entries) == 1
+    assert (
+        operational_issue.operational_issues.entries[0]["issue-type"]
+        == "unknown entity"
+    )
+    assert (
+        operational_issue.operational_issues.entries[0]["value"]
+        == "listed-building-outline:2"
+    )
+    assert operational_issue.operational_issues.entries[0]["dataset"] == dataset
+
+
+def test_operationalIssueLog_load_csv():
+    dataset = "listed-building-outline"
+    resource = "resource"
+    operational_issue_dir = (
+        "tests/data/listed-building/performance_csv/operational_issue_csv/"
+    )
+    operational_issue = OperationalIssueLog(
+        dataset=dataset, resource=resource, operational_issue_dir=operational_issue_dir
+    )
+
+    operational_issue.load(operational_issue_directory=operational_issue_dir)
+    assert len(operational_issue.operational_issues.entries) == 2
+    assert (
+        operational_issue.operational_issues.entries[0]["issue-type"]
+        == "unknown entity"
+    )
+    assert (
+        operational_issue.operational_issues.entries[0]["value"]
+        == "listed-building-outline:2"
+    )
+    assert operational_issue.operational_issues.entries[0]["dataset"] == dataset
