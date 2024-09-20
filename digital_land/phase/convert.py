@@ -7,6 +7,7 @@ import os.path
 import sqlite3
 import subprocess
 import tempfile
+import time
 import zipfile
 from packaging.version import Version
 import pandas as pd
@@ -208,6 +209,7 @@ class ConvertPhase(Phase):
 
     def process(self, stream=None):
         input_path = self.path
+        start_time = time.time()
 
         try:
             reader = self._read_binary_file(input_path)
@@ -228,13 +230,20 @@ class ConvertPhase(Phase):
                 reader = iter(())
 
             if self.converted_resource_log:
-                self.converted_resource_log.add(ConvertedResourceLog.Success)
+                self.converted_resource_log.add(
+                    duration=time.time() - start_time,
+                    status=ConvertedResourceLog.Success,
+                )
 
             return Stream(input_path, f=reader, log=self.dataset_resource_log)
 
         except Exception as ex:
             if self.converted_resource_log:
-                self.converted_resource_log.add(ConvertedResourceLog.Failed, str(ex))
+                self.converted_resource_log.add(
+                    duration=time.time() - start_time,
+                    status=ConvertedResourceLog.Failed,
+                    exception=str(ex),
+                )
 
             return Stream(input_path, f=iter(()), log=self.dataset_resource_log)
 

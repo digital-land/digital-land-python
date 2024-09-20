@@ -162,16 +162,14 @@ class ConvertedResourceLog(Log):
     Success = "success"
     Failed = "failed"
 
-    fieldnames = ["dataset", "resource", "status", "exception"]
+    fieldnames = ["dataset", "resource", "duration", "status", "exception"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def add(self, status, exception=""):
+    def add(self, duration, status, exception=""):
         self.rows.append(
             {
                 "dataset": self.dataset,
                 "resource": self.resource,
+                "duration": duration,
                 "status": status,
                 "exception": exception,
             }
