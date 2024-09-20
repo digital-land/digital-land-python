@@ -9,16 +9,11 @@ tree-preservation-zone-type,,18100000,2023-09-11,,,Area,600001,,tree-preservatio
 tree-preservation-zone-type,,18100001,2023-09-11,,,Group,600001,,tree-preservation-zone-type,group,2023-09-11,category,,
 tree-preservation-zone-type,,18100002,2023-09-11,,,Woodland,600001,,tree-preservation-zone-type,woodland,2023-09-11,category,,"""
 
-_cad_type_data = b"""dataset,end-date,entity,entry-date,geojson,geometry,name,organisation-entity,point,prefix,reference,start-date,typology,
-description,notes
-conservation-area-document-type,,4210000,2024-05-20,,,Area appraisal,600001,,conservation-area-document-type,area-apprai
-sal,2022-01-01,category,,
-conservation-area-document-type,,4210001,2024-05-20,,,Notice,600001,,conservation-area-document-type,notice,2022-01-01,c
-ategory,,"For example, a notice published in the local paper such as the London Gazette"
-conservation-area-document-type,,4210002,2024-05-20,,,Designation-report,600001,,conservation-area-document-type,designa
-tion-report,2022-01-01,category,,
-conservation-area-document-type,,4210003,2024-05-20,,,Area map,600001,,conservation-area-document-type,area-map,2022-01-
-01,category,,"""
+_cad_type_data = b"""dataset,end-date,entity,entry-date,geojson,geometry,name,organisation-entity,point,prefix,reference,start-date,typology,description,notes
+conservation-area-document-type,,4210000,2024-05-20,,,Area appraisal,600001,,conservation-area-document-type,area-appraisal,2022-01-01,category,,
+conservation-area-document-type,,4210001,2024-05-20,,,Notice,600001,,conservation-area-document-type,notice,2022-01-01,category,,
+conservation-area-document-type,,4210002,2024-05-20,,,Designation-report,600001,,conservation-area-document-type,designation-report,2022-01-01,category,,
+conservation-area-document-type,,4210003,2024-05-20,,,Area map,600001,,conservation-area-document-type,area-map,2022-01-01,category,,"""
 
 _stat_result_empty = stat_result((0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 _stat_result_tpzt = stat_result((0, 0, 0, 0, 0, 0, len(_tpz_type_data), 0, 0, 0))
@@ -162,4 +157,6 @@ def test_get_categorical_field_values_download_field_category(mocker):
 
     assert len(get_calls) == 1
     assert get_calls[0] == "http://test/dataset/conservation-area-document-type.csv"
-    assert values == {"document-type": ["area-apprai", "notice", "designa", "area-map"]}
+    assert values == {
+        "document-type": ["area-appraisal", "notice", "designation-report", "area-map"]
+    }

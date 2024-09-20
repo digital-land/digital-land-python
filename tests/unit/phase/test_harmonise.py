@@ -224,7 +224,7 @@ def test_validate_categorical_field_dataset():
         issues=issues,
         dataset="conservation-area-document",
         valid_category_values={
-            "document-type": ["area-apprai", "notice", "designa", "area-map"]
+            "document-type": ["area-appraisal", "notice", "designa", "area-map"]
         },
     )
 
