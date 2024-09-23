@@ -61,7 +61,7 @@ def test_operationalIssueLog_load_log_items():
     )
 
     operational_issue.load_log_items()
-    assert len(operational_issue.operational_issues.entries) == 1
+    assert len(operational_issue.operational_issues.entries) == 2
     assert (
         operational_issue.operational_issues.entries[0]["issue-type"]
         == "unknown entity"
@@ -96,7 +96,7 @@ def test_operationalIssueLog_load():
     )
 
     operational_issue.load()
-    assert len(operational_issue.operational_issues.entries) == 1
+    assert len(operational_issue.operational_issues.entries) == 2
     assert (
         operational_issue.operational_issues.entries[0]["issue-type"]
         == "unknown entity"
@@ -108,7 +108,7 @@ def test_operationalIssueLog_load():
     assert operational_issue.operational_issues.entries[0]["dataset"] == dataset
 
 
-def test_operationalIssueLog_load_csv():
+def test_operationalIssueLog_load_with_csv():
     dataset = "listed-building-outline"
     resource = "resource"
     operational_issue_dir = (
@@ -129,3 +129,32 @@ def test_operationalIssueLog_load_csv():
         == "listed-building-outline:2"
     )
     assert operational_issue.operational_issues.entries[0]["dataset"] == dataset
+
+
+def test_operationalIssueLog_update():
+    dataset = "listed-building-outline"
+    resource = "resource"
+    operational_issue_dir = "tests/data/listed-building/performance/operational_issue/"
+
+    operational_issue = OperationalIssueLog(
+        dataset=dataset, resource=resource, operational_issue_dir=operational_issue_dir
+    )
+
+    operational_issue.operational_issues._latest_entry_date = "2024-09-18"
+    operational_issue.update()
+    assert len(operational_issue.operational_issues.entries) == 1
+
+
+def test_operationalIssueLog_save_csv(tmp_path_factory):
+    dataset = "listed-building-outline"
+    resource = "resource"
+    operational_issue_dir = "tests/data/listed-building/performance/operational_issue/"
+    tmp_dir = tmp_path_factory.mktemp("temp_dir")
+
+    operational_issue = OperationalIssueLog(
+        dataset=dataset, resource=resource, operational_issue_dir=operational_issue_dir
+    )
+
+    operational_issue.save_csv(directory=tmp_dir)
+
+    assert os.path.isfile(os.path.join(tmp_dir, dataset, "operational-issue.csv"))

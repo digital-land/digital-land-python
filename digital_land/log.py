@@ -179,7 +179,6 @@ class OperationalIssueLog(IssueLog):
         directory = directory or self.operational_issue_dir
 
         logging.info("saving csv")
-        print("dataset:", self.dataset)
         self.operational_issues.save_csv(
             directory=os.path.join(directory, self.dataset)
         )
