@@ -17,7 +17,12 @@ from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
-from digital_land.log import DatasetResourceLog, IssueLog, ColumnFieldLog
+from digital_land.log import (
+    DatasetResourceLog,
+    IssueLog,
+    ColumnFieldLog,
+    OperationalIssueLog,
+)
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
 from digital_land.phase.combine import FactCombinePhase
@@ -165,9 +170,10 @@ def pipeline_run(
     specification,
     input_path,
     output_path,
-    collection_dir="./collection",  # TBD: remove, replaced by endpoints, organisations and entry_date
+    collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     null_path=None,  # TBD: remove this
     issue_dir=None,
+    operational_issue_dir="performance/operational_issue/",
     organisation_path=None,
     save_harmonised=False,
     column_field_dir=None,
@@ -183,6 +189,7 @@ def pipeline_run(
     schema = specification.pipeline[pipeline.name]["schema"]
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
     issue_log = IssueLog(dataset=dataset, resource=resource)
+    operational_issue_log = OperationalIssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
@@ -207,7 +214,9 @@ def pipeline_run(
         config = None
 
     # load organisations
-    organisation = Organisation(organisation_path, Path(pipeline.path))
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
 
     # load the resource default values from the collection
     if not endpoints:
@@ -270,7 +279,10 @@ def pipeline_run(
         ),
         EntityPrefixPhase(dataset=dataset),
         EntityLookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issue_log
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issue_log,
+            operational_issue_log=operational_issue_log,
         ),
         SavePhase(
             default_output_path("harmonised", input_path),
@@ -297,6 +309,7 @@ def pipeline_run(
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+    operational_issue_log.save(output_dir=operational_issue_dir)
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
 
@@ -312,11 +325,19 @@ def dataset_create(
     dataset,
     specification,
     issue_dir="issue",
+    column_field_dir="var/column-field",
+    dataset_resource_dir="var/dataset-resource",
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
-    organisation = Organisation(organisation_path, Path(pipeline.path))
+
+    # Set up initial objects
+    column_field_dir = Path(column_field_dir)
+    dataset_resource_dir = Path(dataset_resource_dir)
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
     package = DatasetPackage(
         dataset,
         organisation=organisation,
@@ -325,7 +346,10 @@ def dataset_create(
     )
     package.create()
     for path in input_paths:
+        path_obj = Path(path)
         package.load_transformed(path)
+        package.load_column_fields(column_field_dir / dataset / path_obj.name)
+        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
     package.load_entities()
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
@@ -737,7 +761,9 @@ def get_resource_unidentified_lookups(
     schema = specification.pipeline[pipeline.name]["schema"]
 
     # organisation phase
-    organisation = Organisation(org_csv_path, Path(pipeline.path))
+    organisation = Organisation(
+        organisation_path=org_csv_path, pipeline_dir=Path(pipeline.path)
+    )
 
     # print lookups phase
     pipeline_lookups = pipeline.lookups()

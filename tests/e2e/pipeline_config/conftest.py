@@ -30,6 +30,9 @@ def test_dirs(tmp_path_factory):
 
     collection_dir = tmp_path_factory.mktemp("column_collection", numbered=False)
     issues_log_dir = tmp_path_factory.mktemp("column_issues-log", numbered=False)
+    operational_issues_dir = tmp_path_factory.mktemp(
+        "column_operational_issues", numbered=False
+    )
     datasource_log_dir = tmp_path_factory.mktemp(
         "column_datasource-log", numbered=False
     )
@@ -71,6 +74,7 @@ def test_dirs(tmp_path_factory):
         "specification_dir": specification_dir,
         "transformed_dir": transformed_dir,
         "issues_log_dir": issues_log_dir,
+        "operational_issues_dir": operational_issues_dir,
         "datasource_log_dir": datasource_log_dir,
     }
 

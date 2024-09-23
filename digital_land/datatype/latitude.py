@@ -2,9 +2,8 @@ from decimal import Decimal, InvalidOperation
 from .datatype import DataType
 
 
-class DecimalDataType(DataType):
-    def __init__(self, precision=6, minimum=0.0, maximum=None):
-        # Setting default as 0.0 for minimum value. This will be applied for all decimal data.
+class LatitudeDataType(DataType):
+    def __init__(self, precision=6, minimum=None, maximum=None):
         self.precision = precision
         self.minimum = minimum
         self.maximum = maximum
@@ -16,7 +15,6 @@ class DecimalDataType(DataType):
     def normalise(self, value, issues=None):
         # remove commas ..
         value = value.replace(",", "")
-        value = value.replace("£", "")
 
         try:
             d = Decimal(value)

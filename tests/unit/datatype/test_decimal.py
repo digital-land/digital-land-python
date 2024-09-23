@@ -20,6 +20,7 @@ def test_decimal_format():
 
 def test_decimal_normalise():
     issues = IssueLog()
+    issues.fieldname = "Hectares"
     decimal = DecimalDataType()
 
     assert decimal.normalise("00034.33520000") == "34.3352"
@@ -53,4 +54,13 @@ def test_decimal_normalise():
     issue = issues.rows.pop()
     assert issue["issue-type"] == "too large"
     assert issue["value"] == "69.9"
+    assert issues.rows == []
+
+    decimal = DecimalDataType()
+
+    decimal.normalise("-1", issues=issues)
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "too small"
+    assert issue["value"] == "-1"
+    assert issue["message"] == f"{issues.fieldname} must be larger than 0.0"
     assert issues.rows == []

@@ -1,5 +1,5 @@
 import pytest
-from digital_land.log import IssueLog
+from digital_land.log import IssueLog, OperationalIssueLog
 from unittest.mock import patch, mock_open
 import pandas as pd
 
@@ -74,3 +74,12 @@ def test_appendErrorMessage(issue_log_data, mapping_data):
 
     assert issue.rows[0]["description"] == "desc1"
     assert issue.rows[1]["description"] == "appended description"
+
+
+def test_operationalIssueLog_save_no_operational_dir():
+    dataset = "dataset"
+    resource = "resource"
+    operational_issue = OperationalIssueLog(dataset=dataset, resource=resource)
+
+    with pytest.raises(Exception):
+        operational_issue.save()

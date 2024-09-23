@@ -1,4 +1,5 @@
 import csv
+import os
 from datetime import datetime
 import pandas as pd
 import yaml
@@ -105,6 +106,32 @@ class IssueLog(Log):
             ]
             if not mapping_row["description"].empty:
                 row["description"] = mapping_row["description"].values[0]
+
+
+class OperationalIssueLog(IssueLog):
+    def get_now(self):
+        return datetime.now().isoformat()
+
+    def save(self, output_dir=None, path=None, f=None):
+        if (
+            not path and output_dir
+        ):  # Create path if not specified and operational issue dir is given
+            path = os.path.join(
+                *[
+                    output_dir,
+                    self.dataset,
+                    self.get_now()[:10],
+                    self.resource + ".csv",
+                ]
+            )
+        elif (
+            not path
+        ):  # Else if path not given and operational issue dir isn't specified then raise exception
+            raise Exception(
+                "Operational issue log directory/path or performance directory not given"
+            )
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        super().save(path=path, f=f)
 
 
 class ColumnFieldLog(Log):
