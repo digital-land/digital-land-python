@@ -199,7 +199,12 @@ def pipeline_run(
 
     # load config db
     # TODO get more information from the config
-    config = Config(path=config_path, specification=Specification)
+    # TODO in future we need better way of making config optional
+    if Path(config_path).exists():
+        config = Config(path=config_path, specification=Specification)
+    else:
+        logging.error("Config path  does not exist")
+        config = None
 
     # load organisations
     organisation = Organisation(organisation_path, Path(pipeline.path))
