@@ -193,9 +193,7 @@ class SqlitePackage(Package):
 
     def get_table_fields(self, tables=None):
         """
-        given a set of tablesthis function uses the specification able to extract the list of fields that should
-        be created in the database. There are fields which end in an s and hence represent mappings
-        between tables. join tables are returned aong with the fields.
+        gets tables fields and join  table information for a dictionary of tables
         """
         tables = tables or self.tables
         fields = {}
