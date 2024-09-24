@@ -55,12 +55,9 @@ def test_schema_field_csv(spec_dir):
 
 
 class TestSpecification:
-    def test_load_schema_loads_sccuessfully(
+    def test_load_schema_loads_successfully(
         self, spec_dir: Path, test_schema_csv: Path, mocker
     ):
-
-        assert test_schema_csv.exists(), "schema.csv file not created properly"
-
         # create spec without folder to just test loading on schema check no schema loaded
         mocker.patch("digital_land.specification.Specification.__init__", mock_init)
         spec = Specification()
@@ -76,11 +73,6 @@ class TestSpecification:
     def test_load_schema_field_loads_successfully(
         self, spec_dir: Path, test_schema_csv: Path, test_schema_field_csv: Path, mocker
     ):
-        assert test_schema_csv.exists(), "schema.csv file not created properly"
-        assert (
-            test_schema_field_csv.exists()
-        ), "schema-field.csv file not created properly"
-
         # create spec without folder to just test loading on schema check no schema loaded
         mocker.patch("digital_land.specification.Specification.__init__", mock_init)
         spec = Specification()

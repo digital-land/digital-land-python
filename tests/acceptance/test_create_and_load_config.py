@@ -15,7 +15,6 @@ def pipeline_dir(tmp_path_factory):
     We create a pipeline direcctory  to be used for loading in
     """
     pipeline_dir = tmp_path_factory.mktemp("pipeline")
-    # Create a temporary directory
 
     test_data = [
         {
@@ -33,12 +32,8 @@ def pipeline_dir(tmp_path_factory):
 
 def test_create_and_load(specification_dir, pipeline_dir, tmp_path):
     config_path = tmp_path / "config.sqlite3"
-    # config_path = Path('var/config.sqlite3')
 
     runner = CliRunner()
-
-    # setup ctx
-    # ctx = Context(cli, ["--specificaiton-dir",str(specification_dir),'--pipeline-dir',str(pipeline_dir)])
 
     result = runner.invoke(
         cli,

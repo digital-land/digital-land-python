@@ -21,6 +21,3 @@ def test_help_on_context():
         print(result.exception)
 
     assert result.exit_code == 0
-
-
-# need to add fields to the schemas
