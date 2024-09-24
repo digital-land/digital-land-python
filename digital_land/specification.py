@@ -61,6 +61,7 @@ class Specification:
         for row in reader:
             self.schema_names.append(row["schema"])
             self.schema[row["schema"]] = row
+            self.schema[row["schema"]].setdefault("fields", [])
 
     def load_dataset_schema(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset-schema.csv")))
@@ -85,6 +86,7 @@ class Specification:
         for row in reader:
             self.schema_field.setdefault(row["schema"], [])
             self.schema_field[row["schema"]].append(row["field"])
+            self.schema[row["schema"]]["fields"].append(row["field"])
 
     def load_typology(self, path):
         reader = csv.DictReader(open(os.path.join(path, "typology.csv")))
