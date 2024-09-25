@@ -170,21 +170,21 @@ class SqlitePackage(Package):
         tables = tables or self.tables
         fields, join_tables = self.get_table_fields(tables)
         for table in tables:
-            fields = fields[table]
+            table_fields = fields[table]
             path = "%s/%s.csv" % (tables[table], table)
             self.create_cursor()
-            self.load_table(table, fields, path=path)
+            self.load_table(table, table_fields, path=path)
             self.commit()
 
         for join_table, join in join_tables.items():
             table = join["table"]
             field = join["field"]
-            fields = [table, field]
+            table_fields = [table, field]
             path = "%s/%s.csv" % (tables[table], table)
             self.create_cursor()
             self.load_join_table(
                 join_table,
-                fields=fields,
+                fields=table_fields,
                 split_field=join["split-field"],
                 field=field,
                 path=path,
