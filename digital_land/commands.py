@@ -21,6 +21,7 @@ from digital_land.log import (
     DatasetResourceLog,
     IssueLog,
     ColumnFieldLog,
+    OperationalIssueLog,
     ConvertedResourceLog,
 )
 from digital_land.organisation import Organisation
@@ -44,6 +45,7 @@ from digital_land.phase.normalise import NormalisePhase
 from digital_land.phase.organisation import OrganisationPhase
 from digital_land.phase.parse import ParsePhase
 from digital_land.phase.patch import PatchPhase
+from digital_land.phase.priority import PriorityPhase
 from digital_land.phase.pivot import PivotPhase
 from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrunePhase
@@ -52,8 +54,12 @@ from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
+
+from digital_land.configuration.main import Config
+
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +98,15 @@ def collection_save_csv(collection_dir):
     collection.load()
     collection.update()
     collection.save_csv()
+
+
+def operational_issue_save_csv(operational_issue_dir, dataset):
+    operationalIssues = OperationalIssueLog(
+        operational_issue_dir=operational_issue_dir, dataset=dataset
+    )
+    operationalIssues.load()
+    operationalIssues.update()
+    operationalIssues.save_csv()
 
 
 def collection_retire_endpoints_and_sources(
@@ -170,6 +185,7 @@ def pipeline_run(
     collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     null_path=None,  # TBD: remove this
     issue_dir=None,
+    operational_issue_dir="performance/operational_issue/",
     organisation_path=None,
     save_harmonised=False,
     column_field_dir=None,
@@ -179,12 +195,14 @@ def pipeline_run(
     endpoints=[],
     organisations=[],
     entry_date="",
+    config_path="var/cache/config.sqlite3",
 ):
     resource = resource_from_path(input_path)
     dataset = dataset
     schema = specification.pipeline[pipeline.name]["schema"]
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
     issue_log = IssueLog(dataset=dataset, resource=resource)
+    operational_issue_log = OperationalIssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
     converted_resource_log = ConvertedResourceLog(dataset=dataset, resource=resource)
@@ -199,6 +217,15 @@ def pipeline_run(
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
     redirect_lookups = pipeline.redirect_lookups()
+
+    # load config db
+    # TODO get more information from the config
+    # TODO in future we need better way of making config optional
+    if Path(config_path).exists():
+        config = Config(path=config_path, specification=Specification)
+    else:
+        logging.error("Config path  does not exist")
+        config = None
 
     # load organisations
     organisation = Organisation(
@@ -220,6 +247,7 @@ def pipeline_run(
     if entry_date:
         default_values["entry-date"] = entry_date
 
+    # TODO Migrate all of this into a function in the Pipeline function
     run_pipeline(
         ConvertPhase(
             path=input_path,
@@ -266,7 +294,10 @@ def pipeline_run(
         ),
         EntityPrefixPhase(dataset=dataset),
         EntityLookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issue_log
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issue_log,
+            operational_issue_log=operational_issue_log,
         ),
         SavePhase(
             default_output_path("harmonised", input_path),
@@ -274,6 +305,7 @@ def pipeline_run(
             enabled=save_harmonised,
         ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
+        PriorityPhase(config=config),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),
@@ -292,6 +324,7 @@ def pipeline_run(
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+    operational_issue_log.save(output_dir=operational_issue_dir)
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
@@ -362,7 +395,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     elif isinstance(csv_path, Path):
         dataset_name = csv_path.stem
     else:
-        logging.error(f"Can't extract datapackage name from {csv_path}")
+        logging.error(f"Can't extract  datapackage name from {csv_path}")
         sys.exit(-1)
 
     flattened_csv_path = os.path.join(flattened_dir, f"{dataset_name}.csv")

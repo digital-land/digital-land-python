@@ -37,6 +37,7 @@ def test_pipeline_run(test_dirs):
 
     collection_dir = test_dirs["collection_dir"]
     issue_dir = test_dirs["issues_log_dir"]
+    operational_issues_dir = test_dirs["operational_issues_dir"]
     organisation_path = "tests/data/listed-building/organisation.csv"
     dataset_resource_dir = test_dirs["dataset_resource_dir"]
     converted_resource_dir = test_dirs["converted_resource_dir"]
@@ -52,6 +53,7 @@ def test_pipeline_run(test_dirs):
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
         null_path=None,  # TBD: remove this
         issue_dir=issue_dir,
+        operational_issue_dir=operational_issues_dir,
         organisation_path=organisation_path,
         save_harmonised=False,
         column_field_dir=pipeline_dir,

@@ -81,6 +81,20 @@ schemas = {
             "end-date",
         ],
     },
+    "operational-issue": {
+        "fields": [
+            "dataset",
+            "resource",
+            "line-number",
+            "entry-number",
+            "field",
+            "issue-type",
+            "value",
+            "message",
+            "entry-date",
+        ],
+        "key": "operational-issue",
+    },
 }
 
 

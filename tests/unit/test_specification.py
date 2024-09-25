@@ -27,6 +27,7 @@ def test_schema_names():
         "schema-two",
         "schema-three",
         "fact",
+        "fact-resource",
     ]
 
 

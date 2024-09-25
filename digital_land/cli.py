@@ -8,6 +8,8 @@ from collections import defaultdict
 from digital_land.collection import Collection
 from digital_land.specification import Specification
 
+from digital_land.configuration.main import Config
+
 from digital_land.commands import (
     add_redirections,
     assign_entities,
@@ -18,6 +20,7 @@ from digital_land.commands import (
     dataset_dump,
     dataset_dump_flattened,
     collection_save_csv,
+    operational_issue_save_csv,
     convert,
     dataset_create,
     pipeline_run,
@@ -31,6 +34,7 @@ from digital_land.commands import (
 from digital_land.command_arguments import (
     collection_dir,
     config_collections_dir,
+    operational_issue_dir,
     organisation_path,
     input_output_path,
     issue_dir,
@@ -108,6 +112,16 @@ def collection_save_csv_cmd(collection_dir):
     return collection_save_csv(collection_dir)
 
 
+@cli.command(
+    "operational-issue-save-csv", short_help="save Operational Issues as CSV package"
+)
+@operational_issue_dir
+@click.pass_context
+def operational_issue_save_csv_cmd(ctx, operational_issue_dir):
+    dataset = ctx.obj["DATASET"]
+    return operational_issue_save_csv(operational_issue_dir, dataset)
+
+
 #
 #  pipeline commands
 #
@@ -171,6 +185,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
 @click.option("--custom-temp-dir", help="default temporary directory", default=None)
+@click.option("--config-path", help="Path  to a configuration sqlite", default=None)
 @input_output_path
 @issue_dir
 @column_field_dir
@@ -178,6 +193,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @converted_resource_dir
 @organisation_path
 @collection_dir
+@operational_issue_dir
 @click.pass_context
 def pipeline_command(
     ctx,
@@ -194,6 +210,8 @@ def pipeline_command(
     entry_date,
     custom_temp_dir,
     collection_dir,
+    operational_issue_dir,
+    config_path,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -210,6 +228,7 @@ def pipeline_command(
         output_path,
         collection_dir=collection_dir,
         issue_dir=issue_dir,
+        operational_issue_dir=operational_issue_dir,
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
         converted_resource_dir=converted_resource_dir,
@@ -219,6 +238,7 @@ def pipeline_command(
         organisations=organisations,
         entry_date=entry_date,
         custom_temp_dir=custom_temp_dir,
+        config_path=config_path,
     )
 
 
@@ -473,3 +493,24 @@ def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path)
         lpa_path=lpa_path,
         output_path=output_path,
     )
+
+
+@cli.command("config-create", short_help="create a dataset from processed resources")
+@click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
+@click.pass_context
+def config_create_cmd(ctx, config_path):
+    """
+    A function which builds an empty configuration database based on the spec
+    """
+    config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
+    config.create()
+
+
+@cli.command("config-load", short_help="create a dataset from processed resources")
+@click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
+@click.pass_context
+def config_load_cmd(ctx, config_path):
+
+    config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
+    tables = {key: ctx.obj["PIPELINE"].path for key in config.tables.keys()}
+    config.load(tables)

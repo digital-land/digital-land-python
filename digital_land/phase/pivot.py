@@ -20,6 +20,7 @@ class PivotPhase(Phase):
                     "field": field,
                     "value": value,
                     # entry
+                    "priority": block["priority"],
                     "resource": block["resource"],
                     "line-number": block["line-number"],
                     "entry-number": block["entry-number"],
