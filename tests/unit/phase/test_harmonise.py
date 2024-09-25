@@ -89,6 +89,7 @@ def test_harmonise_geometry_present_point_missing():
     assert len(issues.rows) == 0
 
 
+# TODO Why is the specification being read in here should we remove it?
 def test_harmonise_geometry_present_no_point_field():
     specification = Specification("tests/data/specification")
     issues = IssueLog()
@@ -162,6 +163,7 @@ def test_get_field_datatype_name_uses_field_datatype_map():
     assert datatype_name == "string"
 
 
+# TODO this assumes that a specification is downloaded locally It should mock this
 def test_get_field_datatype_name_riases_warning_for_spec():
     spec = Specification()
     spec.field = {"reference": {"datatype": "string"}}

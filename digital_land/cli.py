@@ -8,6 +8,8 @@ from collections import defaultdict
 from digital_land.collection import Collection
 from digital_land.specification import Specification
 
+from digital_land.configuration.main import Config
+
 from digital_land.commands import (
     add_redirections,
     assign_entities,
@@ -182,6 +184,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
 @click.option("--custom-temp-dir", help="default temporary directory", default=None)
+@click.option("--config-path", help="Path  to a configuration sqlite", default=None)
 @input_output_path
 @issue_dir
 @column_field_dir
@@ -205,6 +208,7 @@ def pipeline_command(
     custom_temp_dir,
     collection_dir,
     operational_issue_dir,
+    config_path,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -230,6 +234,7 @@ def pipeline_command(
         organisations=organisations,
         entry_date=entry_date,
         custom_temp_dir=custom_temp_dir,
+        config_path=config_path,
     )
 
 
@@ -484,3 +489,24 @@ def organisation_check_cmd(input_path, specification_dir, lpa_path, output_path)
         lpa_path=lpa_path,
         output_path=output_path,
     )
+
+
+@cli.command("config-create", short_help="create a dataset from processed resources")
+@click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
+@click.pass_context
+def config_create_cmd(ctx, config_path):
+    """
+    A function which builds an empty configuration database based on the spec
+    """
+    config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
+    config.create()
+
+
+@cli.command("config-load", short_help="create a dataset from processed resources")
+@click.option("--config-path", type=click.Path(), default=None, help="sqlite3 path")
+@click.pass_context
+def config_load_cmd(ctx, config_path):
+
+    config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
+    tables = {key: ctx.obj["PIPELINE"].path for key in config.tables.keys()}
+    config.load(tables)

@@ -530,5 +530,3 @@ class Lookups:
                 return False
 
         return True
-
-    # I'm not sure we need this class or if we do it should be an iterator then can be used to iterate through entity numbers by dataset
