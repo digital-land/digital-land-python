@@ -231,7 +231,7 @@ class ConvertPhase(Phase):
 
             if self.converted_resource_log:
                 self.converted_resource_log.add(
-                    duration=time.time() - start_time,
+                    elapsed=time.time() - start_time,
                     status=ConvertedResourceLog.Success,
                 )
 
@@ -240,7 +240,7 @@ class ConvertPhase(Phase):
         except Exception as ex:
             if self.converted_resource_log:
                 self.converted_resource_log.add(
-                    duration=time.time() - start_time,
+                    elapsed=time.time() - start_time,
                     status=ConvertedResourceLog.Failed,
                     exception=str(ex),
                 )

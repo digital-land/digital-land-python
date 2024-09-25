@@ -239,14 +239,14 @@ class ConvertedResourceLog(Log):
     Success = "success"
     Failed = "failed"
 
-    fieldnames = ["dataset", "resource", "duration", "status", "exception"]
+    fieldnames = ["dataset", "resource", "elapsed", "status", "exception"]
 
-    def add(self, duration, status, exception=""):
+    def add(self, elapsed, status, exception=""):
         self.rows.append(
             {
                 "dataset": self.dataset,
                 "resource": self.resource,
-                "duration": duration,
+                "elapsed": elapsed,
                 "status": status,
                 "exception": exception,
             }
