@@ -81,9 +81,9 @@ class CSVItemStore(CSVStore):
             after = datetime.fromisoformat(after)
             startdate = datetime(year=after.year, month=after.month, day=after.day)
 
-            logging.debug(f"Loading files after {after}")
+            logging.error(f"Loading files after {after}")
 
-        logging.debug(f"Loading CSV files from {csv_files_path}")
+        logging.error(f"Loading CSV files from {csv_files_path}")
 
         for csv_file_path in sorted(glob.glob(csv_files_path)):
             try:

@@ -28,7 +28,7 @@ class CSVStore(MemoryStore):
             entries = self.entries
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        logging.debug("saving %s" % (path))
+        logging.error("saving %s" % (path))
         f = open(path, "w", newline="")
         writer = csv.DictWriter(
             f, fieldnames=self.schema.fieldnames, extrasaction="ignore"

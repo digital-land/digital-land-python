@@ -151,7 +151,7 @@ class OperationalIssueLog(IssueLog):
             operational_issue_directory or self.operational_issue_dir
         )
 
-        logging.info("loading Operational issue files")
+        logging.error("loading Operational issue files")
         self.operational_issues.load(
             directory=operational_issue_directory, after=after, dataset=self.dataset
         )
@@ -167,7 +167,7 @@ class OperationalIssueLog(IssueLog):
             )
             logging.info("Operational Issues loaded from CSV")
         except FileNotFoundError:
-            logging.info(
+            logging.error(
                 "No operational_issue.csv - building from operational-issue items"
             )
             self.load_log_items(operational_issue_directory=operational_issue_directory)
@@ -178,7 +178,7 @@ class OperationalIssueLog(IssueLog):
     def save_csv(self, directory=None):
         directory = directory or self.operational_issue_dir
 
-        logging.info("saving csv")
+        logging.error("saving csv")
         self.operational_issues.save_csv(
             directory=os.path.join(directory, self.dataset)
         )
