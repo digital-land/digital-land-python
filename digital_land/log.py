@@ -233,3 +233,21 @@ class DatasetResourceLog(Log):
     def save(self, *args, **kwargs):
         self.add()
         super().save(*args, **kwargs)
+
+
+class ConvertedResourceLog(Log):
+    Success = "success"
+    Failed = "failed"
+
+    fieldnames = ["dataset", "resource", "elapsed", "status", "exception"]
+
+    def add(self, elapsed, status, exception=""):
+        self.rows.append(
+            {
+                "dataset": self.dataset,
+                "resource": self.resource,
+                "elapsed": elapsed,
+                "status": status,
+                "exception": exception,
+            }
+        )

@@ -38,6 +38,12 @@ def test_dirs(tmp_path_factory):
 
     collection_dir = tmp_path_factory.mktemp("concat_collection", numbered=False)
     issues_log_dir = tmp_path_factory.mktemp("concat_issues-log", numbered=False)
+    dataaset_resource_dir = tmp_path_factory.mktemp(
+        "concat_dataset-resource", numbered=False
+    )
+    converted_resource_dir = tmp_path_factory.mktemp(
+        "concat_converted-resource", numbered=False
+    )
     operational_issues_dir = tmp_path_factory.mktemp(
         "concat_operational_issues", numbered=False
     )
@@ -68,8 +74,10 @@ def test_dirs(tmp_path_factory):
         "pipeline_dir": pipeline_dir,
         "specification_dir": specification_dir,
         "issues_log_dir": issues_log_dir,
+        "dataset_resource_dir": dataaset_resource_dir,
         "operational_issues_dir": operational_issues_dir,
         "datasource_log_dir": datasource_log_dir,
+        "converted_resource_dir": converted_resource_dir,
     }
 
 
@@ -320,7 +328,8 @@ def test_pipeline_run(test_dirs):
     issue_dir = test_dirs["issues_log_dir"]
     operational_issue_dir = test_dirs["operational_issues_dir"]
     organisation_path = "tests/data/listed-building/organisation.csv"
-    dataset_resource_dir = test_dirs["datasource_log_dir"]
+    dataset_resource_dir = test_dirs["dataset_resource_dir"]
+    converted_resource_dir = test_dirs["converted_resource_dir"]
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
     # -- Act --
@@ -338,6 +347,7 @@ def test_pipeline_run(test_dirs):
         save_harmonised=False,
         column_field_dir=pipeline_dir,
         dataset_resource_dir=dataset_resource_dir,
+        converted_resource_dir=converted_resource_dir,
         custom_temp_dir=None,  # TBD: rename to "tmpdir"
         endpoints=test_endpoints,
         organisations=[],

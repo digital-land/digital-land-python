@@ -7,12 +7,18 @@ import os.path
 import sqlite3
 import subprocess
 import tempfile
+import time
 import zipfile
 from packaging.version import Version
 import pandas as pd
 from .load import Stream
 from .phase import Phase
 from ..utils.gdal_utils import get_gdal_version
+from digital_land.log import ConvertedResourceLog
+
+
+class ConversionError(Exception):
+    pass
 
 
 def detect_file_encoding(path):
@@ -85,35 +91,44 @@ def read_excel(path):
 def convert_features_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
-    execute(
-        [
-            "ogr2ogr",
-            "-oo",
-            "DOWNLOAD_SCHEMA=NO",
-            "-lco",
-            "GEOMETRY=AS_WKT",
-            "-lco",
-            "GEOMETRY_NAME=WKT",
-            "-lco",
-            "LINEFORMAT=CRLF",
-            "-f",
-            "CSV",
-            "-nlt",
-            "MULTIPOLYGON",
-            "-nln",
-            "MERGED",
-            "--config",
-            "OGR_WKT_PRECISION",
-            "10",
-            output_path,
-            input_path,
-        ],
-        env=(
-            dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
-            if get_gdal_version() >= Version("3.5.2")
-            else os.environ
-        ),
+
+    gdal_version = get_gdal_version()
+
+    command = [
+        "ogr2ogr",
+        "-oo",
+        "DOWNLOAD_SCHEMA=NO",
+        "-lco",
+        "GEOMETRY=AS_WKT",
+        "-lco",
+        "GEOMETRY_NAME=WKT",
+        "-lco",
+        "LINEFORMAT=CRLF",
+        "-f",
+        "CSV",
+        "-nlt",
+        "MULTIPOLYGON",
+        "-nln",
+        "MERGED",
+        "--config",
+        "OGR_WKT_PRECISION",
+        "10",
+        output_path,
+        input_path,
+    ]
+    env = (
+        dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
+        if gdal_version >= Version("3.5.2")
+        else dict(os.environ)
     )
+
+    rc, outs, errs = execute(command, env=env)
+
+    if rc != 0:
+        raise ConversionError(
+            f"ogr2ogr failed ({rc}). stdout='{outs}', stderr='{errs}'. gdal version {gdal_version}"
+        )
+
     if not os.path.isfile(output_path):
         return None
 
@@ -142,17 +157,28 @@ def convert_json_to_csv(input_path, output_path=None):
             if item[0] in ["columns"]:
                 columns = [x for x in item[1].persistent()]
                 if data is not None:
-                    save_efficient_json_as_csv(output_path, columns, data)
+                    save_efficient_json_as_csv(
+                        output_path,
+                        columns,
+                        data,
+                    )
                     return output_path
 
             if item[0] in ["data"]:
                 if columns is not None:
-                    save_efficient_json_as_csv(output_path, columns, item[1])
+                    save_efficient_json_as_csv(
+                        output_path,
+                        columns,
+                        item[1],
+                    )
                     return output_path
                 else:
                     data = [x for x in item[1].persistent()]
 
-        return convert_features_to_csv(input_path, output_path)
+        return convert_features_to_csv(
+            input_path,
+            output_path,
+        )
 
 
 class ConvertPhase(Phase):
@@ -160,11 +186,13 @@ class ConvertPhase(Phase):
         self,
         path=None,
         dataset_resource_log=None,
+        converted_resource_log=None,
         custom_temp_dir=None,
         output_path=None,
     ):
         self.path = path
-        self.log = dataset_resource_log
+        self.dataset_resource_log = dataset_resource_log
+        self.converted_resource_log = converted_resource_log
         self.charset = ""
         # Allows for custom temporary directory to be specified
         # This allows symlink creation in case of /tmp & path being on different partitions
@@ -181,41 +209,64 @@ class ConvertPhase(Phase):
 
     def process(self, stream=None):
         input_path = self.path
+        start_time = time.time()
 
-        reader = self._read_binary_file(input_path)
+        try:
+            reader = self._read_binary_file(input_path)
 
-        if not reader:
-            encoding = detect_file_encoding(input_path)
-            if encoding:
-                logging.debug("encoding detected: %s", encoding)
-                self.charset = ";charset=" + encoding
-                reader = self._read_text_file(input_path, encoding)
+            if not reader:
+                encoding = detect_file_encoding(input_path)
+                if encoding:
+                    logging.debug("encoding detected: %s", encoding)
+                    self.charset = ";charset=" + encoding
+                    reader = self._read_text_file(input_path, encoding)
 
-        if not reader:
-            logging.debug("failed to create reader, cannot process %s", input_path)
+            if not reader:
+                raise ConversionError(
+                    f"failed to create reader, cannot process {input_path}"
+                )
 
-            # raise StopIteration()
-            reader = iter(())
+                # raise StopIteration()
+                reader = iter(())
 
-        return Stream(input_path, f=reader, log=self.log)
+            if self.converted_resource_log:
+                self.converted_resource_log.add(
+                    elapsed=time.time() - start_time,
+                    status=ConvertedResourceLog.Success,
+                )
+
+            return Stream(input_path, f=reader, log=self.dataset_resource_log)
+
+        except Exception as ex:
+            if self.converted_resource_log:
+                self.converted_resource_log.add(
+                    elapsed=time.time() - start_time,
+                    status=ConvertedResourceLog.Failed,
+                    exception=str(ex),
+                )
+
+            return Stream(input_path, f=iter(()), log=self.dataset_resource_log)
 
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
-        self.log.mime_type = "text/csv" + self.charset
+        self.dataset_resource_log.mime_type = "text/csv" + self.charset
         content = f.read(10)
         f.seek(0)
         converted_csv_file = None
 
         if content.lower().startswith("<!doctype "):
-            self.log.mime_type = "text/html" + self.charset
+            self.dataset_resource_log.mime_type = "text/html" + self.charset
             logging.warn("%s has <!doctype, IGNORING!", input_path)
             f.close()
             return None
 
         elif content.lower().startswith(("<?xml ", "<wfs:")):
             logging.debug("%s looks like xml", input_path)
-            self.log.mime_type = "application/xml" + self.charset
-            converted_csv_file = convert_features_to_csv(input_path, self.output_path)
+            self.dataset_resource_log.mime_type = "application/xml" + self.charset
+            converted_csv_file = convert_features_to_csv(
+                input_path,
+                self.output_path,
+            )
             if not converted_csv_file:
                 f.close()
                 logging.warning("conversion from XML to CSV failed")
@@ -223,8 +274,11 @@ class ConvertPhase(Phase):
 
         elif content.lower().startswith("{"):
             logging.debug("%s looks like json", input_path)
-            self.log.mime_type = "application/json" + self.charset
-            converted_csv_file = convert_json_to_csv(input_path, self.output_path)
+            self.dataset_resource_log.mime_type = "application/json" + self.charset
+            converted_csv_file = convert_json_to_csv(
+                input_path,
+                self.output_path,
+            )
 
         if converted_csv_file:
             f.close()
@@ -282,7 +336,7 @@ class ConvertPhase(Phase):
         excel = read_excel(input_path)
         if excel is not None:
             logging.debug(f"{input_path} looks like excel")
-            self.log.mime_type = "application/vnd.ms-excel"
+            self.dataset_resource_log.mime_type = "application/vnd.ms-excel"
             if not self.output_path:
                 self.output_path = tempfile.NamedTemporaryFile(
                     suffix=".csv", delete=False
@@ -294,17 +348,18 @@ class ConvertPhase(Phase):
                 encoding="utf-8",
                 quoting=csv.QUOTE_ALL,
             )
+
             return read_csv(self.output_path, encoding="utf-8")
 
         # Then try zip
         if zipfile.is_zipfile(input_path):
             logging.debug(f"{input_path} looks like zip")
-            self.log.mime_type = "application/zip"
+            self.dataset_resource_log.mime_type = "application/zip"
 
             internal_path, mime_type = self.find_internal_path(input_path)
             if internal_path:
-                self.log.internal_path = internal_path
-                self.log.internal_mime_type = mime_type
+                self.dataset_resource_log.internal_path = internal_path
+                self.dataset_resource_log.internal_mime_type = mime_type
                 temp_path = tempfile.NamedTemporaryFile(
                     suffix=".zip", **self.temp_file_extra_kwargs
                 ).name
@@ -324,7 +379,7 @@ class ConvertPhase(Phase):
             pass
         else:
             logging.debug(f"{input_path} looks like SQLite")
-            self.log.mime_type = "application/geopackage+sqlite3"
+            self.dataset_resource_log.mime_type = "application/geopackage+sqlite3"
             csv_path = convert_features_to_csv(input_path, self.output_path)
             encoding = detect_file_encoding(csv_path)
             return read_csv(csv_path, encoding)

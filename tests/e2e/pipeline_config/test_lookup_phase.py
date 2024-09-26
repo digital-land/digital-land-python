@@ -39,7 +39,8 @@ def test_pipeline_run(test_dirs):
     issue_dir = test_dirs["issues_log_dir"]
     operational_issues_dir = test_dirs["operational_issues_dir"]
     organisation_path = "tests/data/listed-building/organisation.csv"
-    dataset_resource_dir = test_dirs["datasource_log_dir"]
+    dataset_resource_dir = test_dirs["dataset_resource_dir"]
+    converted_resource_dir = test_dirs["converted_resource_dir"]
     test_endpoints = [test_endpoint]
 
     # -- Act --
@@ -57,6 +58,7 @@ def test_pipeline_run(test_dirs):
         save_harmonised=False,
         column_field_dir=pipeline_dir,
         dataset_resource_dir=dataset_resource_dir,
+        converted_resource_dir=converted_resource_dir,
         custom_temp_dir=None,  # TBD: rename to "tmpdir"
         endpoints=test_endpoints,
         organisations=[],
