@@ -54,8 +54,8 @@ from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
-
 from digital_land.configuration.main import Config
+from digital_land.api import API
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
@@ -206,6 +206,7 @@ def pipeline_run(
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
     converted_resource_log = ConvertedResourceLog(dataset=dataset, resource=resource)
+    api = API(specification=specification)
 
     # load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource, endpoints)
@@ -240,6 +241,9 @@ def pipeline_run(
         organisations = collection.resource_organisations(resource)
         entry_date = collection.resource_start_date(resource)
 
+    # Load valid category values
+    valid_category_values = api.get_valid_category_values(dataset)
+
     # resource specific default values
     if len(organisations) == 1:
         default_values["organisation"] = organisations[0]
@@ -273,6 +277,7 @@ def pipeline_run(
             field_datatype_map=specification.get_field_datatype_map(),
             issues=issue_log,
             dataset=dataset,
+            valid_category_values=valid_category_values,
         ),
         DefaultPhase(
             default_fields=default_fields,

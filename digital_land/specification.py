@@ -30,6 +30,8 @@ class Specification:
         self.schema = {}
         self.schema_names = []
         self.dataset_schema = {}
+        self.dataset_field = {}
+        self.dataset_field_dataset = {}
         self.field = {}
         self.field_names = []
         self.datatype = {}
@@ -37,7 +39,6 @@ class Specification:
         self.schema_field = {}
         self.typology = {}
         self.pipeline = {}
-
         self.load_dataset(path)
         self.load_schema(path)
         self.load_dataset_schema(path)
@@ -46,6 +47,7 @@ class Specification:
         self.load_schema_field(path)
         self.load_typology(path)
         self.load_pipeline(path)
+        self.load_dataset_field(path)
 
         self.index_field()
         self.index_schema()
@@ -80,6 +82,17 @@ class Specification:
         for row in reader:
             self.field_names.append(row["field"])
             self.field[row["field"]] = row
+
+    def load_dataset_field(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "dataset-field.csv")))
+        for row in reader:
+            dataset = row["dataset"]
+            field = row["field"]
+            fields = self.dataset_field.setdefault(dataset, [])
+            fields.append(field)
+
+            self.dataset_field_dataset.setdefault(dataset, {})
+            self.dataset_field_dataset[dataset][field] = row["field-dataset"]
 
     def load_schema_field(self, path):
         reader = csv.DictReader(open(os.path.join(path, "schema-field.csv")))
@@ -196,6 +209,10 @@ class Specification:
             return fieldname
         return self.field_typology(field["parent-field"])
 
+    def field_dataset(self, fieldname):
+
+        return self.field_dataset()
+
     def index_field(self):
         self.field_schema = {}
         for schema, s in self.schema_field.items():
@@ -241,3 +258,16 @@ class Specification:
             return self.dataset[dataset]["typology"]
         else:
             return None
+
+    def get_category_fields(self, dataset):
+        return [
+            field
+            for field in self.dataset_field.get(dataset, [])
+            if dataset in self.dataset_field
+            and field
+            in [
+                field
+                for field, data in self.field.items()
+                if data["typology"] == "category"
+            ]
+        ]

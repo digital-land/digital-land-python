@@ -4,3 +4,6 @@ schema-two,,
 schema-three,Third Schema,Description
 fact,,
 fact-resource,,
+document-type,,
+tree-preservation-zone-type,Tree preservation zone type,Types of zone covered by the tree preservation order
+conservation-area-document-type,Conservation area document type,

@@ -94,7 +94,9 @@ def test_harmonise_geometry_present_no_point_field():
     specification = Specification("tests/data/specification")
     issues = IssueLog()
 
-    h = HarmonisePhase(specification=specification, issues=issues, dataset="tree")
+    h = HarmonisePhase(
+        specification.get_field_datatype_map(), issues=issues, dataset="tree"
+    )
     reader = FakeDictReader(
         [
             {
@@ -163,18 +165,90 @@ def test_get_field_datatype_name_uses_field_datatype_map():
     assert datatype_name == "string"
 
 
-# TODO this assumes that a specification is downloaded locally It should mock this
-def test_get_field_datatype_name_riases_warning_for_spec():
-    spec = Specification()
-    spec.field = {"reference": {"datatype": "string"}}
-    phase = HarmonisePhase(specification=spec)
-    with pytest.warns(DeprecationWarning):
-        datatype_name = phase.get_field_datatype_name("reference")
-    assert datatype_name == "string"
-
-
 def test_get_field_datatype_name_raises_error_for_missing_mapping():
     field_datatype_map = {}
     phase = HarmonisePhase(field_datatype_map=field_datatype_map)
     with pytest.raises(ValueError):
         phase.get_field_datatype_name("reference")
+
+
+def test_validate_categorical_fields():
+    specification = Specification("tests/data/specification")
+
+    issues = IssueLog()
+
+    h = HarmonisePhase(
+        specification.get_field_datatype_map(),
+        issues=issues,
+        dataset="tree-preservation-zone",
+        valid_category_values={
+            "tree-preservation-zone-type": ["area", "group", "woodland"]
+        },
+    )
+
+    reader = FakeDictReader(
+        [
+            {
+                "reference": "1",
+                "name": "Test TPO 1",
+                "description": "Test",
+                "tree-preservation-zone-type": "area",
+            },
+            {
+                "reference": "2",
+                "name": "Test TPO 2",
+                "description": "Test",
+                "tree-preservation-zone-type": "other",
+            },
+        ],
+    )
+
+    output = list(h.process(reader))
+
+    assert len(output) == 2
+    # check the fields are set in the output
+    assert output[0]["row"]["tree-preservation-zone-type"] == "area"
+    assert output[1]["row"]["tree-preservation-zone-type"] == "other"
+
+    assert len(issues.rows) == 1
+    # but we get an issue generated
+    assert issues.rows[0]["issue-type"] == "invalid category value"
+
+
+def test_validate_categorical_field_dataset():
+    specification = Specification("tests/data/specification")
+
+    issues = IssueLog()
+
+    h = HarmonisePhase(
+        specification.get_field_datatype_map(),
+        issues=issues,
+        dataset="conservation-area-document",
+        valid_category_values={
+            "document-type": ["area-appraisal", "notice", "designa", "area-map"]
+        },
+    )
+
+    reader = FakeDictReader(
+        [
+            {
+                "reference": "1",
+                "document-type": "notice",
+            },
+            {
+                "reference": "2",
+                "document-type": "other",
+            },
+        ],
+    )
+
+    output = list(h.process(reader))
+
+    assert len(output) == 2
+    # check the fields are set in the output
+    assert output[0]["row"]["document-type"] == "notice"
+    assert output[1]["row"]["document-type"] == "other"
+
+    assert len(issues.rows) == 1
+    # but we get an issue generated
+    assert issues.rows[0]["issue-type"] == "invalid category value"

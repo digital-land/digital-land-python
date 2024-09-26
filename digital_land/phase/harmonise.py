@@ -1,11 +1,9 @@
 from datetime import datetime
-
 from .phase import Phase
 from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
 import logging
-import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -47,32 +45,22 @@ MANDATORY_FIELDS_DICT = {
 
 class HarmonisePhase(Phase):
     def __init__(
-        self, field_datatype_map=None, specification=None, issues=None, dataset=None
+        self,
+        field_datatype_map,
+        issues=None,
+        dataset=None,
+        valid_category_values={},  # { field: list of valid values }
     ):
         self.field_datatype_map = field_datatype_map
-        self.specification = specification
         self.issues = issues
         self.dataset = dataset
+        self.valid_category_values = valid_category_values
 
     def get_field_datatype_name(self, fieldname):
-        if self.field_datatype_map:
-            try:
-                datatype_name = self.field_datatype_map[fieldname]
-            except KeyError:
-                raise ValueError(f"field {fieldname} does not have a datatype mapping")
-
-        elif self.specification:
-            warnings.warn(
-                "providing specification is depreciated please provide field_datatype_map instead",
-                DeprecationWarning,
-                2,
-            )
-            datatype_name = self.specification.field[fieldname]["datatype"]
-
-        else:
-            raise ValueError("please provide field_datatype_map")
-
-        return datatype_name
+        try:
+            return self.field_datatype_map[fieldname]
+        except KeyError:
+            raise ValueError(f"field {fieldname} does not have a datatype mapping")
 
     def harmonise_field(self, fieldname, value):
         if not value:
@@ -84,6 +72,7 @@ class HarmonisePhase(Phase):
         return datatype.normalise(value, issues=self.issues)
 
     def process(self, stream):
+
         for block in stream:
             row = block["row"]
             self.issues.resource = block["resource"]
@@ -93,6 +82,11 @@ class HarmonisePhase(Phase):
             o = {}
 
             for field in row:
+                if field in self.valid_category_values.keys():
+                    value = row[field]
+                    if value.lower() not in self.valid_category_values[field]:
+                        self.issues.log_issue(field, "invalid category value", value)
+
                 o[field] = self.harmonise_field(field, row[field])
 
             # remove future entry dates
@@ -125,7 +119,7 @@ class HarmonisePhase(Phase):
                     (o["GeoX"], o["GeoY"]) = [str(x), str(y)]
                 except Exception as e:
                     logger.error(
-                        f"Exception occured while fetching geoX, geoY cordinates: {e}"
+                        f"Exception occurred while fetching geoX, geoY coordinates: {e}"
                     )
 
             # ensure typology fields are a CURIE
