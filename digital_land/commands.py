@@ -44,6 +44,7 @@ from digital_land.phase.normalise import NormalisePhase
 from digital_land.phase.organisation import OrganisationPhase
 from digital_land.phase.parse import ParsePhase
 from digital_land.phase.patch import PatchPhase
+from digital_land.phase.priority import PriorityPhase
 from digital_land.phase.pivot import PivotPhase
 from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrunePhase
@@ -52,10 +53,12 @@ from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
+from digital_land.configuration.main import Config
 from digital_land.api import API
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
+
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +97,15 @@ def collection_save_csv(collection_dir):
     collection.load()
     collection.update()
     collection.save_csv()
+
+
+def operational_issue_save_csv(operational_issue_dir, dataset):
+    operationalIssues = OperationalIssueLog(
+        operational_issue_dir=operational_issue_dir, dataset=dataset
+    )
+    operationalIssues.load()
+    operationalIssues.update()
+    operationalIssues.save_csv()
 
 
 def collection_retire_endpoints_and_sources(
@@ -179,6 +191,7 @@ def pipeline_run(
     endpoints=[],
     organisations=[],
     entry_date="",
+    config_path="var/cache/config.sqlite3",
 ):
     resource = resource_from_path(input_path)
     dataset = dataset
@@ -200,6 +213,15 @@ def pipeline_run(
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
     redirect_lookups = pipeline.redirect_lookups()
+
+    # load config db
+    # TODO get more information from the config
+    # TODO in future we need better way of making config optional
+    if Path(config_path).exists():
+        config = Config(path=config_path, specification=Specification)
+    else:
+        logging.error("Config path  does not exist")
+        config = None
 
     # load organisations
     organisation = Organisation(
@@ -224,6 +246,7 @@ def pipeline_run(
     if entry_date:
         default_values["entry-date"] = entry_date
 
+    # TODO Migrate all of this into a function in the Pipeline function
     run_pipeline(
         ConvertPhase(
             path=input_path,
@@ -281,6 +304,7 @@ def pipeline_run(
             enabled=save_harmonised,
         ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
+        PriorityPhase(config=config),
         PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),
@@ -369,7 +393,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     elif isinstance(csv_path, Path):
         dataset_name = csv_path.stem
     else:
-        logging.error(f"Can't extract datapackage name from {csv_path}")
+        logging.error(f"Can't extract  datapackage name from {csv_path}")
         sys.exit(-1)
 
     flattened_csv_path = os.path.join(flattened_dir, f"{dataset_name}.csv")

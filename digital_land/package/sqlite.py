@@ -166,37 +166,44 @@ class SqlitePackage(Package):
                     row[field] = value
                     self.insert(table, fields, row)
 
-    def load(self):
-        for table in self.tables:
-            fields = self.fields[table]
-            path = "%s/%s.csv" % (self.tables[table], table)
+    def load(self, tables=None):
+        tables = tables or self.tables
+        fields, join_tables = self.get_table_fields(tables)
+        for table in tables:
+            table_fields = fields[table]
+            path = "%s/%s.csv" % (tables[table], table)
             self.create_cursor()
-            self.load_table(table, fields, path=path)
+            self.load_table(table, table_fields, path=path)
             self.commit()
 
-        for join_table, join in self.join_tables.items():
+        for join_table, join in join_tables.items():
             table = join["table"]
             field = join["field"]
-            fields = [table, field]
-            path = "%s/%s.csv" % (self.tables[table], table)
+            table_fields = [table, field]
+            path = "%s/%s.csv" % (tables[table], table)
             self.create_cursor()
             self.load_join_table(
                 join_table,
-                fields=fields,
+                fields=table_fields,
                 split_field=join["split-field"],
                 field=field,
                 path=path,
             )
             self.commit()
 
-    def create_tables(self):
-        for table in self.tables:
-            fields = self.specification.schema[table]["fields"]
-            key_field = table
+    def get_table_fields(self, tables=None):
+        """
+        gets tables fields and join  table information for a dictionary of tables
+        """
+        tables = tables or self.tables
+        fields = {}
+        join_tables = {}
+        for table in tables:
+            table_fields = self.specification.schema[table]["fields"]
 
             # a join table for each list field
             ignore = set()
-            for field in fields:
+            for field in table_fields:
                 if self.specification.field[field]["cardinality"] == "n" and "%s|%s" % (
                     table,
                     field,
@@ -207,16 +214,22 @@ class SqlitePackage(Package):
                 ]:
                     parent_field = self.specification.field[field]["parent-field"]
                     join_table = "%s_%s" % (table, parent_field)
-                    self.join_tables[join_table] = {
+                    join_tables[join_table] = {
                         "table": table,
                         "field": parent_field,
                         "split-field": field,
                     }
                     ignore.add(field)
 
-            fields = [field for field in fields if field not in ignore]
-            self.fields[table] = fields
+            table_fields = [field for field in table_fields if field not in ignore]
+            fields[table] = table_fields
+        return fields, join_tables
 
+    def create_tables(self):
+        self.fields, self.join_tables = self.get_table_fields(self.tables)
+        for table in self.tables:
+            key_field = table
+            fields = self.fields[table]
             self.create_cursor()
             self.create_table(table, fields, key_field)
             self.commit()
@@ -257,6 +270,22 @@ class SqlitePackage(Package):
         for table, index_fields in self.indexes.items():
             for fields in index_fields:
                 self.create_index(table, fields)
+
+    def drop_index(self, table, fields, name=None):
+        if type(fields) is not list:
+            fields = [fields]
+        cols = [colname(field) for field in fields if not field.endswith("-geom")]
+        if not name:
+            name = colname(table) + "_on_" + "__".join(cols) + "_index"
+        if cols:
+            logging.info("dropping index %s" % (name))
+            self.execute("DROP INDEX IF EXISTS %s;" % (name))
+        # TODO add support to drop spatialite indexes if they're needed
+
+    def drop_indexes(self):
+        for table, index_fields in self.indexes.items():
+            for fields in index_fields:
+                self.drop_index(table, fields)
 
     def create_database(self):
         if os.path.exists(self.path):

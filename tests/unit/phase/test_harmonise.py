@@ -89,6 +89,7 @@ def test_harmonise_geometry_present_point_missing():
     assert len(issues.rows) == 0
 
 
+# TODO Why is the specification being read in here should we remove it?
 def test_harmonise_geometry_present_no_point_field():
     specification = Specification("tests/data/specification")
     issues = IssueLog()

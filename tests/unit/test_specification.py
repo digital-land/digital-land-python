@@ -29,6 +29,8 @@ def test_schema_names():
         "schema-two",
         "schema-three",
         "fact",
+        "fact-resource",
+        "document-type",
         "tree-preservation-zone-type",
         "conservation-area-document-type",
     ]

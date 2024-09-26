@@ -3,6 +3,9 @@ import os
 from datetime import datetime
 import pandas as pd
 import yaml
+import logging
+from .store.item import CSVItemStore
+from .schema import Schema
 
 
 def entry_date():
@@ -109,6 +112,11 @@ class IssueLog(Log):
 
 
 class OperationalIssueLog(IssueLog):
+    def __init__(self, dataset="", resource="", operational_issue_dir=None):
+        super().__init__(dataset, resource)
+        self.operational_issues = CSVItemStore(Schema("operational-issue"))
+        self.operational_issue_dir = operational_issue_dir
+
     def get_now(self):
         return datetime.now().isoformat()
 
@@ -132,6 +140,48 @@ class OperationalIssueLog(IssueLog):
             )
         os.makedirs(os.path.dirname(path), exist_ok=True)
         super().save(path=path, f=f)
+
+    def load_log_items(self, operational_issue_directory=None, after=None):
+        """
+        Method to load the operational issue store from operational issue items instead of csvs. used when csvs don't exist
+        or new issue items have been created by running the pipeline. If 'after' is not None, only log items after the
+        specified date / time will be loaded.
+        """
+        operational_issue_directory = (
+            operational_issue_directory or self.operational_issue_dir
+        )
+
+        logging.info("loading Operational issue files")
+        self.operational_issues.load(
+            directory=operational_issue_directory, after=after, dataset=self.dataset
+        )
+
+    def load(self, operational_issue_directory=None):
+        operational_issue_directory = (
+            operational_issue_directory or self.operational_issue_dir
+        )
+        # Try to load issue store from csv first
+        try:
+            self.operational_issues.load_csv(
+                directory=os.path.join(operational_issue_directory, self.dataset)
+            )
+            logging.info("Operational Issues loaded from CSV")
+        except FileNotFoundError:
+            logging.info(
+                "No operational_issue.csv - building from operational-issue items"
+            )
+            self.load_log_items(operational_issue_directory=operational_issue_directory)
+
+    def update(self):
+        self.load_log_items(after=self.operational_issues.latest_entry_date())
+
+    def save_csv(self, directory=None):
+        directory = directory or self.operational_issue_dir
+
+        logging.info("saving csv")
+        self.operational_issues.save_csv(
+            directory=os.path.join(directory, self.dataset)
+        )
 
 
 class ColumnFieldLog(Log):
