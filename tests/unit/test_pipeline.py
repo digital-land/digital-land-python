@@ -4,6 +4,20 @@ from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
 from pathlib import Path
 from unittest.mock import mock_open, patch
+from builtins import open as real_open
+
+
+class OpenMocker:
+    def __init__(self, file_data):
+        self.file_data = file_data
+
+    def __call__(self, *args, **kwargs):
+        filename = args[0]
+        if filename in self.file_data:
+            print("open", filename)
+            return mock_open(read_data=self.file_data[filename])()
+        else:
+            return real_open(*args, **kwargs)
 
 
 class TestPipeLine:
@@ -80,7 +94,33 @@ class TestPipeLine:
         p = Pipeline("tests/data/pipeline", "pipeline-one")
         concat = p.concatenations()
         assert concat == {
-            "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "}
+            "combined-field": {
+                "fields": ["field-one", "field-two"],
+                "separator": ". ",
+                "prepend": "",
+                "append": "",
+            }
+        }
+
+    @patch(
+        "builtins.open",
+        OpenMocker(
+            {
+                "tests/data/pipeline/concat.csv": """pipeline,resource,field,fields,separator,prepend,append,entry-date,start-date,end-date
+pipeline-one,,point-field,field-X;field-Y," ",POINT(,),2020-09-04,2020-09-04,"""
+            }
+        ),
+    )
+    def test_concatenations_with_prepend_append(self):
+        p = Pipeline("tests/data/pipeline", "pipeline-one")
+        concat = p.concatenations()
+        assert concat == {
+            "point-field": {
+                "fields": ["field-X", "field-Y"],
+                "separator": " ",
+                "prepend": "POINT(",
+                "append": ")",
+            }
         }
 
     def test_resource_specific_concatenations(self):
@@ -90,8 +130,15 @@ class TestPipeLine:
             "other-combined-field": {
                 "fields": ["field-one", "field-three"],
                 "separator": ". ",
+                "prepend": "",
+                "append": "",
             },
-            "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "},
+            "combined-field": {
+                "fields": ["field-one", "field-two"],
+                "separator": ". ",
+                "prepend": "",
+                "append": "",
+            },
         }
 
     def test_migrate(self):
