@@ -15,18 +15,22 @@ class ConcatFieldPhase(Phase):
             row = block["row"]
 
             for fieldname, cat in self.concats.items():
-                row[fieldname] = cat["separator"].join(
-                    filter(
-                        None,
-                        itertools.chain(
-                            [row.get(fieldname, None)],
-                            [
-                                row[h]
-                                for h in cat["fields"]
-                                if h in row and row[h].strip() != ""
-                            ],
-                        ),
+                row[fieldname] = (
+                    cat.get("prefix", "")
+                    + cat["separator"].join(
+                        filter(
+                            None,
+                            itertools.chain(
+                                [row.get(fieldname, None)],
+                                [
+                                    row[h]
+                                    for h in cat["fields"]
+                                    if h in row and row[h].strip() != ""
+                                ],
+                            ),
+                        )
                     )
+                    + cat.get("suffix", "")
                 )
 
             yield block
