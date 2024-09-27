@@ -4,20 +4,16 @@ from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
 from pathlib import Path
 from unittest.mock import mock_open, patch
-from builtins import open as real_open
 
 
 class OpenMocker:
     def __init__(self, file_data):
         self.file_data = file_data
 
-    def __call__(self, *args, **kwargs):
-        filename = args[0]
-        if filename in self.file_data:
-            print("open", filename)
-            return mock_open(read_data=self.file_data[filename])()
-        else:
-            return real_open(*args, **kwargs)
+    def __call__(self, filename):
+        return mock_open(
+            read_data=self.file_data[filename] if filename in self.file_data else ""
+        )()
 
 
 class TestPipeLine:
@@ -102,26 +98,28 @@ class TestPipeLine:
             }
         }
 
-    @patch(
-        "builtins.open",
-        OpenMocker(
-            {
-                "tests/data/pipeline/concat.csv": """pipeline,resource,field,fields,separator,prepend,append,entry-date,start-date,end-date
-pipeline-one,,point-field,field-X;field-Y," ",POINT(,),2020-09-04,2020-09-04,"""
-            }
-        ),
-    )
     def test_concatenations_with_prepend_append(self):
-        p = Pipeline("tests/data/pipeline", "pipeline-one")
-        concat = p.concatenations()
-        assert concat == {
-            "point-field": {
-                "fields": ["field-X", "field-Y"],
-                "separator": " ",
-                "prepend": "POINT(",
-                "append": ")",
-            }
+        """Tests for the concat.csv with the prepend/append fields.
+        Uses mocked data from the file rather than reading the FS."""
+        test_data = {
+            "tests/data/pipeline/concat.csv": "pipeline,resource,field,fields,separator,prepend,append,entry-date,start-date,end-date\n"
+            + 'pipeline-one,,point-field,field-X;field-Y," ",POINT(,),2020-09-04,2020-09-04,'
         }
+
+        with patch(
+            "builtins.open",
+            OpenMocker(test_data),
+        ):
+            p = Pipeline("tests/data/pipeline", "pipeline-one")
+            concat = p.concatenations()
+            assert concat == {
+                "point-field": {
+                    "fields": ["field-X", "field-Y"],
+                    "separator": " ",
+                    "prepend": "POINT(",
+                    "append": ")",
+                }
+            }
 
     def test_resource_specific_concatenations(self):
         p = Pipeline("tests/data/pipeline", "pipeline-one")
