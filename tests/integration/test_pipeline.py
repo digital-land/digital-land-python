@@ -6,25 +6,35 @@ from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
 
 
+def write_as_csv(dir, filename, data):
+    with open(os.path.join(dir, filename), "w") as f:
+        if data.__class__ is list:
+            dictwriter = csv.DictWriter(f, fieldnames=data[0].keys())
+            dictwriter.writeheader()
+            dictwriter.writerows(data)
+        else:
+            dictwriter = csv.DictWriter(f, fieldnames=data.keys())
+            dictwriter.writeheader()
+            dictwriter.writerow(data)
+
+
 @pytest.fixture
 def pipeline_dir(tmp_path):
     pipeline_dir = os.path.join(tmp_path, "pipeline")
     os.makedirs(pipeline_dir, exist_ok=True)
 
     # create lookups
-    row = {
-        "prefix": "ancient-woodland",
-        "resource": "",
-        "organisation": "local-authority-eng:ABC",
-        "reference": "ABC_0001",
-        "entity": "1234567",
-    }
-    fieldnames = row.keys()
-
-    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
-        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
-        dictwriter.writeheader()
-        dictwriter.writerow(row)
+    write_as_csv(
+        pipeline_dir,
+        "lookup.csv",
+        {
+            "prefix": "ancient-woodland",
+            "resource": "",
+            "organisation": "local-authority-eng:ABC",
+            "reference": "ABC_0001",
+            "entity": "1234567",
+        },
+    )
 
     return pipeline_dir
 
@@ -469,6 +479,72 @@ def test_load_patch_when_csv_contains_endpoint(tmp_path):
         "field1": {"pattern1": "value1"},
         "field2": {"pattern2": "value2"},
     } in [patch]
+
+
+def test_load_concat_with_prepend_append(empty_pipeline_dir):
+    """
+    test the concat data is loaded when the prepend/append fields are present.
+    """
+    row = {
+        "pipeline": "test-pipeline",
+        "resource": "",
+        "field": "point-field",
+        "fields": "field-X;field-Y",
+        "separator": " ",
+        "prepend": "POINT(",
+        "append": ")",
+        "entry-date": "2024-09-27",
+        "start-date": "2024-09-27",
+        "end-date": "",
+    }
+
+    with open(os.path.join(empty_pipeline_dir, "concat.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    pipeline = Pipeline(empty_pipeline_dir, "test-pipeline")
+
+    assert pipeline.concatenations() == {
+        "point-field": {
+            "fields": ["field-X", "field-Y"],
+            "separator": " ",
+            "prepend": "POINT(",
+            "append": ")",
+        }
+    }
+
+
+def test_load_concat_no_prepend_append(empty_pipeline_dir):
+    """
+    test the concat data is loaded when the prepend/append fields are present.
+    """
+    row = {
+        "pipeline": "test-pipeline",
+        "resource": "",
+        "field": "test-field",
+        "fields": "field-one;field-two",
+        "separator": ", ",
+        "entry-date": "2024-09-27",
+        "start-date": "2024-09-27",
+        "end-date": "",
+    }
+
+    with open(os.path.join(empty_pipeline_dir, "concat.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    pipeline = Pipeline(empty_pipeline_dir, "test-pipeline")
+
+    assert pipeline.concatenations() == {
+        "test-field": {
+            "fields": ["field-one", "field-two"],
+            "separator": ", ",
+            "prepend": "",
+            "append": "",
+        }
+    }
 
 
 if __name__ == "__main__":

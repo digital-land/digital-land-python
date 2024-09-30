@@ -98,29 +98,6 @@ class TestPipeLine:
             }
         }
 
-    def test_concatenations_with_prepend_append(self):
-        """Tests for the concat.csv with the prepend/append fields.
-        Uses mocked data from the file rather than reading the FS."""
-        test_data = {
-            "tests/data/pipeline/concat.csv": "pipeline,resource,field,fields,separator,prepend,append,entry-date,start-date,end-date\n"
-            + 'pipeline-one,,point-field,field-X;field-Y," ",POINT(,),2020-09-04,2020-09-04,'
-        }
-
-        with patch(
-            "builtins.open",
-            OpenMocker(test_data),
-        ):
-            p = Pipeline("tests/data/pipeline", "pipeline-one")
-            concat = p.concatenations()
-            assert concat == {
-                "point-field": {
-                    "fields": ["field-X", "field-Y"],
-                    "separator": " ",
-                    "prepend": "POINT(",
-                    "append": ")",
-                }
-            }
-
     def test_resource_specific_concatenations(self):
         p = Pipeline("tests/data/pipeline", "pipeline-one")
         concat = p.concatenations("some-resource")
