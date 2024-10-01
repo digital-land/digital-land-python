@@ -37,7 +37,7 @@ setup(
         "canonicaljson",
         "click",
         "cchardet",
-        "dask[dataframe]==2024.2.0",
+        "dask[dataframe]==2023.5.0",
         "esridump",
         "pandas",
         "pyproj",
