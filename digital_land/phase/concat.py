@@ -34,4 +34,12 @@ class ConcatFieldPhase(Phase):
                     + cat["append"]
                 )
 
+                if self.log:
+                    self.log.add(
+                        fieldname,
+                        cat["prepend"]
+                        + cat["separator"].join(cat["fields"])
+                        + cat["append"],
+                    )
+
             yield block
