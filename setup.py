@@ -37,7 +37,6 @@ setup(
         "canonicaljson",
         "click",
         "cchardet",
-        "dask[dataframe]",
         "esridump",
         "pandas",
         "pyproj",

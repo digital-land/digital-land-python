@@ -8,11 +8,10 @@ def duplicate_reference_check(issues=None, csv_path=None):
     try:
         conn = duckdb.connect()
 
-        ddf = dd.read_csv(csv_path)
+        ddf = dd.read_csv(csv_path, dtype={"entry-date": "string"})
         ddf.columns = ddf.columns.str.replace("-", "_")
-        filtered_ddf = ddf[ddf["field"] == "reference"]
 
-        filtered_df = filtered_ddf.compute()  # noqa
+        filtered_df = ddf[ddf["field"] == "reference"].compute()  # noqa
         conn.execute("CREATE TABLE filtered_table AS SELECT * FROM filtered_df")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, entry_date);"
