@@ -278,7 +278,6 @@ def test_collection_load_resource_and_logs_from_log_items(
 
 @pytest.fixture
 def test_collection_update_fixture(tmp_path):
-
     def _fixture(log_entry_date):
         collection_dir = os.path.join(tmp_path, "collection")
         os.makedirs(collection_dir, exist_ok=True)
