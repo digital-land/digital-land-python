@@ -3,6 +3,7 @@ import json
 import os
 import pathlib
 from datetime import datetime, timedelta
+import xml.etree.ElementTree as ET
 
 import pytest
 import responses
@@ -130,6 +131,36 @@ def test_strip_timestamp(collector, tmp_path):
     assert status == FetchStatus.OK
     # Check that the timestamp is removed
     expected_content = '{"data": "some data"}'
+    expected_hash = sha_digest(expected_content)
+    output_path = tmp_path / f"resource/{expected_hash}"
+
+    assert os.path.isfile(output_path)
+    assert open(output_path).read() == expected_content
+
+    log_content = read_log(collector, url)
+    assert log_content["resource"] == expected_hash
+
+
+@responses.activate
+def test_strip_timestamp_xml(collector, tmp_path):
+    url = "http://test.timestamp"
+    xml_with_timestamp = (
+        '<root timeStamp="2024-10-02T13:41:59Z" numberMatched="unknown" />'
+    )
+    xml_parsed = ET.fromstring(xml_with_timestamp)
+
+    responses.add(
+        responses.GET,
+        url,
+        body=ET.tostring(xml_parsed, encoding="unicode"),
+        content_type="application/xml;charset=UTF-8",
+    )
+
+    status = collector.fetch(url)
+
+    assert status == FetchStatus.OK
+    # Check that the timestamp is removed
+    expected_content = '<root numberMatched="unknown" />'
     expected_hash = sha_digest(expected_content)
     output_path = tmp_path / f"resource/{expected_hash}"
 

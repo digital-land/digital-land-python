@@ -69,7 +69,12 @@ class Collector:
 
     def strip_variable_content(self, content):
         # Define patterns for stripping timestamp and time
-        strip_exps = [(re.compile(rb'"timeStamp"\s*:\s*"[^"]*"\s*,?'), rb"")]
+        strip_exps = [
+            (re.compile(rb'"timeStamp"\s*:\s*"[^"]*"\s*,?'), rb""),
+            (re.compile(rb'timeStamp="[^"]*" '), rb""),
+            (re.compile(rb'"timeStamp":"[^"]*",'), rb""),
+        ]
+
         for strip_exp, replacement in strip_exps:
             content = strip_exp.sub(replacement, content)
 
@@ -104,11 +109,13 @@ class Collector:
                 "Content-Type", ""
             ).startswith("text/html"):
                 content = response.content
-                # Apply timestamp stripping for JSON/GeoJSON formats
-                if response.headers.get("Content-Type") in [
-                    "application/json",
-                    "application/geo+json",
-                ]:
+                # Apply timestamp stripping for JSON/GeoJSON/XML formats
+                content_type = (
+                    response.headers.get("Content-Type", "").lower().replace(" ", "")
+                )
+                if content_type.startswith(
+                    ("application/json", "application/geo+json", "application/xml")
+                ):
                     content = self.strip_variable_content(content)
         return log, content
 
