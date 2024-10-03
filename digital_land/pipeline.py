@@ -178,6 +178,8 @@ class Pipeline:
             record[row["field"]] = {
                 "fields": row["fields"].split(";"),
                 "separator": row["separator"],
+                "prepend": row.get("prepend", ""),
+                "append": row.get("append", ""),
             }
 
     # TBD: remove this table, should come from specification replacement-field

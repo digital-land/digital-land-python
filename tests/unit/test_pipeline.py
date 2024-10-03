@@ -6,6 +6,16 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 
+class OpenMocker:
+    def __init__(self, file_data):
+        self.file_data = file_data
+
+    def __call__(self, filename):
+        return mock_open(
+            read_data=self.file_data[filename] if filename in self.file_data else ""
+        )()
+
+
 class TestPipeLine:
     def test_load_lookup_removes_eng(self, mocker):
         """
@@ -80,7 +90,12 @@ class TestPipeLine:
         p = Pipeline("tests/data/pipeline", "pipeline-one")
         concat = p.concatenations()
         assert concat == {
-            "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "}
+            "combined-field": {
+                "fields": ["field-one", "field-two"],
+                "separator": ". ",
+                "prepend": "",
+                "append": "",
+            }
         }
 
     def test_resource_specific_concatenations(self):
@@ -90,8 +105,15 @@ class TestPipeLine:
             "other-combined-field": {
                 "fields": ["field-one", "field-three"],
                 "separator": ". ",
+                "prepend": "",
+                "append": "",
             },
-            "combined-field": {"fields": ["field-one", "field-two"], "separator": ". "},
+            "combined-field": {
+                "fields": ["field-one", "field-two"],
+                "separator": ". ",
+                "prepend": "",
+                "append": "",
+            },
         }
 
     def test_migrate(self):
