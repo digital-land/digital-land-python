@@ -13,6 +13,8 @@ def test_dataset_names():
         "dataset-three",
         "tree-preservation-zone-type",
         "conservation-area-document-type",
+        "parish",
+        "ancient-woodland",
     ]
 
 

@@ -2,6 +2,7 @@
 import pytest
 from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
+from digital_land.specification import Specification
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
@@ -129,7 +130,9 @@ class TestPipeLine:
 
         pipeline_name = "ancient-woodland"
         lookups = Lookups("")
-        max_entity_num = lookups.get_max_entity(pipeline_name)
+
+        specification = Specification("tests/data/specification/")
+        max_entity_num = lookups.get_max_entity(pipeline_name, specification)
 
         assert max_entity_num == 0
 
@@ -143,14 +146,44 @@ class TestPipeLine:
         lookups.entries.append(entry)
         expected_entity_num = 12344
 
-        assert lookups.get_max_entity(pipeline_name) == expected_entity_num
+        assert (
+            lookups.get_max_entity(pipeline_name, specification) == expected_entity_num
+        )
 
-        max_entity_num = lookups.get_max_entity(pipeline_name)
+        max_entity_num = lookups.get_max_entity(pipeline_name, specification)
         lookups.entity_num_gen.state["current"] = max_entity_num
         lookups.entity_num_gen.state["range_max"] = max_entity_num + 10
         expected_entity_num = 12345
 
         assert lookups.entity_num_gen.next() == expected_entity_num
+
+    def test_lookups_get_max_entity_with_distinct_prefix(self):
+        """
+        test entity num generation functionality when prefix value differs from dataset value
+        :return:
+        """
+
+        pipeline_name = "parish"
+        lookups = Lookups("")
+
+        specification = Specification("tests/data/specification/")
+        max_entity_num = lookups.get_max_entity(pipeline_name, specification)
+
+        assert max_entity_num == 0
+
+        entry = {
+            "prefix": "statistical-geography",
+            "resource": "",
+            "organisation": "government-organisation:D1342",
+            "reference": "1",
+            "entity": "1000",
+        }
+        lookups.entries.append(entry)
+        expected_entity_num = 1000
+
+        assert (
+            lookups.get_max_entity(pipeline_name, specification) == expected_entity_num
+        )
 
     def test_lookups_validate_entry_success(self):
         """
