@@ -451,18 +451,20 @@ class Lookups:
         for row in reader:
             self.add_entry(row, is_new_entry=False)
 
-    def get_max_entity(self, prefix) -> int:
+    def get_max_entity(self, prefix, specification) -> int:
         if len(self.entries) == 0:
             return 0
         if not prefix:
             return 0
 
+        dataset_prefix = specification.dataset_prefix(prefix)
         try:
             ret_val = max(
                 [
                     int(entry["entity"])
                     for entry in self.entries
-                    if (entry["prefix"] == prefix) and (entry.get("entity", None))
+                    if (entry["prefix"] == prefix or entry["prefix"] == dataset_prefix)
+                    and (entry.get("entity", None))
                 ]
             )
             return ret_val

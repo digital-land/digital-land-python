@@ -1,6 +1,8 @@
-dataset,name,text,typology
-dataset-one,"First Dataset","Text of first dataset",
-dataset-two,"Second Dataset","Text of first dataset",
-dataset-three,"Third Dataset","Text of third dataset",
-tree-preservation-zone-type,"Types of zone covered by the tree preservation order","Tree preservation zone type",category
-conservation-area-document-type,,"Conservation area document type",category
+dataset,name,text,typology,prefix
+dataset-one,"First Dataset","Text of first dataset",,
+dataset-two,"Second Dataset","Text of first dataset",,
+dataset-three,"Third Dataset","Text of third dataset",,
+tree-preservation-zone-type,"Types of zone covered by the tree preservation order","Tree preservation zone type",category,
+conservation-area-document-type,,"Conservation area document type",category,
+parish,,,,statistical-geography
+ancient-woodland,,,,

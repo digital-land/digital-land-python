@@ -702,7 +702,7 @@ def assign_entities(
             lookups.add_entry(entry[0])
 
     # save edited csvs
-    max_entity_num = lookups.get_max_entity(pipeline_name)
+    max_entity_num = lookups.get_max_entity(pipeline_name, specification)
     lookups.entity_num_gen.state["current"] = max_entity_num
     lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
         pipeline_name
