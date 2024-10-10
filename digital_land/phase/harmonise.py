@@ -40,6 +40,13 @@ MANDATORY_FIELDS_DICT = {
     "tree-preservation-zone": ["reference", "geometry"],
     "listed-building-outline": ["reference", "geometry", "name", "listed-building"],
     "tree": ["reference", "point", "geometry"],
+    "brownfield-land": [
+        "OrganisationURI",
+        "SiteReference",
+        "SiteNameAddress",
+        "GeoX",
+        "GeoY",
+    ],
 }
 
 
