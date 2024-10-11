@@ -9,7 +9,15 @@ class ConcatFieldPhase(Phase):
 
     def __init__(self, concats={}, log=None):
         self.concats = concats
-        self.log = log
+
+        if log:
+            for fieldname, cat in self.concats.items():
+                log.add(
+                    fieldname,
+                    cat["prepend"]
+                    + cat["separator"].join(cat["fields"])
+                    + cat["append"],
+                )
 
     def process(self, stream):
         for block in stream:
@@ -33,13 +41,5 @@ class ConcatFieldPhase(Phase):
                     )
                     + cat["append"]
                 )
-
-                if self.log:
-                    self.log.add(
-                        fieldname,
-                        cat["prepend"]
-                        + cat["separator"].join(cat["fields"])
-                        + cat["append"],
-                    )
 
             yield block
