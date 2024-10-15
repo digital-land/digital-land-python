@@ -1,6 +1,7 @@
 #!/usr/bin/env -S py.test -svv
+import io
 import pytest
-from digital_land.pipeline import Pipeline
+from digital_land.pipeline import EntityNumGen, Pipeline
 from digital_land.pipeline import Lookups
 from digital_land.specification import Specification
 from pathlib import Path
@@ -317,6 +318,54 @@ class TestPipeLine:
                     )
 
         assert new_lookup[0]["entity"] == 5
+
+    def test_lookups_no_available_entity_numbers(self):
+        lookups = Lookups("")
+        lookups.entity_num_gen = EntityNumGen(
+            {"range_min": 1, "range_max": 5, "current": 0}
+        )
+
+        new_lookup = [
+            {
+                "prefix": "ancient-woodland",
+                "resource": "",
+                "organisation": "government-organisation:D1342",
+                "reference": "6",
+                "entity": None,
+            }
+        ]
+        mock_lookups_file = Path("pipeline") / "lookup.csv"
+        mock_lookups_file_content = "prefix,resource,organisation,reference,entity\nancient-woodland,,government-organisation:D1342,5,5\n"
+        mock_old_entity_file = Path("pipeline") / "old-entity.csv"
+        mock_old_entity_file_content = "old-entity,status,entity\n1,301,2\n3,301,4"
+
+        mock_open_lookups = mock_open(read_data=mock_lookups_file_content)
+        mock_open_old_entity = mock_open(read_data=mock_old_entity_file_content)
+
+        def open_mock(file, *args, **kwargs):
+            file_str = str(file)
+
+            if file_str == str(mock_lookups_file):
+                return mock_open_lookups(file, *args, **kwargs)
+            elif file_str == str(mock_old_entity_file):
+                return mock_open_old_entity(file, *args, **kwargs)
+            raise FileNotFoundError(f"No such file: {file}")
+
+        with patch("builtins.open", open_mock, create=True):
+            with patch("os.path.exists", return_value=True):
+                with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
+                    lookups.save_csv(
+                        mock_lookups_file, new_lookup, mock_old_entity_file
+                    )
+
+                    output = mock_stdout.getvalue()
+                    assert (
+                        "There are no more numbers available within this dataset."
+                        in output
+                    )
+
+        if new_lookup[0]["entity"] is None:
+            assert True
 
     @pytest.fixture
     def pipeline(self, mocker):
