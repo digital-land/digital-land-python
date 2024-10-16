@@ -474,6 +474,12 @@ class Lookups:
     def save_csv(self, lookups_path=None, entries=None, old_entity_path=None):
         path = lookups_path or self.lookups_path
 
+        entity_values = []
+        if os.path.exists(path):
+            reader = csv.DictReader(open(path, newline=""))
+            for row in reader:
+                entity_values.append(row["entity"])
+
         if entries is None:
             entries = self.entries
 
@@ -485,16 +491,17 @@ class Lookups:
         )
         writer.writeheader()
 
-        entity_values = []
-        if os.path.exists(self.old_entity_path):
+        old_entity_file_path = old_entity_path or self.old_entity_path
+        if os.path.exists(old_entity_file_path):
             old_entity_path = self.old_entity_path
-            reader = csv.DictReader(open(old_entity_path, newline=""))
+            reader = csv.DictReader(open(old_entity_file_path, newline=""))
 
             for row in reader:
                 entity_values.append(row["old-entity"])
                 entity_values.append(row["entity"])
 
         new_entities = []
+        get_entity = None
         for idx, entry in enumerate(entries):
             if not entry:
                 continue
@@ -502,11 +509,24 @@ class Lookups:
                 if not entry.get("entity"):
                     while True:
                         generated_entity = self.entity_num_gen.next()
+
+                        if generated_entity == get_entity:
+                            print(
+                                "There are no more entity numbers available within this dataset."
+                            )
+                            break
+
+                        if get_entity is None:
+                            get_entity = generated_entity
+
                         if str(generated_entity) not in entity_values:
                             entry["entity"] = generated_entity
                             new_entities.append(entry)
+                            entity_values.append(str(generated_entity))
+                            writer.writerow(entry)
                             break
-                writer.writerow(entry)
+                else:
+                    writer.writerow(entry)
         return new_entities
 
     # @staticmethod
