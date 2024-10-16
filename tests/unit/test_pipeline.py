@@ -360,7 +360,7 @@ class TestPipeLine:
 
                     output = mock_stdout.getvalue()
                     assert (
-                        "There are no more numbers available within this dataset."
+                        "There are no more entity numbers available within this dataset."
                         in output
                     )
 
