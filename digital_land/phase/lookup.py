@@ -103,7 +103,7 @@ class LookupPhase(Phase):
             ):
                 self.issues.log_issue(
                     "entity",
-                    "Entity number out of range",
+                    "entity number out of range",
                     entity,
                 )
 
