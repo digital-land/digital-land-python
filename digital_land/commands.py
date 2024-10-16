@@ -251,6 +251,7 @@ def pipeline_run(
     if entry_date:
         default_values["entry-date"] = entry_date
 
+    print("hello from before run_pipeline")
     # TODO Migrate all of this into a function in the Pipeline function
     run_pipeline(
         ConvertPhase(
@@ -325,6 +326,8 @@ def pipeline_run(
             fieldnames=specification.factor_fieldnames(),
         ),
     )
+
+    print("hello from after run_pipeline")
 
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 

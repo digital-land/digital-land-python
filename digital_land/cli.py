@@ -213,6 +213,7 @@ def pipeline_command(
     operational_issue_dir,
     config_path,
 ):
+    print("hello from inside pipeline_command")
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
     specification = ctx.obj["SPECIFICATION"]
