@@ -97,7 +97,7 @@ class TestLookupPhase:
         output = [block for block in phase.process(input_stream)]
 
         assert output[0]["row"]["entity"] == "1"
-        assert issues.rows[0]["issue-type"] == "Entity number out of range"
+        assert issues.rows[0]["issue-type"] == "entity number out of range"
 
     def test_process_empty_prefix(self, get_lookup):
         input_stream = [
