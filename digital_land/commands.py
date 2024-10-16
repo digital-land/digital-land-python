@@ -336,6 +336,7 @@ def pipeline_run(
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
+    print("hello after logs save")
 
 
 #
