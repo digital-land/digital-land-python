@@ -512,7 +512,7 @@ class Lookups:
 
                         if generated_entity == get_entity:
                             print(
-                                "There are no more numbers available within this dataset."
+                                "There are no more entity numbers available within this dataset."
                             )
                             break
 
