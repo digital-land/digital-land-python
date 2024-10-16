@@ -32,12 +32,14 @@ class LookupPhase(Phase):
         redirect_lookups={},
         issue_log=None,
         operational_issue_log=None,
+        entity_range=[],
     ):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
         self.issues = issue_log
         self.operational_issues = operational_issue_log
         self.reverse_lookups = self.build_reverse_lookups()
+        self.entity_range = entity_range
 
     def build_reverse_lookups(self):
         reverse_lookups = {}
@@ -92,6 +94,18 @@ class LookupPhase(Phase):
                     ):
                         entity = ""
                         break
+
+        if entity and self.entity_range:
+            if (
+                int(entity)
+                not in range(int(self.entity_range[0]), int(self.entity_range[1]))
+                and self.issues
+            ):
+                self.issues.log_issue(
+                    "entity",
+                    "Entity number out of range",
+                    entity,
+                )
 
         return entity
 
