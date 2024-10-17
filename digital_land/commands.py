@@ -207,6 +207,8 @@ def pipeline_run(
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
     converted_resource_log = ConvertedResourceLog(dataset=dataset, resource=resource)
     api = API(specification=specification)
+    entity_range_min = specification.get_dataset_entity_min(dataset)
+    entity_range_max = specification.get_dataset_entity_max(dataset)
 
     # load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource, endpoints)
@@ -303,6 +305,7 @@ def pipeline_run(
             redirect_lookups=redirect_lookups,
             issue_log=issue_log,
             operational_issue_log=operational_issue_log,
+            entity_range=[entity_range_min, entity_range_max],
         ),
         SavePhase(
             default_output_path("harmonised", input_path),
