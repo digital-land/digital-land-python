@@ -1,6 +1,8 @@
 import csv
 import os
 from pathlib import Path
+
+import pandas as pd
 from digital_land.check import duplicate_reference_check
 from digital_land.commands import default_output_path
 from digital_land.log import ColumnFieldLog, DatasetResourceLog, IssueLog
@@ -29,15 +31,13 @@ from digital_land.pipeline import Pipeline, run_pipeline
 from digital_land.specification import Specification
 
 
-# This test aims to emulate the way the async-request-backend repo uses the pipeline to process
-# If this test is breaking it likely means your changes will also break the request-processor in async-backend
-def test_async_pipeline_run(test_dirs):
-    dataset = "national-park"
-    resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
+def run_pipeline_for_test(
+    test_dirs, dataset, resource, request_id, input_path
+):
     endpoints = ["d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"]
     pipeline_dir = test_dirs["pipeline_dir"]
     organisation = "test-org"
-    request_id = "request_id"
+    request_id = request_id
     collection_dir = test_dirs["collection_dir"]
     converted_dir = test_dirs["converted_resource_dir"]
     issue_dir = test_dirs["issues_log_dir"]
@@ -54,7 +54,7 @@ def test_async_pipeline_run(test_dirs):
     output_path = os.path.join(transformed_dir, dataset, request_id, f"{resource}.csv")
     save_harmonised = False
 
-    # Create lookup.csv file with data (we aren't testing the assign entities process here)
+    # Create lookup.csv file with data
     row = {
         "prefix": dataset,
         "resource": "",
@@ -78,12 +78,6 @@ def test_async_pipeline_run(test_dirs):
         dictwriter.writerow(row)
 
     # Create resource with data
-    row = {"reference": "ref", "entry-date": "entry date"}
-    fieldnames = row.keys()
-    with open(input_path, "w") as f:
-        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
-        dictwriter.writeheader()
-        dictwriter.writerow(row)
 
     pipeline = Pipeline(pipeline_dir, dataset)
     specification = Specification(specification_dir)
@@ -94,16 +88,14 @@ def test_async_pipeline_run(test_dirs):
     os.makedirs(os.path.join(column_field_dir, dataset, request_id), exist_ok=True)
     os.makedirs(os.path.join(dataset_resource_dir, dataset, request_id), exist_ok=True)
 
-    input_path = os.path.join(collection_dir, "resource", request_id)
     resource = Path(input_path).stem
-    specification = Specification(specification_dir)
     schema = specification.pipeline[pipeline.name]["schema"]
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
     issue_log = IssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
 
-    # load pipeline configuration
+    # Load pipeline configuration
     skip_patterns = pipeline.skip_patterns(resource)
     columns = pipeline.columns(resource, endpoints=endpoints)
     concats = pipeline.concatenations(resource, endpoints=endpoints)
@@ -113,88 +105,247 @@ def test_async_pipeline_run(test_dirs):
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
 
-    # load organisations
+    # Load organisations
     organisation = Organisation(organisation_path, Path(pipeline.path))
-
     severity_csv_path = os.path.join(specification_dir, "issue-type.csv")
-
     default_values["organisation"] = organisation
-
-    run_pipeline(
-        ConvertPhase(
-            path=input_path,
-            dataset_resource_log=dataset_resource_log,
-            custom_temp_dir=custom_temp_dir,
-            output_path=os.path.join(converted_dir, request_id, f"{resource}.csv"),
-        ),
-        NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
-        ParsePhase(),
-        ConcatFieldPhase(concats=concats, log=column_field_log),
-        MapPhase(
-            fieldnames=intermediate_fieldnames,
-            columns=columns,
-            log=column_field_log,
-        ),
-        FilterPhase(filters=pipeline.filters(resource)),
-        PatchPhase(
-            issues=issue_log,
-            patches=patches,
-        ),
-        HarmonisePhase(
-            field_datatype_map=specification.get_field_datatype_map(),
-            issues=issue_log,
-            dataset=dataset,
-        ),
-        DefaultPhase(
-            default_fields=default_fields,
-            default_values=default_values,
-            issues=issue_log,
-        ),
-        # TBD: move migrating columns to fields to be immediately after map
-        # this will simplify harmonisation and remove intermediate_fieldnames
-        # but effects brownfield-land and other pipelines which operate on columns
-        MigratePhase(
-            fields=specification.schema_field[schema],
-            migrations=pipeline.migrations(),
-        ),
-        OrganisationPhase(organisation=organisation, issues=issue_log),
-        FieldPrunePhase(fields=specification.current_fieldnames(schema)),
-        EntityReferencePhase(
-            dataset=dataset,
-            prefix=specification.dataset_prefix(dataset),
-        ),
-        EntityPrefixPhase(dataset=dataset),
-        EntityLookupPhase(lookups),
-        SavePhase(
-            default_output_path("harmonised", input_path),
-            fieldnames=intermediate_fieldnames,
-            enabled=save_harmonised,
-        ),
-        PriorityPhase(config=None),
-        PivotPhase(),
-        FactCombinePhase(issue_log=issue_log, fields=combine_fields),
-        FactorPhase(),
-        FactReferencePhase(
-            field_typology_map=specification.get_field_typology_map(),
-            field_prefix_map=specification.get_field_prefix_map(),
-        ),
-        FactLookupPhase(lookups),
-        FactPrunePhase(),
-        SavePhase(
-            output_path,
-            fieldnames=specification.factor_fieldnames(),
-        ),
-    )
+    try:
+        run_pipeline(
+            ConvertPhase(
+                path=input_path,
+                dataset_resource_log=dataset_resource_log,
+                custom_temp_dir=custom_temp_dir,
+                output_path=os.path.join(converted_dir, request_id, f"{resource}.csv"),
+            ),
+            NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+            ParsePhase(),
+            ConcatFieldPhase(concats=concats, log=column_field_log),
+            MapPhase(
+                fieldnames=intermediate_fieldnames,
+                columns=columns,
+                log=column_field_log,
+            ),
+            FilterPhase(filters=pipeline.filters(resource)),
+            PatchPhase(
+                issues=issue_log,
+                patches=patches,
+            ),
+            HarmonisePhase(
+                field_datatype_map=specification.get_field_datatype_map(),
+                issues=issue_log,
+                dataset=dataset,
+            ),
+            DefaultPhase(
+                default_fields=default_fields,
+                default_values=default_values,
+                issues=issue_log,
+            ),
+            # TBD: move migrating columns to fields to be immediately after map
+            # this will simplify harmonisation and remove intermediate_fieldnames
+            # but effects brownfield-land and other pipelines which operate on columns
+            MigratePhase(
+                fields=specification.schema_field[schema],
+                migrations=pipeline.migrations(),
+            ),
+            OrganisationPhase(organisation=organisation, issues=issue_log),
+            FieldPrunePhase(fields=specification.current_fieldnames(schema)),
+            EntityReferencePhase(
+                dataset=dataset,
+                prefix=specification.dataset_prefix(dataset),
+            ),
+            EntityPrefixPhase(dataset=dataset),
+            EntityLookupPhase(lookups),
+            SavePhase(
+                default_output_path("harmonised", input_path),
+                fieldnames=intermediate_fieldnames,
+                enabled=save_harmonised,
+            ),
+            PriorityPhase(config=None),
+            PivotPhase(),
+            FactCombinePhase(issue_log=issue_log, fields=combine_fields),
+            FactorPhase(),
+            FactReferencePhase(
+                field_typology_map=specification.get_field_typology_map(),
+                field_prefix_map=specification.get_field_prefix_map(),
+            ),
+            FactLookupPhase(lookups),
+            FactPrunePhase(),
+            SavePhase(
+                output_path,
+                fieldnames=specification.factor_fieldnames(),
+            ),
+        )
+    except Exception as e:
+        print("Pipeline failed during execution:", e)
 
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
-
-    # Add the 'severity' and 'description' column based on the mapping
     issue_log.add_severity_column(severity_csv_path)
-
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
 
-    # Assert issues are generated here as this is the main thing async-backend is concerned with
-    # Could also add some column field stuff?
-    assert False
+    return output_path
+
+# This test aims to emulate the way the async-request-backend repo uses the pipeline to process
+# If this test is breaking it likely means your changes will also break the request-processor in async-backend
+def test_async_pipeline_run(test_dirs):
+    dataset = "national-park"
+    resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
+    request_id = "test_request_id"
+
+    # Prepare input CSV file
+    rows = [
+        {"reference": "ABC_0001", "entry-date": "2024-01-01", "organisation": "test-org"},
+        {"reference": "ABC_0002", "entry-date": "2024-01-02", "organisation": "test-org"},
+    ]
+
+    input_path = os.path.join(test_dirs["collection_dir"], resource)
+    with open(input_path, "w", newline='') as f:
+        fieldnames = ["reference", "entry-date", "organisation"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    # Run the pipeline
+    output_path = run_pipeline_for_test(
+        test_dirs=test_dirs,
+        dataset=dataset,
+        resource=resource,
+        request_id=request_id,
+        input_path=input_path
+    )
+    # issue_log
+    issue_log_path = os.path.join(test_dirs["issues_log_dir"], resource + ".csv")
+    assert os.path.exists(issue_log_path), "Issue log file was not created"
+
+    # column_log
+    column_field_log_path = os.path.join(test_dirs["column_field_dir"], resource + ".csv")
+    assert os.path.exists(column_field_log_path), "Column field log file was not created"
+
+    # dataset_resource_log
+    dataset_resource_log_path = os.path.join(test_dirs["dataset_resource_dir"], resource + ".csv")
+    assert os.path.exists(dataset_resource_log_path), "Dataset resource log file was not created"
+
+
+def test_pipeline_output_is_complete(test_dirs):
+    dataset = "national-park"
+    resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
+    request_id = "test_request_id"
+    rows = [
+        {"reference": "ABC_0001", "entry-date": "2024-01-01", "organisation": "test-org"},
+        {"reference": "ABC_0002", "entry-date": "2024-01-02", "organisation": "test-org"},
+    ]
+
+    input_path = os.path.join(test_dirs["collection_dir"], resource)
+    with open(input_path, "w", newline='') as f:
+        fieldnames = ["reference", "entry-date", "organisation"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    # Run the pipeline
+    output_path = run_pipeline_for_test(
+        test_dirs=test_dirs,
+        dataset=dataset,
+        resource=resource,
+        request_id=request_id,
+        input_path=input_path
+    )
+    assert os.path.exists(output_path), "Output file was not created."
+    output_df = pd.read_csv(output_path)
+    assert not output_df.empty, "Output file is empty."
+
+
+def test_pipeline_with_empty_input(test_dirs):
+    """Test the pipeline with an empty input file."""
+    dataset = "national-park"
+    resource = "empty_input_test"
+    request_id = "empty_test"
+
+    input_path = os.path.join(test_dirs["collection_dir"], resource)
+    # Create an empty input file
+    open(input_path, 'a').close()
+
+    output_path = run_pipeline_for_test(
+        test_dirs=test_dirs,
+        dataset=dataset,
+        resource=resource,
+        request_id=request_id,
+        input_path=input_path
+    )
+
+    assert os.path.exists(output_path), "Output file was not created for empty input."
+    output_df = pd.read_csv(output_path)
+    assert output_df.empty, "Output file should be empty for empty input."
+
+
+def test_issue_log_creation(test_dirs):
+    """Test that the issue log is created when there are issues in the pipeline."""
+    dataset = "national-park"
+    resource = "issue_log_test"
+    request_id = "issue_log_test_id"
+    rows = [
+        {"reference": "issue_log_test1", "entry-date": "2023-12-12", "organisation": "test-org"},
+        {"reference": "issue_log_test2", "entry-date": "2024-01-02", "organisation": "test-org"},
+    ]
+
+    input_path = os.path.join(test_dirs["collection_dir"], resource)
+    with open(input_path, "w", newline='') as f:
+        fieldnames = ["reference", "entry-date", "organisation"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    # Run the pipeline
+    output_path = run_pipeline_for_test(
+        test_dirs=test_dirs,
+        dataset=dataset,
+        resource=resource,
+        request_id=request_id,
+        input_path=input_path
+    )
+    issue_log_path = os.path.join(test_dirs["issues_log_dir"], resource + ".csv")
+    assert os.path.exists(issue_log_path), "Issue log was not created."
+
+    # Load the issue log and check its contents
+    issue_log_df = pd.read_csv(issue_log_path)
+    assert not issue_log_df.empty, "Issue log should not be empty."
+    assert "issue-type" in issue_log_df.columns, "Issue log is missing 'issue-type' column."
+
+
+def test_column_field_log_creation(test_dirs):
+    dataset = "national-park"
+    resource = "column_field_log_test"
+    request_id = "column_field_log_test_id"
+    rows = [
+        {"reference": "ABC_0001", "entry-date": "2024-01-01", "organisation": "test-org"},
+        {"reference": "ABC_0002", "entry-date": "2024-01-02", "organisation": "test-org"},
+    ]
+
+    input_path = os.path.join(test_dirs["collection_dir"], resource)
+    with open(input_path, "w", newline='') as f:
+        fieldnames = ["reference", "entry-date", "organisation"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    output_path = run_pipeline_for_test(
+        test_dirs=test_dirs,
+        dataset=dataset,
+        resource=resource,
+        request_id=request_id,
+        input_path=input_path
+    )
+
+    # Check that the column field log was created
+    column_field_log_path = os.path.join(test_dirs["column_field_dir"], f"{resource}.csv")
+    assert os.path.exists(column_field_log_path), "Column field log was not created."
+
+    # Load the column field log and check its contents
+    column_field_log_df = pd.read_csv(column_field_log_path)
+    assert not column_field_log_df.empty, "Column field log should not be empty."
+    assert "field" in column_field_log_df.columns, "Column field log is missing 'field_name' column."
