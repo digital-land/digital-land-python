@@ -14,7 +14,7 @@ class PriorityPhase(Phase):
             self.config = config
         else:
             self.config = None
-            logging.error(
+            logging.warning(
                 f"No config provided so priority defaults to {self.default_priority}"
             )
 
