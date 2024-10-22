@@ -51,7 +51,7 @@ def test_date_normalise():
 
     # found this in the wild
     assert date.normalise("22/05/2018\xa0") == "2018-05-22"
-    assert date.normalise("2013-04-15T00:00:00") == "2013-04-15",
+    assert date.normalise("2013-04-15T00:00:00") == "2013-04-15"
 
     issues = IssueLog()
     assert date.normalise("2019-02-29", issues=issues) == ""
