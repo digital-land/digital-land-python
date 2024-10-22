@@ -58,12 +58,15 @@ def pipeline_makerules(collection):
                     "\t$(call run-pipeline,"
                     + f" --endpoints '{endpoints}'"
                     + f" --organisations '{organisations}'"
-                    + f" --entry-date '{entry_date}')"
+                    + f" --entry-date '{entry_date}'"
                 )
                 # we will include the resource arguement if the old resource
                 # is  different so it's processed as the old_resource
                 if resource != old_resource:
                     call_pipeline = call_pipeline + f"--resource {old_resource}"
+
+                call_pipeline = call_pipeline + ")"
+
                 print(call_pipeline)
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
