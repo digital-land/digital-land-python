@@ -63,9 +63,9 @@ def pipeline_makerules(collection):
                 # we will include the resource arguement if the old resource
                 # is  different so it's processed as the old_resource
                 if resource != old_resource:
-                    call_pipeline = call_pipeline + f"--resource {old_resource}"
+                    call_pipeline = call_pipeline + f" --resource '{old_resource}'"
 
-                call_pipeline = call_pipeline + ")"
+                call_pipeline = call_pipeline + " )"
 
                 print(call_pipeline)
 
