@@ -25,24 +25,24 @@ def test_dirs(tmp_path_factory):
     :return: dict of Path (directory paths)
     """
     # directories
-    pipeline_dir = tmp_path_factory.mktemp("column_pipeline", numbered=False)
+    pipeline_dir = tmp_path_factory.mktemp("async_pipeline", numbered=False)
 
-    specification_dir = tmp_path_factory.mktemp("column_specification", numbered=False)
-    transformed_dir = tmp_path_factory.mktemp("column_transformed", numbered=False)
+    specification_dir = tmp_path_factory.mktemp("async_specification", numbered=False)
+    transformed_dir = tmp_path_factory.mktemp("async_transformed", numbered=False)
 
-    collection_dir = tmp_path_factory.mktemp("column_collection", numbered=False)
-    issues_log_dir = tmp_path_factory.mktemp("column_issues-log", numbered=False)
+    collection_dir = tmp_path_factory.mktemp("async_collection", numbered=False)
+    issues_log_dir = tmp_path_factory.mktemp("async_issues-log", numbered=False)
     operational_issues_dir = tmp_path_factory.mktemp(
-        "column_operational_issues", numbered=False
+        "async_operational_issues", numbered=False
     )
     datasource_log_dir = tmp_path_factory.mktemp(
-        "column_datasource-log", numbered=False
+        "async_datasource-log", numbered=False
     )
     dataset_resource_dir = tmp_path_factory.mktemp(
-        "column_dataset-resource", numbered=False
+        "async_dataset-resource", numbered=False
     )
     converted_resource_dir = tmp_path_factory.mktemp(
-        "column_converted-resource", numbered=False
+        "async_converted-resource", numbered=False
     )
 
     column_field_dir = tmp_path_factory.mktemp("column-field", numbered=False)
@@ -51,7 +51,7 @@ def test_dirs(tmp_path_factory):
 
     custom_temp_dir = tmp_path_factory.mktemp("tmp_dir", numbered=False)
 
-    output_dir = tmp_path_factory.mktemp("column_output", numbered=False)
+    output_dir = tmp_path_factory.mktemp("async_output", numbered=False)
 
     # data - pipeline
     raw_data = get_pipeline_csv_data_with_resources_and_endpoints(
