@@ -83,6 +83,22 @@ class TestLookupPhase:
         assert output[0]["row"]["entity"] == ""
         assert issues.rows[0]["issue-type"] == "unknown entity"
 
+    def test_process_raise_range_issue(self, get_input_stream):
+        input_stream = get_input_stream
+        lookups = {",dataset,1,test": "1"}
+        issues = IssueLog()
+        phase = LookupPhase(
+            lookups=lookups,
+            redirect_lookups={},
+            issue_log=issues,
+            entity_range=["10", "20"],
+        )
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == "1"
+        assert issues.rows[0]["issue-type"] == "entity number out of range"
+
     def test_process_empty_prefix(self, get_lookup):
         input_stream = [
             {
