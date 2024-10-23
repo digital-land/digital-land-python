@@ -35,9 +35,7 @@ def test_dirs(tmp_path_factory):
     operational_issues_dir = tmp_path_factory.mktemp(
         "async_operational_issues", numbered=False
     )
-    datasource_log_dir = tmp_path_factory.mktemp(
-        "async_datasource-log", numbered=False
-    )
+    datasource_log_dir = tmp_path_factory.mktemp("async_datasource-log", numbered=False)
     dataset_resource_dir = tmp_path_factory.mktemp(
         "async_dataset-resource", numbered=False
     )
