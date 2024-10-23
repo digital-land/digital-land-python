@@ -63,19 +63,6 @@ def test_dirs(tmp_path_factory):
     # data - specification
     copy_latest_specification_files_to(specification_dir)
 
-    # data - specification amendments
-    current_fields_df = pd.read_csv(specification_dir / "field.csv")
-    additional_fields_dict = get_additional_field_csv_data()
-    additional_fields_df = pd.DataFrame(additional_fields_dict)
-    fields_df = pd.concat([additional_fields_df, current_fields_df], ignore_index=True)
-    fields_df.to_csv(specification_dir / "field.csv", index=False)
-
-    current_fields_df = pd.read_csv(specification_dir / "schema-field.csv")
-    additional_fields_dict = get_additional_schema_field_csv_data(test_pipeline)
-    additional_fields_df = pd.DataFrame(additional_fields_dict)
-    fields_df = pd.concat([additional_fields_df, current_fields_df], ignore_index=True)
-    fields_df.to_csv(specification_dir / "schema-field.csv", index=False)
-
     # data - collection
     generate_test_collection_files(
         str(collection_dir), test_pipeline, test_resource, test_endpoint
@@ -169,35 +156,6 @@ def copy_latest_specification_files_to(specification_dir: Path):
             )
     except URLError:
         pytest.fail(error_msg)
-
-
-def get_additional_field_csv_data():
-    return {
-        "cardinality": [1, 1],
-        "datatype": ["string", "string"],
-        "description": ["resource field map", "endpoint field map"],
-        "end-date": ["", ""],
-        "entry-date": ["", ""],
-        "field": ["res_field_one", "ep_field_one"],
-        "guidance": ["", ""],
-        "hint": ["", ""],
-        "name": ["res_field_one", "ep_field_one"],
-        "parent-field": ["value", "value"],
-        "replacement-field": ["", ""],
-        "start-date": ["", ""],
-        "text": ["value", "value"],
-        "typology": ["value", "value"],
-        "uri-template": ["", ""],
-        "wikidata-property": ["", ""],
-    }
-
-
-def get_additional_schema_field_csv_data(test_schema: str = ""):
-    return {
-        "schema": [test_schema, test_schema],
-        "field": ["res_field_one", "ep_field_one"],
-    }
-
 
 def generate_test_collection_files(
     collection_dir: str = "", pipeline: str = "", resource: str = "", endpoint: str = ""

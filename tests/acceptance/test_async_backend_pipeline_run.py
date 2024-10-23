@@ -1,7 +1,6 @@
 import csv
 import os
 from pathlib import Path
-
 import pandas as pd
 from digital_land.check import duplicate_reference_check
 from digital_land.commands import default_output_path
@@ -29,6 +28,9 @@ from digital_land.phase.reference import EntityReferencePhase, FactReferencePhas
 from digital_land.phase.save import SavePhase
 from digital_land.pipeline import Pipeline, run_pipeline
 from digital_land.specification import Specification
+
+# These tests aims to emulate the way the async-request-backend repo uses the pipeline to process
+# If these tests are breaking it likely means your changes will also break the request-processor in async-backend
 
 
 def run_pipeline_for_test(
@@ -181,19 +183,20 @@ def run_pipeline_for_test(
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
     issue_log.add_severity_column(severity_csv_path)
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+    issue_log_path = os.path.join(issue_dir, f"{resource}.csv")
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
+    column_field_log_path = os.path.join(column_field_dir, f"{resource}.csv")
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
+    dataset_resource_log_path = os.path.join(test_dirs["dataset_resource_dir"], resource + ".csv")
 
-    return output_path
+    return {"output_path": output_path, "issue_log": issue_log_path, "column_field_log": column_field_log_path, "dataset_resource_log": dataset_resource_log_path}
 
-# This test aims to emulate the way the async-request-backend repo uses the pipeline to process
-# If this test is breaking it likely means your changes will also break the request-processor in async-backend
+
 def test_async_pipeline_run(test_dirs):
     dataset = "national-park"
     resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
     request_id = "test_request_id"
 
-    # Prepare input CSV file
     rows = [
         {"reference": "ABC_0001", "entry-date": "2024-01-01", "organisation": "test-org"},
         {"reference": "ABC_0002", "entry-date": "2024-01-02", "organisation": "test-org"},
@@ -208,7 +211,7 @@ def test_async_pipeline_run(test_dirs):
             writer.writerow(row)
 
     # Run the pipeline
-    output_path = run_pipeline_for_test(
+    run_pipeline = run_pipeline_for_test(
         test_dirs=test_dirs,
         dataset=dataset,
         resource=resource,
@@ -216,16 +219,24 @@ def test_async_pipeline_run(test_dirs):
         input_path=input_path
     )
     # issue_log
-    issue_log_path = os.path.join(test_dirs["issues_log_dir"], resource + ".csv")
+    issue_log_path = run_pipeline.get("issue_log")
     assert os.path.exists(issue_log_path), "Issue log file was not created"
 
     # column_log
-    column_field_log_path = os.path.join(test_dirs["column_field_dir"], resource + ".csv")
+    column_field_log_path = run_pipeline.get("column_field_log")
     assert os.path.exists(column_field_log_path), "Column field log file was not created"
 
     # dataset_resource_log
-    dataset_resource_log_path = os.path.join(test_dirs["dataset_resource_dir"], resource + ".csv")
+    dataset_resource_log_path = run_pipeline.get("dataset_resource_log")
     assert os.path.exists(dataset_resource_log_path), "Dataset resource log file was not created"
+
+    output_path = run_pipeline.get("output_path")
+    assert os.path.exists(output_path), "Pipeline failed to generate output file."
+    output_df = pd.read_csv(output_path)
+    expected_columns = ["reference-entity", "entry-date", "entity", "start-date", "end-date"]
+    for col in expected_columns:
+        assert col in output_df.columns, f"Missing expected column '{col}' in output."
+    assert len(output_df) >= len(rows), "Output row count does not match input row count."
 
 
 def test_pipeline_output_is_complete(test_dirs):
@@ -246,20 +257,20 @@ def test_pipeline_output_is_complete(test_dirs):
             writer.writerow(row)
 
     # Run the pipeline
-    output_path = run_pipeline_for_test(
+    run_pipeline = run_pipeline_for_test(
         test_dirs=test_dirs,
         dataset=dataset,
         resource=resource,
         request_id=request_id,
         input_path=input_path
     )
+    output_path = run_pipeline.get("output_path")
     assert os.path.exists(output_path), "Output file was not created."
     output_df = pd.read_csv(output_path)
     assert not output_df.empty, "Output file is empty."
 
 
 def test_pipeline_with_empty_input(test_dirs):
-    """Test the pipeline with an empty input file."""
     dataset = "national-park"
     resource = "empty_input_test"
     request_id = "empty_test"
@@ -268,21 +279,20 @@ def test_pipeline_with_empty_input(test_dirs):
     # Create an empty input file
     open(input_path, 'a').close()
 
-    output_path = run_pipeline_for_test(
+    run_pipeline = run_pipeline_for_test(
         test_dirs=test_dirs,
         dataset=dataset,
         resource=resource,
         request_id=request_id,
         input_path=input_path
     )
-
+    output_path = run_pipeline.get("output_path")
     assert os.path.exists(output_path), "Output file was not created for empty input."
     output_df = pd.read_csv(output_path)
     assert output_df.empty, "Output file should be empty for empty input."
 
 
 def test_issue_log_creation(test_dirs):
-    """Test that the issue log is created when there are issues in the pipeline."""
     dataset = "national-park"
     resource = "issue_log_test"
     request_id = "issue_log_test_id"
@@ -300,14 +310,14 @@ def test_issue_log_creation(test_dirs):
             writer.writerow(row)
 
     # Run the pipeline
-    output_path = run_pipeline_for_test(
+    run_pipeline = run_pipeline_for_test(
         test_dirs=test_dirs,
         dataset=dataset,
         resource=resource,
         request_id=request_id,
         input_path=input_path
     )
-    issue_log_path = os.path.join(test_dirs["issues_log_dir"], resource + ".csv")
+    issue_log_path = run_pipeline.get("issue_log")
     assert os.path.exists(issue_log_path), "Issue log was not created."
 
     # Load the issue log and check its contents
@@ -333,7 +343,7 @@ def test_column_field_log_creation(test_dirs):
         for row in rows:
             writer.writerow(row)
 
-    output_path = run_pipeline_for_test(
+    run_pipeline = run_pipeline_for_test(
         test_dirs=test_dirs,
         dataset=dataset,
         resource=resource,
@@ -342,10 +352,10 @@ def test_column_field_log_creation(test_dirs):
     )
 
     # Check that the column field log was created
-    column_field_log_path = os.path.join(test_dirs["column_field_dir"], f"{resource}.csv")
+    column_field_log_path = run_pipeline.get("column_field_log")
     assert os.path.exists(column_field_log_path), "Column field log was not created."
 
     # Load the column field log and check its contents
     column_field_log_df = pd.read_csv(column_field_log_path)
     assert not column_field_log_df.empty, "Column field log should not be empty."
-    assert "field" in column_field_log_df.columns, "Column field log is missing 'field_name' column."
+    assert "field" in column_field_log_df.columns, "Column field log is missing 'field' column."
