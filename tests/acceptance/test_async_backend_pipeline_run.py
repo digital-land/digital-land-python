@@ -179,7 +179,7 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
         print("Pipeline failed during execution:", e)
 
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
-    issue_log.add_severity_column(severity_csv_path)
+    # issue_log.add_severity_column(severity_csv_path)
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     issue_log_path = os.path.join(issue_dir, f"{resource}.csv")
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
