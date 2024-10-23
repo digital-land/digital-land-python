@@ -33,9 +33,7 @@ from digital_land.specification import Specification
 # If these tests are breaking it likely means your changes will also break the request-processor in async-backend
 
 
-def run_pipeline_for_test(
-    test_dirs, dataset, resource, request_id, input_path
-):
+def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
     endpoints = ["d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"]
     pipeline_dir = test_dirs["pipeline_dir"]
     organisation = "test-org"
@@ -187,9 +185,16 @@ def run_pipeline_for_test(
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     column_field_log_path = os.path.join(column_field_dir, f"{resource}.csv")
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
-    dataset_resource_log_path = os.path.join(test_dirs["dataset_resource_dir"], resource + ".csv")
+    dataset_resource_log_path = os.path.join(
+        test_dirs["dataset_resource_dir"], resource + ".csv"
+    )
 
-    return {"output_path": output_path, "issue_log": issue_log_path, "column_field_log": column_field_log_path, "dataset_resource_log": dataset_resource_log_path}
+    return {
+        "output_path": output_path,
+        "issue_log": issue_log_path,
+        "column_field_log": column_field_log_path,
+        "dataset_resource_log": dataset_resource_log_path,
+    }
 
 
 def test_async_pipeline_run(test_dirs):
@@ -198,12 +203,20 @@ def test_async_pipeline_run(test_dirs):
     request_id = "test_request_id"
 
     rows = [
-        {"reference": "ABC_0001", "entry-date": "2024-01-01", "organisation": "test-org"},
-        {"reference": "ABC_0002", "entry-date": "2024-01-02", "organisation": "test-org"},
+        {
+            "reference": "ABC_0001",
+            "entry-date": "2024-01-01",
+            "organisation": "test-org",
+        },
+        {
+            "reference": "ABC_0002",
+            "entry-date": "2024-01-02",
+            "organisation": "test-org",
+        },
     ]
 
     input_path = os.path.join(test_dirs["collection_dir"], resource)
-    with open(input_path, "w", newline='') as f:
+    with open(input_path, "w", newline="") as f:
         fieldnames = ["reference", "entry-date", "organisation"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -216,7 +229,7 @@ def test_async_pipeline_run(test_dirs):
         dataset=dataset,
         resource=resource,
         request_id=request_id,
-        input_path=input_path
+        input_path=input_path,
     )
     # issue_log
     issue_log_path = run_pipeline.get("issue_log")
@@ -224,19 +237,31 @@ def test_async_pipeline_run(test_dirs):
 
     # column_log
     column_field_log_path = run_pipeline.get("column_field_log")
-    assert os.path.exists(column_field_log_path), "Column field log file was not created"
+    assert os.path.exists(
+        column_field_log_path
+    ), "Column field log file was not created"
 
     # dataset_resource_log
     dataset_resource_log_path = run_pipeline.get("dataset_resource_log")
-    assert os.path.exists(dataset_resource_log_path), "Dataset resource log file was not created"
+    assert os.path.exists(
+        dataset_resource_log_path
+    ), "Dataset resource log file was not created"
 
     output_path = run_pipeline.get("output_path")
     assert os.path.exists(output_path), "Pipeline failed to generate output file."
     output_df = pd.read_csv(output_path)
-    expected_columns = ["reference-entity", "entry-date", "entity", "start-date", "end-date"]
+    expected_columns = [
+        "reference-entity",
+        "entry-date",
+        "entity",
+        "start-date",
+        "end-date",
+    ]
     for col in expected_columns:
         assert col in output_df.columns, f"Missing expected column '{col}' in output."
-    assert len(output_df) >= len(rows), "Output row count does not match input row count."
+    assert len(output_df) >= len(
+        rows
+    ), "Output row count does not match input row count."
 
 
 def test_pipeline_output_is_complete(test_dirs):
@@ -244,12 +269,20 @@ def test_pipeline_output_is_complete(test_dirs):
     resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
     request_id = "test_request_id"
     rows = [
-        {"reference": "ABC_0001", "entry-date": "2024-01-01", "organisation": "test-org"},
-        {"reference": "ABC_0002", "entry-date": "2024-01-02", "organisation": "test-org"},
+        {
+            "reference": "ABC_0001",
+            "entry-date": "2024-01-01",
+            "organisation": "test-org",
+        },
+        {
+            "reference": "ABC_0002",
+            "entry-date": "2024-01-02",
+            "organisation": "test-org",
+        },
     ]
 
     input_path = os.path.join(test_dirs["collection_dir"], resource)
-    with open(input_path, "w", newline='') as f:
+    with open(input_path, "w", newline="") as f:
         fieldnames = ["reference", "entry-date", "organisation"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -262,7 +295,7 @@ def test_pipeline_output_is_complete(test_dirs):
         dataset=dataset,
         resource=resource,
         request_id=request_id,
-        input_path=input_path
+        input_path=input_path,
     )
     output_path = run_pipeline.get("output_path")
     assert os.path.exists(output_path), "Output file was not created."
@@ -277,14 +310,14 @@ def test_pipeline_with_empty_input(test_dirs):
 
     input_path = os.path.join(test_dirs["collection_dir"], resource)
     # Create an empty input file
-    open(input_path, 'a').close()
+    open(input_path, "a").close()
 
     run_pipeline = run_pipeline_for_test(
         test_dirs=test_dirs,
         dataset=dataset,
         resource=resource,
         request_id=request_id,
-        input_path=input_path
+        input_path=input_path,
     )
     output_path = run_pipeline.get("output_path")
     assert os.path.exists(output_path), "Output file was not created for empty input."
@@ -297,12 +330,20 @@ def test_issue_log_creation(test_dirs):
     resource = "issue_log_test"
     request_id = "issue_log_test_id"
     rows = [
-        {"reference": "issue_log_test1", "entry-date": "2023-12-12", "organisation": "test-org"},
-        {"reference": "issue_log_test2", "entry-date": "2024-01-02", "organisation": "test-org"},
+        {
+            "reference": "issue_log_test1",
+            "entry-date": "2023-12-12",
+            "organisation": "test-org",
+        },
+        {
+            "reference": "issue_log_test2",
+            "entry-date": "2024-01-02",
+            "organisation": "test-org",
+        },
     ]
 
     input_path = os.path.join(test_dirs["collection_dir"], resource)
-    with open(input_path, "w", newline='') as f:
+    with open(input_path, "w", newline="") as f:
         fieldnames = ["reference", "entry-date", "organisation"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -315,7 +356,7 @@ def test_issue_log_creation(test_dirs):
         dataset=dataset,
         resource=resource,
         request_id=request_id,
-        input_path=input_path
+        input_path=input_path,
     )
     issue_log_path = run_pipeline.get("issue_log")
     assert os.path.exists(issue_log_path), "Issue log was not created."
@@ -323,7 +364,9 @@ def test_issue_log_creation(test_dirs):
     # Load the issue log and check its contents
     issue_log_df = pd.read_csv(issue_log_path)
     assert not issue_log_df.empty, "Issue log should not be empty."
-    assert "issue-type" in issue_log_df.columns, "Issue log is missing 'issue-type' column."
+    assert (
+        "issue-type" in issue_log_df.columns
+    ), "Issue log is missing 'issue-type' column."
 
 
 def test_column_field_log_creation(test_dirs):
@@ -331,12 +374,20 @@ def test_column_field_log_creation(test_dirs):
     resource = "column_field_log_test"
     request_id = "column_field_log_test_id"
     rows = [
-        {"reference": "ABC_0001", "entry-date": "2024-01-01", "organisation": "test-org"},
-        {"reference": "ABC_0002", "entry-date": "2024-01-02", "organisation": "test-org"},
+        {
+            "reference": "ABC_0001",
+            "entry-date": "2024-01-01",
+            "organisation": "test-org",
+        },
+        {
+            "reference": "ABC_0002",
+            "entry-date": "2024-01-02",
+            "organisation": "test-org",
+        },
     ]
 
     input_path = os.path.join(test_dirs["collection_dir"], resource)
-    with open(input_path, "w", newline='') as f:
+    with open(input_path, "w", newline="") as f:
         fieldnames = ["reference", "entry-date", "organisation"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -348,7 +399,7 @@ def test_column_field_log_creation(test_dirs):
         dataset=dataset,
         resource=resource,
         request_id=request_id,
-        input_path=input_path
+        input_path=input_path,
     )
 
     # Check that the column field log was created
@@ -358,4 +409,6 @@ def test_column_field_log_creation(test_dirs):
     # Load the column field log and check its contents
     column_field_log_df = pd.read_csv(column_field_log_path)
     assert not column_field_log_df.empty, "Column field log should not be empty."
-    assert "field" in column_field_log_df.columns, "Column field log is missing 'field' column."
+    assert (
+        "field" in column_field_log_df.columns
+    ), "Column field log is missing 'field' column."

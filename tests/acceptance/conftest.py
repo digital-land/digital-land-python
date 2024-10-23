@@ -157,6 +157,7 @@ def copy_latest_specification_files_to(specification_dir: Path):
     except URLError:
         pytest.fail(error_msg)
 
+
 def generate_test_collection_files(
     collection_dir: str = "", pipeline: str = "", resource: str = "", endpoint: str = ""
 ):
