@@ -31,7 +31,8 @@ def pipeline_makerules(collection):
         print("%s=%s" % (dataset_var, dataset_path(dataset)))
         print("%s=" % (dataset_files_var), end="")
         for resource in sorted(dataset_resource[dataset]):
-            print("\\\n    %s" % (transformed_path(resource, dataset)), end="")
+            if redirect.get(resource):
+                print("\\\n    %s" % (transformed_path(resource, dataset)), end="")
         print()
 
         for resource in sorted(dataset_resource[dataset]):
