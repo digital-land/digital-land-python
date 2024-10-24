@@ -20,7 +20,7 @@ class OrganisationPhase(Phase):
 
             organisation_value = row["organisation"]
             row["organisation"] = self.organisation.lookup(row["organisation"])
-            if not row["organisation"]:
+            if not row["organisation"] and self.issues:
                 self.issues.log_issue(
                     "organisation", "invalid organisation", organisation_value
                 )
