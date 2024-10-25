@@ -1,0 +1,15 @@
+prefix,prefix-uri,organisation,wikidata-property
+twitter,https://twitter.com/,wikidata:Q1390577,P2002
+wikidata,http://www.wikidata.org/entity/,wikidata:Q2013,P1629
+wikidata-property,http://www.wikidata.org/prop/direct/,wikidata:Q2013,P1687
+uprn,https://uprn.uk/,public-authority:Q5533909,P8399
+toid,http://data.ordnancesurvey.co.uk/id/,government-organisation:D38,P3120
+local-authority-eng,https://www.digital-land.info/prefix/local-authority/reference/,government-organisation:D1342,
+local-authority,https://www.digital-land.info/prefix/local-authority/reference/,government-organisation:D1342,
+statistical-geography,http://statistics.data.gov.uk/id/statistical-geography/,government-organisation:D303,P836
+site-of-special-scientific-interest,https://designatedsites.naturalengland.org.uk/SiteDetail.aspx?SiteCode=S,government-organisation:PB202,P2621
+special-protection-area,https://designatedsites.naturalengland.org.uk/SiteDetail.aspx?SiteCode=,government-organisation:PB202,
+ramsar-site,https://rsis.ramsar.org/ris/,wikidata:Q170170,P2525
+openstreetmap,https://www.openstreetmap.org/relation/,wikidata:Q6542248,P402
+parliament-thesaurus,http://data.parliament.uk/terms/,wikidata:Q11010,P4527
+github-discussion,https://github.com/digital-land/data-standards-backlog/discussions/,wikidata:Q28771536,

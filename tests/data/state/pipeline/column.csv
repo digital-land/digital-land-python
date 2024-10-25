@@ -1,0 +1,10 @@
+dataset,resource,column,field,start-date,end-date,entry-date,endpoint
+central-activities-zone,,WKT,geometry,,,,
+central-activities-zone,,layerreference,reference,,,,
+central-activities-zone,,sitename,name,,,,
+central-activities-zone,,borough,organisation,,,,
+central-activities-zone,,notes,notes,,,,
+central-activities-zone,,firstaddeddate,start-date,,,,
+central-activities-zone,,lastupdateddate,entry-date,,,,
+central-activities-zone,,removeddate,end-date,,,,
+central-activities-zone,,NSP_Policy,notes,,,,

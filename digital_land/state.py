@@ -1,19 +1,43 @@
 import os
-from pathlib import Path
 import pygit2
+import json
 import hashlib
 
 
-class State:
-    pass
+class State(dict):
+    def __init__(self, data):
+        for k, v in data.items():
+            self.__setitem__(k, v)
 
-    def get_dir_hash(self, dir, exclude=[]):
+    def build(specification_dir, collection_dir, pipeline_dir):
+        """Build a state object from the current configuration and code"""
+        return State(
+            {
+                "code": State.get_code_hash(),
+                "specification": State.get_dir_hash(specification_dir),
+                "collection": State.get_dir_hash(
+                    collection_dir, ["resource/", "log/", "log.csv"]
+                ),
+                "pipeline": State.get_dir_hash(pipeline_dir),
+            }
+        )
+
+    def load(path):
+        """Build a state object from a previously saved state file"""
+        with open(path, "r") as f:
+            return State(json.load(f))
+
+    def save(self, output_path):
+        """Saves a state object to a file"""
+        with open(output_path, "w") as f:
+            json.dump(self, f)
+
+    def get_dir_hash(dir, exclude=[]):
         # SHA1 - good enough for git, good enough for us
         hash = hashlib.sha1()
         all_files = []
         for root, _, files in os.walk(dir):
             rel = os.path.relpath(root, dir)
-            print(rel)
             if rel == ".":
                 rel = ""
 
@@ -35,11 +59,7 @@ class State:
 
         return hash.digest().hex()
 
-    def get_code_hash(self):
-        code_dir = Path(__file__).parent.parent.absolute()
-        if not os.path.exists(os.path.join(code_dir, ".git")):
-            raise RuntimeError("No .git directory found")
-
+    def get_code_hash():
         repo = pygit2.Repository(__file__)
         commit = repo.revparse_single("HEAD")
         return str(commit.id)

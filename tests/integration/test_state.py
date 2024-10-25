@@ -24,22 +24,53 @@ def test_get_code_hash():
     proc = subprocess.run(
         "git log -n 1".split(), cwd=os.path.dirname(__file__), stdout=subprocess.PIPE
     )
+    # the first line of this is "commit <hash>"
     hash = proc.stdout.splitlines()[0].split()[1].decode()
 
-    state = State()
-    assert hash == state.get_code_hash()
+    assert hash == State.get_code_hash()
 
 
 def test_hash_directory():
-    state = State()
-    assert state.get_dir_hash("tests/data/state/collection_1") == test_hash
+    assert State.get_dir_hash("tests/data/state/collection") == test_hash
 
 
 def test_hash_directory_with_exclude():
-    state = State()
     assert (
-        state.get_dir_hash(
-            "tests/data/state/collection_2", ["resource/", "log/", "log.csv"]
+        State.get_dir_hash(
+            "tests/data/state/collection_exclude", ["resource/", "log/", "log.csv"]
         )
         == test_hash
     )
+
+
+def test_different_dirs_have_different_hashes():
+    assert State.get_dir_hash("tests/data/state/collection") != State.get_dir_hash(
+        "tests/data/state/collection_blank"
+    )
+
+
+def test_state_build_persist(tmp_path):
+    test_dir = "tests/data/state"
+    tmp_json = (tmp_path / "state.json").absolute()
+
+    # Generate and save a state
+    state_1 = State.build(
+        os.path.join(test_dir, "specification"),
+        os.path.join(test_dir, "collection"),
+        os.path.join(test_dir, "pipeline"),
+    )
+    state_1.save(tmp_json)
+
+    # Load it back and check they're the same
+    state_2 = State.load(tmp_json)
+    assert state_1 == state_2
+
+    # Generate a different one
+    state_3 = State.build(
+        os.path.join(test_dir, "specification"),
+        os.path.join(test_dir, "collection_blank"),
+        os.path.join(test_dir, "pipeline"),
+    )
+
+    # Check that's different from the first one
+    assert state_2 != state_3
