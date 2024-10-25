@@ -13,6 +13,7 @@ from digital_land.configuration.main import Config
 from digital_land.commands import (
     add_redirections,
     assign_entities,
+    convert_csvs_to_parquet,
     fetch,
     collect,
     collection_list_resources,
@@ -129,6 +130,26 @@ def operational_issue_save_csv_cmd(ctx, operational_issue_dir):
 @input_output_path
 def convert_cmd(input_path, output_path):
     return convert(input_path, output_path)
+
+
+@cli.command(
+    "convert_csvs_to_parquet",
+    short_help="converts .csv files in a directory to .parquet files",
+)
+@click.option(
+    "--input-dir",
+    type=click.Path(),
+    default=None,
+    help="directory to read .csv files from",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(),
+    default="parquet/",
+    help="directory to store parquet files",
+)
+def convert_issues_to_parquet_cmd(input_dir, output_dir):
+    return convert_csvs_to_parquet(input_dir, output_dir)
 
 
 @cli.command("dataset-create", short_help="create a dataset from processed resources")

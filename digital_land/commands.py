@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import logging
+import duckdb
 from packaging.version import Version
 import pandas as pd
 from pathlib import Path
@@ -174,6 +175,29 @@ def convert(input_path, output_path, custom_temp_dir=None):
         DumpPhase(output_path),
     )
     dataset_resource_log.save(f=sys.stdout)
+
+
+def convert_csvs_to_parquet(csv_dir, output_dir):
+    # Walk list of files in input dir
+    for root, dirs, files in os.walk(csv_dir):
+        for file in files:
+            if file.endswith(".csv"):
+                input_path = os.path.join(root, file)
+                # Copy dir structure from input dir
+                rel_dir = os.path.relpath(root, csv_dir)
+                output_path = (
+                    os.path.join(
+                        os.path.join(output_dir, rel_dir), os.path.splitext(file)[0]
+                    )
+                    + ".parquet"
+                )
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                # Convert file to parquet
+                conn = duckdb.connect()
+                sql = f"""COPY (SELECT * FROM read_csv('{input_path}',AUTO_DETECT=TRUE))
+                            TO '{output_path}' (FORMAT 'PARQUET', CODEC 'ZSTD');"""
+                conn.execute(sql)
+                conn.close
 
 
 def pipeline_run(
