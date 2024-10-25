@@ -955,3 +955,11 @@ def save_state(specification_dir, collection_dir, pipeline_dir, output_path):
     state.save(
         output_path=output_path,
     )
+
+
+def check_state(specification_dir, collection_dir, pipeline_dir, state_path):
+    return State.build(
+        specification_dir=specification_dir,
+        collection_dir=collection_dir,
+        pipeline_dir=pipeline_dir,
+    ) == State.load(state_path)
