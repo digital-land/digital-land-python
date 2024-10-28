@@ -26,6 +26,7 @@ from digital_land.log import (
 )
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
+from digital_land.package.datasetparquet import DatasetParquetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
@@ -389,6 +390,56 @@ def dataset_create(
 
     package.add_counts()
 
+#
+#  build parquet dataset from processed resources
+#
+def dataset_parquet_create(
+    input_paths,
+    output_path,
+    organisation_path,
+    pipeline,
+    dataset,
+    specification,
+    issue_dir="issue",
+    column_field_dir="var/column-field",
+    dataset_resource_dir="var/dataset-resource",
+):
+    if not output_path:
+        print("missing output path", file=sys.stderr)
+        sys.exit(2)
+
+    # Set up initial objects
+    column_field_dir = Path(column_field_dir)
+    dataset_resource_dir = Path(dataset_resource_dir)
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
+    package = DatasetParquetPackage(
+        dataset,
+        organisation=organisation,
+        path=output_path,
+        specification_dir=None,  # TBD: package should use this specification object
+    )
+    package.create()
+    for path in input_paths:
+        path_obj = Path(path)
+        package.load_facts(path)
+        package.load_column_fields(column_field_dir / dataset / path_obj.name)
+        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
+    package.load_entities()
+
+    old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
+    if os.path.exists(old_entity_path):
+        package.load_old_entities(old_entity_path)
+
+    issue_paths = os.path.join(issue_dir, dataset)
+    if os.path.exists(issue_paths):
+        for issue_path in os.listdir(issue_paths):
+            package.load_issues(os.path.join(issue_paths, issue_path))
+    else:
+        logging.warning("No directory for this dataset in the provided issue_directory")
+
+    package.add_counts()
 
 def dataset_dump(input_path, output_path):
     cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
