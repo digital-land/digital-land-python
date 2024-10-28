@@ -426,7 +426,7 @@ class Collection:
                 for dataset in endpoint_dataset[endpoint]:
                     # ignore or redirect a resource in the old-resource table
                     resource = entry["resource"]
-                    resource = redirect.get(resource, resource)
+                    # resource = redirect.get(resource, resource)
                     if resource:
                         dataset_resource.setdefault(dataset, set())
                         dataset_resource[dataset].add(resource)
