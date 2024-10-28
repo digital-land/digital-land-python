@@ -178,6 +178,11 @@ def convert(input_path, output_path, custom_temp_dir=None):
 
 
 def convert_csvs_to_parquet(csv_dir, output_dir):
+    if not csv_dir or not output_dir:
+        # Need test for this
+        raise Exception(
+            "Input directory and output directory required for .csv to .parquet conversion"
+        )
     # Walk list of files in input dir
     for root, dirs, files in os.walk(csv_dir):
         for file in files:

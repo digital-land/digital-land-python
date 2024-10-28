@@ -145,10 +145,10 @@ def convert_cmd(input_path, output_path):
 @click.option(
     "--output-dir",
     type=click.Path(),
-    default="parquet/",
+    default=None,
     help="directory to store parquet files",
 )
-def convert_issues_to_parquet_cmd(input_dir, output_dir):
+def convert_csvs_to_parquet_cmd(input_dir, output_dir):
     return convert_csvs_to_parquet(input_dir, output_dir)
 
 
