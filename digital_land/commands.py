@@ -177,7 +177,7 @@ def convert(input_path, output_path, custom_temp_dir=None):
     dataset_resource_log.save(f=sys.stdout)
 
 
-def convert_csvs_to_parquet(csv_dir, output_dir):
+def convert_issues_to_parquet(csv_dir, output_dir):
     if not csv_dir or not output_dir:
         # Need test for this
         raise Exception(
@@ -188,16 +188,20 @@ def convert_csvs_to_parquet(csv_dir, output_dir):
         for file in files:
             if file.endswith(".csv"):
                 input_path = os.path.join(root, file)
-                # Copy dir structure from input dir
-                rel_dir = os.path.relpath(root, csv_dir)
+                resource = os.path.splitext(file)[0]
+                dataset = os.path.relpath(root, csv_dir)
                 output_path = (
                     os.path.join(
-                        os.path.join(output_dir, rel_dir), os.path.splitext(file)[0]
+                        os.path.join(
+                            os.path.join(output_dir, "dataset=" + dataset + "/"),
+                            "resource=" + resource + "/",
+                        )
                     )
+                    + resource
                     + ".parquet"
                 )
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                # Convert file to parquet
+                # Convert file to parquet to store in output dir
                 conn = duckdb.connect()
                 sql = f"""COPY (SELECT * FROM read_csv('{input_path}',AUTO_DETECT=TRUE))
                             TO '{output_path}' (FORMAT 'PARQUET', CODEC 'ZSTD');"""
