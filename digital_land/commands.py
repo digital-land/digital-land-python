@@ -352,6 +352,7 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
+    cache_dir="var/cache/parquet"
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
@@ -394,12 +395,14 @@ def dataset_create(
     #######################################################
     # Update this so that it can work with the cli inputs #
     #######################################################
-    parq_output = "var/cache/parquet/"
-    if not os.path.exists(parq_output):
-        os.makedirs(parq_output)
-    output_path = output_path.replace("dataset/", parq_output).replace(".sqlite3", ".parquet")
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+    output_path = output_path.replace("dataset/", cache_dir).replace(".sqlite3", ".parquet")
     #######################################################
-
+    print("\n\n")
+    print("output_path")
+    print(output_path)
+    print("\n\n")
     pqpackage = DatasetParquetPackage(
         dataset,
         organisation=organisation,
