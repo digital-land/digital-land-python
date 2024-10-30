@@ -29,10 +29,6 @@ def coltype(datatype):
 
 class ParquetPackage(Package):
     def __init__(self, *args, **kwargs):
-        print("\n\n")
-        print("In parquet")
-        print("\n\n")
-        self.suffix = ".parquet"
         super().__init__(*args, **kwargs)
 
     def field_coltype(self, field):
