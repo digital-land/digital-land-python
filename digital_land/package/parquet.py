@@ -148,6 +148,10 @@ class ParquetPackage(Package):
         """
         Load data from csv into parquet files
         """
+        print("\n\n")
+        print("self.path:")
+        print(self.path)
+        print("\n\n")
         if not os.path.exists(self.path):
             os.makedirs(self.path)
         tables = tables or self.tables
