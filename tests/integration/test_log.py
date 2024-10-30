@@ -1,7 +1,7 @@
 from datetime import datetime
 import os
 from unittest.mock import patch
-from digital_land.log import OperationalIssueLog
+from digital_land.log import Log, OperationalIssueLog
 
 
 def mocked_get_now():
@@ -158,3 +158,37 @@ def test_operationalIssueLog_save_csv(tmp_path_factory):
     operational_issue.save_csv(directory=tmp_dir)
 
     assert os.path.isfile(os.path.join(tmp_dir, dataset, "operational-issue.csv"))
+
+
+def test_log_save_parquet(tmp_path_factory):
+    dataset = "listed-building-outline"
+    resource = "resource"
+    log = Log()
+    log.dataset = dataset
+    log.resource = resource
+    log.rows = [
+        {"dataset": dataset, "resource": resource, "issue": "issue1"},
+        {"dataset": dataset, "resource": resource, "issue": "issue2"},
+    ]
+    output_dir = tmp_path_factory.mktemp("parquet")
+    output_dir = "test"
+
+    log.save_parquet(output_dir)
+    parquet_path = os.path.join(
+        output_dir, f"dataset={dataset}/resource={resource}/{resource}-0.parquet"
+    )
+    assert os.path.isfile(parquet_path)
+
+
+# def test_log_save_parquet_no_rows(tmp_path_factory):
+#     dataset = "listed-building-outline"
+#     resource = "resource"
+#     log = Log()
+#     log.dataset = dataset
+#     log.resource = resource
+#     output_dir = tmp_path_factory.mktemp("parquet")
+
+#     log.save_parquet(output_dir)
+
+#     parquet_path = os.path.join(output_dir,"/dataset=listed-building-outline/resource=resource/resource-0.parquet")
+#     assert os.path.isfile(parquet_path)

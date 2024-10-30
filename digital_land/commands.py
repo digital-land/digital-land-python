@@ -5,7 +5,6 @@ import os
 import sys
 import json
 import logging
-import duckdb
 from packaging.version import Version
 import pandas as pd
 from pathlib import Path
@@ -177,38 +176,6 @@ def convert(input_path, output_path, custom_temp_dir=None):
     dataset_resource_log.save(f=sys.stdout)
 
 
-def convert_issues_to_parquet(csv_dir, output_dir):
-    if not csv_dir or not output_dir:
-        # Need test for this
-        raise Exception(
-            "Input directory and output directory required for .csv to .parquet conversion"
-        )
-    # Walk list of files in input dir
-    for root, dirs, files in os.walk(csv_dir):
-        for file in files:
-            if file.endswith(".csv"):
-                input_path = os.path.join(root, file)
-                resource = os.path.splitext(file)[0]
-                dataset = os.path.relpath(root, csv_dir)
-                output_path = (
-                    os.path.join(
-                        os.path.join(
-                            os.path.join(output_dir, "dataset=" + dataset + "/"),
-                            "resource=" + resource + "/",
-                        )
-                    )
-                    + resource
-                    + ".parquet"
-                )
-                os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                # Convert file to parquet to store in output dir
-                conn = duckdb.connect()
-                sql = f"""COPY (SELECT * FROM read_csv('{input_path}',AUTO_DETECT=TRUE))
-                            TO '{output_path}' (FORMAT 'PARQUET', CODEC 'ZSTD');"""
-                conn.execute(sql)
-                conn.close
-
-
 def pipeline_run(
     dataset,
     pipeline,
@@ -365,6 +332,8 @@ def pipeline_run(
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+    log_output_dir = "log/issue/"
+    issue_log.save_parquet(log_output_dir)
     operational_issue_log.save(output_dir=operational_issue_dir)
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))

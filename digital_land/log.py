@@ -4,6 +4,8 @@ from datetime import datetime
 import pandas as pd
 import yaml
 import logging
+import pyarrow as pa
+import pyarrow.parquet as pq
 from .store.item import CSVItemStore
 from .schema import Schema
 
@@ -31,6 +33,16 @@ class Log:
         writer.writeheader()
         for row in self.rows:
             writer.writerow(row)
+
+    # Move this into .save method when we decide to save all logs in .parquet?
+    def save_parquet(self, dir):
+        table = pa.Table.from_pylist(self.rows)
+        pq.write_to_dataset(
+            table,
+            dir,
+            partition_cols=["dataset", "resource"],
+            basename_template=self.resource + "-{i}.parquet",
+        )
 
 
 class IssueLog(Log):
