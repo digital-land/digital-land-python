@@ -391,9 +391,10 @@ def dataset_create(
     # package.add_counts()
 
     # Repeat for parquet
-    print("\noutput_path")
-    print(output_path)
-    print("\n")
+    parq_output = "var/cache/parquet/"
+    if not os.path.exists(parq_output):
+        os.makedirs(parq_output)
+    output_path = output_path.replace("dataset/", parq_output).replace(".sqlite3", ".parquet")
     pqpackage = DatasetParquetPackage(
         dataset,
         organisation=organisation,
