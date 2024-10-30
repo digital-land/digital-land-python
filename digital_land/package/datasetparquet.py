@@ -38,6 +38,7 @@ indexes = {
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
+        self.output_path = "var/cache/parquet"
         self.dataset = dataset
         self.suffix = ".parquet"
         self.entity_fields = self.specification.schema["entity"]["fields"]
@@ -295,6 +296,11 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info("Finished loading dataset-resource")
 
     def get_parquet_path(self, table_name):
+        print("\n\n")
+        print(self.path)
+        print(table_name)
+        print(self.suffix)
+        print("\n\n")
         return os.path.join(self.path, f"{table_name}{self.suffix}")
 
     def append_to_parquet(self, table_name, data):
