@@ -38,10 +38,6 @@ indexes = {
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
-        print("\n\n")
-        print("self.path")
-        print(self.path)
-        print("\n\n")
         self.output_path = "var/cache/parquet"
         self.dataset = dataset
         self.suffix = ".parquet"
@@ -198,8 +194,10 @@ class DatasetParquetPackage(ParquetPackage):
         Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
         and insert other field
         """
+        print("\ntable")
         print(table)
         parquet_path = self.get_parquet_path(table)
+        print("\nparquet_path")
         print(parquet_path)
         # try:
         #     conn = duckdb.connect()
