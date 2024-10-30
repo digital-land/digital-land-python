@@ -313,6 +313,7 @@ class DatasetParquetPackage(ParquetPackage):
         param data: Pandas DataFrame or dictionary containing data to append.
         """
         parquet_path = self.get_parquet_path(table_name)
+        print(parquet_path)
         if isinstance(data, dict):
             data = pd.DataFrame([data])
         if not os.path.exists(parquet_path):
@@ -383,6 +384,4 @@ class DatasetParquetPackage(ParquetPackage):
         updated_data.to_parquet(parquet_path, index=False)
 
     def load(self):
-        print("\nOrig:")
-        print(self.path)
-        # pass
+        pass
