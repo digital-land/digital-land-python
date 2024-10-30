@@ -37,17 +37,11 @@ indexes = {
 
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
-        print("\n\n")
-        print("dataset:")
-        print(dataset)
-        print("\n\n")
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.suffix = ".parquet"
         self.entity_fields = self.specification.schema["entity"]["fields"]
         self.organisations = organisation.organisation
-        print(self.dataset)
-        print(self.suffix)
 
     def migrate_entity(self, row):
         dataset = self.dataset
