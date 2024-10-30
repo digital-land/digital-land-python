@@ -161,34 +161,34 @@ def dataset_create_cmd(
         issue_dir=issue_dir,
     )
 
-@cli.command("dataset-parquet-create", short_help="create a Parquet dataset from processed resources")
-@click.option("--output-path", type=click.Path(), default=None, help="Parquet path")
-@organisation_path
-@column_field_dir
-@dataset_resource_dir
-@issue_dir
-@click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
-@click.pass_context
-def dataset_parquet_create_cmd(
-    ctx,
-    input_paths,
-    output_path,
-    organisation_path,
-    column_field_dir,
-    dataset_resource_dir,
-    issue_dir,
-):
-    return dataset_parquet_create(
-        input_paths=input_paths,
-        output_path=output_path,
-        organisation_path=organisation_path,
-        pipeline=ctx.obj["PIPELINE"],
-        dataset=ctx.obj["DATASET"],
-        specification=ctx.obj["SPECIFICATION"],
-        column_field_dir=column_field_dir,
-        dataset_resource_dir=dataset_resource_dir,
-        issue_dir=issue_dir,
-    )
+# @cli.command("dataset-parquet-create", short_help="create a Parquet dataset from processed resources")
+# @click.option("--output-path", type=click.Path(), default=None, help="Parquet path")
+# @organisation_path
+# @column_field_dir
+# @dataset_resource_dir
+# @issue_dir
+# @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
+# @click.pass_context
+# def dataset_parquet_create_cmd(
+#     ctx,
+#     input_paths,
+#     output_path,
+#     organisation_path,
+#     column_field_dir,
+#     dataset_resource_dir,
+#     issue_dir,
+# ):
+#     return dataset_parquet_create(
+#         input_paths=input_paths,
+#         output_path=output_path,
+#         organisation_path=organisation_path,
+#         pipeline=ctx.obj["PIPELINE"],
+#         dataset=ctx.obj["DATASET"],
+#         specification=ctx.obj["SPECIFICATION"],
+#         column_field_dir=column_field_dir,
+#         dataset_resource_dir=dataset_resource_dir,
+#         issue_dir=issue_dir,
+#     )
 
 @cli.command("dataset-entries", short_help="dump dataset entries as csv")
 @input_output_path
