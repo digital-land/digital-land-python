@@ -203,6 +203,7 @@ class DatasetParquetPackage(ParquetPackage):
             print(parquet_path)
             print(data.shape)
             print(data.head())
+            print(data.columns)
         # try:
         #     conn = duckdb.connect()
         #
