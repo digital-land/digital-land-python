@@ -411,7 +411,6 @@ def dataset_create(
     )
     pqpackage.create()
     for path in input_paths:
-        print(path)
         path_obj = Path(path)
     #     print("Before pqpackage.load_facts(path)")
     #     pqpackage.load_facts(path)
