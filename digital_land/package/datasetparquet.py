@@ -38,6 +38,10 @@ indexes = {
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
+        print("\n\n")
+        print("self.path")
+        print(self.path)
+        print("\n\n")
         self.output_path = "var/cache/parquet"
         self.dataset = dataset
         self.suffix = ".parquet"
