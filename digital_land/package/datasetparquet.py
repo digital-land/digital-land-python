@@ -231,6 +231,9 @@ class DatasetParquetPackage(ParquetPackage):
     def load_facts(self, path, chunksize=chunk_size):
         logging.info(f"loading facts from {path}")
 
+        print("In load_facts")
+        print(path)
+
         fact_fields = self.specification.schema["fact"]["fields"]
         # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         fact_conflict_fields = ["fact"]
