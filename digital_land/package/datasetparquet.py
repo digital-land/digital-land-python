@@ -238,27 +238,28 @@ class DatasetParquetPackage(ParquetPackage):
         # except Exception as e:
         #     logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
 
-    def load_facts(self, path, chunksize=chunk_size):
+    def load_facts(self, input_paths, chunksize=chunk_size):
         logging.info(f"loading facts from {path}")
 
         # print("In load_facts")
         # print(path)
 
         fact_fields = self.specification.schema["fact"]["fields"]
+        print(fact_fields)
         # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
-        fact_conflict_fields = ["fact"]
-        fact_update_fields = [
-            field for field in fact_fields if field not in fact_conflict_fields
-        ]
-
-        # print("pre chunking\n")
-        for chunk in pd.read_csv(path, chunksize=chunksize):
-            self.entry_date_upsert(
-                "fact", fact_fields, chunk, fact_conflict_fields, fact_update_fields
-            )
-
-            # # Append the entire chunk at once for fact-resource
-            # self.append_to_parquet("fact-resource", chunk)
+        # fact_conflict_fields = ["fact"]
+        # fact_update_fields = [
+        #     field for field in fact_fields if field not in fact_conflict_fields
+        # ]
+        #
+        # # print("pre chunking\n")
+        # for chunk in pd.read_csv(path, chunksize=chunksize):
+        #     self.entry_date_upsert(
+        #         "fact", fact_fields, chunk, fact_conflict_fields, fact_update_fields
+        #     )
+        #
+        #     # # Append the entire chunk at once for fact-resource
+        #     # self.append_to_parquet("fact-resource", chunk)
 
     def load_column_fields(self, path, chunksize=chunk_size):
         # fields = self.specification.schema["column-field"]["fields"]
