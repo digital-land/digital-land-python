@@ -200,39 +200,39 @@ class DatasetParquetPackage(ParquetPackage):
         print("\nparquet_path")
         print(parquet_path)
         print(data.shape)
-        # try:
-        #     conn = duckdb.connect()
-        #
-        #     # Convert the new data to a temporary DuckDB table for batch processing
-        #     conn.register("temp_data", data)
-        #
-        #     # query for upserting data
-        #     conn.execute(
-        #         """
-        #         INSERT INTO %s(%s)
-        #         SELECT %s FROM temp_data
-        #         ON CONFLICT(%s) DO UPDATE SET %s
-        #         WHERE excluded.entry_date>%s.entry_date
-        #         ;
-        #         """
-        #         % (
-        #             parquet_path,
-        #             ",".join([colname(field) for field in fields]),
-        #             ",".join([colname(field) for field in fields]),
-        #             ",".join([colname(field) for field in conflict_fields]),
-        #             ", ".join(
-        #                 [
-        #                     "%s=excluded.%s" % (colname(field), colname(field))
-        #                     for field in update_fields
-        #                 ]
-        #             ),
-        #             parquet_path,
-        #         )
-        #     )
-        #
-        #     conn.close()
-        # except Exception as e:
-        #     logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
+        try:
+            conn = duckdb.connect()
+
+            # Convert the new data to a temporary DuckDB table for batch processing
+            conn.register("temp_data", data)
+
+            # query for upserting data
+            conn.execute(
+                """
+                INSERT INTO %s(%s)
+                SELECT %s FROM temp_data
+                ON CONFLICT(%s) DO UPDATE SET %s
+                WHERE excluded.entry_date>%s.entry_date
+                ;
+                """
+                % (
+                    parquet_path,
+                    ",".join([colname(field) for field in fields]),
+                    ",".join([colname(field) for field in fields]),
+                    ",".join([colname(field) for field in conflict_fields]),
+                    ", ".join(
+                        [
+                            "%s=excluded.%s" % (colname(field), colname(field))
+                            for field in update_fields
+                        ]
+                    ),
+                    parquet_path,
+                )
+            )
+
+            conn.close()
+        except Exception as e:
+            logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
 
     def load_facts(self, path, chunksize=chunk_size):
         logging.info(f"loading facts from {path}")
