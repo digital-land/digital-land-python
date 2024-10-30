@@ -38,7 +38,6 @@ indexes = {
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
-        self.output_path = "var/cache/parquet"
         self.dataset = dataset
         self.suffix = ".parquet"
         self.entity_fields = self.specification.schema["entity"]["fields"]
