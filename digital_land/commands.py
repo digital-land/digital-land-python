@@ -398,7 +398,11 @@ def dataset_create(
         specification_dir=None,  # TBD: package should use this specification object
     )
     pqpackage.create()
-    # for path in input_paths:
+    for path in input_paths:
+        print("\n\n")
+        print("Path:")
+        print(path)
+        print("\n\n")
     #     path_obj = Path(path)
     #     pqpackage.load_facts(path)
     #     pqpackage.load_column_fields(column_field_dir / dataset / path_obj.name)
