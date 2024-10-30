@@ -391,22 +391,25 @@ def dataset_create(
     # package.add_counts()
 
     # Repeat for parquet
+    #######################################################
+    # Update this so that it can work with the cli inputs #
+    #######################################################
     parq_output = "var/cache/parquet/"
     if not os.path.exists(parq_output):
         os.makedirs(parq_output)
     output_path = output_path.replace("dataset/", parq_output).replace(".sqlite3", ".parquet")
+    #######################################################
+
     pqpackage = DatasetParquetPackage(
         dataset,
         organisation=organisation,
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    print("Orig path")
-    print(pqpackage.path)
-    print("\n")
     pqpackage.create()
-    # for path in input_paths:
-    #     path_obj = Path(path)
+    for path in input_paths:
+        print(path)
+        path_obj = Path(path)
     #     print("Before pqpackage.load_facts(path)")
     #     pqpackage.load_facts(path)
     #     print("After pqpackage.load_facts(path)")
