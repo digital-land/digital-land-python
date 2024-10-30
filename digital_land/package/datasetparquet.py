@@ -193,7 +193,8 @@ class DatasetParquetPackage(ParquetPackage):
         Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
         and insert other field
         """
-        print("\ntable")
+        print("\nIn entry_date_upsert")
+        print("table")
         print(table)
         parquet_path = self.get_parquet_path(table)
         print("\nparquet_path")
@@ -245,13 +246,14 @@ class DatasetParquetPackage(ParquetPackage):
             field for field in fact_fields if field not in fact_conflict_fields
         ]
 
+        print("pre chunking\n")
         for chunk in pd.read_csv(path, chunksize=chunksize):
             self.entry_date_upsert(
                 "fact", fact_fields, chunk, fact_conflict_fields, fact_update_fields
             )
 
-            # Append the entire chunk at once for fact-resource
-            self.append_to_parquet("fact-resource", chunk)
+            # # Append the entire chunk at once for fact-resource
+            # self.append_to_parquet("fact-resource", chunk)
 
     def load_column_fields(self, path, chunksize=chunk_size):
         # fields = self.specification.schema["column-field"]["fields"]
