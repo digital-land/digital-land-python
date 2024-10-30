@@ -199,6 +199,7 @@ class DatasetParquetPackage(ParquetPackage):
         parquet_path = self.get_parquet_path(table)
         print("\nparquet_path")
         print(parquet_path)
+        print(data.shape)
         # try:
         #     conn = duckdb.connect()
         #
@@ -299,11 +300,6 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info("Finished loading dataset-resource")
 
     def get_parquet_path(self, table_name):
-        print("\nIn get_parquet_path")
-        print(self.path)
-        print(table_name)
-        print(self.suffix)
-        print("\n\n")
         ##########################################################################
         # self.path references the full name of the sqlite3 file
         # Remove and find a way of adding this to the cli arguments or otherwise #
