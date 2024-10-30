@@ -193,13 +193,13 @@ class DatasetParquetPackage(ParquetPackage):
         Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
         and insert other field
         """
-        print("\nIn entry_date_upsert")
-        print("table")
-        print(table)
+        # print("\nIn entry_date_upsert")
+        # print("table")
+        # print(table)
         parquet_path = self.get_parquet_path(table)
-        print("\nparquet_path")
-        print(parquet_path)
-        print(data.shape)
+        # print("\nparquet_path")
+        # print(parquet_path)
+        # print(data.shape)
         try:
             conn = duckdb.connect()
 
