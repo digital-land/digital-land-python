@@ -202,6 +202,7 @@ class DatasetParquetPackage(ParquetPackage):
         if len(data) == 391:
             print(parquet_path)
             print(data.shape)
+            print(data.head())
         # try:
         #     conn = duckdb.connect()
         #
