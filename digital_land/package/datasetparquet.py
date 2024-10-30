@@ -48,8 +48,6 @@ class DatasetParquetPackage(ParquetPackage):
         self.organisations = organisation.organisation
         print(self.dataset)
         print(self.suffix)
-        print(self.entity_fields)
-        print(self.organisations)
 
     def migrate_entity(self, row):
         dataset = self.dataset
