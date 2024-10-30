@@ -42,7 +42,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
       with:
-        path: docs/source/_build
+        path: docs/_build
         
   deploy:
     runs-on: ubuntu-latest
