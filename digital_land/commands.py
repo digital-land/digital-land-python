@@ -399,10 +399,6 @@ def dataset_create(
         os.makedirs(cache_dir)
     output_path = output_path.replace("dataset/", f"{cache_dir}/").replace(".sqlite3", ".parquet")
     #######################################################
-    print("\n\n")
-    print("output_path")
-    print(output_path)
-    print("\n\n")
     pqpackage = DatasetParquetPackage(
         dataset,
         organisation=organisation,
@@ -412,9 +408,9 @@ def dataset_create(
     pqpackage.create()
     for path in input_paths:
         path_obj = Path(path)
-    #     print("Before pqpackage.load_facts(path)")
-    #     pqpackage.load_facts(path)
-    #     print("After pqpackage.load_facts(path)")
+        print("Before pqpackage.load_facts(path)")
+        pqpackage.load_facts(path)
+        print("After pqpackage.load_facts(path)")
     #     pqpackage.load_column_fields(column_field_dir / dataset / path_obj.name)
     #     pqpackage.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
     # pqpackage.load_entities()
