@@ -383,4 +383,6 @@ class DatasetParquetPackage(ParquetPackage):
         updated_data.to_parquet(parquet_path, index=False)
 
     def load(self):
-        pass
+        print("\nOrig:")
+        print(self.path)
+        # pass
