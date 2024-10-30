@@ -73,6 +73,10 @@ class ParquetPackage(Package):
 
         # Prepare the output path for the Parquet file
         parquet_path = f"{self.path}/{table}{self.suffix}"
+        print("\n\n")
+        print("parquet_path:")
+        print(parquet_path)
+        print("\n\n")
 
         # Initialize a DataFrame to store the data temporarily
         temp_data = []
@@ -148,6 +152,10 @@ class ParquetPackage(Package):
             os.makedirs(self.path)
         tables = tables or self.tables
         fields, join_tables = self.get_table_fields(tables)
+        print("\n\n")
+        print("Tables:")
+        print(tables)
+        print("\n\n")
         for table in tables:
             table_fields = fields[table]
             path = "%s/%s.csv" % (tables[table], table)
