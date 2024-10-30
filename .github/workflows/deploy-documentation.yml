@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main  # Adjust to your main branch
+  workflow_dispatch: null
     
 # Set permissions of GITHUB_TOKEN
 permissions:
@@ -32,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install sphinx
+        pip install sphinx sphinx-autobuild sphinx_rtd_theme
 
     - name: Generate Documentation
       run: |
