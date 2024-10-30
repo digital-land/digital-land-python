@@ -199,7 +199,7 @@ class DatasetParquetPackage(ParquetPackage):
         parquet_path = self.get_parquet_path(table)
         # print("\nparquet_path")
         # print(parquet_path)
-        # print(data.shape)
+        print(data.shape)
         try:
             conn = duckdb.connect()
 
