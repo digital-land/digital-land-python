@@ -313,6 +313,8 @@ class DatasetParquetPackage(ParquetPackage):
         param data: Pandas DataFrame or dictionary containing data to append.
         """
         parquet_path = self.get_parquet_path(table_name)
+        print("In append_to_parquet")
+        print("parquet_path")
         print(parquet_path)
         if isinstance(data, dict):
             data = pd.DataFrame([data])
