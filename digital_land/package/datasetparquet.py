@@ -199,7 +199,7 @@ class DatasetParquetPackage(ParquetPackage):
         parquet_path = self.get_parquet_path(table)
         # print("\nparquet_path")
         # print(parquet_path)
-        if len(data == 391):
+        if len(data) == 391:
             print(parquet_path)
             print(data.shape)
         try:
@@ -239,8 +239,8 @@ class DatasetParquetPackage(ParquetPackage):
     def load_facts(self, path, chunksize=chunk_size):
         logging.info(f"loading facts from {path}")
 
-        print("In load_facts")
-        print(path)
+        # print("In load_facts")
+        # print(path)
 
         fact_fields = self.specification.schema["fact"]["fields"]
         # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
@@ -249,7 +249,7 @@ class DatasetParquetPackage(ParquetPackage):
             field for field in fact_fields if field not in fact_conflict_fields
         ]
 
-        print("pre chunking\n")
+        # print("pre chunking\n")
         for chunk in pd.read_csv(path, chunksize=chunksize):
             self.entry_date_upsert(
                 "fact", fact_fields, chunk, fact_conflict_fields, fact_update_fields
