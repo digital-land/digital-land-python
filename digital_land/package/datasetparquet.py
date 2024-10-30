@@ -304,7 +304,11 @@ class DatasetParquetPackage(ParquetPackage):
         print(table_name)
         print(self.suffix)
         print("\n\n")
-        return os.path.join(self.path, f"{table_name}{self.suffix}")
+        ##########################################################################
+        # self.path references the full name of the sqlite3 file
+        # Remove and find a way of adding this to the cli arguments or otherwise #
+        ##########################################################################
+        return os.path.join(self.path.str.remove(".sqlite3"), f"{table_name}{self.suffix}")
 
     def append_to_parquet(self, table_name, data):
         """
