@@ -390,33 +390,33 @@ def dataset_create(
 
     package.add_counts()
 
-    # Repeat for parquet
-    pqpackage = DatasetParquetPackage(
-        dataset,
-        organisation=organisation,
-        path=output_path,
-        specification_dir=None,  # TBD: package should use this specification object
-    )
-    pqpackage.create()
-    for path in input_paths:
-        path_obj = Path(path)
-        pqpackage.load_facts(path)
-        pqpackage.load_column_fields(column_field_dir / dataset / path_obj.name)
-        pqpackage.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    pqpackage.load_entities()
-
-    old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
-    if os.path.exists(old_entity_path):
-        pqpackage.load_old_entities(old_entity_path)
-
-    issue_paths = os.path.join(issue_dir, dataset)
-    if os.path.exists(issue_paths):
-        for issue_path in os.listdir(issue_paths):
-            pqpackage.load_issues(os.path.join(issue_paths, issue_path))
-    else:
-        logging.warning("No directory for this dataset in the provided issue_directory")
-
-    pqpackage.add_counts()
+    # # Repeat for parquet
+    # pqpackage = DatasetParquetPackage(
+    #     dataset,
+    #     organisation=organisation,
+    #     path=output_path,
+    #     specification_dir=None,  # TBD: package should use this specification object
+    # )
+    # pqpackage.create()
+    # for path in input_paths:
+    #     path_obj = Path(path)
+    #     pqpackage.load_facts(path)
+    #     pqpackage.load_column_fields(column_field_dir / dataset / path_obj.name)
+    #     pqpackage.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
+    # pqpackage.load_entities()
+    #
+    # old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
+    # if os.path.exists(old_entity_path):
+    #     pqpackage.load_old_entities(old_entity_path)
+    #
+    # issue_paths = os.path.join(issue_dir, dataset)
+    # if os.path.exists(issue_paths):
+    #     for issue_path in os.listdir(issue_paths):
+    #         pqpackage.load_issues(os.path.join(issue_paths, issue_path))
+    # else:
+    #     logging.warning("No directory for this dataset in the provided issue_directory")
+    #
+    # pqpackage.add_counts()
 
 # #
 # #  build parquet dataset from processed resources
