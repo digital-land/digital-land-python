@@ -25,3 +25,6 @@ pyrightconfig.json
 .idea
 .python-version
 
+
+# don't store html build file for docs
+/docs/_build
