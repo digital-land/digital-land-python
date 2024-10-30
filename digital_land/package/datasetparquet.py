@@ -193,6 +193,7 @@ class DatasetParquetPackage(ParquetPackage):
         Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
         and insert other field
         """
+        print(table)
         parquet_path = self.get_parquet_path(table)
         print(parquet_path)
         # try:
