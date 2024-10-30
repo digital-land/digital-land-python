@@ -299,7 +299,7 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info("Finished loading dataset-resource")
 
     def get_parquet_path(self, table_name):
-        print("\n\n")
+        print("\nIn get_parquet_path")
         print(self.path)
         print(table_name)
         print(self.suffix)
