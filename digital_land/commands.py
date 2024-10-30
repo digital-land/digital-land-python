@@ -390,13 +390,13 @@ def dataset_create(
 
     package.add_counts()
 
-    # # Repeat for parquet
-    # pqpackage = DatasetParquetPackage(
-    #     dataset,
-    #     organisation=organisation,
-    #     path=output_path,
-    #     specification_dir=None,  # TBD: package should use this specification object
-    # )
+    # Repeat for parquet
+    pqpackage = DatasetParquetPackage(
+        dataset,
+        organisation=organisation,
+        path=output_path,
+        specification_dir=None,  # TBD: package should use this specification object
+    )
     # pqpackage.create()
     # for path in input_paths:
     #     path_obj = Path(path)
