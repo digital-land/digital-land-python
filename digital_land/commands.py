@@ -400,7 +400,9 @@ def dataset_create(
     pqpackage.create()
     for path in input_paths:
         path_obj = Path(path)
-    #     pqpackage.load_facts(path)
+        print("Before pqpackage.load_facts(path)")
+        pqpackage.load_facts(path)
+        print("After pqpackage.load_facts(path)")
     #     pqpackage.load_column_fields(column_field_dir / dataset / path_obj.name)
     #     pqpackage.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
     # pqpackage.load_entities()
