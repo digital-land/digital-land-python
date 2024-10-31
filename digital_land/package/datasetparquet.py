@@ -36,6 +36,8 @@ indexes = {
     "dataset-resource": ["resource"],
 }
 
+# def get_schema(input_paths, fields):
+
 
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
@@ -107,25 +109,25 @@ class DatasetParquetPackage(ParquetPackage):
             row[fact[1]] = fact[2]
         return row
 
-    def load_old_entities(self, path, chunksize=chunk_size):
-        # fields = self.specification.schema["old-entity"]["fields"]
-        entity_min = int(self.specification.schema[self.dataset].get("entity-minimum"))
-        entity_max = int(self.specification.schema[self.dataset].get("entity-maximum"))
-
-        logging.info(f"loading old-entity from {path}")
-        rows_to_insert = []
-        for chunk in pd.read_csv(path, chunksize=chunksize):
-            for _, row in chunk.iterrows():
-                entity_id = int(row.get("old-entity"))
-                if entity_min <= entity_id <= entity_max:
-                    rows_to_insert.append(row)
-                if len(rows_to_insert) >= chunk_size:
-                    self.append_to_parquet("old-entity", rows_to_insert)
-                    rows_to_insert.clear()  # Clear the list for the next chunk
-                    gc.collect()
-
-        if rows_to_insert:
-            self.append_to_parquet("old-entity", rows_to_insert)
+    # def load_old_entities(self, path, chunksize=chunk_size):
+    #     # fields = self.specification.schema["old-entity"]["fields"]
+    #     entity_min = int(self.specification.schema[self.dataset].get("entity-minimum"))
+    #     entity_max = int(self.specification.schema[self.dataset].get("entity-maximum"))
+    #
+    #     logging.info(f"loading old-entity from {path}")
+    #     rows_to_insert = []
+    #     for chunk in pd.read_csv(path, chunksize=chunksize):
+    #         for _, row in chunk.iterrows():
+    #             entity_id = int(row.get("old-entity"))
+    #             if entity_min <= entity_id <= entity_max:
+    #                 rows_to_insert.append(row)
+    #             if len(rows_to_insert) >= chunk_size:
+    #                 self.append_to_parquet("old-entity", rows_to_insert)
+    #                 rows_to_insert.clear()  # Clear the list for the next chunk
+    #                 gc.collect()
+    #
+    #     if rows_to_insert:
+    #         self.append_to_parquet("old-entity", rows_to_insert)
 
     def load_entities(self):
         conn = duckdb.connect()
@@ -189,57 +191,6 @@ class DatasetParquetPackage(ParquetPackage):
 
         self.append_to_parquet("dataset_resource", dataset_resource)
 
-    # def entry_date_upsert(self, table, fields, data, conflict_fields, update_fields):
-    #     """
-    #     Dataset specific upsert function that only replace values for more recent entry_dates.
-    #     Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
-    #     and insert other field
-    #     """
-    #     # print("\nIn entry_date_upsert")
-    #     # print("table")
-    #     # print(table)
-    #     parquet_path = self.get_parquet_path(table)
-    #     # print("\nparquet_path")
-    #     # print(parquet_path)
-    #     if len(data) == 391:
-    #         print(parquet_path)
-    #         print(data.shape)
-    #         print(data.head())
-    #         print(data.columns)
-    #     # try:
-    #     #     conn = duckdb.connect()
-    #     #
-    #     #     # Convert the new data to a temporary DuckDB table for batch processing
-    #     #     conn.register("temp_data", data)
-    #     #
-    #     #     # query for upserting data
-    #     #     conn.execute(
-    #     #         """
-    #     #         INSERT INTO %s(%s)
-    #     #         SELECT %s FROM temp_data
-    #     #         ON CONFLICT(%s) DO UPDATE SET %s
-    #     #         WHERE excluded.entry_date>%s.entry_date
-    #     #         ;
-    #     #         """
-    #     #         % (
-    #     #             parquet_path,
-    #     #             ",".join([colname(field) for field in fields]),
-    #     #             ",".join([colname(field) for field in fields]),
-    #     #             ",".join([colname(field) for field in conflict_fields]),
-    #     #             ", ".join(
-    #     #                 [
-    #     #                     "%s=excluded.%s" % (colname(field), colname(field))
-    #     #                     for field in update_fields
-    #     #                 ]
-    #     #             ),
-    #     #             parquet_path,
-    #     #         )
-    #     #     )
-    #     #
-    #     #     conn.close()
-    #     # except Exception as e:
-    #     #     logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
-
     # def get_schema(self, input_paths, fields):
 
     def load_facts(self, input_paths, output_path):
@@ -261,7 +212,7 @@ class DatasetParquetPackage(ParquetPackage):
         create_temp_table_query = f"""
             DROP TABLE IF EXISTS temp_table;
             CREATE TEMP TABLE temp_table AS
-            SELECT * FROM read_csv_auto('{largest_file}')
+            SELECT {fields_str} FROM read_csv_auto('{largest_file}')
             LIMIT 1000;
         """
         con.query(create_temp_table_query)
@@ -308,48 +259,48 @@ class DatasetParquetPackage(ParquetPackage):
         #     # # Append the entire chunk at once for fact-resource
         #     # self.append_to_parquet("fact-resource", chunk)
 
-    def load_column_fields(self, path, chunksize=chunk_size):
-        # fields = self.specification.schema["column-field"]["fields"]
-        logging.info(f"loading column_fields from {path}")
+    # def load_column_fields(self, path, chunksize=chunk_size):
+    #     # fields = self.specification.schema["column-field"]["fields"]
+    #     logging.info(f"loading column_fields from {path}")
+    #
+    #     for chunk in pd.read_csv(path, chunksize=chunksize):
+    #         rows_to_insert = []
+    #         for _, row in chunk.iterrows():
+    #             row["resource"] = path.stem
+    #             row["dataset"] = self.dataset
+    #             rows_to_insert.append(row)
+    #         self.append_to_parquet("column-field", rows_to_insert)
+    #         rows_to_insert.clear()
+    #
+    # def load_issues(self, path, chunksize=chunk_size):
+    #     # fields = self.specification.schema["issue"]["fields"]
+    #     logging.info(f"loading issues from {path}")
+    #
+    #     for chunk in pd.read_csv(path, chunksize=chunksize):
+    #         rows_to_insert = []
+    #         for _, row in chunk.iterrows():
+    #             rows_to_insert.append(row)
+    #         self.append_to_parquet("issue", rows_to_insert)
+    #         rows_to_insert.clear()
 
-        for chunk in pd.read_csv(path, chunksize=chunksize):
-            rows_to_insert = []
-            for _, row in chunk.iterrows():
-                row["resource"] = path.stem
-                row["dataset"] = self.dataset
-                rows_to_insert.append(row)
-            self.append_to_parquet("column-field", rows_to_insert)
-            rows_to_insert.clear()
-
-    def load_issues(self, path, chunksize=chunk_size):
-        # fields = self.specification.schema["issue"]["fields"]
-        logging.info(f"loading issues from {path}")
-
-        for chunk in pd.read_csv(path, chunksize=chunksize):
-            rows_to_insert = []
-            for _, row in chunk.iterrows():
-                rows_to_insert.append(row)
-            self.append_to_parquet("issue", rows_to_insert)
-            rows_to_insert.clear()
-
-    def load_dataset_resource(self, path, chunksize=chunk_size):
-        """
-        Load dataset-resource from a CSV file in chunks.
-
-        param path: The path to the CSV file.
-        param chunksize: The number of rows to read per chunk.
-        """
-        # fields = self.specification.schema["dataset-resource"]["fields"]
-
-        logging.info(f"loading dataset-resource from {path}")
-
-        chunk_iterator = pd.read_csv(path, chunksize=chunksize)
-
-        for chunk in chunk_iterator:
-            # Process the chunk (e.g., modify fields or add any necessary data)
-            self.append_to_parquet("dataset-resource", chunk)
-
-        logging.info("Finished loading dataset-resource")
+    # def load_dataset_resource(self, path, chunksize=chunk_size):
+    #     """
+    #     Load dataset-resource from a CSV file in chunks.
+    #
+    #     param path: The path to the CSV file.
+    #     param chunksize: The number of rows to read per chunk.
+    #     """
+    #     # fields = self.specification.schema["dataset-resource"]["fields"]
+    #
+    #     logging.info(f"loading dataset-resource from {path}")
+    #
+    #     chunk_iterator = pd.read_csv(path, chunksize=chunksize)
+    #
+    #     for chunk in chunk_iterator:
+    #         # Process the chunk (e.g., modify fields or add any necessary data)
+    #         self.append_to_parquet("dataset-resource", chunk)
+    #
+    #     logging.info("Finished loading dataset-resource")
 
     def get_parquet_path(self, table_name):
         ##########################################################################
