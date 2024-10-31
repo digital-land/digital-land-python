@@ -193,7 +193,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         # Collate list of fields which don't exist  but  need to be in the final table
         select_statement = ', '.join([f"t1.{field}" for field in select_fields])
-        null_fields_statement = ', '.join([f"NULL::VARCHAR AS {field}" for field in null_fields])
+        null_fields_statement = ', '.join([f"NULL::VARCHAR AS '{field}'" for field in null_fields])
         json_statement = ', '.join([
             f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
             for field in json_fields
