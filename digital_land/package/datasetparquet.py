@@ -243,13 +243,14 @@ class DatasetParquetPackage(ParquetPackage):
 
 
         fact_fields = self.specification.schema["fact"]["fields"]
-        fields_str = ", ".join([f'"{field}"' for field in fact_fields])
+        fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
+        input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
         con = duckdb.connect()
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT {fields_str}, 
-            FROM parquet_scan({input_paths})
+            FROM parquet_scan({input_paths_str})
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
 
