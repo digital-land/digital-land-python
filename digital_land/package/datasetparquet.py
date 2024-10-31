@@ -36,161 +36,13 @@ indexes = {
     "dataset-resource": ["resource"],
 }
 
-
-
-
-
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.suffix = ".parquet"
-        self.entity_fields = self.specification.schema["entity"]["fields"]
-        self.organisations = organisation.organisation
-
-    # def migrate_entity(self, row):
-    #     dataset = self.dataset
-    #     entity = row.get("entity", "")
-    #
-    #     if not entity:
-    #         logging.error(f"{dataset} entity with a missing entity number")
-    #         return None
-    #
-    #     row["dataset"] = dataset
-    #     row["typology"] = self.specification.schema[dataset]["typology"]
-    #     row["name"] = row.get("name", "")
-    #
-    #     if not row.get("reference", ""):
-    #         logging.error(f"entity {entity}: missing reference")
-    #
-    #     if not row.get("organisation-entity", ""):
-    #         row["organisation-entity"] = self.organisations.get(
-    #             row.get("organisation", ""), {}
-    #         ).get("entity", "")
-    #
-    #     properties = {
-    #         field: row[field]
-    #         for field in row
-    #         if row[field] and field not in [
-    #             "geography",
-    #             "geometry",
-    #             "organisation",
-    #             "reference",
-    #             "prefix",
-    #             "point",
-    #             "slug"
-    #         ] + self.entity_fields
-    #     }
-    #     row["json"] = json.dumps(properties) if properties else None
-    #
-    #     shape = row.get("geometry", "")
-    #     point = row.get("point", "")
-    #     wkt = shape or point
-    #
-    #     if wkt:
-    #         if not row.get("latitude", ""):
-    #             try:
-    #                 geometry = shapely.wkt.loads(wkt)
-    #                 geometry = geometry.centroid
-    #                 row["longitude"] = "%.6f" % round(Decimal(geometry.x), 6)
-    #                 row["latitude"] = "%.6f" % round(Decimal(geometry.y), 6)
-    #             except Exception as e:
-    #                 logging.error(f"error processing wkt {wkt} for entity {entity}")
-    #                 logging.error(e)
-    #                 return None
-    #
-    #         if not row.get("point", ""):
-    #             row["point"] = "POINT(%s %s)" % (row["longitude"], row["latitude"])
-    #
-    #     return row
-    #
-    # def entity_row(self, facts):
-    #     row = {"entity": facts[0][0]}
-    #     for fact in facts:
-    #         row[fact[1]] = fact[2]
-    #     return row
-
-    # def load_old_entities(self, path, chunksize=chunk_size):
-    #     # fields = self.specification.schema["old-entity"]["fields"]
-    #     entity_min = int(self.specification.schema[self.dataset].get("entity-minimum"))
-    #     entity_max = int(self.specification.schema[self.dataset].get("entity-maximum"))
-    #
-    #     logging.info(f"loading old-entity from {path}")
-    #     rows_to_insert = []
-    #     for chunk in pd.read_csv(path, chunksize=chunksize):
-    #         for _, row in chunk.iterrows():
-    #             entity_id = int(row.get("old-entity"))
-    #             if entity_min <= entity_id <= entity_max:
-    #                 rows_to_insert.append(row)
-    #             if len(rows_to_insert) >= chunk_size:
-    #                 self.append_to_parquet("old-entity", rows_to_insert)
-    #                 rows_to_insert.clear()  # Clear the list for the next chunk
-    #                 gc.collect()
-    #
-    #     if rows_to_insert:
-    #         self.append_to_parquet("old-entity", rows_to_insert)
-
-    # def load_entities(self):
-    #     conn = duckdb.connect()
-    #     query = f"""
-    #         SELECT entity, field, value FROM f'{self.path}fact{self.suffix}'
-    #         WHERE value != '' OR field == 'end-date'
-    #         ORDER BY entity, field, priority desc, entry_date
-    #     """
-    #     results = conn.execute(query).fetchall()
-    #
-    #     facts = []
-    #     rows_to_insert = []
-    #
-    #     for fact in results:
-    #         if facts and fact[0] != facts[0][0]:
-    #             row = self.entity_row(facts)
-    #             row = self.migrate_entity(row)
-    #             if row:
-    #                 rows_to_insert.append(row)
-    #
-    #             # If we reach the chunk size, write to parquet
-    #             if len(rows_to_insert) >= chunk_size:
-    #                 self.append_to_parquet("entity", rows_to_insert)
-    #                 rows_to_insert.clear()  # Clear the list for the next chunk
-    #                 gc.collect()
-    #
-    #                 facts = []
-    #
-    #             facts.append(fact)
-    #
-    #     # Handle the last group of current_facts
-    #     if facts:
-    #         row = self.entity_row(facts)
-    #         row = self.migrate_entity(row)
-    #         if row:
-    #             rows_to_insert.append(row)
-    #
-    #     # Write any remaining rows to parquet
-    #     if rows_to_insert:
-    #         self.append_to_parquet("entity", rows_to_insert)
-    #
-    # def add_counts(self):
-    #     """count the number of entities by resource"""
-    #     query = f"""
-    #         SELECT resource, COUNT(*)
-    #         FROM (
-    #             SELECT DISTINCT resource, f.entity
-    #             FROM
-    #                 read_parquet(f'{self.path}/resource{self.suffix}') AS resource
-    #             JOIN
-    #                 read_parquet(f'{self.path}/fact{self.suffix}') AS f
-    #             JOIN
-    #                 read_parquet(f'{self.path}/fact-resource{self.suffix}') AS fr
-    #             ON
-    #                 f.entity = fr.entity AND f.fact = fr.fact
-    #         ) AS subquery
-    #         GROUP BY resource
-    #     """
-    #     conn = duckdb.connect()
-    #     dataset_resource = conn.execute(query).fetchall()
-    #
-    #     self.append_to_parquet("dataset_resource", dataset_resource)
+        # self.entity_fields = self.specification.schema["entity"]["fields"]
+        # self.organisations = organisation.organisation
 
     def get_schema(self, input_paths):
         # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
@@ -271,20 +123,31 @@ class DatasetParquetPackage(ParquetPackage):
             ) TO '{output_path}/fact_resource.parquet' (FORMAT PARQUET);
         """)
 
-    # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
-        # fact_conflict_fields = ["fact"]
-        # fact_update_fields = [
-        #     field for field in fact_fields if field not in fact_conflict_fields
-        # ]
-        #
-        # # print("pre chunking\n")
-        # for chunk in pd.read_csv(path, chunksize=chunksize):
-        #     self.entry_date_upsert(
-        #         "fact", fact_fields, chunk, fact_conflict_fields, fact_update_fields
-        #     )
-        #
-        #     # # Append the entire chunk at once for fact-resource
-        #     # self.append_to_parquet("fact-resource", chunk)
+    def load_entities(self, input_paths, output_path):
+        logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
+
+        entity_fields = self.specification.schema["entity"]["fields"]
+        fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in entity_fields])
+        input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
+
+        schema_dict = self.get_schema(input_paths)
+
+        con = duckdb.connect()
+        # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
+        query = f"""
+            SELECT DISTINCT REPLACE(field,'-','_')
+            FROM read_csv_auto(
+                [{input_paths_str}],
+                columns = {schema_dict}
+            )
+        """
+
+        # distinct_fields - list of fields in the field field in fact
+        rows = con.execute(query).fetchall()
+        distinct_fields = [row[0] for row in rows]
+        print(len(distinct_fields))
+
+
 
     # def load_column_fields(self, path, chunksize=chunk_size):
     #     # fields = self.specification.schema["column-field"]["fields"]

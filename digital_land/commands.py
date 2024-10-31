@@ -409,8 +409,8 @@ def dataset_create(
     )
     pqpackage.create()
     pqpackage.load_facts(input_paths, output_path)
-    pqpackage.create()
     pqpackage.load_fact_resource(input_paths, output_path)
+    pqpackage.load_entities(input_paths, output_path)
 
     # for path in input_paths:
     #     path_obj = Path(path)
