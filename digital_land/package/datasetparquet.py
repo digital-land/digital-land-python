@@ -36,7 +36,34 @@ indexes = {
     "dataset-resource": ["resource"],
 }
 
-# def get_schema(input_paths, fields):
+
+def get_schema(input_paths):
+    # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
+    # Plan is to find the largest file, create an initial database schema from that then use that in future
+    largest_file = max(input_paths, key=os.path.getsize)
+
+    con = duckdb.connect()
+
+    # drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
+    # con.query(drop_temp_table_query)
+
+    create_temp_table_query = f"""
+        DROP TABLE IF EXISTS temp_table;
+        CREATE TEMP TABLE temp_table AS
+        SELECT * FROM read_csv_auto('{largest_file}')
+        LIMIT 1000;
+    """
+    con.query(create_temp_table_query)
+
+    # Extract the schema from the temporary table
+    schema_query = """
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'temp_table';
+    """
+    schema_df = con.query(schema_query).df()
+
+    return dict(zip(schema_df['column_name'], schema_df['data_type']))
 
 
 class DatasetParquetPackage(ParquetPackage):
@@ -47,67 +74,67 @@ class DatasetParquetPackage(ParquetPackage):
         self.entity_fields = self.specification.schema["entity"]["fields"]
         self.organisations = organisation.organisation
 
-    def migrate_entity(self, row):
-        dataset = self.dataset
-        entity = row.get("entity", "")
-
-        if not entity:
-            logging.error(f"{dataset} entity with a missing entity number")
-            return None
-
-        row["dataset"] = dataset
-        row["typology"] = self.specification.schema[dataset]["typology"]
-        row["name"] = row.get("name", "")
-
-        if not row.get("reference", ""):
-            logging.error(f"entity {entity}: missing reference")
-
-        if not row.get("organisation-entity", ""):
-            row["organisation-entity"] = self.organisations.get(
-                row.get("organisation", ""), {}
-            ).get("entity", "")
-
-        properties = {
-            field: row[field]
-            for field in row
-            if row[field] and field not in [
-                "geography",
-                "geometry",
-                "organisation",
-                "reference",
-                "prefix",
-                "point",
-                "slug"
-            ] + self.entity_fields
-        }
-        row["json"] = json.dumps(properties) if properties else None
-
-        shape = row.get("geometry", "")
-        point = row.get("point", "")
-        wkt = shape or point
-
-        if wkt:
-            if not row.get("latitude", ""):
-                try:
-                    geometry = shapely.wkt.loads(wkt)
-                    geometry = geometry.centroid
-                    row["longitude"] = "%.6f" % round(Decimal(geometry.x), 6)
-                    row["latitude"] = "%.6f" % round(Decimal(geometry.y), 6)
-                except Exception as e:
-                    logging.error(f"error processing wkt {wkt} for entity {entity}")
-                    logging.error(e)
-                    return None
-
-            if not row.get("point", ""):
-                row["point"] = "POINT(%s %s)" % (row["longitude"], row["latitude"])
-
-        return row
-
-    def entity_row(self, facts):
-        row = {"entity": facts[0][0]}
-        for fact in facts:
-            row[fact[1]] = fact[2]
-        return row
+    # def migrate_entity(self, row):
+    #     dataset = self.dataset
+    #     entity = row.get("entity", "")
+    #
+    #     if not entity:
+    #         logging.error(f"{dataset} entity with a missing entity number")
+    #         return None
+    #
+    #     row["dataset"] = dataset
+    #     row["typology"] = self.specification.schema[dataset]["typology"]
+    #     row["name"] = row.get("name", "")
+    #
+    #     if not row.get("reference", ""):
+    #         logging.error(f"entity {entity}: missing reference")
+    #
+    #     if not row.get("organisation-entity", ""):
+    #         row["organisation-entity"] = self.organisations.get(
+    #             row.get("organisation", ""), {}
+    #         ).get("entity", "")
+    #
+    #     properties = {
+    #         field: row[field]
+    #         for field in row
+    #         if row[field] and field not in [
+    #             "geography",
+    #             "geometry",
+    #             "organisation",
+    #             "reference",
+    #             "prefix",
+    #             "point",
+    #             "slug"
+    #         ] + self.entity_fields
+    #     }
+    #     row["json"] = json.dumps(properties) if properties else None
+    #
+    #     shape = row.get("geometry", "")
+    #     point = row.get("point", "")
+    #     wkt = shape or point
+    #
+    #     if wkt:
+    #         if not row.get("latitude", ""):
+    #             try:
+    #                 geometry = shapely.wkt.loads(wkt)
+    #                 geometry = geometry.centroid
+    #                 row["longitude"] = "%.6f" % round(Decimal(geometry.x), 6)
+    #                 row["latitude"] = "%.6f" % round(Decimal(geometry.y), 6)
+    #             except Exception as e:
+    #                 logging.error(f"error processing wkt {wkt} for entity {entity}")
+    #                 logging.error(e)
+    #                 return None
+    #
+    #         if not row.get("point", ""):
+    #             row["point"] = "POINT(%s %s)" % (row["longitude"], row["latitude"])
+    #
+    #     return row
+    #
+    # def entity_row(self, facts):
+    #     row = {"entity": facts[0][0]}
+    #     for fact in facts:
+    #         row[fact[1]] = fact[2]
+    #     return row
 
     # def load_old_entities(self, path, chunksize=chunk_size):
     #     # fields = self.specification.schema["old-entity"]["fields"]
@@ -129,105 +156,76 @@ class DatasetParquetPackage(ParquetPackage):
     #     if rows_to_insert:
     #         self.append_to_parquet("old-entity", rows_to_insert)
 
-    def load_entities(self):
-        conn = duckdb.connect()
-        query = f"""
-            SELECT entity, field, value FROM f'{self.path}fact{self.suffix}'
-            WHERE value != '' OR field == 'end-date'
-            ORDER BY entity, field, priority desc, entry_date
-        """
-        results = conn.execute(query).fetchall()
+    # def load_entities(self):
+    #     conn = duckdb.connect()
+    #     query = f"""
+    #         SELECT entity, field, value FROM f'{self.path}fact{self.suffix}'
+    #         WHERE value != '' OR field == 'end-date'
+    #         ORDER BY entity, field, priority desc, entry_date
+    #     """
+    #     results = conn.execute(query).fetchall()
+    #
+    #     facts = []
+    #     rows_to_insert = []
+    #
+    #     for fact in results:
+    #         if facts and fact[0] != facts[0][0]:
+    #             row = self.entity_row(facts)
+    #             row = self.migrate_entity(row)
+    #             if row:
+    #                 rows_to_insert.append(row)
+    #
+    #             # If we reach the chunk size, write to parquet
+    #             if len(rows_to_insert) >= chunk_size:
+    #                 self.append_to_parquet("entity", rows_to_insert)
+    #                 rows_to_insert.clear()  # Clear the list for the next chunk
+    #                 gc.collect()
+    #
+    #                 facts = []
+    #
+    #             facts.append(fact)
+    #
+    #     # Handle the last group of current_facts
+    #     if facts:
+    #         row = self.entity_row(facts)
+    #         row = self.migrate_entity(row)
+    #         if row:
+    #             rows_to_insert.append(row)
+    #
+    #     # Write any remaining rows to parquet
+    #     if rows_to_insert:
+    #         self.append_to_parquet("entity", rows_to_insert)
+    #
+    # def add_counts(self):
+    #     """count the number of entities by resource"""
+    #     query = f"""
+    #         SELECT resource, COUNT(*)
+    #         FROM (
+    #             SELECT DISTINCT resource, f.entity
+    #             FROM
+    #                 read_parquet(f'{self.path}/resource{self.suffix}') AS resource
+    #             JOIN
+    #                 read_parquet(f'{self.path}/fact{self.suffix}') AS f
+    #             JOIN
+    #                 read_parquet(f'{self.path}/fact-resource{self.suffix}') AS fr
+    #             ON
+    #                 f.entity = fr.entity AND f.fact = fr.fact
+    #         ) AS subquery
+    #         GROUP BY resource
+    #     """
+    #     conn = duckdb.connect()
+    #     dataset_resource = conn.execute(query).fetchall()
+    #
+    #     self.append_to_parquet("dataset_resource", dataset_resource)
 
-        facts = []
-        rows_to_insert = []
-
-        for fact in results:
-            if facts and fact[0] != facts[0][0]:
-                row = self.entity_row(facts)
-                row = self.migrate_entity(row)
-                if row:
-                    rows_to_insert.append(row)
-
-                # If we reach the chunk size, write to parquet
-                if len(rows_to_insert) >= chunk_size:
-                    self.append_to_parquet("entity", rows_to_insert)
-                    rows_to_insert.clear()  # Clear the list for the next chunk
-                    gc.collect()
-
-                    facts = []
-
-                facts.append(fact)
-
-        # Handle the last group of current_facts
-        if facts:
-            row = self.entity_row(facts)
-            row = self.migrate_entity(row)
-            if row:
-                rows_to_insert.append(row)
-
-        # Write any remaining rows to parquet
-        if rows_to_insert:
-            self.append_to_parquet("entity", rows_to_insert)
-
-    def add_counts(self):
-        """count the number of entities by resource"""
-        query = f"""
-            SELECT resource, COUNT(*)
-            FROM (
-                SELECT DISTINCT resource, f.entity
-                FROM 
-                    read_parquet(f'{self.path}/resource{self.suffix}') AS resource
-                JOIN 
-                    read_parquet(f'{self.path}/fact{self.suffix}') AS f
-                JOIN 
-                    read_parquet(f'{self.path}/fact-resource{self.suffix}') AS fr
-                ON 
-                    f.entity = fr.entity AND f.fact = fr.fact
-            ) AS subquery
-            GROUP BY resource
-        """
-        conn = duckdb.connect()
-        dataset_resource = conn.execute(query).fetchall()
-
-        self.append_to_parquet("dataset_resource", dataset_resource)
-
-    # def get_schema(self, input_paths, fields):
-
-    def load_facts(self, input_paths, output_path):
+    def load_facts(self, input_paths, schema_dict, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
-        # Plan is to find the largest file, create an initial database schema from that then use that in future
-        largest_file = max(input_paths, key=os.path.getsize)
-
         con = duckdb.connect()
-
-        # drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
-        # con.query(drop_temp_table_query)
-
-        create_temp_table_query = f"""
-            DROP TABLE IF EXISTS temp_table;
-            CREATE TEMP TABLE temp_table AS
-            SELECT * FROM read_csv_auto('{largest_file}')
-            LIMIT 1000;
-        """
-        con.query(create_temp_table_query)
-
-        # Extract the schema from the temporary table
-        schema_query = """
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'temp_table';
-        """
-        schema_df = con.query(schema_query).df()
-
-        # Convert the DataFrame to a dictionary for later use
-        schema_dict = dict(zip(schema_df['column_name'], schema_df['data_type']))
-
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT {fields_str}
@@ -302,92 +300,92 @@ class DatasetParquetPackage(ParquetPackage):
     #
     #     logging.info("Finished loading dataset-resource")
 
-    def get_parquet_path(self, table_name):
-        ##########################################################################
-        # self.path references the full name of the sqlite3 file
-        # Remove and find a way of adding this to the cli arguments or otherwise #
-        ##########################################################################
-        return os.path.join(self.path.removesuffix(".sqlite3"), f"{table_name}{self.suffix}")
-
-    def append_to_parquet(self, table_name, data):
-        """
-        Append data to a Parquet file. If the file doesn't exist, it will create a new one.
-
-        param table_name: Name of the Parquet file (without extension).
-        param data: Pandas DataFrame or dictionary containing data to append.
-        """
-        parquet_path = self.get_parquet_path(table_name)
-        print("In append_to_parquet")
-        print("parquet_path")
-        print(parquet_path)
-        if isinstance(data, dict):
-            data = pd.DataFrame([data])
-        if not os.path.exists(parquet_path):
-            # Write new Parquet file
-            data.to_parquet(parquet_path, index=False)
-        else:
-            try:
-                # Append data to current parquet file. If any issues read in current values and concatenate
-                # Connect to DuckDB (in-memory or specify a file if needed)
-                conn = duckdb.connect()
-
-                # Create a DuckDB SQL query to append new data to the Parquet file
-                conn.execute(f"""
-                    INSERT INTO '{parquet_path}'
-                    SELECT * FROM new_data_df
-                """)
-
-                # Close the connection
-                conn.close()
-            except duckdb.IOException as e:
-                logging.error(f"DuckDB error, reading in then appending parquet files: {e}")
-                try:
-                    # Append to existing Parquet file
-                    existing_data = pd.read_parquet(parquet_path)
-                    combined_data = pd.concat([existing_data, data], ignore_index=True)
-                    combined_data.to_parquet(parquet_path, index=False)
-                except (pd.errors.EmptyDataError, FileNotFoundError) as e:
-                    logging.error(f"Failed to read existing data or append new data to '{parquet_path}': {e}")
-                except Exception as e:
-                    logging.error(f"Failed to append data to '{parquet_path}': {e}")
-
-    def read_from_parquet(self, table_name, columns=None):
-        """
-        Read data from a Parquet file and return a DataFrame.
-
-        param table_name: Name of the Parquet file (without extension)
-        param columns: Optional list of columns to read
-        return: DataFrame containing the data
-        """
-        parquet_path = self.get_parquet_path(table_name)
-        if not os.path.exists(parquet_path):
-            raise FileNotFoundError(f"Parquet file '{parquet_path}' not found.")
-
-        return pd.read_parquet(parquet_path, columns=columns)
-
-    def update_parquet(self, table_name, key_field, new_data):
-        """
-        Update specific rows in a Parquet file. This replaces rows based on a unique key.
-
-        param table_name: Name of the Parquet file (without extension)
-        param key_field: The field that serves as the unique key for updates
-        param new_data: A dictionary or DataFrame containing new data
-        """
-        parquet_path = self.get_parquet_path(table_name)
-        if isinstance(new_data, dict):
-            new_data = pd.DataFrame([new_data])
-
-        if not os.path.exists(parquet_path):
-            raise FileNotFoundError(f"Parquet file '{parquet_path}' not found.")
-
-        existing_data = pd.read_parquet(parquet_path)
-        # Update rows by merging on the key_field
-        updated_data = pd.concat(
-            [existing_data[~existing_data[key_field].isin(new_data[key_field])], new_data],
-            ignore_index=True
-        )
-        # Write back the updated data
-        updated_data.to_parquet(parquet_path, index=False)
+    # def get_parquet_path(self, table_name):
+    #     ##########################################################################
+    #     # self.path references the full name of the sqlite3 file
+    #     # Remove and find a way of adding this to the cli arguments or otherwise #
+    #     ##########################################################################
+    #     return os.path.join(self.path.removesuffix(".sqlite3"), f"{table_name}{self.suffix}")
+    #
+    # def append_to_parquet(self, table_name, data):
+    #     """
+    #     Append data to a Parquet file. If the file doesn't exist, it will create a new one.
+    #
+    #     param table_name: Name of the Parquet file (without extension).
+    #     param data: Pandas DataFrame or dictionary containing data to append.
+    #     """
+    #     parquet_path = self.get_parquet_path(table_name)
+    #     print("In append_to_parquet")
+    #     print("parquet_path")
+    #     print(parquet_path)
+    #     if isinstance(data, dict):
+    #         data = pd.DataFrame([data])
+    #     if not os.path.exists(parquet_path):
+    #         # Write new Parquet file
+    #         data.to_parquet(parquet_path, index=False)
+    #     else:
+    #         try:
+    #             # Append data to current parquet file. If any issues read in current values and concatenate
+    #             # Connect to DuckDB (in-memory or specify a file if needed)
+    #             conn = duckdb.connect()
+    #
+    #             # Create a DuckDB SQL query to append new data to the Parquet file
+    #             conn.execute(f"""
+    #                 INSERT INTO '{parquet_path}'
+    #                 SELECT * FROM new_data_df
+    #             """)
+    #
+    #             # Close the connection
+    #             conn.close()
+    #         except duckdb.IOException as e:
+    #             logging.error(f"DuckDB error, reading in then appending parquet files: {e}")
+    #             try:
+    #                 # Append to existing Parquet file
+    #                 existing_data = pd.read_parquet(parquet_path)
+    #                 combined_data = pd.concat([existing_data, data], ignore_index=True)
+    #                 combined_data.to_parquet(parquet_path, index=False)
+    #             except (pd.errors.EmptyDataError, FileNotFoundError) as e:
+    #                 logging.error(f"Failed to read existing data or append new data to '{parquet_path}': {e}")
+    #             except Exception as e:
+    #                 logging.error(f"Failed to append data to '{parquet_path}': {e}")
+    #
+    # def read_from_parquet(self, table_name, columns=None):
+    #     """
+    #     Read data from a Parquet file and return a DataFrame.
+    #
+    #     param table_name: Name of the Parquet file (without extension)
+    #     param columns: Optional list of columns to read
+    #     return: DataFrame containing the data
+    #     """
+    #     parquet_path = self.get_parquet_path(table_name)
+    #     if not os.path.exists(parquet_path):
+    #         raise FileNotFoundError(f"Parquet file '{parquet_path}' not found.")
+    #
+    #     return pd.read_parquet(parquet_path, columns=columns)
+    #
+    # def update_parquet(self, table_name, key_field, new_data):
+    #     """
+    #     Update specific rows in a Parquet file. This replaces rows based on a unique key.
+    #
+    #     param table_name: Name of the Parquet file (without extension)
+    #     param key_field: The field that serves as the unique key for updates
+    #     param new_data: A dictionary or DataFrame containing new data
+    #     """
+    #     parquet_path = self.get_parquet_path(table_name)
+    #     if isinstance(new_data, dict):
+    #         new_data = pd.DataFrame([new_data])
+    #
+    #     if not os.path.exists(parquet_path):
+    #         raise FileNotFoundError(f"Parquet file '{parquet_path}' not found.")
+    #
+    #     existing_data = pd.read_parquet(parquet_path)
+    #     # Update rows by merging on the key_field
+    #     updated_data = pd.concat(
+    #         [existing_data[~existing_data[key_field].isin(new_data[key_field])], new_data],
+    #         ignore_index=True
+    #     )
+    #     # Write back the updated data
+    #     updated_data.to_parquet(parquet_path, index=False)
 
     def load(self):
         pass
