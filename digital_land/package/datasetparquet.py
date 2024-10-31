@@ -246,7 +246,32 @@ class DatasetParquetPackage(ParquetPackage):
             ) TO '{output_path}/fact.parquet' (FORMAT PARQUET);
         """)
 
-        # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
+    def load_fact_resource(self, input_paths, output_path):
+        logging.info(f"loading fact resources from {os.path.dirname(input_paths[0])}")
+
+        fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
+        fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_resource_fields])
+        input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
+
+        schema_dict = self.get_schema(input_paths)
+
+        con = duckdb.connect()
+        # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
+        query = f"""
+            SELECT {fields_str}
+            FROM read_csv_auto(
+                [{input_paths_str}],
+                columns = {schema_dict}
+            )
+        """
+
+        con.execute(f"""
+            COPY (
+                {query}
+            ) TO '{output_path}/fact_resource.parquet' (FORMAT PARQUET);
+        """)
+
+    # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         # fact_conflict_fields = ["fact"]
         # fact_update_fields = [
         #     field for field in fact_fields if field not in fact_conflict_fields
