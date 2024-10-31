@@ -196,9 +196,11 @@ def pipeline_run(
     organisations=[],
     entry_date="",
     config_path="var/cache/config.sqlite3",
+    resource=None,
     output_log_dir=None,
 ):
-    resource = resource_from_path(input_path)
+    if resource is None:
+        resource = resource_from_path(input_path)
     dataset = dataset
     schema = specification.pipeline[pipeline.name]["schema"]
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)

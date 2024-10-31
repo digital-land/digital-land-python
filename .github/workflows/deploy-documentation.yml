@@ -1,0 +1,56 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main  # Adjust to your main branch
+  workflow_dispatch: null
+    
+# Set permissions of GITHUB_TOKEN
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'  # Choose your version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sphinx sphinx-autobuild sphinx_rtd_theme
+
+    - name: Generate Documentation
+      run: |
+        sphinx-build -b html docs/ docs/_build
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v1
+      with:
+        path: docs/_build
+        
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+    - name: Deploy to GitHub Pages
+      uses: actions/deploy-pages@v1

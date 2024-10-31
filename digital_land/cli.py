@@ -187,6 +187,11 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--entry-date", help="default entry-date value", default="")
 @click.option("--custom-temp-dir", help="default temporary directory", default=None)
 @click.option("--config-path", help="Path  to a configuration sqlite", default=None)
+@click.option(
+    "--resource",
+    help="the resource hash to use if it can not be derived from filepath",
+    default=None,
+)
 @input_output_path
 @issue_dir
 @column_field_dir
@@ -214,6 +219,7 @@ def pipeline_command(
     collection_dir,
     operational_issue_dir,
     config_path,
+    resource,
     output_log_dir,
 ):
     dataset = ctx.obj["DATASET"]
@@ -242,6 +248,7 @@ def pipeline_command(
         entry_date=entry_date,
         custom_temp_dir=custom_temp_dir,
         config_path=config_path,
+        resource=resource,
         output_log_dir=output_log_dir,
     )
 

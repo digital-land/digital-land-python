@@ -70,6 +70,9 @@ setup(
             "wasabi",
             "pytest-mock",
             "pre-commit",
+            "sphinx",
+            "sphinx-autobuild",
+            "sphinx_rtd_theme",
         ]
         + maybe_black
     },
