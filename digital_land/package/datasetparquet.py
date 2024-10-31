@@ -204,27 +204,25 @@ class DatasetParquetPackage(ParquetPackage):
              SELECT * FROM read_csv_auto('{org_csv}')
          """
 
-        print("\n\nOutput path")
-        print(output_path)
-        print(Path(output_path).name)
-        print("")
+        dataset = Path(output_path).name
 
-        # # get a list and statement ready for the fields which have values in the un-pivoted fact table
-        # sql = f"""
-        #      COPY (
-        #          SELECT '{dataset}' as dataset,
-        #          '{dataset}' as typology,
-        #          t2.entity as organisation_entity,
-        #          {select_statement},
-        #          {null_fields_statement},
-        #          json_object({json_statement}) as json
-        #          FROM ({pivot_query}) as t1
-        #          LEFT JOIN ({org_query}) as t2
-        #          on t1.organisation = t2.organisation
-        #          ) TO '{output_path}' (FORMAT PARQUET);
-        #  """
-        # # print(sql)
-        # con.execute(sql)
+
+        # get a list and statement ready for the fields which have values in the un-pivoted fact table
+        sql = f"""
+             COPY (
+                 SELECT '{dataset}' as dataset,
+                 '{dataset}' as typology,
+                 t2.entity as organisation_entity,
+                 {select_statement},
+                 {null_fields_statement},
+                 json_object({json_statement}) as json
+                 FROM ({pivot_query}) as t1
+                 LEFT JOIN ({org_query}) as t2
+                 on t1.organisation = t2.organisation
+                 ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
+         """
+        # print(sql)
+        con.execute(sql)
 
     def load(self):
         pass
