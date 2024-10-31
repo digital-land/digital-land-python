@@ -189,56 +189,58 @@ class DatasetParquetPackage(ParquetPackage):
 
         self.append_to_parquet("dataset_resource", dataset_resource)
 
-    def entry_date_upsert(self, table, fields, data, conflict_fields, update_fields):
-        """
-        Dataset specific upsert function that only replace values for more recent entry_dates.
-        Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
-        and insert other field
-        """
-        # print("\nIn entry_date_upsert")
-        # print("table")
-        # print(table)
-        parquet_path = self.get_parquet_path(table)
-        # print("\nparquet_path")
-        # print(parquet_path)
-        if len(data) == 391:
-            print(parquet_path)
-            print(data.shape)
-            print(data.head())
-            print(data.columns)
-        # try:
-        #     conn = duckdb.connect()
-        #
-        #     # Convert the new data to a temporary DuckDB table for batch processing
-        #     conn.register("temp_data", data)
-        #
-        #     # query for upserting data
-        #     conn.execute(
-        #         """
-        #         INSERT INTO %s(%s)
-        #         SELECT %s FROM temp_data
-        #         ON CONFLICT(%s) DO UPDATE SET %s
-        #         WHERE excluded.entry_date>%s.entry_date
-        #         ;
-        #         """
-        #         % (
-        #             parquet_path,
-        #             ",".join([colname(field) for field in fields]),
-        #             ",".join([colname(field) for field in fields]),
-        #             ",".join([colname(field) for field in conflict_fields]),
-        #             ", ".join(
-        #                 [
-        #                     "%s=excluded.%s" % (colname(field), colname(field))
-        #                     for field in update_fields
-        #                 ]
-        #             ),
-        #             parquet_path,
-        #         )
-        #     )
-        #
-        #     conn.close()
-        # except Exception as e:
-        #     logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
+    # def entry_date_upsert(self, table, fields, data, conflict_fields, update_fields):
+    #     """
+    #     Dataset specific upsert function that only replace values for more recent entry_dates.
+    #     Will insert rows where no conflict is found. where there's a conflict it was compare entry dates
+    #     and insert other field
+    #     """
+    #     # print("\nIn entry_date_upsert")
+    #     # print("table")
+    #     # print(table)
+    #     parquet_path = self.get_parquet_path(table)
+    #     # print("\nparquet_path")
+    #     # print(parquet_path)
+    #     if len(data) == 391:
+    #         print(parquet_path)
+    #         print(data.shape)
+    #         print(data.head())
+    #         print(data.columns)
+    #     # try:
+    #     #     conn = duckdb.connect()
+    #     #
+    #     #     # Convert the new data to a temporary DuckDB table for batch processing
+    #     #     conn.register("temp_data", data)
+    #     #
+    #     #     # query for upserting data
+    #     #     conn.execute(
+    #     #         """
+    #     #         INSERT INTO %s(%s)
+    #     #         SELECT %s FROM temp_data
+    #     #         ON CONFLICT(%s) DO UPDATE SET %s
+    #     #         WHERE excluded.entry_date>%s.entry_date
+    #     #         ;
+    #     #         """
+    #     #         % (
+    #     #             parquet_path,
+    #     #             ",".join([colname(field) for field in fields]),
+    #     #             ",".join([colname(field) for field in fields]),
+    #     #             ",".join([colname(field) for field in conflict_fields]),
+    #     #             ", ".join(
+    #     #                 [
+    #     #                     "%s=excluded.%s" % (colname(field), colname(field))
+    #     #                     for field in update_fields
+    #     #                 ]
+    #     #             ),
+    #     #             parquet_path,
+    #     #         )
+    #     #     )
+    #     #
+    #     #     conn.close()
+    #     # except Exception as e:
+    #     #     logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
+
+    # def get_schema(self, input_paths, fields):
 
     def load_facts(self, input_paths, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
@@ -253,12 +255,10 @@ class DatasetParquetPackage(ParquetPackage):
 
         con = duckdb.connect()
 
-        drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
-        con.query(drop_temp_table_query)
-
         create_temp_table_query = f"""
+            DROP TABLE IF EXISTS temp_table;
             CREATE TEMP TABLE temp_table AS
-            SELECT * FROM read_csv_auto('{largest_file}')
+            SELECT {fields_str} FROM read_csv_auto('{largest_file}')
             LIMIT 1000;
         """
         con.query(create_temp_table_query)
