@@ -273,10 +273,14 @@ class DatasetParquetPackage(ParquetPackage):
         # """
 
         query = f"""
-            SELECT {fields_str} 
-            FROM read_csv_auto(
-                [{input_paths_str}]
+            -- Remove files with a row count of zero as they mess up with the schema
+            WITH valid_files AS (
+                SELECT * 
+                FROM read_csv_auto([{input_paths_str}])
+                WHERE (SELECT COUNT(*) FROM read_csv_auto([{input_paths_str}]) AS t WHERE t.file = file) > 0
             )
+            SELECT {fields_str} 
+            FROM read_csv_auto(valid_files)
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
 
