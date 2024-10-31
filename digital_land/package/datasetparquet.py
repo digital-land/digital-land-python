@@ -275,7 +275,9 @@ class DatasetParquetPackage(ParquetPackage):
         query = f"""
             SELECT {fields_str} 
             FROM read_csv_auto(
-                [{input_paths_str}]
+                [{input_paths_str}],
+            null_padding = true, -- pads missing columns with NULL values
+            ignore_errors = true -- ignores rows with parsing issues
             )
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
