@@ -35,22 +35,23 @@ class Log:
 
     # Move this into save method when we decide to save all logs in .parquet?
     def save_parquet(self, input_csv_path, output_dir):
-        output_path = os.path.join(
-            output_dir,
-            "dataset=" + self.dataset,
-            "resource=" + self.resource,
-            self.resource + ".parquet",
-        )
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        # Create field datatype map to prevent fields having random datatypes (e.g value field getting a datetime type)
-        field_datatype_map = {
-            field: "INTEGER" if "number" in field else "VARCHAR"
-            for field in self.fieldnames
-        }
-        duckdb.sql(
-            f"""COPY (SELECT * FROM read_csv('{input_csv_path}',AUTO_DETECT=TRUE, columns={field_datatype_map}))
-                            TO '{output_path}' (FORMAT 'PARQUET', CODEC 'ZSTD');"""
-        )
+        if output_dir:
+            output_path = os.path.join(
+                output_dir,
+                "dataset=" + self.dataset,
+                "resource=" + self.resource,
+                self.resource + ".parquet",
+            )
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            # Create field datatype map to prevent fields having random datatypes (e.g value field getting a datetime type)
+            field_datatype_map = {
+                field: "INTEGER" if "number" in field else "VARCHAR"
+                for field in self.fieldnames
+            }
+            duckdb.sql(
+                f"""COPY (SELECT * FROM read_csv('{input_csv_path}',AUTO_DETECT=TRUE, columns={field_datatype_map}))
+                                TO '{output_path}' (FORMAT 'PARQUET', CODEC 'ZSTD');"""
+            )
 
 
 class IssueLog(Log):

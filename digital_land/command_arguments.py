@@ -52,6 +52,12 @@ def column_field_dir(f):
     )(f)
 
 
+def output_log_dir(f):
+    return click.option(
+        "--output-log-dir", "-i", type=click.Path(exists=True), default="log/"
+    )(f)
+
+
 def dataset_resource_dir(f):
     return click.option(
         "--dataset-resource-dir",
