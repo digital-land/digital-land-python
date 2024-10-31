@@ -253,7 +253,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         con = duckdb.connect()
 
-        drop_temp_table_query = "DROP TEMP TABLE IF EXISTS temp_table;"
+        drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
         con.query(drop_temp_table_query)
 
         create_temp_table_query = f"""
