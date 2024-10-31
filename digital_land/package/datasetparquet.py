@@ -249,24 +249,28 @@ class DatasetParquetPackage(ParquetPackage):
 
         # There are issues with the schema when reading in lots of files.
         # Plan is to find the largest file, create an initial database schema from that then use that in future
-        input_path_size = [os.path.getsize(path) for path in input_paths[:10]]
-        print(np.argmax(input_path_size))
-        first_file = input_paths[np.argmax(input_path_size)]
-        print(first_file)
+        largest_file = max(input_paths[:10], key=os.path.getsize)
 
         con = duckdb.connect()
-        schema_query = f"""
-            SELECT {fields_str}
-            FROM read_csv_auto('{first_file}', header=True)
-            LIMIT 4
+        create_temp_table_query = f"""
+        CREATE TEMPORARY TABLE temp_table AS
+        SELECT * FROM read_csv_auto('{largest_file}');
         """
-        # Get the schema for the first file
-        schema_df = duckdb.query(schema_query).df()
-        print(schema_df)
-        # schema_dict = dict(zip(schema_df['column_name'], schema_df['data_type']))
-        #
-        # # Display the resulting schema dictionary
-        # print(schema_dict)
+        con.query(create_temp_table_query)
+
+        # Step 3: Extract the schema from the temporary table
+        schema_query = """
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'temp_table';
+        """
+        schema_df = con.query(schema_query).df()
+
+        # Convert the DataFrame to a dictionary for later use
+        schema_dict = dict(zip(schema_df['column_name'], schema_df['data_type']))
+
+        # Display the resulting schema dictionary
+        print("Schema Dictionary:", schema_dict)
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         # "entry-number": "BIGINT",
