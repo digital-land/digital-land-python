@@ -398,9 +398,6 @@ def dataset_create(
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
     output_path = output_path.replace("dataset/", f"{cache_dir}/").removesuffix(".sqlite3")
-    print("\nOutput path")
-    print(output_path)
-    print("\n")
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     #######################################################
