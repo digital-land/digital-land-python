@@ -144,7 +144,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         # distinct_fields - list of fields in the field field in fact
         rows = con.execute(query).fetchall()
-        print(rows.head(4))
+        print(rows[:4])
         print("\n")
         print(len(rows))
         print("\n")
