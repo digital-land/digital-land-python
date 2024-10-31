@@ -2,6 +2,8 @@ import os
 import json
 import logging
 from decimal import Decimal
+
+import numpy as np
 import pandas as pd
 import shapely.wkt
 import duckdb
@@ -244,7 +246,21 @@ class DatasetParquetPackage(ParquetPackage):
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths[:10]])
+
+        # There are issues with the schema when reading in lots of files.
+        # Plan is to find the largest file, create an initial database schema from that then use that in future
+        input_path_size = [os.path.getsize(file) for file in input_paths_str]
+        first_file = np.argmax(input_path_size)
+
         con = duckdb.connect()
+        schema_query = f"""
+            SELECT * 
+            FROM read_csv_auto('{first_file}', header=True)
+            LIMIT 0
+        """
+        # Get the schema for the first file
+        schema_df = duckdb.query(schema_query).df()
+        print(schema_df)
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         # "entry-number": "BIGINT",
@@ -272,28 +288,24 @@ class DatasetParquetPackage(ParquetPackage):
         #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         # """
 
-        query = f"""
-            -- Remove files with a row count of zero as they mess up with the schema
-            WITH valid_files AS (
-                SELECT * 
-                FROM read_csv_auto([{input_paths_str}])
-                WHERE (SELECT COUNT(*) FROM read_csv_auto([{input_paths_str}]) AS t WHERE t.file = file) > 0
-            )
-            SELECT {fields_str} 
-            FROM read_csv_auto(valid_files)
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
-        """
-
-
-        print("\n\nOoutput file")
-        print(f'{output_path}/fact.parquet')
-        print("\n\n")
-
-        con.execute(f"""
-            COPY (
-                {query}
-            ) TO '{output_path}/fact.parquet' (FORMAT PARQUET);
-        """)
+        # query = f"""
+        #     SELECT {fields_str}
+        #     FROM read_csv_auto(
+        #         [{input_paths_str}]
+        #     )
+        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
+        # """
+        #
+        #
+        # print("\n\nOoutput file")
+        # print(f'{output_path}/fact.parquet')
+        # print("\n\n")
+        #
+        # con.execute(f"""
+        #     COPY (
+        #         {query}
+        #     ) TO '{output_path}/fact.parquet' (FORMAT PARQUET);
+        # """)
 
         # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         # fact_conflict_fields = ["fact"]
