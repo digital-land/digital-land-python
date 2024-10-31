@@ -397,7 +397,7 @@ def dataset_create(
     #######################################################
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
-    output_path = output_path.replace("dataset/", f"{cache_dir}/").replace(".sqlite3", ".parquet")
+    output_path = output_path.replace("dataset/", f"{cache_dir}/") #.replace(".sqlite3", ".parquet")
     print("\nOutput path")
     print(output_path)
     print("\n")
@@ -411,7 +411,6 @@ def dataset_create(
         specification_dir=None,  # TBD: package should use this specification object
     )
     pqpackage.create()
-    print(output_path.removesuffix(".parquet"))
     pqpackage.load_facts(input_paths, output_path.removesuffix(".parquet"))
 
     # for path in input_paths:
