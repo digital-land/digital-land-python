@@ -240,7 +240,7 @@ class DatasetParquetPackage(ParquetPackage):
 
     def load_facts(self, input_paths, chunksize=chunk_size):
         print("In load_facts")
-        print(path)
+        print(input_paths[0])
         print(f"loading facts from {os.path.dirname(input_paths[0])}")
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
 
