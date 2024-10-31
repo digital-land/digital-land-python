@@ -191,12 +191,8 @@ class ResourceLogStore(CSVStore):
                 endpoints = set(entry["endpoints"].split(";")).union(
                     new_entry["endpoints"]
                 )
-                organisations = set(entry["organisations"].split(";")).union(
-                    new_entry["organisations"]
-                )
-                datasets = set(entry["datasets"].split(";")).union(
-                    new_entry["datasets"]
-                )
+                organisations = set(new_entry["organisations"])
+                datasets = set(new_entry["datasets"])
                 start_date = min(entry["start-date"], new_entry["start-date"])
                 end_date = max(entry["end-date"], new_entry["end-date"])
 
@@ -207,6 +203,20 @@ class ResourceLogStore(CSVStore):
                 entry["end-date"] = "" if end_date >= today else end_date
 
                 del new_entries[resource]  # Remove it from the list so we don't add it
+            else:
+                # tackle changes that are made in config for organisation and dataset
+                organisations = set()
+                datasets = set()
+                for endpoint in entry["endpoints"].split(";"):
+                    for r_source in source.records[endpoint]:
+                        organisations.add(r_source["organisation"])
+                        datasets = set(
+                            r_source.get(
+                                "datasets", r_source.get("pipelines", "")
+                            ).split(";")
+                        )
+                entry["organisations"] = ";".join(sorted(organisations))
+                entry["datasets"] = ";".join(sorted(datasets))
 
         # Add any new entries
         for resource, new_entry in new_entries.items():
