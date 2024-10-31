@@ -12,6 +12,15 @@ class DateDataType(DataType):
             "%Y%m%d",
             "%Y/%m/%d %H:%M:%S%z",  # added to handle ogr2ogr unix time conversion
             "%Y/%m/%d %H:%M:%S+00",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%d %H:%M:%S",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%d %H:%M",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%S",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%S.000Z",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%S.000",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%S.%fZ",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%S.%f%z",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%S.%f",  # added to handle ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%SZ",  # added to handle ogr2ogr unix time conversion
             "%Y-%m-%dT%H:%M:%S.000Z",
             "%Y-%m-%dT%H:%M:%S.000",
             "%Y-%m-%dT%H:%M:%S.%fZ",
