@@ -247,30 +247,29 @@ class DatasetParquetPackage(ParquetPackage):
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths[:10]])
 
-        # There are issues with the schema when reading in lots of files.
+        # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
         # Plan is to find the largest file, create an initial database schema from that then use that in future
         largest_file = max(input_paths[:10], key=os.path.getsize)
 
         con = duckdb.connect()
         create_temp_table_query = f"""
-        CREATE TEMPORARY TABLE temp_table AS
-        SELECT * FROM read_csv_auto('{largest_file}');
+            DROP TEMPORARY TABLE IF EXISTS temp_table;
+            CREATE TEMPORARY TABLE temp_table AS
+            SELECT * FROM read_csv_auto('{largest_file}')
+            LIMIT 1000;
         """
         con.query(create_temp_table_query)
 
-        # Step 3: Extract the schema from the temporary table
+        # Extract the schema from the temporary table
         schema_query = """
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_name = 'temp_table';
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'temp_table';
         """
         schema_df = con.query(schema_query).df()
 
         # Convert the DataFrame to a dictionary for later use
         schema_dict = dict(zip(schema_df['column_name'], schema_df['data_type']))
-
-        # Display the resulting schema dictionary
-        print("Schema Dictionary:", schema_dict)
 
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         query = f"""
@@ -281,10 +280,6 @@ class DatasetParquetPackage(ParquetPackage):
             )
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
-
-        print("\n\nquery")
-        print(query)
-        print("\n\n")
 
         con.execute(f"""
             COPY (
