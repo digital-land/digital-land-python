@@ -205,6 +205,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         print("\n\nOutput path")
         print(output_path)
+        print(Path(output_path).name)
         print("")
 
         # # get a list and statement ready for the fields which have values in the un-pivoted fact table
