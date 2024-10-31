@@ -174,6 +174,7 @@ def test_log_save_parquet(tmp_path_factory):
     log.fieldnames = fieldnames
 
     input_dir = tmp_path_factory.mktemp("input")
+    input_path = os.path.join(input_dir, resource + ".csv")
     rows = [
         {
             "dataset": dataset,
@@ -188,14 +189,14 @@ def test_log_save_parquet(tmp_path_factory):
             "entry-number": 1,
         },
     ]
-    with open(os.path.join(input_dir, resource + ".csv"), "w") as f:
+    with open(input_path, "w") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
     output_dir = tmp_path_factory.mktemp("output")
 
-    log.save_parquet(os.path.join(input_dir, resource + ".csv"), output_dir)
+    log.save_parquet(input_path, output_dir)
 
     parquet_path = os.path.join(
         output_dir, f"dataset={dataset}/resource={resource}/{resource}.parquet"
@@ -218,14 +219,14 @@ def test_log_save_parquet_no_rows(tmp_path_factory):
     log.fieldnames = fieldnames
 
     input_dir = tmp_path_factory.mktemp("input")
-    fieldnames = ["dataset", "resource", "issue"]
-    with open(os.path.join(input_dir, resource + ".csv"), "w") as f:
+    input_path = os.path.join(input_dir, resource + ".csv")
+    with open(input_path, "w") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
     output_dir = tmp_path_factory.mktemp("parquet_no_rows")
 
-    log.save_parquet(os.path.join(input_dir, resource + ".csv"), output_dir)
+    log.save_parquet(input_path, output_dir)
 
     parquet_path = os.path.join(
         output_dir, f"dataset={dataset}/resource={resource}/{resource}.parquet"
