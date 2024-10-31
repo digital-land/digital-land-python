@@ -193,7 +193,8 @@ class DatasetParquetPackage(ParquetPackage):
         select_statement = ', '.join([f"t1.{field}" for field in select_fields])
         null_fields_statement = ', '.join([f"NULL::VARCHAR AS \"{field}\"" for field in null_fields])
         json_statement = ', '.join([
-            f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
+            f"'{field}', t1.{field}"
+            # f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
             for field in json_fields
         ])
 
@@ -204,7 +205,6 @@ class DatasetParquetPackage(ParquetPackage):
          """
 
         dataset = Path(output_path).name
-
 
         # get a list and statement ready for the fields which have values in the un-pivoted fact table
         sql = f"""
