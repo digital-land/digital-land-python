@@ -48,3 +48,27 @@ def test_process_with_invalid_organisation(mocker):
     output = [block for block in organisationPhase.process(input_stream)]
     assert organisationPhase.issues
     assert output[0]["row"]["organisation"] == ""
+
+
+def test_process_with_invalid_organisation_and_no_log(mocker):
+    mock_organisation = Mock()
+
+    # Mock the `lookup` method to return a predefined value
+    mock_organisation.lookup.return_value = ""
+
+    mocker.patch("digital_land.phase.organisation", return_value=mock_organisation)
+
+    input_stream = [
+        {
+            "row": {
+                "organisation": "http://open datacommunities.org/not_a_valid_organisation",
+            },
+            "resource": "1",
+            "line-number": 1,
+            "entry-number": 2,
+        }
+    ]
+    organisationPhase = OrganisationPhase(organisation=mock_organisation)
+    output = [block for block in organisationPhase.process(input_stream)]
+    assert organisationPhase.issues is None
+    assert output[0]["row"]["organisation"] == ""

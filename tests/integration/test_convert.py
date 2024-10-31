@@ -25,6 +25,7 @@ from tests.utils.helpers import print_diffs
         "tests/data/resource_examples/shapefile_zip.resource",
         "tests/data/resource_examples/shapefile_zip_not_in_root.resource",
         "tests/data/resource_examples/geopackage.resource",
+        "tests/data/resource_examples/utf-8-sig-json.resource",
     ],
 )
 def test_convert(input_file, tmp_path):
