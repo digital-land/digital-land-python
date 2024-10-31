@@ -179,10 +179,8 @@ class DatasetParquetPackage(ParquetPackage):
 
         pivot_query = f"""
             PIVOT (
-                    -- SELECT * 
                     FROM (
                         {query}
-                    -- )
                 ) ON REPLACE(field,'-','_')
                 USING MAX(value)
         """
