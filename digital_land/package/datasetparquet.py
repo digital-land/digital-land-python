@@ -173,7 +173,7 @@ class DatasetParquetPackage(ParquetPackage):
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT {fields_str}
-            FROM read_csv_autp[{input_paths_str}]
+            FROM read_csv_auto[{input_paths_str}]
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
         """
 
@@ -193,7 +193,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         # Collate list of fields which don't exist  but  need to be in the final table
         select_statement = ', '.join([f"t1.{field}" for field in select_fields])
-        null_fields_statement = ', '.join([f"NULL::VARCHAR AS '{field}'" for field in null_fields])
+        null_fields_statement = ', '.join([f"NULL::VARCHAR AS \"{field}\"" for field in null_fields])
         json_statement = ', '.join([
             f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
             for field in json_fields
