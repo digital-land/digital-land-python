@@ -37,33 +37,7 @@ indexes = {
 }
 
 
-def get_schema(input_paths):
-    # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
-    # Plan is to find the largest file, create an initial database schema from that then use that in future
-    largest_file = max(input_paths, key=os.path.getsize)
 
-    con = duckdb.connect()
-
-    # drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
-    # con.query(drop_temp_table_query)
-
-    create_temp_table_query = f"""
-        DROP TABLE IF EXISTS temp_table;
-        CREATE TEMP TABLE temp_table AS
-        SELECT * FROM read_csv_auto('{largest_file}')
-        LIMIT 1000;
-    """
-    con.query(create_temp_table_query)
-
-    # Extract the schema from the temporary table
-    schema_query = """
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_name = 'temp_table';
-    """
-    schema_df = con.query(schema_query).df()
-
-    return dict(zip(schema_df['column_name'], schema_df['data_type']))
 
 
 class DatasetParquetPackage(ParquetPackage):
@@ -218,12 +192,42 @@ class DatasetParquetPackage(ParquetPackage):
     #
     #     self.append_to_parquet("dataset_resource", dataset_resource)
 
-    def load_facts(self, input_paths, schema_dict, output_path):
+    def get_schema(self, input_paths):
+        # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
+        # Plan is to find the largest file, create an initial database schema from that then use that in future
+        largest_file = max(input_paths, key=os.path.getsize)
+
+        con = duckdb.connect()
+
+        # drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
+        # con.query(drop_temp_table_query)
+
+        create_temp_table_query = f"""
+            DROP TABLE IF EXISTS temp_table;
+            CREATE TEMP TABLE temp_table AS
+            SELECT * FROM read_csv_auto('{largest_file}')
+            LIMIT 1000;
+        """
+        con.query(create_temp_table_query)
+
+        # Extract the schema from the temporary table
+        schema_query = """
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'temp_table';
+        """
+        schema_df = con.query(schema_query).df()
+
+        return dict(zip(schema_df['column_name'], schema_df['data_type']))
+
+    def load_facts(self, input_paths, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
+
+        schema_dict = self.get_schema(input_paths)
 
         con = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
