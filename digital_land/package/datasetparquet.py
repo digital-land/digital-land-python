@@ -248,6 +248,9 @@ class DatasetParquetPackage(ParquetPackage):
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         # "entry-number": "BIGINT",
+        # null_padding = true, -- pads missing columns with NULL values
+        # ignore_errors = true - - ignores rows with parsing issues
+
         query = f"""
             SELECT {fields_str} 
             FROM read_csv_auto(
@@ -262,9 +265,7 @@ class DatasetParquetPackage(ParquetPackage):
                     "reference-entity": "VARCHAR",
                     "start-date": "DATE",
                     "value": "VARCHAR"
-                }},
-                null_padding=true,  -- pads missing columns with NULL values
-                ignore_errors=true  -- ignores rows with parsing issues
+                }}
             )
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
