@@ -255,8 +255,10 @@ class DatasetParquetPackage(ParquetPackage):
 
         con = duckdb.connect()
 
+        drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
+        con.query(drop_temp_table_query)
+
         create_temp_table_query = f"""
-            DROP TABLE IF EXISTS temp_table;
             CREATE TEMP TABLE temp_table AS
             SELECT {fields_str} FROM read_csv_auto('{largest_file}')
             LIMIT 1000;
