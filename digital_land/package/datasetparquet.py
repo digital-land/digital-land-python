@@ -256,13 +256,16 @@ class DatasetParquetPackage(ParquetPackage):
 
         con = duckdb.connect()
         schema_query = f"""
-            SELECT * 
+            SELECT {fields_str}
             FROM read_csv_auto('{first_file}', header=True)
             LIMIT 0
         """
         # Get the schema for the first file
         schema_df = duckdb.query(schema_query).df()
-        print(schema_df)
+        schema_dict = dict(zip(schema_df['column_name'], schema_df['data_type']))
+
+        # Display the resulting schema dictionary
+        print(schema_dict)
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         # "entry-number": "BIGINT",
