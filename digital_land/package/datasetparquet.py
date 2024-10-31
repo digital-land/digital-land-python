@@ -250,7 +250,7 @@ class DatasetParquetPackage(ParquetPackage):
         # There are issues with the schema when reading in lots of files.
         # Plan is to find the largest file, create an initial database schema from that then use that in future
         input_path_size = [os.path.getsize(path) for path in input_paths[:10]]
-        first_file = np.argmax(input_path_size)
+        first_file = input_paths[np.argmax(input_path_size)]
 
         con = duckdb.connect()
         schema_query = f"""
