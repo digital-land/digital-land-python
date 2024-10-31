@@ -273,7 +273,7 @@ class DatasetParquetPackage(ParquetPackage):
         """
 
         print("\n\nOoutput file")
-        print('{output_path}/fact.parquet')
+        print(f'{output_path}/fact.parquet')
         print("\n\n")
 
         con.execute(f"""
