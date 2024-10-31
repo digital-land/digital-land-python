@@ -1,6 +1,9 @@
+import csv
 from datetime import datetime
 import os
 from unittest.mock import patch
+
+import duckdb
 from digital_land.log import Log, OperationalIssueLog
 
 
@@ -163,32 +166,71 @@ def test_operationalIssueLog_save_csv(tmp_path_factory):
 def test_log_save_parquet(tmp_path_factory):
     dataset = "listed-building-outline"
     resource = "resource"
+    fieldnames = ["dataset", "resource", "issue", "entry-number"]
+
     log = Log()
     log.dataset = dataset
     log.resource = resource
-    log.rows = [
-        {"dataset": dataset, "resource": resource, "issue": "issue1"},
-        {"dataset": dataset, "resource": resource, "issue": "issue2"},
-    ]
-    output_dir = tmp_path_factory.mktemp("parquet")
-    output_dir = "test"
+    log.fieldnames = fieldnames
 
-    log.save_parquet(output_dir)
+    input_dir = tmp_path_factory.mktemp("input")
+    rows = [
+        {
+            "dataset": dataset,
+            "resource": resource,
+            "issue": "issue1",
+            "entry-number": 1,
+        },
+        {
+            "dataset": dataset,
+            "resource": resource,
+            "issue": "issue2",
+            "entry-number": 1,
+        },
+    ]
+    with open(os.path.join(input_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    output_dir = tmp_path_factory.mktemp("output")
+
+    log.save_parquet(os.path.join(input_dir, resource + ".csv"), output_dir)
+
     parquet_path = os.path.join(
-        output_dir, f"dataset={dataset}/resource={resource}/{resource}-0.parquet"
+        output_dir, f"dataset={dataset}/resource={resource}/{resource}.parquet"
     )
     assert os.path.isfile(parquet_path)
+    conn = duckdb.connect()
+    df = conn.execute(f"SELECT * FROM '{parquet_path}'").df()
+    assert (set(df.iloc[0].values) - set([dataset, resource, "issue1", 1])) == set()
+    assert (set(df.columns) - set(fieldnames)) == set()
 
 
-# def test_log_save_parquet_no_rows(tmp_path_factory):
-#     dataset = "listed-building-outline"
-#     resource = "resource"
-#     log = Log()
-#     log.dataset = dataset
-#     log.resource = resource
-#     output_dir = tmp_path_factory.mktemp("parquet")
+def test_log_save_parquet_no_rows(tmp_path_factory):
+    dataset = "listed-building-outline"
+    resource = "norows"
+    fieldnames = ["dataset", "resource", "issue"]
 
-#     log.save_parquet(output_dir)
+    log = Log()
+    log.dataset = dataset
+    log.resource = resource
+    log.fieldnames = fieldnames
 
-#     parquet_path = os.path.join(output_dir,"/dataset=listed-building-outline/resource=resource/resource-0.parquet")
-#     assert os.path.isfile(parquet_path)
+    input_dir = tmp_path_factory.mktemp("input")
+    fieldnames = ["dataset", "resource", "issue"]
+    with open(os.path.join(input_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+    output_dir = tmp_path_factory.mktemp("parquet_no_rows")
+
+    log.save_parquet(os.path.join(input_dir, resource + ".csv"), output_dir)
+
+    parquet_path = os.path.join(
+        output_dir, f"dataset={dataset}/resource={resource}/{resource}.parquet"
+    )
+    assert os.path.isfile(parquet_path)
+    conn = duckdb.connect()
+    df = conn.execute(f"SELECT * FROM '{parquet_path}'").df()
+    assert (set(df.columns) - set(fieldnames)) == set()

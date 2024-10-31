@@ -1,11 +1,10 @@
 import csv
 import os
 from datetime import datetime
+import duckdb
 import pandas as pd
 import yaml
 import logging
-import pyarrow as pa
-import pyarrow.parquet as pq
 from .store.item import CSVItemStore
 from .schema import Schema
 
@@ -34,14 +33,23 @@ class Log:
         for row in self.rows:
             writer.writerow(row)
 
-    # Move this into .save method when we decide to save all logs in .parquet?
-    def save_parquet(self, dir):
-        table = pa.Table.from_pylist(self.rows)
-        pq.write_to_dataset(
-            table,
-            dir,
-            partition_cols=["dataset", "resource"],
-            basename_template=self.resource + "-{i}.parquet",
+    # Move this into save method when we decide to save all logs in .parquet?
+    def save_parquet(self, input_csv_path, output_dir):
+        output_path = os.path.join(
+            output_dir,
+            "dataset=" + self.dataset,
+            "resource=" + self.resource,
+            self.resource + ".parquet",
+        )
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        # Create field datatype map to prevent fields having random datatypes (e.g value field getting a datetime type)
+        field_datatype_map = {
+            field: "INTEGER" if "number" in field else "VARCHAR"
+            for field in self.fieldnames
+        }
+        duckdb.sql(
+            f"""COPY (SELECT * FROM read_csv('{input_csv_path}',AUTO_DETECT=TRUE, columns={field_datatype_map}))
+                            TO '{output_path}' (FORMAT 'PARQUET', CODEC 'ZSTD');"""
         )
 
 

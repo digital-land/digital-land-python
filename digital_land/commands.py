@@ -333,7 +333,7 @@ def pipeline_run(
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     log_output_dir = "log/issue/"
-    issue_log.save_parquet(log_output_dir)
+    issue_log.save_parquet(os.path.join(issue_dir, resource + ".csv"), log_output_dir)
     operational_issue_log.save(output_dir=operational_issue_dir)
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
