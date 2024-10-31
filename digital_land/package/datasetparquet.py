@@ -258,7 +258,10 @@ class DatasetParquetPackage(ParquetPackage):
                     "fact": "VARCHAR",
                     "field": "VARCHAR",
                     "entry-date": "DATE",
-                    "priority": "BIGINT"
+                    "priority": "BIGINT",
+                    "reference-entity": "VARCHAR",
+                    "start-date": "DATE",
+                    "value": "VARCHAR"
                 }},
                 null_padding=true,  -- pads missing columns with NULL values
                 ignore_errors=true  -- ignores rows with parsing issues
