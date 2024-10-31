@@ -2,6 +2,7 @@ from .checkpoints.dataset import DatasetCheckpoint
 from .checkpoints.converted_resource import CovertedResourceCheckpoint
 
 from digital_land.configuration.main import Config
+from digital_land.organisation import Organisation
 
 
 # in principle the command needs a few things:
@@ -14,13 +15,14 @@ def run_dataset_checkpoint(
     output_dir,
     dataset,
     config: Config,
+    organisations: Organisation,
     act_on_critical_error=False,
 ):
     """
     function to run expectation rules for a given dataset from rules stored in the configuration
     """
     rules = Config.get_expectation_rules(dataset)
-    checkpoint = DatasetCheckpoint(file_path, dataset)
+    checkpoint = DatasetCheckpoint(file_path, dataset, rules, organisations)
 
     checkpoint.load(rules)
     checkpoint.run()

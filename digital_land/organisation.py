@@ -92,3 +92,11 @@ class Organisation:
                 logging.info(f"unknown organisation {organisation}")
                 return ""
         return self.organisation_lookup[organisation.lower()]
+
+    def get_orgs_by_dataset(self, dataset):
+        dataset_orgs = [
+            org
+            for org in self.organisation.values()
+            if org.get("dataset", "") == dataset
+        ]
+        return dataset_orgs
