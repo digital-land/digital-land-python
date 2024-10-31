@@ -252,6 +252,7 @@ class DatasetParquetPackage(ParquetPackage):
             FROM read_csv_auto(
                 [{input_paths_str}],
                 columns={{
+                "end-date": "DATE", 
                 "entity": "BIGINT", 
                 "entry-date": "DATE", 
                 "entry-number": "BIGINT", 
