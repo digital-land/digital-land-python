@@ -251,51 +251,35 @@ class DatasetParquetPackage(ParquetPackage):
         # null_padding = true, -- pads missing columns with NULL values
         # ignore_errors = true - - ignores rows with parsing issues
 
-        query = f"""
-            SELECT COUNT(*) FROM (
-            SELECT {fields_str} 
-            FROM read_csv_auto(
-                [{input_paths_str}],
-                columns = {{
-                    "end-date": "DATE",
-                    "entity": "BIGINT",
-                    "fact": "VARCHAR",
-                    "field": "VARCHAR",
-                    "entry-date": "DATE",
-                    "priority": "BIGINT",
-                    "reference-entity": "VARCHAR",
-                    "start-date": "DATE",
-                    "value": "VARCHAR"
-                }},
-                null_padding = true -- pads missing columns with NULL values
-                -- ignore_errors = true -- ignores rows with parsing issues
-            )
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1)
-        """
-        print("\nQuery results")
-        print(con.execute(query).fetchone())
-
+        # query = f"""
+        #     SELECT {fields_str}
+        #     FROM read_csv_auto(
+        #         [{input_paths_str}],
+        #         columns = {{
+        #             "end-date": "DATE",
+        #             "entity": "BIGINT",
+        #             "fact": "VARCHAR",
+        #             "field": "VARCHAR",
+        #             "entry-date": "DATE",
+        #             "priority": "BIGINT",
+        #             "reference-entity": "VARCHAR",
+        #             "start-date": "DATE",
+        #             "value": "VARCHAR"
+        #         }},
+        #         null_padding = true, -- pads missing columns with NULL values
+        #         ignore_errors = true -- ignores rows with parsing issues
+        #     )
+        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
+        # """
 
         query = f"""
             SELECT {fields_str} 
             FROM read_csv_auto(
-                [{input_paths_str}],
-                columns = {{
-                    "end-date": "DATE",
-                    "entity": "BIGINT",
-                    "fact": "VARCHAR",
-                    "field": "VARCHAR",
-                    "entry-date": "DATE",
-                    "priority": "BIGINT",
-                    "reference-entity": "VARCHAR",
-                    "start-date": "DATE",
-                    "value": "VARCHAR"
-                }},
-                null_padding = true, -- pads missing columns with NULL values
-                ignore_errors = true -- ignores rows with parsing issues
+                [{input_paths_str}]
             )
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
+
 
         print("\n\nOoutput file")
         print(f'{output_path}/fact.parquet')
