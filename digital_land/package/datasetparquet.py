@@ -247,17 +247,19 @@ class DatasetParquetPackage(ParquetPackage):
         con = duckdb.connect()
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
-        # columns = {{
-        #     "end-date": "DATE",
-        #     "entity": "BIGINT",
-        #     "entry-date": "DATE",
-        #     "entry-number": "BIGINT",
-        #     "priority": "BIGINT",
-        #     "fact": "VARCHAR"}},
+        # "entry-number": "BIGINT",
         query = f"""
             SELECT {fields_str} 
             FROM read_csv_auto(
                 [{input_paths_str}],
+                columns = {{
+                    "end-date": "DATE",
+                    "entity": "BIGINT",
+                    "fact": "VARCHAR",
+                    "field": "VARCHAR",
+                    "entry-date": "DATE",
+                    "priority": "BIGINT"
+                }},
                 null_padding=true,  -- pads missing columns with NULL values
                 ignore_errors=true  -- ignores rows with parsing issues
             )
