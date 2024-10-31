@@ -239,10 +239,11 @@ class DatasetParquetPackage(ParquetPackage):
         #     logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
 
     def load_facts(self, input_paths, chunksize=chunk_size):
+        print("In load_facts")
+        print(path)
+        print(f"loading facts from {os.path.dirname(input_paths[0])}")
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
 
-        # print("In load_facts")
-        # print(path)
 
         fact_fields = self.specification.schema["fact"]["fields"]
         print(fact_fields)
