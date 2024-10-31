@@ -260,7 +260,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         create_temp_table_query = f"""
             CREATE TEMP TABLE temp_table AS
-            SELECT {fields_str} FROM read_csv_auto('{largest_file}')
+            SELECT * FROM read_csv_auto('{largest_file}')
             LIMIT 1000;
         """
         con.query(create_temp_table_query)
