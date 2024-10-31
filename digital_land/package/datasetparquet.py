@@ -257,7 +257,7 @@ class DatasetParquetPackage(ParquetPackage):
         con.execute(f"""
             COPY (
                 {query}
-            ) TO 'var/cache/parquet/test/pq' (FORMAT PARQUET);
+            ) TO 'var/cache/parquet/test.pq' (FORMAT PARQUET);
         """)
 
         # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
