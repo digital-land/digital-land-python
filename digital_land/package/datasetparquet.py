@@ -1,15 +1,14 @@
 import os
-import json
+# import json
 import logging
-from decimal import Decimal
+# from decimal import Decimal
 
-import numpy as np
-import pandas as pd
-import shapely.wkt
+# import numpy as np
+# import pandas as pd
+# import shapely.wkt
 import duckdb
-import gc
 
-from .parquet import ParquetPackage, colname
+from .parquet import ParquetPackage
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +34,7 @@ indexes = {
     "issue": ["resource", "dataset", "field"],
     "dataset-resource": ["resource"],
 }
+
 
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
@@ -127,7 +127,7 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
-        fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in entity_fields])
+        # fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in entity_fields])
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
         schema_dict = self.get_schema(input_paths)
@@ -142,147 +142,87 @@ class DatasetParquetPackage(ParquetPackage):
             )
         """
 
-        # distinct_fields - list of fields in the field field in fact
+        # distinct_fields - list of fields in the field in fact
         rows = con.execute(query).fetchall()
-        print(rows[:4])
-        print("\n")
-        print(len(rows))
-        print("\n")
         distinct_fields = [row[0] for row in rows]
-        print(len(distinct_fields))
-        print("\n")
 
+        # json fields - list of fields which are present in the fact table which
+        # do not exist separately in the entity table
+        json_fields = [field for field in distinct_fields if field not in entity_fields]
 
+        # null fields - list of fields which are not  present in the fact tables which have
+        # to be in the entity table as a column
+        extra_fields = ['entity', 'dataset', 'typology', 'json', 'organisation_entity', 'organisation']
+        null_fields = [field for field in entity_fields if field not in (distinct_fields + extra_fields)]
 
-    # def load_column_fields(self, path, chunksize=chunk_size):
-    #     # fields = self.specification.schema["column-field"]["fields"]
-    #     logging.info(f"loading column_fields from {path}")
-    #
-    #     for chunk in pd.read_csv(path, chunksize=chunksize):
-    #         rows_to_insert = []
-    #         for _, row in chunk.iterrows():
-    #             row["resource"] = path.stem
-    #             row["dataset"] = self.dataset
-    #             rows_to_insert.append(row)
-    #         self.append_to_parquet("column-field", rows_to_insert)
-    #         rows_to_insert.clear()
-    #
-    # def load_issues(self, path, chunksize=chunk_size):
-    #     # fields = self.specification.schema["issue"]["fields"]
-    #     logging.info(f"loading issues from {path}")
-    #
-    #     for chunk in pd.read_csv(path, chunksize=chunksize):
-    #         rows_to_insert = []
-    #         for _, row in chunk.iterrows():
-    #             rows_to_insert.append(row)
-    #         self.append_to_parquet("issue", rows_to_insert)
-    #         rows_to_insert.clear()
+        # select fields - a list  of fields which have to be selected directly from the pivoted table
+        # these are entity fields that are not null fields or a few special ones
+        extra_fields = ['json', 'organisation_entity', 'dataset', 'typology', 'organisation']
+        select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
 
-    # def load_dataset_resource(self, path, chunksize=chunk_size):
-    #     """
-    #     Load dataset-resource from a CSV file in chunks.
-    #
-    #     param path: The path to the CSV file.
-    #     param chunksize: The number of rows to read per chunk.
-    #     """
-    #     # fields = self.specification.schema["dataset-resource"]["fields"]
-    #
-    #     logging.info(f"loading dataset-resource from {path}")
-    #
-    #     chunk_iterator = pd.read_csv(path, chunksize=chunksize)
-    #
-    #     for chunk in chunk_iterator:
-    #         # Process the chunk (e.g., modify fields or add any necessary data)
-    #         self.append_to_parquet("dataset-resource", chunk)
-    #
-    #     logging.info("Finished loading dataset-resource")
+        # set fields
+        fields_to_include = [
+            'entity',
+            'field',
+            'value'
+        ]
+        fields_str = ', '.join(fields_to_include)
 
-    # def get_parquet_path(self, table_name):
-    #     ##########################################################################
-    #     # self.path references the full name of the sqlite3 file
-    #     # Remove and find a way of adding this to the cli arguments or otherwise #
-    #     ##########################################################################
-    #     return os.path.join(self.path.removesuffix(".sqlite3"), f"{table_name}{self.suffix}")
-    #
-    # def append_to_parquet(self, table_name, data):
-    #     """
-    #     Append data to a Parquet file. If the file doesn't exist, it will create a new one.
-    #
-    #     param table_name: Name of the Parquet file (without extension).
-    #     param data: Pandas DataFrame or dictionary containing data to append.
-    #     """
-    #     parquet_path = self.get_parquet_path(table_name)
-    #     print("In append_to_parquet")
-    #     print("parquet_path")
-    #     print(parquet_path)
-    #     if isinstance(data, dict):
-    #         data = pd.DataFrame([data])
-    #     if not os.path.exists(parquet_path):
-    #         # Write new Parquet file
-    #         data.to_parquet(parquet_path, index=False)
-    #     else:
-    #         try:
-    #             # Append data to current parquet file. If any issues read in current values and concatenate
-    #             # Connect to DuckDB (in-memory or specify a file if needed)
-    #             conn = duckdb.connect()
-    #
-    #             # Create a DuckDB SQL query to append new data to the Parquet file
-    #             conn.execute(f"""
-    #                 INSERT INTO '{parquet_path}'
-    #                 SELECT * FROM new_data_df
-    #             """)
-    #
-    #             # Close the connection
-    #             conn.close()
-    #         except duckdb.IOException as e:
-    #             logging.error(f"DuckDB error, reading in then appending parquet files: {e}")
-    #             try:
-    #                 # Append to existing Parquet file
-    #                 existing_data = pd.read_parquet(parquet_path)
-    #                 combined_data = pd.concat([existing_data, data], ignore_index=True)
-    #                 combined_data.to_parquet(parquet_path, index=False)
-    #             except (pd.errors.EmptyDataError, FileNotFoundError) as e:
-    #                 logging.error(f"Failed to read existing data or append new data to '{parquet_path}': {e}")
-    #             except Exception as e:
-    #                 logging.error(f"Failed to append data to '{parquet_path}': {e}")
-    #
-    # def read_from_parquet(self, table_name, columns=None):
-    #     """
-    #     Read data from a Parquet file and return a DataFrame.
-    #
-    #     param table_name: Name of the Parquet file (without extension)
-    #     param columns: Optional list of columns to read
-    #     return: DataFrame containing the data
-    #     """
-    #     parquet_path = self.get_parquet_path(table_name)
-    #     if not os.path.exists(parquet_path):
-    #         raise FileNotFoundError(f"Parquet file '{parquet_path}' not found.")
-    #
-    #     return pd.read_parquet(parquet_path, columns=columns)
-    #
-    # def update_parquet(self, table_name, key_field, new_data):
-    #     """
-    #     Update specific rows in a Parquet file. This replaces rows based on a unique key.
-    #
-    #     param table_name: Name of the Parquet file (without extension)
-    #     param key_field: The field that serves as the unique key for updates
-    #     param new_data: A dictionary or DataFrame containing new data
-    #     """
-    #     parquet_path = self.get_parquet_path(table_name)
-    #     if isinstance(new_data, dict):
-    #         new_data = pd.DataFrame([new_data])
-    #
-    #     if not os.path.exists(parquet_path):
-    #         raise FileNotFoundError(f"Parquet file '{parquet_path}' not found.")
-    #
-    #     existing_data = pd.read_parquet(parquet_path)
-    #     # Update rows by merging on the key_field
-    #     updated_data = pd.concat(
-    #         [existing_data[~existing_data[key_field].isin(new_data[key_field])], new_data],
-    #         ignore_index=True
-    #     )
-    #     # Write back the updated data
-    #     updated_data.to_parquet(parquet_path, index=False)
+        # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
+        query = f"""
+            SELECT {fields_str}, 
+            FROM parquet_scan('{str(input_path)}')
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
+        """
+
+        pivot_query = f"""
+            PIVOT (
+                    SELECT * 
+                    FROM (
+                        {query}
+                    )
+                ) ON REPLACE(field,'-','_')
+                USING MAX(value)
+        """
+
+        # now use the field lists produced above to create specific statements to:
+        # add null columns which are missing
+        # include columns in the json statement
+
+        # Collate list of fields which don't exist  but  need to be in the final table
+        select_statement = ', '.join([f"t1.{field}" for field in select_fields])
+        null_fields_statement = ', '.join([f"NULL::VARCHAR AS {field}" for field in null_fields])
+        json_statement = ', '.join([
+            f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
+            for field in json_fields
+        ])
+
+        # define organisation query
+        org_csv = './var/cache/organisation.csv'
+        org_query = f"""
+             SELECT * FROM read_csv_auto('{org_csv}')
+         """
+
+        print("\n\nOutput path")
+        print(output_path)
+        print("")
+
+        # # get a list and statement ready for the fields which have values in the un-pivoted fact table
+        # sql = f"""
+        #      COPY (
+        #          SELECT '{dataset}' as dataset,
+        #          '{dataset}' as typology,
+        #          t2.entity as organisation_entity,
+        #          {select_statement},
+        #          {null_fields_statement},
+        #          json_object({json_statement}) as json
+        #          FROM ({pivot_query}) as t1
+        #          LEFT JOIN ({org_query}) as t2
+        #          on t1.organisation = t2.organisation
+        #          ) TO '{output_path}' (FORMAT PARQUET);
+        #  """
+        # # print(sql)
+        # con.execute(sql)
 
     def load(self):
         pass
