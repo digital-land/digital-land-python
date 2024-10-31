@@ -410,8 +410,9 @@ def dataset_create(
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
+    print(output_path)
     pqpackage.create()
-    pqpackage.load_facts(input_paths)
+    pqpackage.load_facts(input_paths, output_path)
 
     # for path in input_paths:
     #     path_obj = Path(path)
