@@ -252,8 +252,11 @@ class DatasetParquetPackage(ParquetPackage):
         largest_file = max(input_paths[:10], key=os.path.getsize)
 
         con = duckdb.connect()
+
+        drop_temp_table_query = "DROP TEMPORARY TABLE IF EXISTS temp_table;"
+        con.query(drop_temp_table_query)
+
         create_temp_table_query = f"""
-            DROP TEMPORARY TABLE IF EXISTS temp_table;
             CREATE TEMPORARY TABLE temp_table AS
             SELECT * FROM read_csv_auto('{largest_file}')
             LIMIT 1000;
