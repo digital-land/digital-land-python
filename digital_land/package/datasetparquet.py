@@ -267,8 +267,8 @@ class DatasetParquetPackage(ParquetPackage):
                     "start-date": "DATE",
                     "value": "VARCHAR"
                 }},
-                null_padding = true, -- pads missing columns with NULL values
-                ignore_errors = true -- ignores rows with parsing issues
+                null_padding = true -- pads missing columns with NULL values
+                -- ignore_errors = true -- ignores rows with parsing issues
             )
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1)
         """
