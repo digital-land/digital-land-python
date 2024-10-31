@@ -52,6 +52,13 @@ def test_date_normalise():
     # found this in the wild
     assert date.normalise("22/05/2018\xa0") == "2018-05-22"
     assert date.normalise("2013/04/15 00:00:00") == "2013-04-15"
+    assert date.normalise("2013/04/15 00:00") == "2013-04-15"
+    assert date.normalise("2024/07/02T13:49:47.676511") == "2024-07-02"
+    assert date.normalise("2024/07/03T13:49:47.676511+01:00") == "2024-07-03"
+    assert date.normalise("2024/07/04T13:41:46.7084023+01:00") == "2024-07-04"
+    assert date.normalise("2024/07/04T13:41:46.708402345678") == "2024-07-04"
+    assert date.normalise("2024/07/04T13:41:46.708402345678+01:00") == "2024-07-04"
+    assert date.normalise("2024/07/04T13:41:46.708402345678Z") == "2024-07-04"
 
     issues = IssueLog()
     assert date.normalise("2019-02-29", issues=issues) == ""
