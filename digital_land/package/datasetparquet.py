@@ -239,14 +239,27 @@ class DatasetParquetPackage(ParquetPackage):
         #     logging.error(f"Failed to upsert data to '{parquet_path}': {e}")
 
     def load_facts(self, input_paths, chunksize=chunk_size):
-        print("In load_facts")
-        print(input_paths[0])
-        print(f"loading facts from {os.path.dirname(input_paths[0])}")
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
 
 
         fact_fields = self.specification.schema["fact"]["fields"]
-        print(fact_fields)
+
+        con = duckdb.connect()
+
+        # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
+        query = f"""
+            SELECT {fact_fields}, 
+            FROM parquet_scan({input_paths})
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
+        """
+
+        #
+        con.execute(f"""
+            COPY (
+                {query}
+            ) TO 'var/cache/parquet/test/pq' (FORMAT PARQUET);
+        """)
+
         # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         # fact_conflict_fields = ["fact"]
         # fact_update_fields = [
