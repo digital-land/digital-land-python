@@ -255,7 +255,7 @@ class DatasetParquetPackage(ParquetPackage):
             SELECT {fields_str} 
             FROM read_csv_auto(
                 [{input_paths_str}],
-                columns = {{
+                columns = {
                     "end-date": "DATE",
                     "entity": "BIGINT",
                     "fact": "VARCHAR",
@@ -265,7 +265,9 @@ class DatasetParquetPackage(ParquetPackage):
                     "reference-entity": "VARCHAR",
                     "start-date": "DATE",
                     "value": "VARCHAR"
-                }}
+                },
+                null_padding = true, -- pads missing columns with NULL values
+                ignore_errors = true - - ignores rows with parsing issues
             )
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
