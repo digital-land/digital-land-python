@@ -245,11 +245,11 @@ class DatasetParquetPackage(ParquetPackage):
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
-        input_paths_str = ', '.join([f"'{path}'" for path in input_paths[:10]])
+        input_paths_str = ', '.join([f"'{path}'" for path in input_paths[:100]])
 
         # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
         # Plan is to find the largest file, create an initial database schema from that then use that in future
-        largest_file = max(input_paths[:10], key=os.path.getsize)
+        largest_file = max(input_paths[:100], key=os.path.getsize)
 
         con = duckdb.connect()
 
