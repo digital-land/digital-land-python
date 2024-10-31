@@ -207,15 +207,16 @@ class ResourceLogStore(CSVStore):
                 # tackle changes that are made in config for organisation and dataset
                 organisations = set()
                 datasets = set()
-                for endpoint in entry["endpoints"].split(';'):
+                for endpoint in entry["endpoints"].split(";"):
                     for r_source in source.records[endpoint]:
                         organisations.add(r_source["organisation"])
                         datasets = set(
-                            r_source.get("datasets", r_source.get("pipelines", "")).split(";")
+                            r_source.get(
+                                "datasets", r_source.get("pipelines", "")
+                            ).split(";")
                         )
                 entry["organisations"] = ";".join(sorted(organisations))
                 entry["datasets"] = ";".join(sorted(datasets))
-                
 
         # Add any new entries
         for resource, new_entry in new_entries.items():
