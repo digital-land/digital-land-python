@@ -253,6 +253,7 @@ class DatasetParquetPackage(ParquetPackage):
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
         """
 
+        print(query)
         #
         con.execute(f"""
             COPY (
