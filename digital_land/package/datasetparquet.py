@@ -272,50 +272,25 @@ class DatasetParquetPackage(ParquetPackage):
         # Display the resulting schema dictionary
         print("Schema Dictionary:", schema_dict)
 
-        # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
-        # "entry-number": "BIGINT",
-        # null_padding = true, -- pads missing columns with NULL values
-        # ignore_errors = true - - ignores rows with parsing issues
+        # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
+        query = f"""
+            SELECT {fields_str}
+            FROM read_csv_auto(
+                [{input_paths_str}],
+                columns = {schema_dict}
+            )
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
+        """
 
-        # query = f"""
-        #     SELECT {fields_str}
-        #     FROM read_csv_auto(
-        #         [{input_paths_str}],
-        #         columns = {{
-        #             "end-date": "DATE",
-        #             "entity": "BIGINT",
-        #             "fact": "VARCHAR",
-        #             "field": "VARCHAR",
-        #             "entry-date": "DATE",
-        #             "priority": "BIGINT",
-        #             "reference-entity": "VARCHAR",
-        #             "start-date": "DATE",
-        #             "value": "VARCHAR"
-        #         }},
-        #         null_padding = true, -- pads missing columns with NULL values
-        #         ignore_errors = true -- ignores rows with parsing issues
-        #     )
-        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
-        # """
+        print("\n\nquery")
+        print(query)
+        print("\n\n")
 
-        # query = f"""
-        #     SELECT {fields_str}
-        #     FROM read_csv_auto(
-        #         [{input_paths_str}]
-        #     )
-        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
-        # """
-        #
-        #
-        # print("\n\nOoutput file")
-        # print(f'{output_path}/fact.parquet')
-        # print("\n\n")
-        #
-        # con.execute(f"""
-        #     COPY (
-        #         {query}
-        #     ) TO '{output_path}/fact.parquet' (FORMAT PARQUET);
-        # """)
+        con.execute(f"""
+            COPY (
+                {query}
+            ) TO '{output_path}/fact.parquet' (FORMAT PARQUET);
+        """)
 
         # fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         # fact_conflict_fields = ["fact"]
