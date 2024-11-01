@@ -37,6 +37,34 @@ indexes = {
 }
 
 
+def get_schema(input_paths):
+    # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
+    # Plan is to find the largest file, create an initial database schema from that then use that in future
+    largest_file = max(input_paths, key=os.path.getsize)
+
+    con = duckdb.connect()
+
+    # drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
+    # con.query(drop_temp_table_query)
+
+    create_temp_table_query = f"""
+        DROP TABLE IF EXISTS temp_table;
+        CREATE TEMP TABLE temp_table AS
+        SELECT * FROM read_csv_auto('{largest_file}')
+        LIMIT 1000;
+    """
+    con.query(create_temp_table_query)
+
+    # Extract the schema from the temporary table
+    schema_query = """
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'temp_table';
+    """
+    schema_df = con.query(schema_query).df()
+
+    return dict(zip(schema_df['column_name'], schema_df['data_type']))
+
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
@@ -45,33 +73,7 @@ class DatasetParquetPackage(ParquetPackage):
         # self.entity_fields = self.specification.schema["entity"]["fields"]
         # self.organisations = organisation.organisation
 
-    def get_schema(self, input_paths):
-        # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
-        # Plan is to find the largest file, create an initial database schema from that then use that in future
-        largest_file = max(input_paths, key=os.path.getsize)
 
-        con = duckdb.connect()
-
-        # drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
-        # con.query(drop_temp_table_query)
-
-        create_temp_table_query = f"""
-            DROP TABLE IF EXISTS temp_table;
-            CREATE TEMP TABLE temp_table AS
-            SELECT * FROM read_csv_auto('{largest_file}')
-            LIMIT 1000;
-        """
-        con.query(create_temp_table_query)
-
-        # Extract the schema from the temporary table
-        schema_query = """
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'temp_table';
-        """
-        schema_df = con.query(schema_query).df()
-
-        return dict(zip(schema_df['column_name'], schema_df['data_type']))
 
     def load_facts(self, input_paths, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
@@ -80,7 +82,7 @@ class DatasetParquetPackage(ParquetPackage):
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        schema_dict = self.get_schema(input_paths)
+        schema_dict = get_schema(input_paths)
 
         con = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
@@ -106,7 +108,7 @@ class DatasetParquetPackage(ParquetPackage):
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_resource_fields])
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        schema_dict = self.get_schema(input_paths)
+        schema_dict = get_schema(input_paths)
 
         con = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
@@ -128,14 +130,11 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
-        # fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in entity_fields])
-        # input_paths = input_paths[:40]
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        schema_dict = self.get_schema(input_paths)
+        schema_dict = get_schema(input_paths)
 
         con = duckdb.connect()
-        # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
             FROM read_csv_auto(
@@ -163,11 +162,7 @@ class DatasetParquetPackage(ParquetPackage):
         select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
 
         # set fields
-        fields_to_include = [
-            'entity',
-            'field',
-            'value'
-        ]
+        fields_to_include = ['entity','field','value']
         fields_str = ', '.join(fields_to_include)
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
@@ -192,7 +187,6 @@ class DatasetParquetPackage(ParquetPackage):
         select_statement = ', '.join([f"t1.{field}" for field in select_fields])
         null_fields_statement = ', '.join([f"NULL::VARCHAR AS \"{field}\"" for field in null_fields])
         json_statement = ', '.join([
-            # f"'{field}', t1.{field}"
             f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
             for field in json_fields
         ])
