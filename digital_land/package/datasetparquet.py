@@ -242,10 +242,11 @@ class DatasetParquetPackage(ParquetPackage):
             con.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table")
             con.execute("DETACH DATABASE sqlite_db;")
 
-        con.close()
 
-            # # Open SQLite connection to set up spatial capabilities
-            # sqlite_con = sqlite3.connect(sqlite_file)
+            # Open SQLite connection to set up spatial capabilities
+            sqlite_con = sqlite3.connect(sqlite_file)
+            sqlite_con.enable_load_extension(True)
+
             # sqlite_con.execute('SELECT load_extension("mod_spatialite")')
             # sqlite_con.execute("SELECT InitSpatialMetadata(1)")  # Initialize spatial metadata
             #
@@ -254,7 +255,9 @@ class DatasetParquetPackage(ParquetPackage):
             #     sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'GEOMETRY', 'XY')")
             #     # Create a spatial index on the geometry column
             #     sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}')")
-            # sqlite_con.close()
+            sqlite_con.close()
+
+        con.close()
 
     def load(self):
         pass
