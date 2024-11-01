@@ -228,13 +228,13 @@ class DatasetParquetPackage(ParquetPackage):
                 CREATE TABLE temp_table AS 
                 SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
             """)
-            # geom_columns_query = """
-            #     SELECT column_name
-            #     FROM information_schema.columns
-            #     WHERE table_name = 'temp_table'
-            #       AND column_name ILIKE '%geom%'
-            # """
-            # geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
+            geom_columns_query = """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'temp_table'
+                  AND column_name ILIKE '%geom%'
+            """
+            geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
 
             # Export the DuckDB table to the SQLite database
             con.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db")
@@ -242,18 +242,19 @@ class DatasetParquetPackage(ParquetPackage):
             con.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table")
             con.execute("DETACH DATABASE sqlite_db;")
 
-
-            # Open SQLite connection to set up spatial capabilities
             sqlite_con = sqlite3.connect(sqlite_file)
             sqlite_con.enable_load_extension(True)
             sqlite_con.execute('SELECT load_extension("mod_spatialite")')
-            # sqlite_con.execute("SELECT InitSpatialMetadata(1)")  # Initialize spatial metadata
-            #
-            # for geom in geom_columns:
-            #     # Add geometry column with default SRID 4326 and geometry type
-            #     sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'GEOMETRY', 'XY')")
-            #     # Create a spatial index on the geometry column
-            #     sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}')")
+            sqlite_con.execute("SELECT InitSpatialMetadata(1)")  # Initialize spatial metadata
+
+            for geom in geom_columns:
+                # Add geometry column with default SRID 4326 and geometry type
+                if 'geometry' in geom:
+                    sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'MULTIPOLYGON', 2)")
+                elif 'point' in geom:
+                    sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'POINT', 2)")
+                # Create a spatial index on the geometry column
+                sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}')")
             sqlite_con.close()
 
         con.close()
