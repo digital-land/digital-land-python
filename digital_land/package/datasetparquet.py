@@ -223,22 +223,24 @@ class DatasetParquetPackage(ParquetPackage):
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
         for parquet_file in parquet_files:
             sqlite_file = parquet_file.replace(self.suffix, ".sqlite3")
+            con.execute("DROP TABLE IF EXISTS temp_table;")
             con.execute(f"""
                 CREATE TABLE temp_table AS 
                 SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
             """)
-            geom_columns_query = """
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'temp_table' 
-                  AND column_name ILIKE '%geom%'
-            """
-            geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
+            # geom_columns_query = """
+            #     SELECT column_name
+            #     FROM information_schema.columns
+            #     WHERE table_name = 'temp_table'
+            #       AND column_name ILIKE '%geom%'
+            # """
+            # geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
 
             # Export the DuckDB table to the SQLite database
             con.execute("DROP TABLE IF EXISTS sqlite_db.my_table")
             con.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db")
             con.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table")
+            con.execute("DETACH DATABASE sqlite_db;")
 
         con.close()
 
