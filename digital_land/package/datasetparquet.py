@@ -129,7 +129,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         entity_fields = self.specification.schema["entity"]["fields"]
         # fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in entity_fields])
-        input_paths = input_paths[:40]
+        # input_paths = input_paths[:40]
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
         schema_dict = self.get_schema(input_paths)
