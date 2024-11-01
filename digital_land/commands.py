@@ -335,10 +335,7 @@ def pipeline_run(
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
-    issue_log.save_parquet(
-        os.path.join(issue_dir, resource + ".csv"),
-        os.path.join(output_log_dir, "issue/"),
-    )
+    issue_log.save_parquet(os.path.join(output_log_dir, "issue/"))
     operational_issue_log.save(output_dir=operational_issue_dir)
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
