@@ -240,7 +240,7 @@ class DatasetParquetPackage(ParquetPackage):
             con.execute("DROP TABLE IF EXISTS sqlite_db.my_table")
             con.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table")
 
-            con.close()
+        con.close()
 
             # # Open SQLite connection to set up spatial capabilities
             # sqlite_con = sqlite3.connect(sqlite_file)
