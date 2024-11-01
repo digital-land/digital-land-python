@@ -246,8 +246,7 @@ class DatasetParquetPackage(ParquetPackage):
             # Open SQLite connection to set up spatial capabilities
             sqlite_con = sqlite3.connect(sqlite_file)
             sqlite_con.enable_load_extension(True)
-
-            # sqlite_con.execute('SELECT load_extension("mod_spatialite")')
+            sqlite_con.execute('SELECT load_extension("mod_spatialite")')
             # sqlite_con.execute("SELECT InitSpatialMetadata(1)")  # Initialize spatial metadata
             #
             # for geom in geom_columns:
