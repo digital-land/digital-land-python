@@ -173,7 +173,7 @@ class DatasetParquetPackage(ParquetPackage):
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT {fields_str}
-            FROM read_csv_auto([{input_paths_str}])
+            FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
         """
 
