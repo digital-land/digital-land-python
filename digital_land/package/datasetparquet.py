@@ -242,17 +242,17 @@ class DatasetParquetPackage(ParquetPackage):
 
             con.close()
 
-            # Open SQLite connection to set up spatial capabilities
-            sqlite_con = sqlite3.connect(sqlite_file)
-            sqlite_con.execute('SELECT load_extension("mod_spatialite")')
-            sqlite_con.execute("SELECT InitSpatialMetadata(1)")  # Initialize spatial metadata
-
-            for geom in geom_columns:
-                # Add geometry column with default SRID 4326 and geometry type
-                sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'GEOMETRY', 'XY')")
-                # Create a spatial index on the geometry column
-                sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}')")
-            sqlite_con.close()
+            # # Open SQLite connection to set up spatial capabilities
+            # sqlite_con = sqlite3.connect(sqlite_file)
+            # sqlite_con.execute('SELECT load_extension("mod_spatialite")')
+            # sqlite_con.execute("SELECT InitSpatialMetadata(1)")  # Initialize spatial metadata
+            #
+            # for geom in geom_columns:
+            #     # Add geometry column with default SRID 4326 and geometry type
+            #     sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'GEOMETRY', 'XY')")
+            #     # Create a spatial index on the geometry column
+            #     sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}')")
+            # sqlite_con.close()
 
     def load(self):
         pass
