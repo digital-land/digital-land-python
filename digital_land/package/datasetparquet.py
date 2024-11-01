@@ -1,8 +1,8 @@
 import os
 # import json
 import logging
-# from decimal import Decimal
 from pathlib import Path
+import sqlite3
 
 # import numpy as np
 # import pandas as pd
@@ -72,8 +72,6 @@ class DatasetParquetPackage(ParquetPackage):
         self.suffix = ".parquet"
         # self.entity_fields = self.specification.schema["entity"]["fields"]
         # self.organisations = organisation.organisation
-
-
 
     def load_facts(self, input_paths, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
@@ -215,6 +213,44 @@ class DatasetParquetPackage(ParquetPackage):
          """
         print(sql)
         con.execute(sql)
+
+    def pq_to_sqlite(self, output_path):
+        con = duckdb.connect()
+        query = "LOAD sqlite;"
+        con.execute(query)
+
+        parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
+        for parquet_file in parquet_files:
+            sqlite_file = sqlite_file.replace(self.suffix, ".sqlite3")
+            con.execute(f"""
+                CREATE TABLE temp_table AS 
+                SELECT * FROM parquet_scan('{parquet_file}');
+            """)
+            geom_columns_query = """
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'temp_table' 
+                  AND column_name ILIKE '%geom%'
+            """
+            geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
+
+            # Export the DuckDB table to the SQLite database
+            con.execute(f"ATTACH DATABASE '{output_path}{sqlite_file}' AS sqlite_db")
+            con.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table")
+
+            con.close()
+
+            # Open SQLite connection to set up spatial capabilities
+            sqlite_con = sqlite3.connect(sqlite_file)
+            sqlite_con.execute('SELECT load_extension("mod_spatialite")')
+            sqlite_con.execute("SELECT InitSpatialMetadata(1)")  # Initialize spatial metadata
+
+            for geom in geom_columns:
+                # Add geometry column with default SRID 4326 and geometry type
+                sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'GEOMETRY', 'XY')")
+                # Create a spatial index on the geometry column
+                sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}')")
+
 
     def load(self):
         pass
