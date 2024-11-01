@@ -225,7 +225,7 @@ class DatasetParquetPackage(ParquetPackage):
             sqlite_file = parquet_file.replace(self.suffix, ".sqlite3")
             con.execute(f"""
                 CREATE TABLE temp_table AS 
-                SELECT * FROM parquet_scan('{parquet_file}');
+                SELECT * FROM parquet_scan('{output_path}{parquet_file}');
             """)
             geom_columns_query = """
                 SELECT column_name 
