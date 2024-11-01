@@ -65,6 +65,7 @@ def get_schema(input_paths):
 
     return dict(zip(schema_df['column_name'], schema_df['data_type']))
 
+
 class DatasetParquetPackage(ParquetPackage):
     def __init__(self, dataset, organisation, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
@@ -160,7 +161,7 @@ class DatasetParquetPackage(ParquetPackage):
         select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
 
         # set fields
-        fields_to_include = ['entity','field','value']
+        fields_to_include = ['entity', 'field', 'value']
         fields_str = ', '.join(fields_to_include)
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
@@ -221,7 +222,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
         for parquet_file in parquet_files:
-            sqlite_file = sqlite_file.replace(self.suffix, ".sqlite3")
+            sqlite_file = parquet_file.replace(self.suffix, ".sqlite3")
             con.execute(f"""
                 CREATE TABLE temp_table AS 
                 SELECT * FROM parquet_scan('{parquet_file}');
@@ -250,7 +251,6 @@ class DatasetParquetPackage(ParquetPackage):
                 sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'GEOMETRY', 'XY')")
                 # Create a spatial index on the geometry column
                 sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}')")
-
 
     def load(self):
         pass
