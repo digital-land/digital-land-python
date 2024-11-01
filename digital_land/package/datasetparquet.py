@@ -238,6 +238,7 @@ class DatasetParquetPackage(ParquetPackage):
             # Export the DuckDB table to the SQLite database
             con.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db")
             con.execute("DROP TABLE IF EXISTS sqlite_db.my_table")
+
             con.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table")
 
             con.close()
