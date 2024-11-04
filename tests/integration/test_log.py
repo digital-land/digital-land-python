@@ -1,7 +1,9 @@
 from datetime import datetime
 import os
 from unittest.mock import patch
-from digital_land.log import OperationalIssueLog
+
+import duckdb
+from digital_land.log import Log, OperationalIssueLog
 
 
 def mocked_get_now():
@@ -158,3 +160,65 @@ def test_operationalIssueLog_save_csv(tmp_path_factory):
     operational_issue.save_csv(directory=tmp_dir)
 
     assert os.path.isfile(os.path.join(tmp_dir, dataset, "operational-issue.csv"))
+
+
+def test_log_save_parquet(tmp_path_factory):
+    dataset = "listed-building-outline"
+    resource = "resource"
+    fieldnames = ["dataset", "resource", "issue", "entry-number"]
+
+    log = Log()
+    log.dataset = dataset
+    log.resource = resource
+    log.fieldnames = fieldnames
+
+    log.rows = [
+        {
+            "dataset": dataset,
+            "resource": resource,
+            "issue": "issue1",
+            "entry-number": 1,
+        },
+        {
+            "dataset": dataset,
+            "resource": resource,
+            "issue": "issue2",
+            "entry-number": 1,
+        },
+    ]
+
+    output_dir = tmp_path_factory.mktemp("output")
+
+    log.save_parquet(output_dir)
+
+    parquet_path = os.path.join(
+        output_dir, f"dataset={dataset}/resource={resource}/{resource}.parquet"
+    )
+    assert os.path.isfile(parquet_path)
+    conn = duckdb.connect()
+    df = conn.execute(f"SELECT * FROM '{parquet_path}'").df()
+    assert (set(df.iloc[0].values) - set([dataset, resource, "issue1", 1])) == set()
+    assert (set(df.columns) - set(fieldnames)) == set()
+
+
+def test_log_save_parquet_no_rows(tmp_path_factory):
+    dataset = "listed-building-outline"
+    resource = "norows"
+    fieldnames = ["dataset", "resource", "issue"]
+
+    log = Log()
+    log.dataset = dataset
+    log.resource = resource
+    log.fieldnames = fieldnames
+
+    output_dir = tmp_path_factory.mktemp("parquet_no_rows")
+
+    log.save_parquet(output_dir)
+
+    parquet_path = os.path.join(
+        output_dir, f"dataset={dataset}/resource={resource}/{resource}.parquet"
+    )
+    assert os.path.isfile(parquet_path)
+    conn = duckdb.connect()
+    df = conn.execute(f"SELECT * FROM '{parquet_path}'").df()
+    assert (set(df.columns) - set(fieldnames)) == set()

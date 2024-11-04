@@ -126,6 +126,7 @@ def test_pipeline_run(test_dirs):
     organisation_path = "tests/data/listed-building/organisation.csv"
     dataset_resource_dir = test_dirs["dataset_resource_dir"]
     converted_resource_dir = test_dirs["converted_resource_dir"]
+    output_log_dir = test_dirs["output_log_dir"]
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
     # -- Act --
@@ -148,6 +149,7 @@ def test_pipeline_run(test_dirs):
         endpoints=test_endpoints,
         organisations=[],
         entry_date="",
+        output_log_dir=output_log_dir,
     )
 
     # -- Asert --
