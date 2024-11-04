@@ -170,6 +170,10 @@ class DatasetParquetPackage(ParquetPackage):
             FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
         """
+        sql = f"""
+             COPY ({query}) TO '{output_path}/test1{self.suffix}' (FORMAT PARQUET);
+         """
+        con.execute(sql)
 
         pivot_query = f"""
             PIVOT (
@@ -178,11 +182,10 @@ class DatasetParquetPackage(ParquetPackage):
             USING MAX(value)
         """
         sql = f"""
-             COPY (
-                 {pivot_query}
-                 ) TO '{output_path}/test{self.suffix}' (FORMAT PARQUET);
+             COPY ({pivot_query}) TO '{output_path}/test2{self.suffix}' (FORMAT PARQUET);
          """
         con.execute(sql)
+
         # now use the field lists produced above to create specific statements to:
         # add null columns which are missing
         # include columns in the json statement
@@ -204,6 +207,19 @@ class DatasetParquetPackage(ParquetPackage):
         dataset = Path(output_path).name
 
         # get a list and statement ready for the fields which have values in the un-pivoted fact table
+        sql = f"""
+             COPY (
+                 SELECT '{dataset}' as dataset,
+                 '{dataset}' as typology,
+                 t2.entity as organisation_entity,
+                 {select_statement},
+                 {null_fields_statement},
+                 json_object({json_statement}) as json
+                 FROM ({pivot_query}) as t1
+                 ) TO '{output_path}/test3{self.suffix}' (FORMAT PARQUET);
+         """
+        con.execute(sql)
+
         sql = f"""
              COPY (
                  SELECT '{dataset}' as dataset,
