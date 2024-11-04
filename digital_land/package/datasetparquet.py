@@ -129,6 +129,7 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
+         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
@@ -151,7 +152,7 @@ class DatasetParquetPackage(ParquetPackage):
         # do not exist separately in the entity table
         json_fields = [field for field in distinct_fields if field not in entity_fields]
 
-        # null fields - list of fields which are not  present in the fact tables which have
+        # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
         extra_fields = ['entity', 'dataset', 'typology', 'json', 'organisation_entity', 'organisation']
         null_fields = [field for field in entity_fields if field not in (distinct_fields + extra_fields)]
@@ -163,6 +164,7 @@ class DatasetParquetPackage(ParquetPackage):
         # select fields - a list  of fields which have to be selected directly from the pivoted table
         # these are entity fields that are not null fields or a few special ones
         extra_fields = ['json', 'organisation_entity', 'dataset', 'typology', 'organisation']
+        extra_fields = extra_fields + ['point', 'geometry']
         select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
 
         # set fields
