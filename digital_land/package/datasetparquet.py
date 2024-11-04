@@ -223,7 +223,7 @@ class DatasetParquetPackage(ParquetPackage):
          """
         print(sql)
         con.execute(sql)
-        fields_statement = ', '.join([f"VARCHAR AS \"{field}\"" for field in null_fields])
+        fields_statement = ', '.join([f"t1.\"{field}\"" for field in null_fields])
         sql = f"""
              COPY (
                  SELECT '{dataset}' as dataset,
