@@ -147,10 +147,18 @@ class DatasetParquetPackage(ParquetPackage):
         # distinct_fields - list of fields in the field in fact
         rows = con.execute(query).fetchall()
         distinct_fields = [row[0] for row in rows]
+        print("\n\n")
+        print("Distinct fields: ")
+        print(distinct_fields)
+        print("\n\n")
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
         json_fields = [field for field in distinct_fields if field not in entity_fields]
+        print("\n\n")
+        print("JSON fields: ")
+        print(json_fields)
+        print("\n\n")
 
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
