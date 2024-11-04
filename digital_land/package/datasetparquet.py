@@ -132,6 +132,10 @@ class DatasetParquetPackage(ParquetPackage):
          # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
+        print("\n\n")
+        print("Entity fields: ")
+        print(entity_fields)
+        print("\n\n")
 
         schema_dict = get_schema(input_paths)
 
