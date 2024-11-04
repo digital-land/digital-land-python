@@ -149,6 +149,9 @@ class DatasetParquetPackage(ParquetPackage):
         print("Distinct fields: ")
         print(distinct_fields)
         print("\n\n")
+        print("Entity fields: ")
+        print(entity_fields)
+        print("\n\n")
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
