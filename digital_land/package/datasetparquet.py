@@ -129,7 +129,7 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
-         # Do this to match with later field names.
+        # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
         print("\n\n")
@@ -255,17 +255,24 @@ class DatasetParquetPackage(ParquetPackage):
         # print(sql)
         # con.execute(sql)
         sql = f"""
-             COPY (
-                 SELECT '{dataset}' as dataset,
-                 '{dataset}' as typology,
-                 t2.entity as organisation_entity,
-                 {select_statement},
-                 {null_fields_statement},
-                 json_object({json_statement}) as json
-                 FROM ({pivot_query}) as t1
-                 LEFT JOIN ({org_query}) as t2
-                 on t1.organisation = t2.organisation
-                 ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
+            COPY (
+                SELECT *, 
+                CASE 
+                    WHEN geometry IS NOT NULL AND POINT IS NULL THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
+                    ELSE NULL
+                END AS point
+                FROM (
+                    SELECT '{dataset}' as dataset,
+                    '{dataset}' as typology,
+                    t2.entity as organisation_entity,
+                    {select_statement},
+                    {null_fields_statement},
+                    json_object({json_statement}) as json,
+                    FROM ({pivot_query}) as t1
+                    LEFT JOIN ({org_query}) as t2
+                    on t1.organisation = t2.organisation
+                    )
+                ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
          """
         print(sql)
         con.execute(sql)
@@ -287,7 +294,7 @@ class DatasetParquetPackage(ParquetPackage):
                 SELECT column_name
                 FROM information_schema.columns
                 WHERE table_name = 'temp_table'
-                  AND column_name ILIKE '%geom%';
+                  AND (column_name ILIKE '%geom%' OR column_name = ;
             """
             geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
 
