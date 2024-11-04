@@ -164,8 +164,11 @@ class DatasetParquetPackage(ParquetPackage):
         # select fields - a list  of fields which have to be selected directly from the pivoted table
         # these are entity fields that are not null fields or a few special ones
         extra_fields = ['json', 'organisation_entity', 'dataset', 'typology', 'organisation']
-        extra_fields = extra_fields + ['point', 'geometry']
         select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
+        print("\n\n")
+        print("Select fields: ")
+        print(select_fields)
+        print("\n\n")
 
         # set fields
         fields_to_include = ['entity', 'field', 'value']
