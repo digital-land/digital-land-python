@@ -223,11 +223,13 @@ class DatasetParquetPackage(ParquetPackage):
          """
         print(sql)
         con.execute(sql)
+        fields_statement = ', '.join([f"VARCHAR AS \"{field}\"" for field in null_fields])
         sql = f"""
              COPY (
                  SELECT '{dataset}' as dataset,
                  '{dataset}' as typology,
                  {select_statement},
+                 {fields_statement},
                  json_object({json_statement}) as json
                  FROM ({pivot_query}) as t1
                  ) TO '{output_path}/test4{self.suffix}' (FORMAT PARQUET);
