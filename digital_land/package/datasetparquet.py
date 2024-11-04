@@ -170,14 +170,6 @@ class DatasetParquetPackage(ParquetPackage):
             FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
         """
-        sql = f"""
-             COPY (
-                 {query}
-                 ) TO '{output_path}/test{self.suffix}' (FORMAT PARQUET);
-         """
-        print(sql)
-        con.execute(sql)
-
 
         pivot_query = f"""
             PIVOT (
@@ -185,7 +177,12 @@ class DatasetParquetPackage(ParquetPackage):
             ) ON REPLACE(field,'-','_')
             USING MAX(value)
         """
-
+        sql = f"""
+             COPY (
+                 {pivot_query}
+                 ) TO '{output_path}/test{self.suffix}' (FORMAT PARQUET);
+         """
+        con.execute(sql)
         # now use the field lists produced above to create specific statements to:
         # add null columns which are missing
         # include columns in the json statement
