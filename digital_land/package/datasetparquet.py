@@ -129,6 +129,10 @@ class DatasetParquetPackage(ParquetPackage):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
+        print("\n\n")
+        print("Entity fields:")
+        print(entity_fields)
+        print("\n\n")
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
         schema_dict = get_schema(input_paths)
