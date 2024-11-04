@@ -255,7 +255,7 @@ class DatasetParquetPackage(ParquetPackage):
         # print(sql)
         # con.execute(sql)
         sql = f"""
-            LOAD spatial;
+            INSTALL spatial; LOAD spatial;
             COPY (
                 SELECT *, 
                 CASE 
