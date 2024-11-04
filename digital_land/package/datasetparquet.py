@@ -295,7 +295,7 @@ class DatasetParquetPackage(ParquetPackage):
                 SELECT column_name
                 FROM information_schema.columns
                 WHERE table_name = 'temp_table'
-                  AND (column_name ILIKE '%geom%' OR column_name = ;
+                  AND (column_name ILIKE '%geom%' OR lower(column_name) = 'geometry' OR lower(column_name) = 'point');
             """
             geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
 
