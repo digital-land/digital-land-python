@@ -132,10 +132,10 @@ class DatasetParquetPackage(ParquetPackage):
         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
-        print("\n\n")
-        print("Entity fields: ")
-        print(entity_fields)
-        print("\n\n")
+        # print("\n\n")
+        # print("Entity fields: ")
+        # print(entity_fields)
+        # print("\n\n")
 
         schema_dict = get_schema(input_paths)
 
@@ -151,36 +151,36 @@ class DatasetParquetPackage(ParquetPackage):
         # distinct_fields - list of fields in the field in fact
         rows = con.execute(query).fetchall()
         distinct_fields = [row[0] for row in rows]
-        print("\n\n")
-        print("Distinct fields: ")
-        print(distinct_fields)
-        print("\n\n")
+        # print("\n\n")
+        # print("Distinct fields: ")
+        # print(distinct_fields)
+        # print("\n\n")
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
         json_fields = [field for field in distinct_fields if field not in entity_fields]
-        print("\n\n")
-        print("JSON fields: ")
-        print(json_fields)
-        print("\n\n")
+        # print("\n\n")
+        # print("JSON fields: ")
+        # print(json_fields)
+        # print("\n\n")
 
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
         extra_fields = ['entity', 'dataset', 'typology', 'json', 'organisation_entity', 'organisation']
         null_fields = [field for field in entity_fields if field not in (distinct_fields + extra_fields)]
-        print("\n\n")
-        print("Null fields: ")
-        print(null_fields)
-        print("\n\n")
+        # print("\n\n")
+        # print("Null fields: ")
+        # print(null_fields)
+        # print("\n\n")
 
         # select fields - a list  of fields which have to be selected directly from the pivoted table
         # these are entity fields that are not null fields or a few special ones
         extra_fields = ['json', 'organisation_entity', 'dataset', 'typology', 'organisation']
         select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
-        print("\n\n")
-        print("Select fields: ")
-        print(select_fields)
-        print("\n\n")
+        # print("\n\n")
+        # print("Select fields: ")
+        # print(select_fields)
+        # print("\n\n")
 
         # set fields
         fields_to_include = ['entity', 'field', 'value']
@@ -192,10 +192,10 @@ class DatasetParquetPackage(ParquetPackage):
             FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
         """
-        sql = f"""
-             COPY ({query}) TO '{output_path}/test1{self.suffix}' (FORMAT PARQUET);
-         """
-        con.execute(sql)
+        # sql = f"""
+        #      COPY ({query}) TO '{output_path}/test1{self.suffix}' (FORMAT PARQUET);
+        #  """
+        # con.execute(sql)
 
         pivot_query = f"""
             PIVOT (
@@ -203,10 +203,10 @@ class DatasetParquetPackage(ParquetPackage):
             ) ON REPLACE(field,'-','_')
             USING MAX(value)
         """
-        sql = f"""
-             COPY ({pivot_query}) TO '{output_path}/test2{self.suffix}' (FORMAT PARQUET);
-         """
-        con.execute(sql)
+        # sql = f"""
+        #      COPY ({pivot_query}) TO '{output_path}/test2{self.suffix}' (FORMAT PARQUET);
+        #  """
+        # con.execute(sql)
 
         # now use the field lists produced above to create specific statements to:
         # add null columns which are missing
@@ -229,18 +229,18 @@ class DatasetParquetPackage(ParquetPackage):
         dataset = Path(output_path).name
 
         # get a list and statement ready for the fields which have values in the un-pivoted fact table
-        sql = f"""
-             COPY (
-                 SELECT '{dataset}' as dataset,
-                 '{dataset}' as typology,
-                 {select_statement},
-                 {null_fields_statement},
-                 json_object({json_statement}) as json
-                 FROM ({pivot_query}) as t1
-                 ) TO '{output_path}/test3{self.suffix}' (FORMAT PARQUET);
-         """
-        print(sql)
-        con.execute(sql)
+        # sql = f"""
+        #      COPY (
+        #          SELECT '{dataset}' as dataset,
+        #          '{dataset}' as typology,
+        #          {select_statement},
+        #          {null_fields_statement},
+        #          json_object({json_statement}) as json
+        #          FROM ({pivot_query}) as t1
+        #          ) TO '{output_path}/test3{self.suffix}' (FORMAT PARQUET);
+        #  """
+        # print(sql)
+        # con.execute(sql)
         # fields_statement = ', '.join([f"t1.REPLACE(\"{field}\",'-','_')" for field in null_fields])
         # sql = f"""
         #      COPY (
