@@ -255,26 +255,70 @@ class DatasetParquetPackage(ParquetPackage):
         # print(sql)
         # con.execute(sql)
         sql = f"""
-            INSTALL spatial; LOAD spatial;
+            INSTALL spatial; 
+            LOAD spatial;
+            
             COPY (
-                SELECT *, 
-                CASE 
-                    WHEN geometry IS NOT NULL AND POINT IS NULL THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
-                    ELSE NULL
-                END AS point
-                FROM (
-                    SELECT '{dataset}' as dataset,
-                    '{dataset}' as typology,
-                    t2.entity as organisation_entity,
-                    {select_statement},
-                    {null_fields_statement},
-                    json_object({json_statement}) as json,
-                    FROM ({pivot_query}) as t1
-                    LEFT JOIN ({org_query}) as t2
-                    on t1.organisation = t2.organisation
+                WITH computed_centroid AS (
+                    SELECT 
+                        *,
+                        CASE 
+                            WHEN geometry IS NOT NULL AND point IS NULL 
+                            THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
+                            ELSE point
+                        END AS point
+                    FROM (
+                        SELECT 
+                            'conservation-area-document-type' AS dataset,
+                            'conservation-area-document-type' AS typology,
+                            t2.entity AS organisation_entity,
+                            t1.end_date, t1.entity, t1.entry_date, t1.name, t1.prefix, 
+                            t1.reference, t1.start_date,
+                            NULL::VARCHAR AS geojson, 
+                            NULL::VARCHAR AS geometry, 
+                            NULL::VARCHAR AS geometry_geom, 
+                            NULL::VARCHAR AS point_geom, 
+                            NULL::VARCHAR AS point,
+                            json_object(
+                                CASE WHEN t1.organisation IS NOT NULL THEN 'organisation' ELSE NULL END, t1.organisation, 
+                                CASE WHEN t1.notes IS NOT NULL THEN 'notes' ELSE NULL END, t1.notes, 
+                                CASE WHEN t1.description IS NOT NULL THEN 'description' ELSE NULL END, t1.description
+                            ) AS json
+                        FROM (
+                            PIVOT (
+                                SELECT entity, field, value
+                                FROM read_csv_auto(
+                                    ['transformed/conservation-area-document-type/4a4b9346fc0f4544f91070371a77ae45221493a2e5cfbab68dd2e254309829b0.csv', 
+                                     'transformed/conservation-area-document-type/e218a1a5cfd21e75022ccc8d7c7aa084f11841f27095fc163927359cc2607db6.csv'], 
+                                    columns = {
+                                        'end-date': 'VARCHAR', 
+                                        'entity': 'BIGINT', 
+                                        'entry-date': 'DATE', 
+                                        'entry-number': 'BIGINT', 
+                                        'fact': 'VARCHAR', 
+                                        'field': 'VARCHAR', 
+                                        'priority': 'BIGINT', 
+                                        'reference-entity': 'VARCHAR', 
+                                        'resource': 'VARCHAR', 
+                                        'start-date': 'VARCHAR', 
+                                        'value': 'VARCHAR'
+                                    }
+                                )
+                                QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
+                            ) 
+                            ON REPLACE(field,'-','_')
+                            USING MAX(value)
+                        ) AS t1
+                        LEFT JOIN (
+                            SELECT * 
+                            FROM read_csv_auto('./var/cache/organisation.csv')
+                        ) AS t2 ON t1.organisation = t2.organisation
                     )
-                ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
-         """
+                )
+                
+                SELECT * FROM computed_centroid
+            ) TO 'var/cache/parquet/conservation-area-document-type/entity.parquet' (FORMAT PARQUET);
+        """
         print(sql)
         con.execute(sql)
 
