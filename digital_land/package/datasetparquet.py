@@ -145,13 +145,6 @@ class DatasetParquetPackage(ParquetPackage):
         # distinct_fields - list of fields in the field in fact
         rows = con.execute(query).fetchall()
         distinct_fields = [row[0] for row in rows]
-        print("\n\n")
-        print("Distinct fields: ")
-        print(distinct_fields)
-        print("\n\n")
-        print("Entity fields: ")
-        print(entity_fields)
-        print("\n\n")
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
@@ -161,6 +154,10 @@ class DatasetParquetPackage(ParquetPackage):
         # to be in the entity table as a column
         extra_fields = ['entity', 'dataset', 'typology', 'json', 'organisation_entity', 'organisation']
         null_fields = [field for field in entity_fields if field not in (distinct_fields + extra_fields)]
+        print("\n\n")
+        print("Null fields: ")
+        print(null_fields)
+        print("\n\n")
 
         # select fields - a list  of fields which have to be selected directly from the pivoted table
         # these are entity fields that are not null fields or a few special ones
