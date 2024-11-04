@@ -260,6 +260,7 @@ class DatasetParquetPackage(ParquetPackage):
                 WITH computed_centroid AS (
                     SELECT 
                         *,
+                        EXCLUDE point,
                         CASE 
                             WHEN geometry IS NOT NULL AND point IS NULL 
                             THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
