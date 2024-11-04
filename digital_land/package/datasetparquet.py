@@ -217,6 +217,7 @@ class DatasetParquetPackage(ParquetPackage):
                  FROM ({pivot_query}) as t1
                  ) TO '{output_path}/test3{self.suffix}' (FORMAT PARQUET);
          """
+        print(sql)
         con.execute(sql)
 
         sql = f"""
