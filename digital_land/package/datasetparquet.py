@@ -170,6 +170,14 @@ class DatasetParquetPackage(ParquetPackage):
             FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
         """
+        sql = f"""
+             COPY (
+                 {query}
+                 ) TO '{output_path}/test{self.suffix}' (FORMAT PARQUET);
+         """
+        print(sql)
+        con.execute(sql)
+
 
         pivot_query = f"""
             PIVOT (
