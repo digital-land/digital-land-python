@@ -211,11 +211,10 @@ class DatasetParquetPackage(ParquetPackage):
              COPY (
                  SELECT '{dataset}' as dataset,
                  '{dataset}' as typology,
-                 t2.entity as organisation_entity,
                  {select_statement},
                  {null_fields_statement},
                  json_object({json_statement}) as json
-                 FROM ({pivot_query}) as t1
+                 FROM ({pivot_query})
                  ) TO '{output_path}/test3{self.suffix}' (FORMAT PARQUET);
          """
         con.execute(sql)
