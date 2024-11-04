@@ -214,7 +214,7 @@ class DatasetParquetPackage(ParquetPackage):
                  {select_statement},
                  {null_fields_statement},
                  json_object({json_statement}) as json
-                 FROM ({pivot_query})
+                 FROM ({pivot_query}) as t1
                  ) TO '{output_path}/test3{self.suffix}' (FORMAT PARQUET);
          """
         con.execute(sql)
