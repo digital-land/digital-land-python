@@ -256,30 +256,30 @@ class DatasetParquetPackage(ParquetPackage):
         # con.execute(sql)
         sql = f"""
             INSTALL spatial; LOAD spatial;
-            WITH computed_centroid AS (
-                SELECT 
-                    *,
-                    CASE 
-                        WHEN geometry IS NOT NULL AND point IS NULL 
-                        THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
-                        ELSE point
-                    END AS point
-                FROM (
-                    SELECT '{dataset}' as dataset,
-                    '{dataset}' as typology,
-                    t2.entity as organisation_entity,
-                    {select_statement},
-                    {null_fields_statement},
-                    json_object({json_statement}) as json,
-                    FROM ({pivot_query}) as t1
-                    LEFT JOIN ({org_query}) as t2
-                    on t1.organisation = t2.organisation
-                    )
-                ) 
-            )
-            
-            SELECT * FROM computed_centroid
-        ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
+            COPY(
+                WITH computed_centroid AS (
+                    SELECT 
+                        *,
+                        CASE 
+                            WHEN geometry IS NOT NULL AND point IS NULL 
+                            THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
+                            ELSE point
+                        END AS point
+                    FROM (
+                        SELECT '{dataset}' as dataset,
+                        '{dataset}' as typology,
+                        t2.entity as organisation_entity,
+                        {select_statement},
+                        {null_fields_statement},
+                        json_object({json_statement}) as json,
+                        FROM ({pivot_query}) as t1
+                        LEFT JOIN ({org_query}) as t2
+                        on t1.organisation = t2.organisation
+                        )
+                    ) 
+                
+                SELECT * FROM computed_centroid
+            ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
          """
         print(sql)
         con.execute(sql)
