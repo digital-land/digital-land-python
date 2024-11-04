@@ -145,6 +145,10 @@ class DatasetParquetPackage(ParquetPackage):
         # distinct_fields - list of fields in the field in fact
         rows = con.execute(query).fetchall()
         distinct_fields = [row[0] for row in rows]
+        print("\n\n")
+        print("Distinct fields: ")
+        print(distinct_fields)
+        print("\n\n")
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
@@ -190,7 +194,7 @@ class DatasetParquetPackage(ParquetPackage):
         # add null columns which are missing
         # include columns in the json statement
 
-        # Collate list of fields which don't exist  but  need to be in the final table
+        # Collate list of fields which don't exist but need to be in the final table
         select_statement = ', '.join([f"t1.{field}" for field in select_fields])
         null_fields_statement = ', '.join([f"NULL::VARCHAR AS \"{field}\"" for field in null_fields])
         json_statement = ', '.join([
