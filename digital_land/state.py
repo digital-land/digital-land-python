@@ -3,6 +3,9 @@ import pygit2
 import json
 import hashlib
 
+# Read the file in 32MB chunks
+_chunk_size = 32 * 1024 * 1024
+
 
 class State(dict):
     def __init__(self, data):
@@ -57,7 +60,7 @@ class State(dict):
             hash.update(file.encode() + b"\n")
             with open(os.path.join(dir, file), "rb") as h:
                 while True:
-                    data = h.read(256 * 1024)
+                    data = h.read(_chunk_size)
                     if not data:
                         break
                     hash.update(data)
