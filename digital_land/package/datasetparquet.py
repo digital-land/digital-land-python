@@ -199,7 +199,14 @@ class DatasetParquetPackage(ParquetPackage):
 
         pivot_query = f"""
             PIVOT (
-                {query}
+                SELECT {fields_str}
+                FROM (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY entity, field ORDER BY entry-date DESC) AS row_number
+                    FROM (
+                        {query}
+                    )
+                )
+                WHERE row_number = 1  -- Keep only rows with the maximum entry-date per entity and field
             ) ON REPLACE(field,'-','_')
             USING MAX(value)
         """
