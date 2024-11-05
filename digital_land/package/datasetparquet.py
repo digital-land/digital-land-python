@@ -201,7 +201,7 @@ class DatasetParquetPackage(ParquetPackage):
             PIVOT (
                 {query}
             ) ON REPLACE(field,'-','_')
-            USING LAST(value)
+            USING FIRST(value)
         """
         # sql = f"""
         #      COPY ({pivot_query}) TO '{output_path}/test2{self.suffix}' (FORMAT PARQUET);
