@@ -47,7 +47,7 @@ class Log:
             # Define the schema, using strings for non '-number' field
             schema = pa.schema(
                 [
-                    (field, pa.int64() if "number" in field else pa.string())
+                    (field, pa.uint32() if "number" in field else pa.string())
                     for field in self.fieldnames
                 ]
             )
