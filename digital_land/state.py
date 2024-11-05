@@ -33,6 +33,11 @@ class State(dict):
             json.dump(self, f)
 
     def get_dir_hash(dir, exclude=[]):
+        if not os.path.isdir(dir):
+            raise RuntimeError(
+                f"Can't hash {dir} as it doesn't exist of is not a directory"
+            )
+
         # SHA1 - good enough for git, good enough for us
         hash = hashlib.sha1()
         all_files = []

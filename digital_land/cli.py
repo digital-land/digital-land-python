@@ -560,7 +560,8 @@ def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path)
 
 
 @cli.command(
-    "check-state", short_help="compare the current state against a stated file"
+    "check-state",
+    short_help="compare the current state against a stated file. Returns with a non-zero return code if they differ.",
 )
 @click.option(
     "--specification-dir",
@@ -587,5 +588,9 @@ def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path)
     help="path of the output state file",
 )
 def check_state_cmd(specification_dir, collection_dir, pipeline_dir, state_path):
+    # If the state isn't the same, use a non-zero return code so scripts can
+    # detect this, and print a message. If it is the same, exit silenty wirh a
+    # 0 retun code.
     if not check_state(specification_dir, collection_dir, pipeline_dir, state_path):
+        print(f"State differs from {state_path}")
         sys.exit(1)

@@ -1,5 +1,6 @@
 import os
 import subprocess
+import pytest
 
 from digital_land.state import State
 
@@ -32,6 +33,11 @@ def test_get_code_hash():
 
 def test_hash_directory():
     assert State.get_dir_hash("tests/data/state/collection") == test_hash
+
+
+def test_hash_directory_not_exist():
+    with pytest.raises(RuntimeError):
+        State.get_dir_hash("tests/data/state/non_existant_directory")
 
 
 def test_hash_directory_with_exclude():
