@@ -47,12 +47,18 @@ class Log:
             # Define the schema, using strings for non '-number' field
             schema = pa.schema(
                 [
-                    (field, pa.int16() if "number" in field else pa.string())
+                    (field, pa.int64() if "number" in field else pa.string())
                     for field in self.fieldnames
                 ]
             )
             if len(self.rows) > 0:
-                table = pa.Table.from_pylist(self.rows, schema=schema)
+                formatted_rows = self.rows.copy()
+                for i, log in enumerate(formatted_rows):
+                    formatted_rows[i] = {
+                        key: log[key] if "number" in key else str(log[key])
+                        for key in log
+                    }
+                table = pa.Table.from_pylist(formatted_rows, schema=schema)
             else:
                 rows = [pa.array([], type=field.type) for field in schema]
                 table = pa.Table.from_arrays(rows, schema=schema)
