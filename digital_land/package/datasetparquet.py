@@ -149,36 +149,20 @@ class DatasetParquetPackage(ParquetPackage):
         # distinct_fields - list of fields in the field in fact
         rows = con.execute(query).fetchall()
         distinct_fields = [row[0] for row in rows]
-        # print("\n\n")
-        # print("Distinct fields: ")
-        # print(distinct_fields)
-        # print("\n\n")
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
         json_fields = [field for field in distinct_fields if field not in entity_fields]
-        # print("\n\n")
-        # print("JSON fields: ")
-        # print(json_fields)
-        # print("\n\n")
 
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
         extra_fields = ['entity', 'dataset', 'typology', 'json', 'organisation_entity', 'organisation']
         null_fields = [field for field in entity_fields if field not in (distinct_fields + extra_fields)]
-        # print("\n\n")
-        # print("Null fields: ")
-        # print(null_fields)
-        # print("\n\n")
 
         # select fields - a list  of fields which have to be selected directly from the pivoted table
         # these are entity fields that are not null fields or a few special ones
         extra_fields = ['json', 'organisation_entity', 'dataset', 'typology', 'organisation']
         select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
-        # print("\n\n")
-        # print("Select fields: ")
-        # print(select_fields)
-        # print("\n\n")
 
         # set fields
         fields_to_include = ['entity', 'field', 'value']
@@ -186,10 +170,20 @@ class DatasetParquetPackage(ParquetPackage):
 
         # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
         query = f"""
-            SELECT {fields_str}, 
-            FROM parquet_scan('{str(input_paths_str)}')
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
+            SELECT {fields_str}
+            FROM (
+                SELECT entity, {fields_str}, "entry-date"
+                FROM parquet_scan('{str(input_paths_str)}')
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
+            )
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY entity,field ORDER BY "entry-date" DESC) = 1
         """
+
+        # query = f"""
+        #     SELECT {fields_str}
+        #     FROM parquet_scan('{str(input_paths_str)}')
+        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
+        # """
         # query = f"""
         #     SELECT {fields_str}
         #     FROM (
