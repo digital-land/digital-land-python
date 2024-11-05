@@ -191,6 +191,7 @@ class DatasetParquetPackage(ParquetPackage):
             SELECT {fields_str}
             FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
             QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY entity,field ORDER BY "entry-date" DESC) = 1
         """
         # sql = f"""
         #      COPY ({query}) TO '{output_path}/test1{self.suffix}' (FORMAT PARQUET);
@@ -199,14 +200,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         pivot_query = f"""
             PIVOT (
-                SELECT {fields_str}
-                FROM (
-                    SELECT *, ROW_NUMBER() OVER (PARTITION BY entity, field ORDER BY entry-date DESC) AS row_number
-                    FROM (
-                        {query}
-                    )
-                )
-                WHERE row_number = 1  -- Keep only rows with the maximum entry-date per entity and field
+                {query}
             ) ON REPLACE(field,'-','_')
             USING MAX(value)
         """
