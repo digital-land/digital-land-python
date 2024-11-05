@@ -131,21 +131,19 @@ class DatasetParquetPackage(ParquetPackage):
         entity_fields = self.specification.schema["entity"]["fields"]
         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
-        input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
-        # print("\n\n")
-        # print("Entity fields: ")
-        # print(entity_fields)
-        # print("\n\n")
+        input_paths_str = f"{output_path}/fact{self.suffix}"
+        # input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
         schema_dict = get_schema(input_paths)
 
         con = duckdb.connect()
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
-            FROM read_csv_auto(
-                [{input_paths_str}],
-                columns = {schema_dict}
-            )
+            FROM parquet_scan('{str(input_paths_str)}')
+            -- FROM read_csv_auto(
+            --   [{input_paths_str}],
+            --    columns = {schema_dict}
+            -- )
         """
 
         # distinct_fields - list of fields in the field in fact
