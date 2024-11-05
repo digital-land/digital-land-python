@@ -97,7 +97,7 @@ class DatasetParquetPackage(ParquetPackage):
         con.execute(f"""
             COPY (
                 {query}
-            ) TO '{output_path}/fact.parquet' (FORMAT PARQUET);
+            ) TO '{output_path}/fact{self.suffix}' (FORMAT PARQUET);
         """)
 
     def load_fact_resource(self, input_paths, output_path):
@@ -122,7 +122,7 @@ class DatasetParquetPackage(ParquetPackage):
         con.execute(f"""
             COPY (
                 {query}
-            ) TO '{output_path}/fact_resource.parquet' (FORMAT PARQUET);
+            ) TO '{output_path}/fact_resource{self.suffix}' (FORMAT PARQUET);
         """)
 
     def load_entities(self, input_paths, output_path):
@@ -134,16 +134,10 @@ class DatasetParquetPackage(ParquetPackage):
         input_paths_str = f"{output_path}/fact{self.suffix}"
         # input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        schema_dict = get_schema(input_paths)
-
         con = duckdb.connect()
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
             FROM parquet_scan('{str(input_paths_str)}')
-            -- FROM read_csv_auto(
-            --   [{input_paths_str}],
-            --    columns = {schema_dict}
-            -- )
         """
 
         # distinct_fields - list of fields in the field in fact
@@ -184,24 +178,6 @@ class DatasetParquetPackage(ParquetPackage):
         #     FROM parquet_scan('{str(input_paths_str)}')
         #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
         # """
-        # query = f"""
-        #     SELECT {fields_str}
-        #     FROM (
-        #         SELECT entity, {fields_str}, "entry-date"
-        #         FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
-        #         QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
-        #     )
-        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY entity,field ORDER BY "entry-date" DESC) = 1
-        # """
-        # query = f"""
-        #     SELECT {fields_str}
-        #     FROM read_csv_auto([{input_paths_str}], columns = {schema_dict})
-        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
-        # """
-        # sql = f"""
-        #      COPY ({query}) TO '{output_path}/test1{self.suffix}' (FORMAT PARQUET);
-        #  """
-        # con.execute(sql)
 
         pivot_query = f"""
             PIVOT (
@@ -209,10 +185,6 @@ class DatasetParquetPackage(ParquetPackage):
             ) ON REPLACE(field,'-','_')
             USING MAX(value)
         """
-        # sql = f"""
-        #      COPY ({pivot_query}) TO '{output_path}/test2{self.suffix}' (FORMAT PARQUET);
-        #  """
-        # con.execute(sql)
 
         # now use the field lists produced above to create specific statements to:
         # add null columns which are missing
@@ -234,32 +206,6 @@ class DatasetParquetPackage(ParquetPackage):
 
         dataset = Path(output_path).name
 
-        # get a list and statement ready for the fields which have values in the un-pivoted fact table
-        # sql = f"""
-        #      COPY (
-        #          SELECT '{dataset}' as dataset,
-        #          '{dataset}' as typology,
-        #          {select_statement},
-        #          {null_fields_statement},
-        #          json_object({json_statement}) as json
-        #          FROM ({pivot_query}) as t1
-        #          ) TO '{output_path}/test3{self.suffix}' (FORMAT PARQUET);
-        #  """
-        # print(sql)
-        # con.execute(sql)
-        # fields_statement = ', '.join([f"t1.REPLACE(\"{field}\",'-','_')" for field in null_fields])
-        # sql = f"""
-        #      COPY (
-        #          SELECT '{dataset}' as dataset,
-        #          '{dataset}' as typology,
-        #          {select_statement},
-        #          {fields_statement},
-        #          json_object({json_statement}) as json
-        #          FROM ({pivot_query}) as t1
-        #          ) TO '{output_path}/test4{self.suffix}' (FORMAT PARQUET);
-        #  """
-        # print(sql)
-        # con.execute(sql)
         sql = f"""
             INSTALL spatial; LOAD spatial;
             COPY(
