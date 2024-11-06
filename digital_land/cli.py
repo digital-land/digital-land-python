@@ -29,6 +29,8 @@ from digital_land.commands import (
     collection_retire_endpoints_and_sources,
     organisation_create,
     organisation_check,
+    save_state,
+    check_state,
 )
 
 from digital_land.command_arguments import (
@@ -525,3 +527,70 @@ def config_load_cmd(ctx, config_path):
     config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
     tables = {key: ctx.obj["PIPELINE"].path for key in config.tables.keys()}
     config.load(tables)
+
+
+@cli.command("save-state", short_help="save a state file")
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    default="specification",
+    help="directory containing the specification",
+)
+@click.option(
+    "--collection-dir",
+    type=click.Path(),
+    default="collection",
+    help="directory containing the collection",
+)
+@click.option(
+    "--pipeline-dir",
+    type=click.Path(),
+    default="pipeline",
+    help="directory containing the pipeline",
+)
+@click.option(
+    "--output-path",
+    "-o",
+    type=click.Path(),
+    default="state.json",
+    help="path of the output state file",
+)
+def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path):
+    save_state(specification_dir, collection_dir, pipeline_dir, output_path)
+
+
+@cli.command(
+    "check-state",
+    short_help="compare the current state against a stated file. Returns with a non-zero return code if they differ.",
+)
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    default="specification",
+    help="directory containing the specification",
+)
+@click.option(
+    "--collection-dir",
+    type=click.Path(),
+    default="collection",
+    help="directory containing the collection",
+)
+@click.option(
+    "--pipeline-dir",
+    type=click.Path(),
+    default="pipeline",
+    help="directory containing the pipeline",
+)
+@click.option(
+    "--state-path",
+    type=click.Path(),
+    default="state.json",
+    help="path of the output state file",
+)
+def check_state_cmd(specification_dir, collection_dir, pipeline_dir, state_path):
+    # If the state isn't the same, use a non-zero return code so scripts can
+    # detect this, and print a message. If it is the same, exit silenty wirh a
+    # 0 retun code.
+    if not check_state(specification_dir, collection_dir, pipeline_dir, state_path):
+        print(f"State differs from {state_path}")
+        sys.exit(1)

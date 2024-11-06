@@ -56,6 +56,7 @@ from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
 from digital_land.api import API
+from digital_land.state import State
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
@@ -943,3 +944,22 @@ def organisation_check(**kwargs):
     lpa_path = kwargs.pop("lpa_path")
     package = OrganisationPackage(**kwargs)
     package.check(lpa_path, output_path)
+
+
+def save_state(specification_dir, collection_dir, pipeline_dir, output_path):
+    state = State.build(
+        specification_dir=specification_dir,
+        collection_dir=collection_dir,
+        pipeline_dir=pipeline_dir,
+    )
+    state.save(
+        output_path=output_path,
+    )
+
+
+def check_state(specification_dir, collection_dir, pipeline_dir, state_path):
+    return State.build(
+        specification_dir=specification_dir,
+        collection_dir=collection_dir,
+        pipeline_dir=pipeline_dir,
+    ) == State.load(state_path)
