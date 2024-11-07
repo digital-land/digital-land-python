@@ -93,7 +93,7 @@ class DatasetParquetPackage(ParquetPackage):
             )
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
-            ) = 1000000
+            ) < 1000000
         """
 
         con.execute(f"""
