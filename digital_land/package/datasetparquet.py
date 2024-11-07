@@ -91,7 +91,9 @@ class DatasetParquetPackage(ParquetPackage):
                 [{input_paths_str}],
                 columns = {schema_dict}
             )
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY fact ORDER BY priority, "entry-date" DESC) = 1
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY fact ORDER BY priority, "entry-date" DESC, entry_number DESC, resource
+            ) = 1
         """
 
         con.execute(f"""
