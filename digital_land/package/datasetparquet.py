@@ -88,11 +88,10 @@ class DatasetParquetPackage(ParquetPackage):
         query = f"""
             SELECT {fields_str}, 'entry-number'
             FROM read_csv_auto(
-                [{input_paths_str}],
-                columns = {schema_dict}
+                [{input_paths_str}]
             )
             QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry_number" DESC, resource
+                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
             ) = 1000000
         """
 
@@ -109,7 +108,7 @@ class DatasetParquetPackage(ParquetPackage):
                 columns = {schema_dict}
             )
             QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry_number" DESC, resource
+                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
             ) = 1
         """
 
