@@ -85,7 +85,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         con = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
-        fields_str2 = fields_str.join(f'"entry-number"')
+        fields_str2 = fields_str.replace('value', 'value, "entry-number"')
         print("\n\n")
         print(fields_str)
         print("\n")
