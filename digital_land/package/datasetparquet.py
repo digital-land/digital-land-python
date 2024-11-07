@@ -96,6 +96,28 @@ class DatasetParquetPackage(ParquetPackage):
             )
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
+            ) < 100000
+        """
+        con.execute(f"""
+            COPY (
+                {query}
+            ) TO '{output_path}/test_fact1{self.suffix}' (FORMAT PARQUET);
+        """)
+
+        con.execute(f"""
+            COPY (
+                {query}
+            ) TO '{output_path}/fact{self.suffix}' (FORMAT PARQUET);
+        """)
+
+        query = f"""
+            SELECT {fields_str}
+            FROM read_csv_auto(
+                [{input_paths_str}],
+                columns = {schema_dict}
+            )
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
             ) = 1
         """
 
