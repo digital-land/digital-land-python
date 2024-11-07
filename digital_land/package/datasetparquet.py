@@ -84,32 +84,24 @@ class DatasetParquetPackage(ParquetPackage):
         schema_dict = get_schema(input_paths)
 
         con = duckdb.connect()
-        print("\n\n")
-        print(fields_str)
-        print("\n\n")
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         query = f"""
-            SELECT {fields_str}
+            SELECT {fields_str}, 'entry-number'
             FROM read_csv_auto(
                 [{input_paths_str}],
                 columns = {schema_dict}
             )
             QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
-            ) < 100000
+                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry_number" DESC, resource
+            ) = 1000000
         """
+
         con.execute(f"""
             COPY (
                 {query}
             ) TO '{output_path}/test_fact1{self.suffix}' (FORMAT PARQUET);
         """)
 
-        con.execute(f"""
-            COPY (
-                {query}
-            ) TO '{output_path}/fact{self.suffix}' (FORMAT PARQUET);
-        """)
-
         query = f"""
             SELECT {fields_str}
             FROM read_csv_auto(
@@ -117,7 +109,7 @@ class DatasetParquetPackage(ParquetPackage):
                 columns = {schema_dict}
             )
             QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
+                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry_number" DESC, resource
             ) = 1
         """
 
