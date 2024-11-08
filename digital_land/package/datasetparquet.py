@@ -44,8 +44,8 @@ def get_schema(input_paths):
 
     con = duckdb.connect()
     create_temp_table_query = f"""
-        DROP TABLE IF EXISTS temp_table;
-        CREATE TEMP TABLE temp_table AS
+        DROP TABLE IF EXISTS schema_table;
+        CREATE TEMP TABLE schema_table AS
         SELECT * FROM read_csv_auto('{largest_file}')
         LIMIT 1000;
     """
@@ -55,7 +55,7 @@ def get_schema(input_paths):
     schema_query = """
         SELECT column_name, data_type 
         FROM information_schema.columns 
-        WHERE table_name = 'temp_table';
+        WHERE table_name = 'schema_table';
     """
     schema_df = con.query(schema_query).df()
 
@@ -72,11 +72,10 @@ class DatasetParquetPackage(ParquetPackage):
         # self.organisations = organisation.organisation
 
     def create_temp_table(self, input_paths):
+        # Create a temp table of the data from imput_paths as we need the information here at various times.
         logging.info(f"loading data into temp table from {os.path.dirname(input_paths[0])}")
 
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
-
-        # Create temp table
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
         schema_dict = get_schema(input_paths)
         query = f"""
@@ -88,10 +87,6 @@ class DatasetParquetPackage(ParquetPackage):
             )
         """
         self.conn.execute(query)
-
-    def check_temp_table(self):
-        self.conn.execute("SELECT COUNT(*) from temp_table").fetchall()
-
 
     def load_facts(self, input_paths, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
@@ -189,21 +184,10 @@ class DatasetParquetPackage(ParquetPackage):
         query = f"""
             SELECT {fields_str}
             FROM temp_table
-            --FROM (
-            --    SELECT entity, {fields_str}, "entry-date", "entry-number"
-            --    FROM parquet_scan('{str(input_paths_str)}')
-              --  QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC, "entry-number" DESC)) = 1
-            --)
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY entity,field ORDER BY "entry-date" DESC, "entry-number" DESC, "entry-number" DESC)
             = 1
         """
-
-        # query = f"""
-        #     SELECT {fields_str}
-        #     FROM parquet_scan('{str(input_paths_str)}')
-        #     QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
-        # """
 
         pivot_query = f"""
             PIVOT (
