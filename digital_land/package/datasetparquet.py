@@ -43,10 +43,6 @@ def get_schema(input_paths):
     largest_file = max(input_paths, key=os.path.getsize)
 
     con = duckdb.connect()
-
-    # drop_temp_table_query = "DROP TABLE IF EXISTS temp_table;"
-    # con.query(drop_temp_table_query)
-
     create_temp_table_query = f"""
         DROP TABLE IF EXISTS temp_table;
         CREATE TEMP TABLE temp_table AS
@@ -92,6 +88,10 @@ class DatasetParquetPackage(ParquetPackage):
             )
         """
         self.conn.execute(query)
+
+    def check_temp_table(self):
+        self.conn.execute("SELECT COUNT(*) from temp_table").fetchall()
+
 
     def load_facts(self, input_paths, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
