@@ -87,24 +87,6 @@ class DatasetParquetPackage(ParquetPackage):
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         # Have instances where we have multiple facts from the same resource. Way to solve this is to take the
         # one with the highest entry number
-        # fields_str2 = fields_str += ', "entry-number"'
-        query = f"""
-            SELECT {fields_str}, "entry-number"
-            FROM read_csv_auto(
-                [{input_paths_str}],
-                columns = {schema_dict}
-            )
-            QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
-            ) < 1000000
-        """
-
-        con.execute(f"""
-            COPY (
-                {query}
-            ) TO '{output_path}/test_fact1{self.suffix}' (FORMAT PARQUET);
-        """)
-
         query = f"""
             SELECT {fields_str}
             FROM read_csv_auto(
@@ -112,7 +94,7 @@ class DatasetParquetPackage(ParquetPackage):
                 columns = {schema_dict}
             )
             QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
+                PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC
             ) = 1
         """
 
