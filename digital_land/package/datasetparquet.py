@@ -188,12 +188,14 @@ class DatasetParquetPackage(ParquetPackage):
         # Write a SQL query to load the parquet fact file from the directory, group by field, and get the latest record
         query = f"""
             SELECT {fields_str}
-            FROM (
-                SELECT entity, {fields_str}, "entry-date", "entry-number"
+            --FROM (
+            --    SELECT entity, {fields_str}, "entry-date", "entry-number"
                 FROM parquet_scan('{str(input_paths_str)}')
-                QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
-            )
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY entity,field ORDER BY "entry-date" DESC, "entry-number" DESC) = 1
+              --  QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC, "entry-number" DESC)) = 1
+            --)
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY entity,field ORDER BY "entry-date" DESC, "entry-number" DESC, "entry-number" DESC)
+            = 1
         """
 
         # query = f"""
