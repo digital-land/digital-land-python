@@ -71,8 +71,26 @@ class DatasetParquetPackage(ParquetPackage):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.suffix = ".parquet"
+        self.conn = duckdb.connect()  # Persistent connection for the class
         # self.entity_fields = self.specification.schema["entity"]["fields"]
         # self.organisations = organisation.organisation
+
+    def create_temp_table(self, input_paths):
+        logging.info(f"loading data into temp table from {os.path.dirname(input_paths[0])}")
+
+        input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
+
+        # Create temp table
+        self.conn.execute("DROP TEMPORARY TABLE IF EXISTS temp_table")
+        schema_dict = get_schema(input_paths)
+        query = f"""
+            SELECT *
+            FROM read_csv_auto(
+                [{input_paths_str}],
+                columns = {schema_dict}
+            )
+        """
+        self.conn.execute(query)
 
     def load_facts(self, input_paths, output_path):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
@@ -83,22 +101,21 @@ class DatasetParquetPackage(ParquetPackage):
 
         schema_dict = get_schema(input_paths)
 
-        con = duckdb.connect()
+        # con = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
-        # Have instances where we have multiple facts from the same resource. Way to solve this is to take the
-        # one with the highest entry number
         query = f"""
             SELECT {fields_str}
-            FROM read_csv_auto(
-                [{input_paths_str}],
-                columns = {schema_dict}
-            )
+            FROM temp_table
+            --read_csv_auto(
+            --    [{input_paths_str}],
+            --    columns = {schema_dict}
+            --)
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC
             ) = 1
         """
 
-        con.execute(f"""
+        self.conn.execute(f"""
             COPY (
                 {query}
             ) TO '{output_path}/fact{self.suffix}' (FORMAT PARQUET);
@@ -113,17 +130,18 @@ class DatasetParquetPackage(ParquetPackage):
 
         schema_dict = get_schema(input_paths)
 
-        con = duckdb.connect()
+        # self.conn = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT {fields_str}
-            FROM read_csv_auto(
-                [{input_paths_str}],
-                columns = {schema_dict}
-            )
+            FROM temp_table
+            --read_csv_auto(
+            --    [{input_paths_str}],
+            --    columns = {schema_dict}
+            --)
         """
 
-        con.execute(f"""
+        self.conn.execute(f"""
             COPY (
                 {query}
             ) TO '{output_path}/fact_resource{self.suffix}' (FORMAT PARQUET);
@@ -138,14 +156,14 @@ class DatasetParquetPackage(ParquetPackage):
         input_paths_str = f"{output_path}/fact{self.suffix}"
         # input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        con = duckdb.connect()
+        # con = duckdb.connect()
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
             FROM parquet_scan('{str(input_paths_str)}')
         """
 
         # distinct_fields - list of fields in the field in fact
-        rows = con.execute(query).fetchall()
+        rows = self.conn.execute(query).fetchall()
         distinct_fields = [row[0] for row in rows]
 
         # json fields - list of fields which are present in the fact table which
@@ -166,15 +184,15 @@ class DatasetParquetPackage(ParquetPackage):
         fields_to_include = ['entity', 'field', 'value']
         fields_str = ', '.join(fields_to_include)
 
-        # Write a SQL query to load all parquet files from the directory, group by a field, and get the latest record
+        # Write a SQL query to load the parquet fact file from the directory, group by field, and get the latest record
         query = f"""
             SELECT {fields_str}
             FROM (
-                SELECT entity, {fields_str}, "entry-date"
+                SELECT entity, {fields_str}, "entry-date", "entry-number"
                 FROM parquet_scan('{str(input_paths_str)}')
                 QUALIFY ROW_NUMBER() OVER (PARTITION BY fact,field,value ORDER BY priority, "entry-date" DESC) = 1
             )
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY entity,field ORDER BY "entry-date" DESC) = 1
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY entity,field ORDER BY "entry-date" DESC, "entry-number" DESC) = 1
         """
 
         # query = f"""
@@ -238,18 +256,18 @@ class DatasetParquetPackage(ParquetPackage):
             ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
          """
         print(sql)
-        con.execute(sql)
+        self.conn.execute(sql)
 
     def pq_to_sqlite(self, output_path):
-        con = duckdb.connect()
+        # con = duckdb.connect()
         query = "LOAD sqlite;"
-        con.execute(query)
+        self.conn.execute(query)
 
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
         for parquet_file in parquet_files:
             sqlite_file = parquet_file.replace(self.suffix, ".sqlite3")
-            con.execute("DROP TABLE IF EXISTS temp_table;")
-            con.execute(f"""
+            self.conn.execute("DROP TABLE IF EXISTS temp_table;")
+            self.conn.execute(f"""
                 CREATE TABLE temp_table AS 
                 SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
             """)
@@ -259,13 +277,13 @@ class DatasetParquetPackage(ParquetPackage):
                 WHERE table_name = 'temp_table'
                   AND (column_name ILIKE '%geom%' OR lower(column_name) = 'geometry' OR lower(column_name) = 'point');
             """
-            geom_columns = [row[0] for row in con.execute(geom_columns_query).fetchall()]
+            geom_columns = [row[0] for row in self.conn.execute(geom_columns_query).fetchall()]
 
             # Export the DuckDB table to the SQLite database
-            con.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db;")
-            con.execute("DROP TABLE IF EXISTS sqlite_db.my_table;")
-            con.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table;")
-            con.execute("DETACH DATABASE sqlite_db;")
+            self.conn.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db;")
+            self.conn.execute("DROP TABLE IF EXISTS sqlite_db.my_table;")
+            self.conn.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table;")
+            self.conn.execute("DETACH DATABASE sqlite_db;")
 
             sqlite_con = sqlite3.connect(sqlite_file)
             sqlite_con.enable_load_extension(True)
@@ -282,7 +300,7 @@ class DatasetParquetPackage(ParquetPackage):
                 sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}');")
             sqlite_con.close()
 
-        con.close()
+        # con.close()
 
     def load(self):
         pass
