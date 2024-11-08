@@ -84,6 +84,7 @@ class DatasetParquetPackage(ParquetPackage):
         self.conn.execute("DROP TEMPORARY TABLE IF EXISTS temp_table")
         schema_dict = get_schema(input_paths)
         query = f"""
+            CREATE TEMPORARY TABLE temp_table AS
             SELECT *
             FROM read_csv_auto(
                 [{input_paths_str}],
