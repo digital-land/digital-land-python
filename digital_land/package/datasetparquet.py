@@ -85,14 +85,11 @@ class DatasetParquetPackage(ParquetPackage):
 
         con = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
-        fields_str2 = fields_str.replace('value', 'value, "entry-number"')
-        print("\n\n")
-        print(fields_str)
-        print("\n")
-        print(fields_str2)
-        print("\n\n")
+        # Have instances where we have multiple facts from the same resource. Way to solve this is to take the
+        # one with the highest entry number
+        # fields_str2 = fields_str += ', "entry-number"'
         query = f"""
-            SELECT {fields_str2}
+            SELECT fields_str += ', "entry-number"'
             FROM read_csv_auto(
                 [{input_paths_str}],
                 columns = {schema_dict}
