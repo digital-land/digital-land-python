@@ -89,7 +89,7 @@ class DatasetParquetPackage(ParquetPackage):
         # one with the highest entry number
         # fields_str2 = fields_str += ', "entry-number"'
         query = f"""
-            SELECT fields_str += ', "entry-number"'
+            SELECT fields_str, "entry-number"'
             FROM read_csv_auto(
                 [{input_paths_str}],
                 columns = {schema_dict}
