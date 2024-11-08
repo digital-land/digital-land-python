@@ -408,7 +408,6 @@ def dataset_create(
         specification_dir=None,  # TBD: package should use this specification object
     )
     pqpackage.create_temp_table(input_paths)
-    pqpackage.check_temp_table()
     pqpackage.load_facts(input_paths, output_path)
     pqpackage.load_fact_resource(input_paths, output_path)
     pqpackage.load_entities(input_paths, output_path)
