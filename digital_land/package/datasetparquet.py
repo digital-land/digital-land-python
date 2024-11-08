@@ -77,7 +77,7 @@ class DatasetParquetPackage(ParquetPackage):
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
         # Create temp table
-        self.conn.execute("DROP TEMPORARY TABLE IF EXISTS temp_table")
+        self.conn.execute("DROP TABLE IF EXISTS temp_table")
         schema_dict = get_schema(input_paths)
         query = f"""
             CREATE TEMPORARY TABLE temp_table AS
