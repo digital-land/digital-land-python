@@ -94,9 +94,19 @@ class Organisation:
         return self.organisation_lookup[organisation.lower()]
 
     def get_orgs_by_dataset(self, dataset):
+        """
+        gets a list of dictionaries where each entry represents an organisation
+        """
         dataset_orgs = [
             org
             for org in self.organisation.values()
             if org.get("dataset", "") == dataset
         ]
         return dataset_orgs
+
+    def get(self, org: str):
+        """
+        provide the organisation and get the organisation row
+        use organisation lookup first to ccheck the curie your using
+        """
+        return self.organisation[org]

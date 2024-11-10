@@ -4,6 +4,7 @@ The config class is primarily how to access all the different configuration clas
 
 """
 
+import sqlite3
 from pathlib import Path
 
 from digital_land.package.sqlite import SqlitePackage
@@ -26,6 +27,7 @@ class Config(SqlitePackage):
         self.specification = specification
         self.tables = tables or {
             "entity-organisation": "pipeline",
+            "expect": "pipeline",
         }
 
         self.indexes = {
@@ -52,6 +54,23 @@ class Config(SqlitePackage):
         self.disconnect()
 
         return result
+
+    def get_expectation_rules(self, dataset):
+        self.connect()
+        self.connection.row_factory = sqlite3.Row
+        self.create_cursor()
+        self.cursor.execute(
+            f"""
+                select *
+                from expect
+                where instr(';' || datasets || ';', ';{dataset};') > 0;
+            """
+        )
+        rows = self.cursor.fetchall()
+
+        results = [dict(row) for row in rows]
+        self.disconnect()
+        return results
 
     def load(self, tables=None):
         tables = tables or self.tables

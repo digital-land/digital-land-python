@@ -7,9 +7,8 @@ import click
 from collections import defaultdict
 from digital_land.collection import Collection
 from digital_land.specification import Specification
-
 from digital_land.configuration.main import Config
-
+from digital_land.organisation import Organisation
 from digital_land.commands import (
     add_redirections,
     assign_entities,
@@ -287,16 +286,58 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
     "expectations-dataset-checkpoint",
     short_help="runs data quality expectations against a dataset sqlite file",
 )
-@click.option("--data-path", help="path to the sqlite3 dataset", required=True)
-@click.option("--output-dir", help="directory to store results", required=True)
-@click.option("--specification-dir", help="checkpoint to run", required=True)
-def expectations_run_dataset_checkpoint(data_path, output_dir, specification_dir):
+@click.option(
+    "--dataset",
+    type=click.STRING,
+    help="the dataset which is stored in the file path, the checkpoint is ran for one dataset at a time",
+    required=True,
+)
+@click.option(
+    "--file-path",
+    type=click.Path(),
+    help="path to the sqlite3 dataset that contains the dataset data",
+    required=True,
+)
+@click.option(
+    "--log-dir",
+    type=click.Path(),
+    help="directory to store expectation logs. an expectation directoy will be ceated here",
+    required=True,
+)
+@click.option(
+    "--configuration-path",
+    type=click.Path(),
+    help="path to the configuration sqlite file",
+    required=True,
+)
+@click.option(
+    "--organisation-path",
+    type=click.Path(),
+    help="path to the organisation data for the organisation class",
+    required=True,
+)
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    help="directory  containing the specification",
+    required=True,
+)
+def expectations_run_dataset_checkpoint(
+    dataset,
+    file_path,
+    log_dir,
+    configuration_path,
+    organisation_path,
+    specification_dir,
+):
     from digital_land.expectations.commands import run_dataset_checkpoint
 
-    dataset = Path(data_path).stem
-    spec = Specification(specification_dir)
-    typology = spec.get_dataset_typology(dataset)
-    run_dataset_checkpoint(data_path, output_dir, dataset, typology)
+    specification = Specification(specification_dir)
+    output_dir = Path(log_dir) / "expectation"
+    config = Config(path=configuration_path, specification=specification)
+    organisations = Organisation(organisation_path=organisation_path)
+    logging.error(type(dataset))
+    run_dataset_checkpoint(dataset, file_path, output_dir, config, organisations)
 
 
 @cli.command(
