@@ -27,6 +27,19 @@ def pipeline_dir(tmp_path_factory):
     test_df = pd.DataFrame(test_data)
     test_df.to_csv(pipeline_dir / "entity-organisation.csv")
 
+    expect_test_data = [
+        {
+            "datasets": "test",
+            "organisations": "local-authority:test",
+            "name": "test rule for {{ organisation.name }}",
+            "operation": "count_lpa_boundary",
+            "parameters": '{"expected":1,"lpa":"{{ organisation.local_planning_authority }}","organisation_entity":"{{ organisation.entity }}"}',
+        }
+    ]
+
+    expect_test_data_df = pd.DataFrame(expect_test_data)
+    expect_test_data_df.to_csv(pipeline_dir / "expect.csv")
+
     return pipeline_dir
 
 
