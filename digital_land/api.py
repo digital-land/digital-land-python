@@ -90,8 +90,3 @@ class API:
                     ]
 
         return valid_category_values
-
-    def get_entity(self, entity, format="json"):
-        url = self.url / f"entity/{entity}.{format}"
-        response = requests.get(url)
-        response.raise_for_status()

@@ -160,38 +160,3 @@ def test_get_categorical_field_values_download_field_category(mocker):
     assert values == {
         "document-type": ["area-appraisal", "notice", "designation-report", "area-map"]
     }
-
-
-def test_get_enttity_entity_exists(mocker):
-    """
-    test what happends when an entity exists, mocks the api response
-    """
-    entity_response = {
-        "entry-date": "2024-10-10",
-        "start-date": "",
-        "end-date": "",
-        "entity": 218,
-        "name": "Adur District Council",
-        "dataset": "local-authority",
-        "typology": "organisation",
-        "reference": "ADU",
-        "prefix": "local-authority",
-        "organisation-entity": "26",
-        "geometry": "",
-        "point": "",
-        "region": "E12000008",
-        "website": "https://www.adur-worthing.gov.uk",
-        "wikidata": "Q72980889",
-        "billing-authority": "E3831",
-        "local-authority-type": "NMD",
-        "parliament-thesaurus": "453",
-        "addressbase-custodian": "3805",
-        "statistical-geography": "E07000223",
-        "local-resilience-forum": "sussex",
-        "opendatacommunities-uri": "http://opendatacommunities.org/id/district-council/adur",
-        "local-authority-district": "E07000223",
-        "local-planning-authority": "E60000281",
-    }
-    mocker.patch("requests.get", _mock_get(200, entity_response))
-    platform = API()
-    platform.get_entity(218, fields=["entity"])
