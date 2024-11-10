@@ -58,7 +58,7 @@ def test_run_dataset_checkpoint_success(
             "datasets": "test",
             "organisations": "local-authority:test",
             "operation": "test",
-            "params": {"test": "test"},
+            "parameters": '{"test":"test"}',
             "name": "a test expectation",
             "desription": "a test decription",
             "severity": "notice",
@@ -74,7 +74,7 @@ def test_run_dataset_checkpoint_success(
     mock_function = mocker.Mock(
         return_value=(True, "this operation is a test and always passes", {})
     )  # Configure the mock to return 10
-
+    mock_function.__name__ = "test"
     # Mock the operation_factory to return the mock_function
     mocker.patch(
         "digital_land.expectations.checkpoints.dataset.DatasetCheckpoint.operation_factory",
@@ -118,4 +118,3 @@ def test_run_dataset_checkpoint_success(
     assert len(results) == 1
     assert results[0]["organisation"] == "local-authority:test"
     assert results[0]["dataset"] == "test"
-    assert False
