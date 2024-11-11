@@ -9,7 +9,7 @@ import sqlite3
 # import shapely.wkt
 import duckdb
 
-from .parquet import ParquetPackage
+from .parquet import ParquetPackage, Package
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ indexes = {
 }
 
 
-class DatasetParquetPackage(ParquetPackage):
+class DatasetParquetPackage(Package):
     def __init__(self, dataset, input_paths, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
