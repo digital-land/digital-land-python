@@ -194,7 +194,7 @@ class TestDatasetCheckpoint:
         assert log.entries[0]["passed"] is True
         assert log.entries[0]["message"] == "this operation is a test and always passes"
 
-    def test_save_to_csv(self, tmp_path, test_organisations):
+    def test_save_to_parquet(self, tmp_path, test_organisations):
         """
         assuming run is successful then the log exists and can be saved
         uses the save method
@@ -216,6 +216,8 @@ class TestDatasetCheckpoint:
                 "description": "made for test",
                 "severity": "notice",
                 "respnsibility": "external",
+                "parameters": '{"test":"test"}',
+                "operation": "test",
             }
         )
 

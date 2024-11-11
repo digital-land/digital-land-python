@@ -28,7 +28,7 @@ def count_lpa_boundary(
     # TODO should be moved to the sdk/api for accessing the platform
     try:
         base_url = "https://www.planning.data.gov.uk"
-        endpoint = f"curie/'statistical-geography':{lpa}.json?field=geometry"
+        endpoint = f"curie/statistical-geography:{lpa}.json"
         response = requests.get(
             f"{base_url}/{endpoint}",
         )
