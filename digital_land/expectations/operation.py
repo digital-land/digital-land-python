@@ -1,5 +1,4 @@
 import requests
-import logging
 
 
 # # TODO is there a way to represent this in a generalised count or not
@@ -80,7 +79,6 @@ def count_lpa_boundary(
         query = query + f"AND organisation_entity = '{organisation_entity}'"
 
     query = query + f"AND ({spatial_condition});"
-    logging.error
     rows = conn.execute(query).fetchall()
     entities = [row[0] for row in rows]
     actual = len(entities)

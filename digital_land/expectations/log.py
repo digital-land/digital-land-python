@@ -51,7 +51,7 @@ class ExpectationLog:
 
         details = entry["details"]
         if isinstance(details, dict):
-            details = json.dumps(params)
+            details = json.dumps(details)
         self.entries.append(
             {
                 "dataset": self.dataset,
