@@ -19,7 +19,7 @@ class State(dict):
                 "code": State.get_code_hash(),
                 "specification": State.get_dir_hash(specification_dir),
                 "collection": State.get_dir_hash(
-                    collection_dir, ["resource/", "log/", "log.csv"]
+                    collection_dir, ["log/", "log.csv", "pipeline.mk", "resource/"]
                 ),
                 "pipeline": State.get_dir_hash(pipeline_dir),
             }
