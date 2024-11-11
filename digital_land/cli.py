@@ -336,7 +336,6 @@ def expectations_run_dataset_checkpoint(
     output_dir = Path(log_dir) / "expectation"
     config = Config(path=configuration_path, specification=specification)
     organisations = Organisation(organisation_path=organisation_path)
-    logging.error(type(dataset))
     run_dataset_checkpoint(dataset, file_path, output_dir, config, organisations)
 
 
