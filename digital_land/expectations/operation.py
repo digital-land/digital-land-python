@@ -87,6 +87,7 @@ def count_lpa_boundary(
     # Define comparison rules
     comparison_rules = {
         "equals_to": actual == expected,
+        "not_equal_to": actual != expected,
         "greater_than": actual > expected,
         "greater_than_or_equal_to": actual >= expected,
         "less_than": actual < expected,

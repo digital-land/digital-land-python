@@ -31,6 +31,7 @@ from digital_land.commands import (
     save_state,
     check_state,
 )
+from digital_land.expectations.commands import run_dataset_checkpoint
 
 from digital_land.command_arguments import (
     collection_dir,
@@ -319,7 +320,7 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
 @click.option(
     "--specification-dir",
     type=click.Path(),
-    help="directory  containing the specification",
+    help="directory containing the specification",
     required=True,
 )
 def expectations_run_dataset_checkpoint(
@@ -330,8 +331,6 @@ def expectations_run_dataset_checkpoint(
     organisation_path,
     specification_dir,
 ):
-    from digital_land.expectations.commands import run_dataset_checkpoint
-
     specification = Specification(specification_dir)
     output_dir = Path(log_dir) / "expectation"
     config = Config(path=configuration_path, specification=specification)

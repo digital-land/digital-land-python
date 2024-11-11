@@ -59,7 +59,6 @@ class SqlitePackage(Package):
         self.connection.close()
 
     def create_table(self, table, fields, key_field=None, unique=None):
-        logging.debug(fields)
         self.execute(
             "CREATE TABLE %s (%s%s%s)"
             % (
