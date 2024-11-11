@@ -1,19 +1,11 @@
 import os
-# import json
 import logging
 from pathlib import Path
 import sqlite3
-
-# import numpy as np
-# import pandas as pd
-# import shapely.wkt
 import duckdb
-
-from .parquet import ParquetPackage, Package
+from .parquet import Package
 
 logger = logging.getLogger(__name__)
-
-chunk_size = 100000
 
 # TBD: move to from specification datapackage definition
 tables = {
@@ -44,8 +36,6 @@ class DatasetParquetPackage(Package):
         self.suffix = ".parquet"
         self.conn = duckdb.connect()  # Persistent connection for the class
         self.schema = self.get_schema(input_paths)
-        # self.entity_fields = self.specification.schema["entity"]["fields"]
-        # self.organisations = organisation.organisation
 
     def get_schema(self, input_paths):
         # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
@@ -71,7 +61,7 @@ class DatasetParquetPackage(Package):
         return dict(zip(schema_df['column_name'], schema_df['data_type']))
 
     def create_temp_table(self, input_paths):
-        # Create a temp table of the data from input_paths as we need the information here at various times.
+        # Create a temp table of the data from input_paths as we need the information stored there at various times
         logging.info(f"loading data into temp table from {os.path.dirname(input_paths[0])}")
 
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
@@ -92,7 +82,8 @@ class DatasetParquetPackage(Package):
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
 
-        # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
+        # query to extract data from the temp table (containing raw data), group by a fact, and get the highest
+        # priority or latest record
         query = f"""
             SELECT {fields_str}
             FROM temp_table
@@ -113,7 +104,7 @@ class DatasetParquetPackage(Package):
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_resource_fields])
 
-        # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
+        # All CSV files have been loaded into a temporary table. Extract several columns and export
         query = f"""
             SELECT {fields_str}
             FROM temp_table
@@ -160,7 +151,7 @@ class DatasetParquetPackage(Package):
         fields_to_include = ['entity', 'field', 'value']
         fields_str = ', '.join(fields_to_include)
 
-        # Write a SQL query to sort facts, group by field, and order by highest priority then latest record.
+        # Take original data, group by entity & field, and order by highest priority then latest record.
         # If there are still matches then pick the first resource (and fact, just to make sure)
         query = f"""
             SELECT {fields_str}
@@ -267,6 +258,10 @@ class DatasetParquetPackage(Package):
                 # Create a spatial index on the geometry column
                 sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}');")
             sqlite_con.close()
+
+    def close_conn(self):
+        if self.conn is not None:
+            self.conn.close()
 
     def load(self):
         pass
