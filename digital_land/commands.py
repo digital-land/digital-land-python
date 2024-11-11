@@ -403,8 +403,8 @@ def dataset_create(
     #######################################################
     pqpackage = DatasetParquetPackage(
         dataset,
-        organisation=organisation,
         path=output_path,
+        input_paths=input_paths,
         specification_dir=None,  # TBD: package should use this specification object
     )
     pqpackage.create_temp_table(input_paths)
