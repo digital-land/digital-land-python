@@ -1,4 +1,5 @@
 import csv
+import json
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -20,11 +21,12 @@ class ExpectationLog:
             "organisation",
             "name",
             "passed",
+            "parameters",
             "message",
             "details",
             "description",
             "severity",
-            "respnsibility",
+            "responsibility",
         ]
         # create the parquet partition for saving output each log is assumed to
         # write to a particular partition of the data
@@ -42,6 +44,14 @@ class ExpectationLog:
         """
         function to add an individual log respresented as a dictionary
         """
+        # for json fields we want to add it as a json string
+        params = entry["parameters"]
+        if isinstance(params, dict):
+            params = json.dumps(params)
+
+        details = entry["details"]
+        if isinstance(details, dict):
+            details = json.dumps(params)
         self.entries.append(
             {
                 "dataset": self.dataset,
@@ -49,10 +59,12 @@ class ExpectationLog:
                 "name": entry["name"],
                 "passed": entry["passed"],
                 "message": entry["message"],
-                "details": entry["details"],
+                "details": details,
                 "description": entry.get("description", ""),
                 "severity": entry.get("severity", ""),
-                "respnsibility": entry.get("responsibility", ""),
+                "responsibility": entry.get("responsibility", ""),
+                "operation": entry["operation"],
+                "parameters": params,
             }
         )
 

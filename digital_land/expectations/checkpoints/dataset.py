@@ -120,7 +120,6 @@ class DatasetCheckpoint(BaseCheckpoint):
         runs a given expectation returning the result, description and message
         a log can be provided to record this information
         """
-        # logging.error(*expectation['params'])
         params = expectation["parameters"]
         with spatialite.connect(self.dataset_path) as conn:
             passed, msg, details = expectation["operation"](conn=conn, **params)
@@ -137,7 +136,6 @@ class DatasetCheckpoint(BaseCheckpoint):
 
         for expectation in self.expectations:
             passed, message, details = self.run_expectation(expectation)
-
             self.log.add(
                 {
                     "organisation": expectation["organisation"]["organisation"],
@@ -147,8 +145,9 @@ class DatasetCheckpoint(BaseCheckpoint):
                     "details": details,
                     "description": expectation["description"],
                     "severity": expectation["severity"],
-                    "respnsibility": expectation["responsibility"],
+                    "responsibility": expectation["responsibility"],
                     "operation": expectation["operation"].__name__,
+                    "parameters": expectation["parameters"],
                 }
             )
             # self.failed_expectation_with_error_severity

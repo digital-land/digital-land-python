@@ -117,6 +117,8 @@ def config_path(tmp_path, specification_dir):
             "name": "test rule for {{ organisation.name }}",
             "operation": "count_lpa_boundary",
             "parameters": '{"expected":1,"lpa":"{{ organisation.local_planning_authority }}","organisation_entity":"{{ organisation.entity }}"}',
+            "responsibility": "internal",
+            "severity": "notice",
         }
     ]
     # write rows
@@ -208,7 +210,20 @@ def test_run_some_expectations(
     # Fetch all results as a list of dictionaries
     results = [dict(zip(columns, row)) for row in cursor.fetchall()]
     logging.debug(f"The expectation log produced:\n{json.dumps(results, indent=4)}")
+    # we need to check that a log was made when running the above as we inputted a test
     assert len(results) > 0, "check that some logs were created"
+    # we need to check for some specific user required fields in the output
+    # these have been confirmed as required outputs for any test
+    required_fields = [
+        "passed",
+        "name",
+        "details",
+        "parameters",
+        "organisation",
+        "dataset",
+    ]
+    for field in required_fields:
+        assert field in results[0].keys(), f"field : {field} not found in log"
     assert (
         len([result for result in results if result["passed"] == "True"]) == 1
     ), "expected 1 passed expectation"
