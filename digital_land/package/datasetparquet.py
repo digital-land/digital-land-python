@@ -37,53 +37,51 @@ indexes = {
 }
 
 
-def get_schema(input_paths):
-    # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
-    # Plan is to find the largest file, create an initial database schema from that then use that in future
-    largest_file = max(input_paths, key=os.path.getsize)
-
-    con = duckdb.connect()
-    create_temp_table_query = f"""
-        DROP TABLE IF EXISTS schema_table;
-        CREATE TEMP TABLE schema_table AS
-        SELECT * FROM read_csv_auto('{largest_file}')
-        LIMIT 1000;
-    """
-    con.query(create_temp_table_query)
-
-    # Extract the schema from the temporary table
-    schema_query = """
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_name = 'schema_table';
-    """
-    schema_df = con.query(schema_query).df()
-
-    return dict(zip(schema_df['column_name'], schema_df['data_type']))
-
-
 class DatasetParquetPackage(ParquetPackage):
-    def __init__(self, dataset, organisation, **kwargs):
+    def __init__(self, dataset, input_paths, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.suffix = ".parquet"
         self.conn = duckdb.connect()  # Persistent connection for the class
+        self.schema = self.get_schema(input_paths)
         # self.entity_fields = self.specification.schema["entity"]["fields"]
         # self.organisations = organisation.organisation
 
+    def get_schema(self, input_paths):
+        # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
+        # Plan is to find the largest file, create an initial database schema from that then use that in future
+        largest_file = max(input_paths, key=os.path.getsize)
+
+        create_temp_table_query = f"""
+            DROP TABLE IF EXISTS schema_table;
+            CREATE TEMP TABLE schema_table AS
+            SELECT * FROM read_csv_auto('{largest_file}')
+            LIMIT 1000;
+        """
+        self.conn.query(create_temp_table_query)
+
+        # Extract the schema from the temporary table
+        schema_query = """
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'schema_table';
+        """
+        schema_df = self.conn.query(schema_query).df()
+
+        return dict(zip(schema_df['column_name'], schema_df['data_type']))
+
     def create_temp_table(self, input_paths):
-        # Create a temp table of the data from imput_paths as we need the information here at various times.
+        # Create a temp table of the data from input_paths as we need the information here at various times.
         logging.info(f"loading data into temp table from {os.path.dirname(input_paths[0])}")
 
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
-        schema_dict = get_schema(input_paths)
         query = f"""
             CREATE TEMPORARY TABLE temp_table AS
             SELECT *
             FROM read_csv_auto(
                 [{input_paths_str}],
-                columns = {schema_dict}
+                columns = {self.schema}
             )
         """
         self.conn.execute(query)
@@ -93,19 +91,11 @@ class DatasetParquetPackage(ParquetPackage):
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
-        input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        schema_dict = get_schema(input_paths)
-
-        # con = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT {fields_str}
             FROM temp_table
-            --read_csv_auto(
-            --    [{input_paths_str}],
-            --    columns = {schema_dict}
-            --)
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC
             ) = 1
@@ -122,11 +112,7 @@ class DatasetParquetPackage(ParquetPackage):
 
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_resource_fields])
-        input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
-        schema_dict = get_schema(input_paths)
-
-        # self.conn = duckdb.connect()
         # Write a SQL query to load all csv files from the directory, group by a field, and get the latest record
         query = f"""
             SELECT {fields_str}
@@ -147,7 +133,6 @@ class DatasetParquetPackage(ParquetPackage):
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         input_paths_str = f"{output_path}/fact{self.suffix}"
 
-        # con = duckdb.connect()
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
             FROM parquet_scan('{str(input_paths_str)}')
@@ -175,28 +160,16 @@ class DatasetParquetPackage(ParquetPackage):
         fields_to_include = ['entity', 'field', 'value']
         fields_str = ', '.join(fields_to_include)
 
-        # Write a SQL query to sort facts, group by field, and get the highest priority or latest record.
-        # If these also match then pick the first resource.
+        # Write a SQL query to sort facts, group by field, and order by highest priority then latest record.
+        # If there are still matches then pick the first resource (and fact, just to make sure)
         query = f"""
             SELECT {fields_str}
             FROM temp_table
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY entity, field 
-                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
+                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource, fact
             ) = 1
         """
-        self.conn.execute(
-            f"""
-            COPY (
-                SELECT *
-                FROM temp_table
-                QUALIFY ROW_NUMBER() OVER (
-                    PARTITION BY entity, field 
-                    ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
-                ) = 1
-            ) TO '{output_path}/test_query{self.suffix}' (FORMAT PARQUET);
-            """
-        )
 
         pivot_query = f"""
             PIVOT (
@@ -230,7 +203,7 @@ class DatasetParquetPackage(ParquetPackage):
             COPY(
                 WITH computed_centroid AS (
                     SELECT 
-                        * EXCLUDE (point),
+                        * EXCLUDE (point), -- Calculate centroid point
                         CASE 
                             WHEN geometry IS NOT NULL AND point IS NULL 
                             THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
@@ -252,11 +225,9 @@ class DatasetParquetPackage(ParquetPackage):
                 SELECT * FROM computed_centroid
             ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
          """
-        print(sql)
         self.conn.execute(sql)
 
     def pq_to_sqlite(self, output_path):
-        # con = duckdb.connect()
         query = "LOAD sqlite;"
         self.conn.execute(query)
 
@@ -296,8 +267,6 @@ class DatasetParquetPackage(ParquetPackage):
                 # Create a spatial index on the geometry column
                 sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}');")
             sqlite_con.close()
-
-        # con.close()
 
     def load(self):
         pass
