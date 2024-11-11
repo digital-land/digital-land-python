@@ -187,7 +187,14 @@ class DatasetParquetPackage(ParquetPackage):
         """
         self.conn.execute(
             f"""
-            COPY ({query}) TO '{output_path}/test_query{self.suffix}' (FORMAT PARQUET);
+            COPY (
+                SELECT *
+                FROM temp_table
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY entity, field 
+                    ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
+                ) = 1
+            ) TO '{output_path}/test_query{self.suffix}' (FORMAT PARQUET);
             """
         )
 
