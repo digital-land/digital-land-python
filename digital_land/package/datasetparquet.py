@@ -175,15 +175,21 @@ class DatasetParquetPackage(ParquetPackage):
         fields_to_include = ['entity', 'field', 'value']
         fields_str = ', '.join(fields_to_include)
 
-        # Write a SQL query to sort facts, group by field, and get the highest priority or latest record
+        # Write a SQL query to sort facts, group by field, and get the highest priority or latest record.
+        # If these also match then pick the first resource.
         query = f"""
             SELECT {fields_str}
             FROM temp_table
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY entity, field 
-                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, "entry-number" DESC, resource
+                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource
             ) = 1
         """
+        self.conn.execute(
+            f"""
+            COPY ({query}) TO '{output_path}/test_query{self.suffix}' (FORMAT PARQUET);
+            """
+        )
 
         pivot_query = f"""
             PIVOT (
