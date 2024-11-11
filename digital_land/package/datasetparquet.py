@@ -36,7 +36,7 @@ class DatasetParquetPackage(Package):
         self.suffix = ".parquet"
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
         self.duckdb_file = "input_paths_database.duckdb"
-        self.conn = duckdb.connect(self.duckdb)
+        self.conn = duckdb.connect(self.duckdb_file)
         self.schema = self.get_schema(input_paths)
 
     def get_schema(self, input_paths):
