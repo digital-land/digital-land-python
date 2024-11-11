@@ -131,10 +131,6 @@ class DatasetParquetPackage(ParquetPackage):
         query = f"""
             SELECT {fields_str}
             FROM temp_table
-            --read_csv_auto(
-            --    [{input_paths_str}],
-            --    columns = {schema_dict}
-            --)
         """
 
         self.conn.execute(f"""
@@ -150,7 +146,6 @@ class DatasetParquetPackage(ParquetPackage):
         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         input_paths_str = f"{output_path}/fact{self.suffix}"
-        # input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
 
         # con = duckdb.connect()
         query = f"""
@@ -180,13 +175,14 @@ class DatasetParquetPackage(ParquetPackage):
         fields_to_include = ['entity', 'field', 'value']
         fields_str = ', '.join(fields_to_include)
 
-        # Write a SQL query to load the parquet fact file from the directory, group by field, and get the latest record
+        # Write a SQL query to sort facts, group by field, and get the highest priority or latest record
         query = f"""
             SELECT {fields_str}
             FROM temp_table
             QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY entity,field ORDER BY "entry-date" DESC, "entry-number" DESC, "entry-number" DESC)
-            = 1
+                PARTITION BY entity, field 
+                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, "entry-number" DESC, resource
+            ) = 1
         """
 
         pivot_query = f"""
