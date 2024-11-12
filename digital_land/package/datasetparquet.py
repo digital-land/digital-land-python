@@ -277,8 +277,24 @@ class DatasetParquetPackage(Package):
                     # sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326) WHERE {geom} IS NOT NULL;")
 
-                # Create a spatial index on the geometry column
+                # Check if spatial index already exists before creating one
+                spatial_index_exists_query = f"""
+                    SELECT name FROM sqlite_master
+                    WHERE type='index' AND tbl_name='{table_name}' AND name LIKE '%{geom}%';
+                """
+                existing_indexes = [row[0] for row in sqlite_conn.execute(spatial_index_exists_query).fetchall()]
+
+                if existing_index:
+                    # Drop the existing spatial index
+                    print(f"Dropping existing spatial index: {existing_index[0]}")
+                    sqlite_conn.execute(f"DROP INDEX IF EXISTS {existing_index[0]};")
+
+                print(f"Creating spatial index on column '{geom}' for table '{table_name}'...")
+                # Create a spatial index on the geometry column if it doesn't exist
                 sqlite_conn.execute(f"SELECT CreateSpatialIndex('{table_name}', '{geom}');")
+
+                # Create a spatial index on the geometry column
+                # sqlite_conn.execute(f"SELECT CreateSpatialIndex('{table_name}', '{geom}');")
 
         sqlite_conn.close()
 
