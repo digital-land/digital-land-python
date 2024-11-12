@@ -259,28 +259,17 @@ class DatasetParquetPackage(Package):
             """
             geom_columns = [row[0] for row in self.conn.execute(geom_columns_query).fetchall()]
 
-            # # Export the DuckDB table to the SQLite database
-            # self.conn.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db;")
-            # self.conn.execute("DROP TABLE IF EXISTS sqlite_db.my_table;")
-            # self.conn.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table;")
-            # self.conn.execute("DETACH DATABASE sqlite_db;")
-
-            # sqlite_con = sqlite3.connect(sqlite_file)
-            # sqlite_con.enable_load_extension(True)
-            # sqlite_con.execute('SELECT load_extension("mod_spatialite");')
-            # sqlite_con.execute("SELECT InitSpatialMetadata(1);")
-
             for geom in geom_columns:
                 # Add geometry column with default SRID 4326 and geometry type
                 if 'geometry' in geom:
-                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
+                    # sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = GeomFromText({geom}, 4326);")
                 elif 'point' in geom:
-                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
+                    # sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = GeomFromText({geom}, 4326);")
 
                 # Create a spatial index on the geometry column
-                sqlite_conn.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}');")
+                sqlite_conn.execute(f"SELECT CreateSpatialIndex('{table_name}', '{geom}');")
 
         sqlite_conn.close()
 
