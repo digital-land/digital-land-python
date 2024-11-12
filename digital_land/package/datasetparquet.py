@@ -221,7 +221,7 @@ class DatasetParquetPackage(Package):
         self.conn.execute(sql)
 
     def pq_to_sqlite(self, output_path):
-        query = "LOAD sqlite;"
+        query = "INSTALL sqlite; LOAD sqlite;"
         self.conn.execute(query)
 
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
