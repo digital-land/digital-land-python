@@ -43,7 +43,8 @@ def test_hash_directory_not_exist():
 def test_hash_directory_with_exclude():
     assert (
         State.get_dir_hash(
-            "tests/data/state/collection_exclude", ["resource/", "log/", "log.csv"]
+            "tests/data/state/collection_exclude",
+            ["pipeline.mk", "resource/", "log/", "log.csv"],
         )
         == test_hash
     )
