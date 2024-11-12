@@ -227,10 +227,6 @@ class DatasetParquetPackage(Package):
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
         sqlite_file_path = f"{output_path}/{os.path.basename(output_path)}.sqlite3"
 
-        print("sqlite_file_path")
-        print(sqlite_file_path)
-        print(os.path.exists(sqlite_file_path))
-
         # Create the SQLite database connection
         sqlite_conn = sqlite3.connect(sqlite_file_path)
         sqlite_conn.enable_load_extension(True)
