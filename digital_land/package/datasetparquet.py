@@ -227,11 +227,22 @@ class DatasetParquetPackage(Package):
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
         sqlite_file_path = f"{output_path}/{os.path.basename(output_path)}.sqlite3"
 
-        # Create the SQLite database connection
-        sqlite_conn = sqlite3.connect(sqlite_file_path)
+        # # Create the SQLite database connection
+        # sqlite_conn = sqlite3.connect(sqlite_file_path)
         # sqlite_conn.enable_load_extension(True)
         # sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
         # sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
+
+        # Create the SQLite database connection
+        sqlite_conn = sqlite3.connect(sqlite_file_path)
+        sqlite_conn.enable_load_extension(True)
+        sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
+
+        # Check if the spatial_ref_sys table already exists to avoid reinitializing spatial metadata
+        existing_tables = [row[0] for row in
+                           sqlite_conn.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()]
+        if 'spatial_ref_sys' not in existing_tables:
+            sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
 
         for parquet_file in parquet_files:
             table_name = os.path.splitext(os.path.basename(parquet_file))[0]
