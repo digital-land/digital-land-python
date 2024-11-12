@@ -225,7 +225,7 @@ class DatasetParquetPackage(Package):
         self.conn.execute(query)
 
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
-
+        print(output_path)
         print(parquet_files)
 
         sql_name = os.path.basename(os.path.dirname(parquet_files[0]))
