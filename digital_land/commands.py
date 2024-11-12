@@ -414,6 +414,7 @@ def dataset_create(
     pqpackage.pq_to_sqlite(output_path)
     pqpackage.close_conn()
 
+
 def dataset_dump(input_path, output_path):
     cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
     logging.info(cmd)
