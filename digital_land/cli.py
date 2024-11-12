@@ -338,26 +338,6 @@ def expectations_run_dataset_checkpoint(
     run_dataset_checkpoint(dataset, file_path, output_dir, config, organisations)
 
 
-@cli.command(
-    "expectations-converted-resource-checkpoint",
-    short_help="runs data quality expectations against a converted resource",
-)
-@click.option(
-    "--data-path", help="path to the converted resource to use", required=True
-)
-@click.option("--output-dir", help="path/name to sqlite3 dataset", required=True)
-@click.option("--specification-dir", help="checkpoint to run", required=True)
-@click.option("--dataset", help="checkpoint to run", required=True)
-def expectations_run_converted_resource_checkpoint(
-    data_path, output_dir, specification_dir, dataset
-):
-    from digital_land.expectations.commands import run_converted_resource_checkpoint
-
-    spec = Specification(specification_dir)
-    typology = spec.get_dataset_typology(dataset)
-    run_converted_resource_checkpoint(data_path, output_dir, dataset, typology)
-
-
 @cli.command("retire-endpoints-and-sources")
 @config_collections_dir
 @click.argument("csv-path", nargs=1, type=click.Path())

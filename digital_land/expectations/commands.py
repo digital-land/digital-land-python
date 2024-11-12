@@ -1,5 +1,4 @@
 from .checkpoints.dataset import DatasetCheckpoint
-from .checkpoints.converted_resource import CovertedResourceCheckpoint
 
 from digital_land.configuration.main import Config
 from digital_land.organisation import Organisation
@@ -28,23 +27,5 @@ def run_dataset_checkpoint(
     checkpoint.run()
     checkpoint.save(output_dir)
     # TODO add failure on critical error back in
-    if act_on_critical_error:
-        checkpoint.act_on_critical_error()
-
-
-def run_converted_resource_checkpoint(
-    converted_resource_path,
-    output_dir,
-    dataset,
-    typology,
-    act_on_critical_error=False,
-):
-    """
-    Function to run the expectation checkpoint for a converted resource
-    """
-    checkpoint = CovertedResourceCheckpoint(converted_resource_path, dataset, typology)
-    checkpoint.load()
-    checkpoint.run()
-    checkpoint.save(output_dir, format="csv")
     if act_on_critical_error:
         checkpoint.act_on_critical_error()
