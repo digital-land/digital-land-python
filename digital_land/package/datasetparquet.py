@@ -282,7 +282,7 @@ class DatasetParquetPackage(Package):
                     SELECT name FROM sqlite_master
                     WHERE type='index' AND tbl_name='{table_name}' AND name LIKE '%{geom}%';
                 """
-                existing_indexes = [row[0] for row in sqlite_conn.execute(spatial_index_exists_query).fetchall()]
+                existing_index = [row[0] for row in sqlite_conn.execute(spatial_index_exists_query).fetchall()]
 
                 if existing_index:
                     # Drop the existing spatial index
