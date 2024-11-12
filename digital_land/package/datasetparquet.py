@@ -225,7 +225,7 @@ class DatasetParquetPackage(Package):
         self.conn.execute(query)
 
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
-        sqlite_file_path = f"output_path/{os.path.basename(output_path)}.sqlite3"
+        sqlite_file_path = f"{output_path}/{os.path.basename(output_path)}.sqlite3"
 
         print("sqlite_file_path")
         print(sqlite_file_path)
