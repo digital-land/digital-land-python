@@ -225,13 +225,30 @@ class DatasetParquetPackage(Package):
         self.conn.execute(query)
 
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
+
+        sql_name = os.path.basename(os.path.dirname(parquet_files[0]))
+        sqlite_file_path = f"{os.path.dirname(parquet_files[0])}/{sql_name}.sqlite3"
+
+        # Create the SQLite database connection
+        sqlite_conn = sqlite3.connect(sqlite_file_path)
+        sqlite_conn.enable_load_extension(True)
+        sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
+        sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
+
         for parquet_file in parquet_files:
-            sqlite_file = parquet_file.replace(self.suffix, ".sqlite3")
+            table_name = os.path.splitext(os.path.basename(parquet_file))[0]
             self.conn.execute("DROP TABLE IF EXISTS temp_table;")
             self.conn.execute(f"""
                 CREATE TABLE temp_table AS 
                 SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
             """)
+
+            # Export the DuckDB table to the SQLite database
+            self.conn.execute(f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db;")
+            self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
+            self.conn.execute(f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;")
+            self.conn.execute("DETACH DATABASE sqlite_db;")
+
             geom_columns_query = """
                 SELECT column_name
                 FROM information_schema.columns
@@ -240,26 +257,30 @@ class DatasetParquetPackage(Package):
             """
             geom_columns = [row[0] for row in self.conn.execute(geom_columns_query).fetchall()]
 
-            # Export the DuckDB table to the SQLite database
-            self.conn.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db;")
-            self.conn.execute("DROP TABLE IF EXISTS sqlite_db.my_table;")
-            self.conn.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table;")
-            self.conn.execute("DETACH DATABASE sqlite_db;")
+            # # Export the DuckDB table to the SQLite database
+            # self.conn.execute(f"ATTACH DATABASE '{output_path}/{sqlite_file}' AS sqlite_db;")
+            # self.conn.execute("DROP TABLE IF EXISTS sqlite_db.my_table;")
+            # self.conn.execute("CREATE TABLE sqlite_db.my_table AS SELECT * FROM temp_table;")
+            # self.conn.execute("DETACH DATABASE sqlite_db;")
 
-            sqlite_con = sqlite3.connect(sqlite_file)
-            sqlite_con.enable_load_extension(True)
-            sqlite_con.execute('SELECT load_extension("mod_spatialite");')
-            sqlite_con.execute("SELECT InitSpatialMetadata(1);")
+            # sqlite_con = sqlite3.connect(sqlite_file)
+            # sqlite_con.enable_load_extension(True)
+            # sqlite_con.execute('SELECT load_extension("mod_spatialite");')
+            # sqlite_con.execute("SELECT InitSpatialMetadata(1);")
 
             for geom in geom_columns:
                 # Add geometry column with default SRID 4326 and geometry type
                 if 'geometry' in geom:
-                    sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'MULTIPOLYGON', 2);")
+                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
+                    sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = GeomFromText({geom}, 4326);")
                 elif 'point' in geom:
-                    sqlite_con.execute(f"SELECT AddGeometryColumn('my_table', '{geom}', 4326, 'POINT', 2);")
+                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
+                    sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = GeomFromText({geom}, 4326);")
+
                 # Create a spatial index on the geometry column
-                sqlite_con.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}');")
-            sqlite_con.close()
+                sqlite_conn.execute(f"SELECT CreateSpatialIndex('my_table', '{geom}');")
+
+        sqlite_conn.close()
 
     def close_conn(self):
         if self.conn is not None:
