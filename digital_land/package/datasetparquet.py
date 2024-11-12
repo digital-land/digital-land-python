@@ -229,9 +229,9 @@ class DatasetParquetPackage(Package):
 
         # Create the SQLite database connection
         sqlite_conn = sqlite3.connect(sqlite_file_path)
-        sqlite_conn.enable_load_extension(True)
-        sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
-        sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
+        # sqlite_conn.enable_load_extension(True)
+        # sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
+        # sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
 
         for parquet_file in parquet_files:
             table_name = os.path.splitext(os.path.basename(parquet_file))[0]
