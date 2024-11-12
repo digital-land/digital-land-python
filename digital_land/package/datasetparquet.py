@@ -258,10 +258,10 @@ class DatasetParquetPackage(Package):
             for geom in geom_columns:
                 # Add geometry column with default SRID 4326 and geometry type
                 if 'geometry' in geom:
-                    # sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
+                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326);")
                 elif 'point' in geom:
-                    # sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
+                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326);")
 
                 # Create a spatial index on the geometry column
