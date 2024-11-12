@@ -271,10 +271,10 @@ class DatasetParquetPackage(Package):
             for geom in geom_columns:
                 # Add geometry column with default SRID 4326 and geometry type
                 if 'geometry' in geom:
-                    # sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
+                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326) WHERE {geom} IS NOT NULL;")
                 elif 'point' in geom:
-                    # sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
+                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326) WHERE {geom} IS NOT NULL;")
 
                 # Check if spatial index already exists before creating one
@@ -289,7 +289,6 @@ class DatasetParquetPackage(Package):
                     print(f"Dropping existing spatial index: {existing_index[0]}")
                     sqlite_conn.execute(f"DROP INDEX IF EXISTS {existing_index[0]};")
 
-                print(f"Creating spatial index on column '{geom}' for table '{table_name}'...")
                 # Create a spatial index on the geometry column if it doesn't exist
                 sqlite_conn.execute(f"SELECT CreateSpatialIndex('{table_name}', '{geom}');")
 
