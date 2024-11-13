@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 
 import numpy as np
@@ -25,7 +26,7 @@ def test_dataset_parquet_package():
             "MULTIPOLYGON(((-0.49901924 53.81622,-0.5177418 53.76114,-0.4268378 53.78454,-0.49901924 53.81622)))"
         data = [
             [np.nan, 11, '2023-01-01', 2, 'abcdef', 'entry-date', 2, np.nan, 'zyxwvu', np.nan, '2023-01-01'],
-            [np.nan, 11, '2023-02-01', 2, 'abcdef', 'geometry', 2, np.nan, 'zyxwvu', np.nan, f"{test_geometry}"],
+            [np.nan, 11, '2023-01-01', 2, 'abcdef', 'geometry', 2, np.nan, 'zyxwvu', np.nan, f"{test_geometry}"],
             [np.nan, 12, '2023-02-01', 2, 'abc123', 'entry-date', 2, np.nan, 'yxwvut', np.nan, '2023-01-01'],
             [np.nan, 12, '2023-02-01', 2, 'abc123', 'geometry', 2, np.nan, 'yxwvut', np.nan, f"{test_geometry}"],
             [np.nan, 13, '2023-01-01', 2, 'def456', 'entry-date', 2, np.nan, 'xwvuts', np.nan, '2023-01-01'],
@@ -70,7 +71,9 @@ def test_dataset_parquet_package():
             input_paths=input_paths,
             specification_dir=None
         )
+        print("temp_dir")
         print(temp_dir)
+        print("\n")
 
         yield package
 
@@ -81,52 +84,71 @@ def test_dataset_parquet_package():
 #     return DatasetParquetPackage(dataset="test_dataset", input_paths=[])
 #
 #
-# def test_load_fact_resource_basic(mock_input_paths, dataset_parquet_package):
-#     # Run load_fact_resource
-#     output_dir = tempfile.mkdtemp()
-#     test_dataset_parquet_package.load_fact_resource(test_dataset_parquet_package, output_dir)
-#
-#     # Check if the output parquet file exists and verify contents
-#     output_file = os.path.join(output_dir, 'fact_resource.parquet')
-#     assert os.path.exists(output_file)
-#
-#     # Load Parquet into a DataFrame to verify data correctness
-#     df = pd.read_parquet(output_file)
-#     assert len(df) > 0  # Verify data was written correctly
-#     assert 'fact' in df.columns
-#     assert 'resource' in df.columns
-#
-#
-# def test_load_facts_duplicate_handling(mock_input_paths, dataset_parquet_package):
-#     # Write data to mock CSV input with duplicate entries to test deduplication
-#     with open(test_dataset_parquet_package[0], 'w') as f:
-#         f.write('fact,priority,entry-date,entry-number\n')
-#         f.write('fact1,1,2023-01-01,10\n')  # Higher priority
-#         f.write('fact1,2,2023-01-02,5\n')  # Lower priority, should be ignored
-#
-#     output_dir = tempfile.mkdtemp()
-#     test_dataset_parquet_package.load_facts(test_dataset_parquet_package, output_dir)
-#
-#     output_file = os.path.join(output_dir, 'fact.parquet')
-#     df = pd.read_parquet(output_file)
-#     assert len(df) == 1  # Should only have one entry due to deduplication
-#     assert df['priority'].iloc[0] == 1  # Check the highest-priority entry
-#
-#
-# def test_load_entities_null_handling(mock_input_paths, dataset_parquet_package):
-#     with open(test_dataset_parquet_package[0], 'w') as f:
-#         f.write('entity,field,value\n')
-#         f.write('entity1,field1,value1\n')
-#         f.write('entity1,field2,\n')  # Null value
-#
-#     output_dir = tempfile.mkdtemp()
-#     test_dataset_parquet_package.load_entities(test_dataset_parquet_package, output_dir)
-#
-#     output_file = os.path.join(output_dir, 'entity.parquet')
-#     df = pd.read_parquet(output_file)
-#     assert 'field2' in df.columns
-#     assert df['field2'].isnull().any()  # Check null handling
+def test_load_fact_resource_basic():
+    # Run load_fact_resource
+    output_dir = tempfile.mkdtemp()
+    test_dataset_parquet_package.load_fact_resource(test_dataset_parquet_package, output_dir)
 
+    # Check if the output parquet file exists and verify contents
+    output_file = os.path.join(output_dir, 'fact_resource.parquet')
+    assert os.path.exists(output_file), "fact-resource.parquet file does not exits"
+
+    # Load Parquet into a DataFrame to verify data correctness
+    df = pd.read_parquet(output_file)
+    assert len(df) > 0, "No data in fact-resource,parquet file"
+    assert len(df) == 18, "Not all data saved in fact-resource.parquet file"
+    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
+
+def test_load_fact_basic():
+    output_dir = tempfile.mkdtemp()
+    test_dataset_parquet_package.load_facts(test_dataset_parquet_package, output_dir)
+
+    output_file = os.path.join(output_dir, 'fact.parquet')
+    assert os.path.exists(output_file), "fact.parquet file does not exits"
+
+    df = pd.read_parquet(output_file)
+    assert len(df) > 0, "No data in fact.parquet file"
+    # assert len(df) == 16, "No. of facts is not correct"   # Work out how many rows would be kept here
+    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
+
+
+def test_load_entities_basic():
+    output_dir = tempfile.mkdtemp()
+    test_dataset_parquet_package.load_entities(test_dataset_parquet_package, output_dir)
+
+    output_file = os.path.join(output_dir, 'entity.parquet')
+    assert os.path.exists(output_file), "entity.parquet file does not exits"
+
+    df = pd.read_parquet(output_file)
+    assert len(df) > 0, "No data in entity.parquet file"
+    assert len(df) == 9, "No. of entities is not correct"
+    assert df.shape[1] == 16, "Not all columns saved in entity.parquet file"
+    assert df['end-date'].isnull().all()  # Check null handling
+    assert df['geojson'].isnull().all()  # Check null handling
+    assert df['geometry_geom'].isnull().all()  # Check null handling
+    assert df['point_geom'].isnull().all()  # Check null handling
+
+
+def test_load_pq_to_sqlite_basic():
+    output_dir = tempfile.mkdtemp()
+    test_dataset_parquet_package.pq_to_sqlite(test_dataset_parquet_package, output_dir)
+
+    output_file = os.path.join(output_dir, f'{os.path.basename(str(output_dir))}.sqlite3')
+    assert os.path.exists(output_file), "entity.parquet file does not exits"
+
+    cnx = sqlite3.connect(output_file)
+    df_sql = pd.read_sql_query(f"SELECT * FROM fact_resource", cnx)
+    assert len(df_sql) > 0, "No data in fact_resource table"
+    assert np.all(df_sql['end_date'] == ''), "Non-empty strings in end_date from fact_resource table"
+
+    df_sql = pd.read_sql_query(f"SELECT * FROM fact", cnx)
+    assert len(df_sql) > 0, "No data in fact table"
+    assert np.all(df_sql['end_date'] == ''), "Non-empty strings in end_date from fact table"
+
+    df_sql = pd.read_sql_query(f"SELECT * FROM entity", cnx)
+    assert len(df_sql) > 0, "No data in entity table"
+    assert np.any(df_sql['geometry'] == ''), "All geometries from entity table have values"
+    cnx.close()
 
 # # import json
 # # import os.path
