@@ -217,7 +217,6 @@ def test_validate_categorical_fields():
     assert output[1]["row"]["tree-preservation-zone-type"] == "other"
     assert output[2]["row"]["tree-preservation-zone-type"] == ""
 
-
     assert len(issues.rows) == 1
     # but we get an issue generated
     assert issues.rows[0]["issue-type"] == "invalid category value"
