@@ -200,15 +200,22 @@ def test_validate_categorical_fields():
                 "description": "Test",
                 "tree-preservation-zone-type": "other",
             },
+            {
+                "reference": "3",
+                "name": "Test TPO 3",
+                "description": "Test",
+                "tree-preservation-zone-type": "",
+            },
         ],
     )
 
     output = list(h.process(reader))
 
-    assert len(output) == 2
+    assert len(output) == 3
     # check the fields are set in the output
     assert output[0]["row"]["tree-preservation-zone-type"] == "area"
     assert output[1]["row"]["tree-preservation-zone-type"] == "other"
+    assert output[2]["row"]["tree-preservation-zone-type"] == ""
 
     assert len(issues.rows) == 1
     # but we get an issue generated
