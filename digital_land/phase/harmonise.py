@@ -91,7 +91,7 @@ class HarmonisePhase(Phase):
             for field in row:
                 if field in self.valid_category_values.keys():
                     value = row[field]
-                    if value.lower() not in self.valid_category_values[field]:
+                    if value and value.lower() not in self.valid_category_values[field]:
                         self.issues.log_issue(field, "invalid category value", value)
 
                 o[field] = self.harmonise_field(field, row[field])
