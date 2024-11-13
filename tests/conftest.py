@@ -1,6 +1,14 @@
 import pytest
 import urllib
 import os
+import logging
+
+
+def pytest_configure(config):
+    # Set up a logger for the tests
+    logging.basicConfig(
+        level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s"
+    )
 
 
 @pytest.fixture(scope="session")
