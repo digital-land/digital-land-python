@@ -35,7 +35,7 @@ class DatasetParquetPackage(Package):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.input_paths = input_paths
-        # self.suffix = ".parquet"
+        self._spatialite = None
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
         self.duckdb_file = "input_paths_database.duckdb"
         self.conn = duckdb.connect(self.duckdb_file)
@@ -230,12 +230,6 @@ class DatasetParquetPackage(Package):
         parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
         sqlite_file_path = f"{output_path}/{os.path.basename(output_path)}.sqlite3"
 
-        # # Create the SQLite database connection
-        # sqlite_conn = sqlite3.connect(sqlite_file_path)
-        # sqlite_conn.enable_load_extension(True)
-        # sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
-        # sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
-
         # Create the SQLite database connection
         sqlite_conn = sqlite3.connect(sqlite_file_path)
         sqlite_conn.enable_load_extension(True)
@@ -271,30 +265,17 @@ class DatasetParquetPackage(Package):
             """
             geom_columns = [row[0] for row in self.conn.execute(geom_columns_query).fetchall()]
 
-            for geom in geom_columns:
-                # Add geometry column with default SRID 4326 and geometry type
-                if 'geometry' in geom:
-                    sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326) WHERE {geom} IS NOT NULL;")
-                elif 'point' in geom:
-                    sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326) WHERE {geom} IS NOT NULL;")
-
-                # Check if spatial index already exists before creating one
-                spatial_index_exists_query = f"""
-                    SELECT name FROM sqlite_master
-                    WHERE type='index' AND tbl_name='{table_name}' AND name LIKE '%{geom}%';
-                """
-                existing_index = [row[0] for row in sqlite_conn.execute(spatial_index_exists_query).fetchall()]
-
-                if existing_index:
-                    # Drop the existing spatial index
-                    sqlite_conn.execute(f"DROP INDEX IF EXISTS {existing_index[0]};")
-
-                # Create a spatial index on the geometry column if it doesn't exist
-                sqlite_conn.execute(f"SELECT CreateSpatialIndex('{table_name}', '{geom}');")
-
-                # Create a spatial index on the geometry column
-                # sqlite_conn.execute(f"SELECT CreateSpatialIndex('{table_name}', '{geom}');")
-
+            if self._spatialite:
+                if "geometry-geom" in geom_columns:
+                    self.execute(
+                        "SELECT AddGeometryColumn('%s', 'geometry_geom', 4326, 'MULTIPOLYGON', 2);"
+                        % (table_name)
+                    )
+                if "point-geom" in geom_columns:
+                    self.execute(
+                        "SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);"
+                        % (table_name)
+                    )
         sqlite_conn.close()
 
     def close_conn(self):
