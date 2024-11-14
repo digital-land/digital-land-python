@@ -11,6 +11,7 @@ def get_version():
         )
     except subprocess.CalledProcessError:
         print("Unable to get version number from git tags")
+        exit(1)
 
 
 def next_version():
