@@ -33,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install sphinx sphinx-autobuild sphinx_rtd_theme
+        pip install -e [test]
 
     - name: Generate Documentation
       run: |
