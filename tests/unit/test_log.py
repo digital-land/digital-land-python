@@ -83,3 +83,25 @@ def test_operationalIssueLog_save_no_operational_dir():
 
     with pytest.raises(Exception):
         operational_issue.save()
+
+
+def test_IssueLog_entity_map():
+    issue_log = IssueLog()
+
+    issue_log.log_issue("test", "test", "test", entry_number=1)
+    issue_log.log_issue("test", "test", "test", entry_number=2)
+    issue_log.log_issue("test", "test", "test", entry_number=3, entity="100100")
+    issue_log.log_issue("test", "test", "test", entry_number=4)
+
+    issue_log.record_entity_map(1, "100001")  # Entry 1
+    issue_log.record_entity_map(2, "100002")  # Entry 2
+    issue_log.record_entity_map(3, "100003")  # Entity set, so this shouldn't be applied
+    issue_log.record_entity_map(2, "100020")  # Already mapped, should have no effect
+
+    issue_log.apply_entity_map()
+
+    assert len(issue_log.rows) == 4
+    assert issue_log.rows[0]["entity"] == "100001"
+    assert issue_log.rows[1]["entity"] == "100002"
+    assert issue_log.rows[2]["entity"] == "100100"
+    assert issue_log.rows[3]["entity"] is None

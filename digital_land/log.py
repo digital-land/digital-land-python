@@ -22,6 +22,7 @@ class Log:
         self.fieldname = "unknown"
         self.line_number = 0
         self.entry_number = 0
+        self.entry_to_entity = {}
 
     def add(self, *args, **kwargs):
         pass
@@ -73,6 +74,7 @@ class IssueLog(Log):
         "line-number",
         "entry-number",
         "field",
+        "entity",
         "issue-type",
         "value",
         "message",
@@ -87,7 +89,14 @@ class IssueLog(Log):
         self.log_issue(self.fieldname, issue_type, value, message)
 
     def log_issue(
-        self, fieldname, issue_type, value, message=None, line_number=0, entry_number=0
+        self,
+        fieldname,
+        issue_type,
+        value,
+        entity=None,
+        message=None,
+        line_number=0,
+        entry_number=0,
     ):
         self.rows.append(
             {
@@ -96,11 +105,27 @@ class IssueLog(Log):
                 "field": fieldname,
                 "issue-type": issue_type,
                 "value": value,
+                "entity": entity,
                 "line-number": line_number or self.line_number,
                 "entry-number": entry_number or self.entry_number,
                 "message": message,
             }
         )
+
+    def record_entity_map(self, entry, entity):
+        if entry in self.entry_to_entity and self.entry_to_entity[entry] != entry:
+            print(
+                f"Entry {entry} is already mapped to {self.entry_to_entity[entry]}, trying to map to {entity}"
+            )
+        else:
+            self.entry_to_entity[entry] = entity
+
+    def apply_entity_map(self):
+        for row in self.rows:
+            if not row["entity"]:
+                entity = self.entry_to_entity.get(row["entry-number"])
+                if entity:
+                    row["entity"] = entity
 
     def add_severity_column(self, severity_mapping_path):
         # Load only the 'severity' column from severity_mapping
