@@ -121,7 +121,7 @@ class DatasetParquetPackage(Package):
             ) TO '{output_path}/fact_resource{self.suffix}' (FORMAT PARQUET);
         """)
 
-    def load_entities(self, input_paths, output_path):
+    def load_entities(self, input_paths, output_path, organisation_path="./var/cache"):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
@@ -187,7 +187,7 @@ class DatasetParquetPackage(Package):
         ])
 
         # define organisation query
-        org_csv = './var/cache/organisation.csv'
+        org_csv = f'{organisation_path}/organisation.csv'
         org_query = f"""
              SELECT * FROM read_csv_auto('{org_csv}')
          """
@@ -274,10 +274,8 @@ class DatasetParquetPackage(Package):
             for geom in geom_columns:
                 # Add geometry column with default SRID 4326 and geometry type
                 if 'geometry' in geom:
-                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'MULTIPOLYGON', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326) WHERE {geom} IS NOT NULL;")
                 elif 'point' in geom:
-                    sqlite_conn.execute(f"SELECT AddGeometryColumn('{table_name}', '{geom}', 4326, 'POINT', 2);")
                     sqlite_conn.execute(f"UPDATE {table_name} SET {geom} = ST_GeomFromText({geom}, 4326) WHERE {geom} IS NOT NULL;")
 
                 # Check if spatial index already exists before creating one
