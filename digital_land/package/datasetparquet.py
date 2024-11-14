@@ -31,9 +31,11 @@ indexes = {
 
 class DatasetParquetPackage(Package):
     def __init__(self, dataset, input_paths, **kwargs):
+        self.suffix = ".parquet"
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
-        self.suffix = ".parquet"
+        self.input_paths = input_paths
+        # self.suffix = ".parquet"
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
         self.duckdb_file = "input_paths_database.duckdb"
         self.conn = duckdb.connect(self.duckdb_file)
@@ -67,6 +69,7 @@ class DatasetParquetPackage(Package):
         logging.info(f"loading data into temp table from {os.path.dirname(input_paths[0])}")
 
         input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
+
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
         query = f"""
             CREATE TEMPORARY TABLE temp_table AS
@@ -286,7 +289,6 @@ class DatasetParquetPackage(Package):
 
                 if existing_index:
                     # Drop the existing spatial index
-                    print(f"Dropping existing spatial index: {existing_index[0]}")
                     sqlite_conn.execute(f"DROP INDEX IF EXISTS {existing_index[0]};")
 
                 # Create a spatial index on the geometry column if it doesn't exist
