@@ -957,9 +957,18 @@ def save_state(specification_dir, collection_dir, pipeline_dir, output_path):
     )
 
 
-def check_state(specification_dir, collection_dir, pipeline_dir, state_path):
-    return State.build(
+def compare_state(specification_dir, collection_dir, pipeline_dir, state_path):
+    """Compares the current state against the one in state_path.
+    Returns a list of different elements, ot None if they are the same."""
+    current = State.build(
         specification_dir=specification_dir,
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
-    ) == State.load(state_path)
+    )
+
+    compare = State.load(state_path)
+
+    if current == compare:
+        return None
+
+    return [i for i in current.keys() if current[i] != compare[i]]
