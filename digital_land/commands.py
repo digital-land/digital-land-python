@@ -412,15 +412,10 @@ def dataset_create(
         input_paths=input_paths,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    print("create_temp_table")
     pqpackage.create_temp_table(input_paths)
-    print("load_facts")
     pqpackage.load_facts(input_paths, output_path)
-    print("load_fact_resource")
     pqpackage.load_fact_resource(input_paths, output_path)
-    print("load_entitites")
     pqpackage.load_entities(input_paths, output_path)
-    print("pq_to_sqlite")
     pqpackage.pq_to_sqlite(output_path)
     pqpackage.close_conn()
 
