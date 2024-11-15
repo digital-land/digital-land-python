@@ -57,6 +57,7 @@ from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
 from digital_land.api import API
+from digital_land.state import State
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
@@ -197,8 +198,11 @@ def pipeline_run(
     organisations=[],
     entry_date="",
     config_path="var/cache/config.sqlite3",
+    resource=None,
+    output_log_dir=None,
 ):
-    resource = resource_from_path(input_path)
+    if resource is None:
+        resource = resource_from_path(input_path)
     dataset = dataset
     schema = specification.pipeline[pipeline.name]["schema"]
     intermediate_fieldnames = specification.intermediate_fieldnames(pipeline)
@@ -224,9 +228,9 @@ def pipeline_run(
 
     # load config db
     # TODO get more information from the config
-    # TODO in future we need better way of making config optional
+    # TODO in future we need better way of making specification optional for config
     if Path(config_path).exists():
-        config = Config(path=config_path, specification=Specification)
+        config = Config(path=config_path, specification=specification)
     else:
         logging.error("Config path  does not exist")
         config = None
@@ -333,6 +337,7 @@ def pipeline_run(
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+    issue_log.save_parquet(os.path.join(output_log_dir, "issue/"))
     operational_issue_log.save(output_dir=operational_issue_dir)
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
@@ -964,3 +969,22 @@ def organisation_check(**kwargs):
     lpa_path = kwargs.pop("lpa_path")
     package = OrganisationPackage(**kwargs)
     package.check(lpa_path, output_path)
+
+
+def save_state(specification_dir, collection_dir, pipeline_dir, output_path):
+    state = State.build(
+        specification_dir=specification_dir,
+        collection_dir=collection_dir,
+        pipeline_dir=pipeline_dir,
+    )
+    state.save(
+        output_path=output_path,
+    )
+
+
+def check_state(specification_dir, collection_dir, pipeline_dir, state_path):
+    return State.build(
+        specification_dir=specification_dir,
+        collection_dir=collection_dir,
+        pipeline_dir=pipeline_dir,
+    ) == State.load(state_path)

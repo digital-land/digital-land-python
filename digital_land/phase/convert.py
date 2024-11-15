@@ -144,10 +144,10 @@ def save_efficient_json_as_csv(output_path, columns, data):
             cw.writerow(row)
 
 
-def convert_json_to_csv(input_path, output_path=None):
+def convert_json_to_csv(input_path, encoding, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
-    with open(input_path, "r") as json:
+    with open(input_path, "r", encoding=encoding) as json:
         js = json_stream.load(json)
 
         columns = None
@@ -277,6 +277,7 @@ class ConvertPhase(Phase):
             self.dataset_resource_log.mime_type = "application/json" + self.charset
             converted_csv_file = convert_json_to_csv(
                 input_path,
+                encoding,
                 self.output_path,
             )
 

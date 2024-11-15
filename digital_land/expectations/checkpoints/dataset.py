@@ -1,86 +1,165 @@
-import os
+import json
+import spatialite
 from pathlib import Path
+from jinja2 import Template
+
+from digital_land.organisation import Organisation
 
 from .base import BaseCheckpoint
-from ..utils import QueryRunner
-from ..expectation_functions.sqlite import (
-    check_old_entities,
-    check_json_field_is_not_blank,
-)
-
-BASE = [
-    {
-        "function": check_old_entities,
-        "name": "Check for retired entities in the entity table",
-        "description": "Check for old entities",
-        "severity": "warning",
-        "responsbility": "internal",
-    }
-]
-
-TYPOLOGY = {
-    "document": [
-        {
-            "function": check_json_field_is_not_blank,
-            "name": "Check entities in a document dataset have a document field",
-            "severity": "warning",
-            "responsibility": "internal",
-            "field": "document-url",
-        }
-    ],
-}
-
-DATASET = {
-    "article-4-direction-area": [
-        {
-            "function": check_json_field_is_not_blank,
-            "name": "Check article 4 direction area has an associated article 4 direction",
-            "severity": "warning",
-            "responsibility": "internal",
-            "field": "article-4-direction",
-        }
-    ]
-}
+from ..log import ExpectationLog
+from ..operation import count_lpa_boundary
 
 
 class DatasetCheckpoint(BaseCheckpoint):
-    def __init__(self, dataset_path, typology, dataset=None):
+    def __init__(self, dataset, file_path, organisations: Organisation):
 
-        super().__init__("dataset", dataset_path)
-        self.dataset_path = Path(dataset_path)
-        if dataset:
-            self.dataset = dataset
+        self.dataset = dataset
+        self.dataset_path = Path(file_path)
+        self.organisations = organisations
+        self.log = ExpectationLog(dataset=dataset)
+
+    def operation_factory(self, operation_string: str):
+        """
+        conevrts a string into an operation, available operations are specific
+        to the checkpoint
+
+        Args
+            operation: a string representing an operation
+        """
+        operation_map = {"count_lpa_boundary": count_lpa_boundary}
+        operation = operation_map[operation_string]
+        return operation
+
+    def get_rule_orgs(self, rule: dict) -> list:
+        """
+        for each rule we need to get a list of the organisations that the rule
+        applies to this is a semi colon separated list of individual orgs, org datasets
+        or org prefixes which are a key of the inputted dict
+
+        Args:
+            - rule: a single expectation rule
+        """
+        final_rule_orgs = []
+        for org in rule["organisations"].split(";"):
+            org_lookup = self.organisations.lookup(org)
+            if org_lookup:
+                final_rule_orgs.append(self.organisations.get(org_lookup))
+            else:
+                # try get orgs by dataset
+                dataset_orgs = self.organisations.get_orgs_by_dataset(org)
+                if dataset_orgs:
+                    final_rule_orgs.extend(dataset_orgs)
+                else:
+                    raise ValueError(
+                        f"Cannot attribute organisations to the provided value {org}"
+                    )
+
+        return [
+            {key.replace("-", "_"): value for key, value in rule_org.items()}
+            for rule_org in final_rule_orgs
+        ]
+
+    def parse_rule(self, rule, org=None) -> dict:
+        """
+        turn a rule into an expectation given an org it will format text strings using jinja templating
+        """
+        expectation = {}
+        # set the operation riase error if it doesn't exist
+        if org:
+            operation = self.operation_factory(rule["operation"])
+            expectation["operation"] = operation
+            expectation["name"] = Template(rule["name"]).render(organisation=org)
+            expectation["description"] = Template(rule.get("description", "")).render(
+                organisation=org
+            )
+            expectation["organisation"] = org
+            expectation["dataset"] = self.dataset
+            expectation["severity"] = rule.get("severity", "")
+            expectation["responsibility"] = rule.get("responsibility", "")
+
+            # params are different string needs to be rendered and then loaded from json
+            expectation["parameters"] = json.loads(
+                Template(rule["parameters"]).render(organisation=org)
+            )
         else:
-            self.dataset = self.dataset_path.stem
-        self.typology = typology
+            operation = self.operation_factory(rule["operation"])
+            expectation["operation"] = operation
+            expectation["name"] = rule["name"]
+            expectation["description"] = rule.get("description", "")
+            expectation["organisation"] = ""
+            expectation["dataset"] = self.dataset
+            expectation["severity"] = rule.get("severity", "")
+            expectation["responsibility"] = rule.get("responsibility", "")
 
-    def load(self):
+            # params are different it's read in from a json, onlly format the values
+            expectation["parameters"] = rule["parameters"]
+
+        return expectation
+
+    def load(self, rules):
+        """
+        given a set of rules this function loads them into the checkpoint
+        for the dataset checkpoint we antiipates rules contain organisations with which
+        expectations need parsing
+        """
         self.expectations = []
-        self.expectations.extend(BASE)
-        typology_expectations = TYPOLOGY.get(self.typology, "")
-        dataset_expectations = DATASET.get(self.dataset, "")
+        for rule in rules:
+            if rule["organisations"]:
+                rule_orgs = self.get_rule_orgs(rule)
 
-        if typology_expectations:
-            self.expectations.extend(typology_expectations)
+                for rule_org in rule_orgs:
+                    expectation = self.parse_rule(rule, rule_org)
+                    self.expectations.append(expectation)
 
-        if dataset_expectations:
-            self.expectations.extend(dataset_expectations)
+            else:
+                expectation = self.parse_rule(rule)
+                self.expectations.append(expectation)
+
+    def run_expectation(self, expectation) -> tuple:
+        """
+        runs a given expectation returning the result, description and message
+        a log can be provided to record this information
+        """
+        params = expectation["parameters"]
+        with spatialite.connect(self.dataset_path) as conn:
+            passed, msg, details = expectation["operation"](conn=conn, **params)
+
+        return passed, msg, details
+
+    def run(self):
+        """
+        run the set of expectations that have been loaded into the checkpoint
+        results will be stoed in the log and can be saved used .save
+        """
+        # TODO implement faillure on critical errors, this is also the zombie code below
+        # self.failed_expectation_with_error_severity = 0
 
         for expectation in self.expectations:
-            expectation["query_runner"] = QueryRunner(self.dataset_path)
+            passed, message, details = self.run_expectation(expectation)
+            self.log.add(
+                {
+                    "organisation": expectation["organisation"]["organisation"],
+                    "name": expectation["name"],
+                    "passed": passed,
+                    "message": message,
+                    "details": details,
+                    "description": expectation["description"],
+                    "severity": expectation["severity"],
+                    "responsibility": expectation["responsibility"],
+                    "operation": expectation["operation"].__name__,
+                    "parameters": expectation["parameters"],
+                }
+            )
+            # self.failed_expectation_with_error_severity
 
-    def save(self, output_dir, format="csv"):
-        responses_file_path = os.path.join(
-            output_dir, self.checkpoint, f"{self.data_name}-results.csv"
-        )
-        issues_file_path = os.path.join(
-            output_dir, self.checkpoint, f"{self.data_name}-issues.csv"
-        )
+        # if self.failed_expectation_with_error_severity > 0:
+        #     # raise DataQualityException(
+        #     #     "One or more expectations with severity RaiseError failed, see results for more details"
+        #     # )
 
-        self.save_results(
-            self.responses,
-            responses_file_path,
-            format=format,
-        )
-
-        self.save_issues(self.issues, issues_file_path, format=format)
+    def save(self, output_dir: Path):
+        """
+        save the outputs as a file, the file is named based the the dataset
+        and stored in the provided directory
+        """
+        self.log.save_parquet(output_dir)

@@ -50,6 +50,7 @@ def test_dirs(tmp_path_factory):
     datasource_log_dir = tmp_path_factory.mktemp(
         "concat_datasource-log", numbered=False
     )
+    output_log_dir = tmp_path_factory.mktemp("concat_output-log", numbered=False)
 
     output_dir = tmp_path_factory.mktemp("concat_output", numbered=False)
 
@@ -78,6 +79,7 @@ def test_dirs(tmp_path_factory):
         "operational_issues_dir": operational_issues_dir,
         "datasource_log_dir": datasource_log_dir,
         "converted_resource_dir": converted_resource_dir,
+        "output_log_dir": output_log_dir,
     }
 
 
@@ -330,6 +332,7 @@ def test_pipeline_run(test_dirs):
     organisation_path = "tests/data/listed-building/organisation.csv"
     dataset_resource_dir = test_dirs["dataset_resource_dir"]
     converted_resource_dir = test_dirs["converted_resource_dir"]
+    output_log_dir = test_dirs["output_log_dir"]
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
     # -- Act --
@@ -352,6 +355,7 @@ def test_pipeline_run(test_dirs):
         endpoints=test_endpoints,
         organisations=[],
         entry_date="",
+        output_log_dir=output_log_dir,
     )
 
     resource_concat_def = pipeline.concat.get(test_resource, {})

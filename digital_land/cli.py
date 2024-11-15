@@ -7,9 +7,8 @@ import click
 from collections import defaultdict
 from digital_land.collection import Collection
 from digital_land.specification import Specification
-
 from digital_land.configuration.main import Config
-
+from digital_land.organisation import Organisation
 from digital_land.commands import (
     add_redirections,
     assign_entities,
@@ -30,7 +29,10 @@ from digital_land.commands import (
     collection_retire_endpoints_and_sources,
     organisation_create,
     organisation_check,
+    save_state,
+    check_state,
 )
+from digital_land.expectations.commands import run_dataset_checkpoint
 
 from digital_land.command_arguments import (
     collection_dir,
@@ -42,6 +44,7 @@ from digital_land.command_arguments import (
     dataset_resource_dir,
     column_field_dir,
     converted_resource_dir,
+    output_log_dir,
 )
 
 
@@ -215,6 +218,11 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--entry-date", help="default entry-date value", default="")
 @click.option("--custom-temp-dir", help="default temporary directory", default=None)
 @click.option("--config-path", help="Path  to a configuration sqlite", default=None)
+@click.option(
+    "--resource",
+    help="the resource hash to use if it can not be derived from filepath",
+    default=None,
+)
 @input_output_path
 @issue_dir
 @column_field_dir
@@ -223,6 +231,7 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @organisation_path
 @collection_dir
 @operational_issue_dir
+@output_log_dir
 @click.pass_context
 def pipeline_command(
     ctx,
@@ -241,6 +250,8 @@ def pipeline_command(
     collection_dir,
     operational_issue_dir,
     config_path,
+    resource,
+    output_log_dir,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -268,6 +279,8 @@ def pipeline_command(
         entry_date=entry_date,
         custom_temp_dir=custom_temp_dir,
         config_path=config_path,
+        resource=resource,
+        output_log_dir=output_log_dir,
     )
 
 
@@ -303,36 +316,55 @@ def collection_add_source_cmd(ctx, collection, endpoint_url, collection_dir):
     "expectations-dataset-checkpoint",
     short_help="runs data quality expectations against a dataset sqlite file",
 )
-@click.option("--data-path", help="path to the sqlite3 dataset", required=True)
-@click.option("--output-dir", help="directory to store results", required=True)
-@click.option("--specification-dir", help="checkpoint to run", required=True)
-def expectations_run_dataset_checkpoint(data_path, output_dir, specification_dir):
-    from digital_land.expectations.commands import run_dataset_checkpoint
-
-    dataset = Path(data_path).stem
-    spec = Specification(specification_dir)
-    typology = spec.get_dataset_typology(dataset)
-    run_dataset_checkpoint(data_path, output_dir, dataset, typology)
-
-
-@cli.command(
-    "expectations-converted-resource-checkpoint",
-    short_help="runs data quality expectations against a converted resource",
+@click.option(
+    "--dataset",
+    type=click.STRING,
+    help="the dataset which is stored in the file path, the checkpoint is ran for one dataset at a time",
+    required=True,
 )
 @click.option(
-    "--data-path", help="path to the converted resource to use", required=True
+    "--file-path",
+    type=click.Path(),
+    help="path to the sqlite3 dataset that contains the dataset data",
+    required=True,
 )
-@click.option("--output-dir", help="path/name to sqlite3 dataset", required=True)
-@click.option("--specification-dir", help="checkpoint to run", required=True)
-@click.option("--dataset", help="checkpoint to run", required=True)
-def expectations_run_converted_resource_checkpoint(
-    data_path, output_dir, specification_dir, dataset
+@click.option(
+    "--log-dir",
+    type=click.Path(),
+    help="directory to store expectation logs. an expectation directoy will be ceated here",
+    required=True,
+)
+@click.option(
+    "--configuration-path",
+    type=click.Path(),
+    help="path to the configuration sqlite file",
+    required=True,
+)
+@click.option(
+    "--organisation-path",
+    type=click.Path(),
+    help="path to the organisation data for the organisation class",
+    required=True,
+)
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    help="directory containing the specification",
+    required=True,
+)
+def expectations_run_dataset_checkpoint(
+    dataset,
+    file_path,
+    log_dir,
+    configuration_path,
+    organisation_path,
+    specification_dir,
 ):
-    from digital_land.expectations.commands import run_converted_resource_checkpoint
-
-    spec = Specification(specification_dir)
-    typology = spec.get_dataset_typology(dataset)
-    run_converted_resource_checkpoint(data_path, output_dir, dataset, typology)
+    specification = Specification(specification_dir)
+    output_dir = Path(log_dir) / "expectation"
+    config = Config(path=configuration_path, specification=specification)
+    organisations = Organisation(organisation_path=organisation_path)
+    run_dataset_checkpoint(dataset, file_path, output_dir, config, organisations)
 
 
 @cli.command("retire-endpoints-and-sources")
@@ -543,3 +575,70 @@ def config_load_cmd(ctx, config_path):
     config = Config(path=config_path, specification=ctx.obj["SPECIFICATION"])
     tables = {key: ctx.obj["PIPELINE"].path for key in config.tables.keys()}
     config.load(tables)
+
+
+@cli.command("save-state", short_help="save a state file")
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    default="specification",
+    help="directory containing the specification",
+)
+@click.option(
+    "--collection-dir",
+    type=click.Path(),
+    default="collection",
+    help="directory containing the collection",
+)
+@click.option(
+    "--pipeline-dir",
+    type=click.Path(),
+    default="pipeline",
+    help="directory containing the pipeline",
+)
+@click.option(
+    "--output-path",
+    "-o",
+    type=click.Path(),
+    default="state.json",
+    help="path of the output state file",
+)
+def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path):
+    save_state(specification_dir, collection_dir, pipeline_dir, output_path)
+
+
+@cli.command(
+    "check-state",
+    short_help="compare the current state against a stated file. Returns with a non-zero return code if they differ.",
+)
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    default="specification",
+    help="directory containing the specification",
+)
+@click.option(
+    "--collection-dir",
+    type=click.Path(),
+    default="collection",
+    help="directory containing the collection",
+)
+@click.option(
+    "--pipeline-dir",
+    type=click.Path(),
+    default="pipeline",
+    help="directory containing the pipeline",
+)
+@click.option(
+    "--state-path",
+    type=click.Path(),
+    default="state.json",
+    help="path of the output state file",
+)
+def check_state_cmd(specification_dir, collection_dir, pipeline_dir, state_path):
+    # If the state isn't the same, use a non-zero return code so scripts can
+    # detect this, and print a message. If it is the same, exit silenty wirh a
+    # 0 retun code.
+    if not check_state(specification_dir, collection_dir, pipeline_dir, state_path):
+        print(f"State differs from {state_path}")
+        sys.exit(1)

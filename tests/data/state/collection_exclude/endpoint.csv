@@ -1,0 +1,4 @@
+endpoint,endpoint-url,parameters,plugin,entry-date,start-date,end-date
+7b4b9b400899e33b81a52c5893987827666437d1fcc8488d610d0ae77b605a31,https://opendata.arcgis.com/datasets/2ad4c9a65a344e699737857f5c241074_0.geojson,,,2021-10-29T10:10:36Z,2020-12-17,
+7bc8a737cf2fc696b33985d1112421cbf09eb8236192f298d971ab01808f8378,https://data.london.gov.uk/download/central_activities_zone/0a89db50-b158-4c87-9139-4dd9f887cf15/Central_Activities_Zone.gpkg,,,2021-11-11T15:15:58Z,,
+8e4b3785e5b478804603d297d147b073589ddc532b179edfc9cd38f166f7b364,https://raw.githubusercontent.com/digital-land/central-activities-zone-collection/main/data/Southwark/Central%20Activities%20Zone.zip,,,2021-11-30T17:17:52Z,,

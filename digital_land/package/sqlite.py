@@ -193,7 +193,7 @@ class SqlitePackage(Package):
 
     def get_table_fields(self, tables=None):
         """
-        gets tables fields and join  table information for a dictionary of tables
+        gets tables fields and join table information for a dictionary of tables
         """
         tables = tables or self.tables
         fields = {}
@@ -211,6 +211,9 @@ class SqlitePackage(Package):
                     "concat|fields",
                     "convert|parameters",
                     "endpoint|parameters",
+                    "expect|datasets",
+                    "expect|organisations",
+                    "expect|parameters",
                 ]:
                     parent_field = self.specification.field[field]["parent-field"]
                     join_table = "%s_%s" % (table, parent_field)
@@ -233,7 +236,6 @@ class SqlitePackage(Package):
             self.create_cursor()
             self.create_table(table, fields, key_field)
             self.commit()
-
         for join_table, join in self.join_tables.items():
             fields = [join["table"], join["field"]]
             self.create_cursor()
@@ -266,10 +268,14 @@ class SqlitePackage(Package):
                 )
                 self.commit()
 
-    def create_indexes(self):
+    def create_indexes(self, tables=None):
+        tables = tables or self.tables
+        table_fields, join_tables = self.get_table_fields(tables)
         for table, index_fields in self.indexes.items():
-            for fields in index_fields:
-                self.create_index(table, fields)
+            # check to see index is in the tables or in the join tables
+            if table in tables.keys() or table in join_tables:
+                for fields in index_fields:
+                    self.create_index(table, fields)
 
     def drop_index(self, table, fields, name=None):
         if type(fields) is not list:
