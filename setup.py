@@ -56,7 +56,7 @@ setup(
         "duckdb",
         "dask",
         "arrow",
-        "pyarrow"
+        "pyarrow",
         "pygit2",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
