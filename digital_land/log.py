@@ -93,10 +93,10 @@ class IssueLog(Log):
         fieldname,
         issue_type,
         value,
-        entity=None,
         message=None,
         line_number=0,
         entry_number=0,
+        entity=None,
     ):
         self.rows.append(
             {
