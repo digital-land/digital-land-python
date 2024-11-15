@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import sqlite3
 import duckdb
-from .parquet import Package
+from .package import Package
 
 logger = logging.getLogger(__name__)
 
