@@ -243,19 +243,28 @@ class DatasetParquetPackage(Package):
 
         for parquet_file in parquet_files:
             table_name = os.path.splitext(os.path.basename(parquet_file))[0]
+            print("\nTable Name")
+            print(table_name)
 
             # Load Parquet data into DuckDB temp table
+            print(0)
             self.conn.execute("DROP TABLE IF EXISTS temp_table;")
+            print(1)
             self.conn.execute(f"""
                 CREATE TABLE temp_table AS 
                 SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
             """)
+            print(2)
 
             # Export the DuckDB table to the SQLite database
             self.conn.execute(f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db;")
+            print(3)
             self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
+            print(4)
             self.conn.execute(f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;")
+            print(5)
             self.conn.execute("DETACH DATABASE sqlite_db;")
+            print(6)
 
             geom_columns_query = """
                 SELECT column_name
@@ -264,7 +273,9 @@ class DatasetParquetPackage(Package):
                   AND (column_name ILIKE '%geom%' OR lower(column_name) = 'geometry' OR lower(column_name) = 'point');
             """
             geom_columns = [row[0] for row in self.conn.execute(geom_columns_query).fetchall()]
-
+            print("\ngeom_columns")
+            print(geom_columns)
+            print(self._spatialite)
             if self._spatialite:
                 if "geometry-geom" in geom_columns:
                     self.conn.execute(
