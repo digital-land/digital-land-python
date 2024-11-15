@@ -375,26 +375,26 @@ def dataset_create(
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    # package.create()
-    # for path in input_paths:
-    #     path_obj = Path(path)
-    #     package.load_transformed(path)
-    #     package.load_column_fields(column_field_dir / dataset / path_obj.name)
-    #     package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    # package.load_entities()
-    #
-    # old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
-    # if os.path.exists(old_entity_path):
-    #     package.load_old_entities(old_entity_path)
-    #
-    # issue_paths = os.path.join(issue_dir, dataset)
-    # if os.path.exists(issue_paths):
-    #     for issue_path in os.listdir(issue_paths):
-    #         package.load_issues(os.path.join(issue_paths, issue_path))
-    # else:
-    #     logging.warning("No directory for this dataset in the provided issue_directory")
-    #
-    # package.add_counts()
+    package.create()
+    for path in input_paths:
+        path_obj = Path(path)
+        package.load_transformed(path)
+        package.load_column_fields(column_field_dir / dataset / path_obj.name)
+        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
+    package.load_entities()
+
+    old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
+    if os.path.exists(old_entity_path):
+        package.load_old_entities(old_entity_path)
+
+    issue_paths = os.path.join(issue_dir, dataset)
+    if os.path.exists(issue_paths):
+        for issue_path in os.listdir(issue_paths):
+            package.load_issues(os.path.join(issue_paths, issue_path))
+    else:
+        logging.warning("No directory for this dataset in the provided issue_directory")
+
+    package.add_counts()
 
     # Repeat for parquet
     #######################################################
