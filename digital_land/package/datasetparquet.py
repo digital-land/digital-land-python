@@ -267,12 +267,12 @@ class DatasetParquetPackage(Package):
 
             if self._spatialite:
                 if "geometry-geom" in geom_columns:
-                    self.execute(
+                    self.conn.execute(
                         "SELECT AddGeometryColumn('%s', 'geometry_geom', 4326, 'MULTIPOLYGON', 2);"
                         % (table_name)
                     )
                 if "point-geom" in geom_columns:
-                    self.execute(
+                    self.conn.execute(
                         "SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);"
                         % (table_name)
                     )
