@@ -193,7 +193,7 @@ class DatasetParquetPackage(Package):
          """
 
         dataset = Path(output_path).name
-
+        print("pre-point")
         sql = f"""
             INSTALL spatial; LOAD spatial;
             COPY(
@@ -222,6 +222,7 @@ class DatasetParquetPackage(Package):
             ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
          """
         self.conn.execute(sql)
+        print("post-point")
 
     def pq_to_sqlite(self, output_path):
         query = "INSTALL sqlite; LOAD sqlite;"
@@ -243,6 +244,8 @@ class DatasetParquetPackage(Package):
 
         for parquet_file in parquet_files:
             table_name = os.path.splitext(os.path.basename(parquet_file))[0]
+            print("\nOutput path")
+            print(output_path)
             print("\nTable Name")
             print(table_name)
 
