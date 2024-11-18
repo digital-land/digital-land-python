@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from digital_land.commands import save_state, check_state
+from digital_land.commands import save_state, compare_state
 
 specification_hash = "ebe620f5228d01170b1857bad3e738aa432f5fd6"
 collection_hash = "ed4c5979268ad880f7edbdc2047cfcfa6b9ee3b4"
@@ -44,31 +44,28 @@ def test_state(tmp_path):
         assert state_data["pipeline"] == pipeline_hash
 
     assert (
-        check_state(
+        compare_state(
             specification_dir=os.path.join(test_data_dir, "specification"),
             collection_dir=os.path.join(test_data_dir, "collection"),
             pipeline_dir=os.path.join(test_data_dir, "pipeline"),
             state_path=state_path,
         )
-        is True
+        is None
     )
 
     assert (
-        check_state(
+        compare_state(
             specification_dir=os.path.join(test_data_dir, "specification"),
             collection_dir=os.path.join(test_data_dir, "collection_exclude"),
             pipeline_dir=os.path.join(test_data_dir, "pipeline"),
             state_path=state_path,
         )
-        is True
+        is None
     )
 
-    assert (
-        check_state(
-            specification_dir=os.path.join(test_data_dir, "specification"),
-            collection_dir=os.path.join(test_data_dir, "collection_blank"),
-            pipeline_dir=os.path.join(test_data_dir, "pipeline"),
-            state_path=state_path,
-        )
-        is False
-    )
+    assert compare_state(
+        specification_dir=os.path.join(test_data_dir, "specification"),
+        collection_dir=os.path.join(test_data_dir, "collection_blank"),
+        pipeline_dir=os.path.join(test_data_dir, "pipeline"),
+        state_path=state_path,
+    ) == ["collection"]

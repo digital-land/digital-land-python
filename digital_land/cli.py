@@ -29,7 +29,7 @@ from digital_land.commands import (
     organisation_create,
     organisation_check,
     save_state,
-    check_state,
+    compare_state,
 )
 from digital_land.expectations.commands import run_dataset_checkpoint
 
@@ -610,6 +610,7 @@ def check_state_cmd(specification_dir, collection_dir, pipeline_dir, state_path)
     # If the state isn't the same, use a non-zero return code so scripts can
     # detect this, and print a message. If it is the same, exit silenty wirh a
     # 0 retun code.
-    if not check_state(specification_dir, collection_dir, pipeline_dir, state_path):
-        print(f"State differs from {state_path}")
+    diffs = compare_state(specification_dir, collection_dir, pipeline_dir, state_path)
+    if diffs:
+        print(f"State differs from {state_path} - {', '.join(diffs)}")
         sys.exit(1)
