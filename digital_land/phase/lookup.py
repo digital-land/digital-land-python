@@ -169,6 +169,14 @@ class LookupPhase(Phase):
 class EntityLookupPhase(LookupPhase):
     entity_field = "entity"
 
+    def process(self, stream):
+        for block in super().process(stream):
+            if self.issues:
+                self.issues.record_entity_map(
+                    block["entry-number"], block["row"]["entity"]
+                )
+            yield block
+
 
 class FactLookupPhase(LookupPhase):
     entity_field = "reference-entity"

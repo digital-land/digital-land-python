@@ -1,6 +1,6 @@
 import pytest
 
-from digital_land.phase.lookup import LookupPhase, PrintLookupPhase
+from digital_land.phase.lookup import LookupPhase, EntityLookupPhase, PrintLookupPhase
 from digital_land.log import IssueLog
 
 
@@ -133,3 +133,66 @@ class TestPrintLookupPhase:
         [block for block in phase.process(input_stream)]
 
         assert len(phase.new_lookup_entries) == 0
+
+
+class TestEntityLookupPhase:
+    def test_entity_lookup_phase(self):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "dataset",
+                    "reference": "1",
+                    "organisation": "local-authority:DNC",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = {",dataset,1,local-authoritydnc": "1"}
+        phase = EntityLookupPhase(lookups=lookups)
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == "1"
+
+    def test_entity_lookup_phase_two(self):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "dataset",
+                    "reference": "1",
+                    "organisation": "local-authority:DNC",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            },
+            {
+                "row": {
+                    "prefix": "dataset",
+                    "reference": "2",
+                    "organisation": "local-authority:DNC",
+                },
+                "entry-number": 2,
+                "line-number": 2,
+            },
+        ]
+        lookups = {
+            ",dataset,1,local-authoritydnc": "1",
+            ",dataset,2,local-authoritydnc": "2",
+        }
+        phase = EntityLookupPhase(lookups=lookups)
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == "1"
+        assert output[1]["row"]["entity"] == "2"
+
+    def test_entity_lookup_phase_blank(self):
+        phase = EntityLookupPhase()
+        input_stream = []
+        lookups = {",dataset,1,local-authoritydnc": "1"}
+        phase = EntityLookupPhase(lookups=lookups)
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert len(output) == 0
