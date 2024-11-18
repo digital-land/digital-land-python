@@ -175,7 +175,7 @@ class EntityLookupPhase(LookupPhase):
                 self.issues.record_entity_map(
                     block["entry-number"], block["row"]["entity"]
                 )
-        yield block
+            yield block
 
 
 class FactLookupPhase(LookupPhase):
