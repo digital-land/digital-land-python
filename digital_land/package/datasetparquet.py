@@ -13,14 +13,12 @@ tables = {
     "column-field": None,
     "issue": None,
     "entity": None,
-    "old-entity": None,
     "fact": None,
     "fact-resource": None,
 }
 
 # TBD: infer from specification dataset
 indexes = {
-    "old-entity": ["entity", "old-entity", "status"],
     "fact": ["entity"],
     "fact-resource": ["fact", "resource"],
     "column-field": ["dataset", "resource", "column", "field"],
