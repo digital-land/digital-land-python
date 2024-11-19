@@ -105,13 +105,13 @@ def test_run_some_expectations(
     result = runner.invoke(
         cli,
         [
-            # "--input-paths",
-            # [str(i) for i in input_paths],
+            "--dataset",
+            "conservation-area",
             "--pipeline-dir",
             str("tests/data/conservation-area/pipeline"),
             "dataset-create",
             "--output-path",
-            f"{str(cache_path)}/{dataset}",
+            f"{str(cache_path)}/conservation-area.sqlite3",
             "--organisation-path",
             str(organisation_path),
             "--column-field-dir",
@@ -141,13 +141,15 @@ def test_run_some_expectations(
 
     assert result.exit_code == 0, "error returned when running expectations"
 
-    output_path = f"{str(cache_path)}/{dataset}"
+    print("cache_path")
+    print(cache_path)
+    output_path = f"{str(cache_path)}/conservation-area"
     pq_files = [file for file in os.listdir(output_path) if file.endswith(".parquet")]
     assert len(pq_files) == 3, "Not all parquet files created"
     assert np.all(
         np.sort(pq_files) == ["entity.parquet", "fact.parquet", "fact_resource.parquet"]
     ), "parquet file names not correct"
-    sqlite_db_path = f"{output_path}/{dataset}.sqlite3"
+    sqlite_db_path = f"{output_path}/conservation-area.sqlite3"
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
     tables = cursor.execute(
