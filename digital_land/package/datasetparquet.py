@@ -60,13 +60,15 @@ class DatasetParquetPackage(Package):
         """
         schema_df = self.conn.query(schema_query).df()
 
-        return dict(zip(schema_df['column_name'], schema_df['data_type']))
+        return dict(zip(schema_df["column_name"], schema_df["data_type"]))
 
     def create_temp_table(self, input_paths):
         # Create a temp table of the data from input_paths as we need the information stored there at various times
-        logging.info(f"loading data into temp table from {os.path.dirname(input_paths[0])}")
+        logging.info(
+            f"loading data into temp table from {os.path.dirname(input_paths[0])}"
+        )
 
-        input_paths_str = ', '.join([f"'{path}'" for path in input_paths])
+        input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
 
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
         query = f"""
@@ -83,7 +85,9 @@ class DatasetParquetPackage(Package):
         logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
-        fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_fields])
+        fields_str = ", ".join(
+            [f'"{field}"' if "-" in field else field for field in fact_fields]
+        )
 
         # query to extract data from the temp table (containing raw data), group by a fact, and get the highest
         # priority or latest record
@@ -95,17 +99,21 @@ class DatasetParquetPackage(Package):
             ) = 1
         """
 
-        self.conn.execute(f"""
+        self.conn.execute(
+            f"""
             COPY (
                 {query}
             ) TO '{output_path}/fact{self.suffix}' (FORMAT PARQUET);
-        """)
+        """
+        )
 
     def load_fact_resource(self, input_paths, output_path):
         logging.info(f"loading fact resources from {os.path.dirname(input_paths[0])}")
 
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
-        fields_str = ", ".join([f'"{field}"' if '-' in field else field for field in fact_resource_fields])
+        fields_str = ", ".join(
+            [f'"{field}"' if "-" in field else field for field in fact_resource_fields]
+        )
 
         # All CSV files have been loaded into a temporary table. Extract several columns and export
         query = f"""
@@ -113,11 +121,13 @@ class DatasetParquetPackage(Package):
             FROM temp_table
         """
 
-        self.conn.execute(f"""
+        self.conn.execute(
+            f"""
             COPY (
                 {query}
             ) TO '{output_path}/fact_resource{self.suffix}' (FORMAT PARQUET);
-        """)
+        """
+        )
 
     def load_entities(self, input_paths, output_path, organisation_path="./var/cache"):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
@@ -142,17 +152,36 @@ class DatasetParquetPackage(Package):
 
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
-        extra_fields = ['entity', 'dataset', 'typology', 'json', 'organisation_entity', 'organisation']
-        null_fields = [field for field in entity_fields if field not in (distinct_fields + extra_fields)]
+        extra_fields = [
+            "entity",
+            "dataset",
+            "typology",
+            "json",
+            "organisation_entity",
+            "organisation",
+        ]
+        null_fields = [
+            field
+            for field in entity_fields
+            if field not in (distinct_fields + extra_fields)
+        ]
 
         # select fields - a list  of fields which have to be selected directly from the pivoted table
         # these are entity fields that are not null fields or a few special ones
-        extra_fields = ['json', 'organisation_entity', 'dataset', 'typology', 'organisation']
-        select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
+        extra_fields = [
+            "json",
+            "organisation_entity",
+            "dataset",
+            "typology",
+            "organisation",
+        ]
+        select_fields = [
+            field for field in entity_fields if field not in null_fields + extra_fields
+        ]
 
         # set fields
-        fields_to_include = ['entity', 'field', 'value']
-        fields_str = ', '.join(fields_to_include)
+        fields_to_include = ["entity", "field", "value"]
+        fields_str = ", ".join(fields_to_include)
 
         # Take original data, group by entity & field, and order by highest priority then latest record.
         # If there are still matches then pick the first resource (and fact, just to make sure)
@@ -177,15 +206,19 @@ class DatasetParquetPackage(Package):
         # include columns in the json statement
 
         # Collate list of fields which don't exist but need to be in the final table
-        select_statement = ', '.join([f"t1.{field}" for field in select_fields])
-        null_fields_statement = ', '.join([f"NULL::VARCHAR AS \"{field}\"" for field in null_fields])
-        json_statement = ', '.join([
-            f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
-            for field in json_fields
-        ])
+        select_statement = ", ".join([f"t1.{field}" for field in select_fields])
+        null_fields_statement = ", ".join(
+            [f'NULL::VARCHAR AS "{field}"' for field in null_fields]
+        )
+        json_statement = ", ".join(
+            [
+                f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
+                for field in json_fields
+            ]
+        )
 
         # define organisation query
-        org_csv = f'{organisation_path}/organisation.csv'
+        org_csv = f"{organisation_path}/organisation.csv"
         org_query = f"""
              SELECT * FROM read_csv_auto('{org_csv}')
          """
@@ -224,7 +257,9 @@ class DatasetParquetPackage(Package):
         query = "INSTALL sqlite; LOAD sqlite;"
         self.conn.execute(query)
 
-        parquet_files = [fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)]
+        parquet_files = [
+            fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)
+        ]
         sqlite_file_path = f"{output_path}/{os.path.basename(output_path)}.sqlite3"
 
         # Create the SQLite database connection
@@ -233,9 +268,13 @@ class DatasetParquetPackage(Package):
         sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
 
         # Check if the spatial_ref_sys table already exists to avoid reinitializing spatial metadata
-        existing_tables = [row[0] for row in
-                           sqlite_conn.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()]
-        if 'spatial_ref_sys' not in existing_tables:
+        existing_tables = [
+            row[0]
+            for row in sqlite_conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table';"
+            ).fetchall()
+        ]
+        if "spatial_ref_sys" not in existing_tables:
             sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
 
         for parquet_file in parquet_files:
@@ -243,15 +282,19 @@ class DatasetParquetPackage(Package):
 
             # Load Parquet data into DuckDB temp table
             self.conn.execute("DROP TABLE IF EXISTS temp_table;")
-            self.conn.execute(f"""
+            self.conn.execute(
+                f"""
                 CREATE TABLE temp_table AS 
                 SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
-            """)
+            """
+            )
 
             # Export the DuckDB table to the SQLite database
             self.conn.execute(f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db;")
             self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
-            self.conn.execute(f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;")
+            self.conn.execute(
+                f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;"
+            )
             self.conn.execute("DETACH DATABASE sqlite_db;")
 
             geom_columns_query = """
@@ -260,7 +303,9 @@ class DatasetParquetPackage(Package):
                 WHERE table_name = 'temp_table'
                   AND (column_name ILIKE '%geom%' OR lower(column_name) = 'geometry' OR lower(column_name) = 'point');
             """
-            geom_columns = [row[0] for row in self.conn.execute(geom_columns_query).fetchall()]
+            geom_columns = [
+                row[0] for row in self.conn.execute(geom_columns_query).fetchall()
+            ]
             if self._spatialite:
                 if "geometry-geom" in geom_columns:
                     self.conn.execute(

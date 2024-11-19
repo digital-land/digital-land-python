@@ -164,8 +164,9 @@ def dataset_create_cmd(
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
         issue_dir=issue_dir,
-        cache_dir=cache_dir
+        cache_dir=cache_dir,
     )
+
 
 # @cli.command("dataset-parquet-create", short_help="create a Parquet dataset from processed resources")
 # @click.option("--output-path", type=click.Path(), default=None, help="Parquet path")
@@ -195,6 +196,7 @@ def dataset_create_cmd(
 #         dataset_resource_dir=dataset_resource_dir,
 #         issue_dir=issue_dir,
 #     )
+
 
 @cli.command("dataset-entries", short_help="dump dataset entries as csv")
 @input_output_path

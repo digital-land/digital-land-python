@@ -5,6 +5,7 @@ a sqlite dataset. There are quite a few things to set up and this specifically
 
 import pytest
 import csv
+
 # import logging
 # import json
 import numpy as np
@@ -22,7 +23,7 @@ from digital_land.specification import Specification
 @pytest.fixture
 def input_paths():
     input_paths = []
-    directory = 'tests/data/conservation-area/transformed/conservation-area/'
+    directory = "tests/data/conservation-area/transformed/conservation-area/"
     for root, dirs, files in os.walk(directory):
         for file in files:
             full_path = os.path.join(root, file)
@@ -74,7 +75,7 @@ def config_path(tmp_path, specification_dir):
 
 @pytest.fixture
 def cache_path(tmp_path):
-    cache_path = tmp_path / 'var/cache'
+    cache_path = tmp_path / "var/cache"
     if not os.path.exists(cache_path):
         os.makedirs(cache_path)
     return cache_path
@@ -106,24 +107,24 @@ def test_run_some_expectations(
         [
             # "--input-paths",
             # [str(i) for i in input_paths],
-            '--pipeline-dir',
+            "--pipeline-dir",
             str("tests/data/conservation-area/pipeline"),
             "dataset-create",
             "--output-path",
             f"{str(cache_path)}/{dataset}",
             "--organisation-path",
             str(organisation_path),
-            '--column-field-dir',
+            "--column-field-dir",
             str("tests/data/conservation-area/var/column-field"),
-            '--dataset-resource-dir',
+            "--dataset-resource-dir",
             str("tests/data/conservation-area/var/dataset-resource"),
-            '--issue-dir',
+            "--issue-dir",
             str(cache_path),
             "--cache-dir",
             str(cache_path),
             str(input_paths[0]),
         ],
-        catch_exceptions=False
+        catch_exceptions=False,
     )
 
     print("result.exit_code")
@@ -141,21 +142,27 @@ def test_run_some_expectations(
     assert result.exit_code == 0, "error returned when running expectations"
 
     output_path = f"{str(cache_path)}/{dataset}"
-    pq_files = [file for file in os.listdir(output_path) if file.endswith('.parquet')]
+    pq_files = [file for file in os.listdir(output_path) if file.endswith(".parquet")]
     assert len(pq_files) == 3, "Not all parquet files created"
-    assert (
-            np.all(np.sort(pq_files) == ['entity.parquet', 'fact.parquet', 'fact_resource.parquet'])
+    assert np.all(
+        np.sort(pq_files) == ["entity.parquet", "fact.parquet", "fact_resource.parquet"]
     ), "parquet file names not correct"
     sqlite_db_path = f"{output_path}/{dataset}.sqlite3"
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
-    tables = cursor.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
-    expected_tables = {'fact', 'fact_resource', 'entity'}
+    tables = cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table';"
+    ).fetchall()
+    expected_tables = {"fact", "fact_resource", "entity"}
     actual_tables = {table[0] for table in tables}
     missing_tables = expected_tables - actual_tables
-    assert len(missing_tables) == 0, f"Missing following tables in sqlite database: {missing_tables}"
+    assert (
+        len(missing_tables) == 0
+    ), f"Missing following tables in sqlite database: {missing_tables}"
 
     for table in list(expected_tables):
         pq_rows = len(pd.read_parquet(f"{output_path}/{table}.parquet"))
         sql_rows = cursor.execute(f"SELECT COUNT(*) FROM {table};").fetchone()[0]
-        assert pq_rows == sql_rows, f"Different rows between the parquet files and database table for {table}"
+        assert (
+            pq_rows == sql_rows
+        ), f"Different rows between the parquet files and database table for {table}"
