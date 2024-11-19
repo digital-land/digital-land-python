@@ -369,43 +369,43 @@ def dataset_create(
     organisation = Organisation(
         organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
     )
-    package = DatasetPackage(
-        dataset,
-        organisation=organisation,
-        path=output_path,
-        specification_dir=None,  # TBD: package should use this specification object
-    )
-    package.create()
-    for path in input_paths:
-        path_obj = Path(path)
-        package.load_transformed(path)
-        package.load_column_fields(column_field_dir / dataset / path_obj.name)
-        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    package.load_entities()
-
-    old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
-    if os.path.exists(old_entity_path):
-        package.load_old_entities(old_entity_path)
-
-    issue_paths = os.path.join(issue_dir, dataset)
-    if os.path.exists(issue_paths):
-        for issue_path in os.listdir(issue_paths):
-            package.load_issues(os.path.join(issue_paths, issue_path))
-    else:
-        logging.warning("No directory for this dataset in the provided issue_directory")
-
-    package.add_counts()
+    # package = DatasetPackage(
+    #     dataset,
+    #     organisation=organisation,
+    #     path=output_path,
+    #     specification_dir=None,  # TBD: package should use this specification object
+    # )
+    # package.create()
+    # for path in input_paths:
+    #     path_obj = Path(path)
+    #     package.load_transformed(path)
+    #     package.load_column_fields(column_field_dir / dataset / path_obj.name)
+    #     package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
+    # package.load_entities()
+    #
+    # old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
+    # if os.path.exists(old_entity_path):
+    #     package.load_old_entities(old_entity_path)
+    #
+    # issue_paths = os.path.join(issue_dir, dataset)
+    # if os.path.exists(issue_paths):
+    #     for issue_path in os.listdir(issue_paths):
+    #         package.load_issues(os.path.join(issue_paths, issue_path))
+    # else:
+    #     logging.warning("No directory for this dataset in the provided issue_directory")
+    #
+    # package.add_counts()
 
     # Repeat for parquet
-    #######################################################
-    # Update this so that it can work with the cli inputs #
-    #######################################################
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
-    output_path = output_path.replace("dataset/", f"{cache_dir}/").removesuffix(".sqlite3")
+    if 'dataset' in output_path:
+        output_path = output_path.replace("dataset/", f"{cache_dir}/")
+    if output_path.endswith(('.sqlite', '.sqlite3')):
+        output_path = str(Path(output_path).with_suffix(""))
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    #######################################################
+
     pqpackage = DatasetParquetPackage(
         dataset,
         path=output_path,
