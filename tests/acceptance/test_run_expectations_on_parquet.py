@@ -84,23 +84,6 @@ def cache_path(tmp_path):
 def test_run_some_expectations(
     tmp_path, organisation_path, input_paths, config_path, specification_dir, cache_path
 ):
-    # set up inputs
-    dataset = "acceptance_tests_output"
-
-    # # set up mocking of API response, we don't want to be dependent on the data returned
-    # # this could be lifted in the future if we just want to ensure it runs
-    # # even if the test fails
-    # lpa_geometry = "MULTIPOLYGON(((-0.49901924973862233 53.81622315189787,-0.5177418530633007 53.76114469621959,-0.4268378912177833 53.78454002743749,-0.49901924973862233 53.81622315189787)))"  # noqa E501
-    # mock_response = mocker.Mock()
-    # mock_response.status_code = 200
-    # mock_response.json.return_value = {
-    #     "geometry": lpa_geometry,
-    # }
-    #
-    # # Mock the `requests.Session.get` method
-    # mocker.patch("requests.get", return_value=mock_response)
-    # set up cli runner
-
     runner = CliRunner()
     result = runner.invoke(
         cli,
