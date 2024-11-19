@@ -54,8 +54,8 @@ class DatasetParquetPackage(Package):
 
         # Extract the schema from the temporary table
         schema_query = """
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
+            SELECT column_name, data_type
+            FROM information_schema.columns
             WHERE table_name = 'schema_table';
         """
         schema_df = self.conn.query(schema_query).df()
@@ -189,7 +189,7 @@ class DatasetParquetPackage(Package):
             SELECT {fields_str}
             FROM temp_table
             QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY entity, field 
+                PARTITION BY entity, field
                 ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource, fact
             ) = 1
         """
@@ -228,10 +228,10 @@ class DatasetParquetPackage(Package):
             INSTALL spatial; LOAD spatial;
             COPY(
                 WITH computed_centroid AS (
-                    SELECT 
+                    SELECT
                         * EXCLUDE (point), -- Calculate centroid point
-                        CASE 
-                            WHEN geometry IS NOT NULL AND point IS NULL 
+                        CASE
+                            WHEN geometry IS NOT NULL AND point IS NULL
                             THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
                             ELSE point
                         END AS point
@@ -246,8 +246,7 @@ class DatasetParquetPackage(Package):
                         LEFT JOIN ({org_query}) as t2
                         on t1.organisation = t2.organisation
                         )
-                    ) 
-                
+                    )
                 SELECT * FROM computed_centroid
             ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
          """
@@ -284,7 +283,7 @@ class DatasetParquetPackage(Package):
             self.conn.execute("DROP TABLE IF EXISTS temp_table;")
             self.conn.execute(
                 f"""
-                CREATE TABLE temp_table AS 
+                CREATE TABLE temp_table AS
                 SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
             """
             )
