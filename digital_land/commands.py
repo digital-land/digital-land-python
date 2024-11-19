@@ -357,7 +357,7 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
-    cache_dir="var/cache/parquet"
+    cache_dir="var/cache/parquet",
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
@@ -399,9 +399,9 @@ def dataset_create(
     # Repeat for parquet
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
-    if 'dataset' in output_path:
+    if "dataset" in output_path:
         output_path = output_path.replace("dataset/", f"{cache_dir}/")
-    if output_path.endswith(('.sqlite', '.sqlite3')):
+    if output_path.endswith((".sqlite", ".sqlite3")):
         output_path = str(Path(output_path).with_suffix(""))
     if not os.path.exists(output_path):
         os.makedirs(output_path)
