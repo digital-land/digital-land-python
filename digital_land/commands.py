@@ -415,7 +415,7 @@ def dataset_create(
     pqpackage.create_temp_table(input_paths)
     pqpackage.load_facts(input_paths, output_path)
     pqpackage.load_fact_resource(input_paths, output_path)
-    pqpackage.load_entities(input_paths, output_path)
+    pqpackage.load_entities(input_paths, output_path, organisation_path)
     pqpackage.pq_to_sqlite(output_path)
     pqpackage.close_conn()
 
