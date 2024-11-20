@@ -32,7 +32,7 @@ def input_paths():
     return input_paths
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def organisation_path(tmp_path):
     """
     build an organisations dataset to use
@@ -42,7 +42,7 @@ def organisation_path(tmp_path):
     return orgs_path
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def config_path(tmp_path, specification_dir):
     """create a configuration to use"""
     config_path = tmp_path / "config.sqlite3"
@@ -73,7 +73,7 @@ def config_path(tmp_path, specification_dir):
     return config_path
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def cache_path(tmp_path):
     cache_path = tmp_path / "var/cache"
     if not os.path.exists(cache_path):
