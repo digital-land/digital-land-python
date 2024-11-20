@@ -206,7 +206,6 @@ class DatasetParquetPackage(Package):
         # now use the field lists produced above to create specific statements to:
         # add null columns which are missing
         # include columns in the json statement
-
         # Collate list of fields which don't exist but need to be in the final table
         select_statement = ", ".join([f"t1.{field}" for field in select_fields])
         null_fields_statement = ", ".join(
