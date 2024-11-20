@@ -129,7 +129,7 @@ class DatasetParquetPackage(Package):
         """
         )
 
-    def load_entities(self, input_paths, output_path, organisation_path="./var/cache"):
+    def load_entities(self, input_paths, output_path, organisation_path="./var/cache/organisation.csv"):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
@@ -218,7 +218,7 @@ class DatasetParquetPackage(Package):
         )
 
         # define organisation query
-        org_csv = f"{organisation_path}/organisation.csv"
+        org_csv = organisation_path
         org_query = f"""
              SELECT * FROM read_csv_auto('{org_csv}')
          """
