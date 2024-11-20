@@ -129,7 +129,9 @@ class DatasetParquetPackage(Package):
         """
         )
 
-    def load_entities(self, input_paths, output_path, organisation_path="./var/cache/organisation.csv"):
+    def load_entities(
+        self, input_paths, output_path, organisation_path="./var/cache/organisation.csv"
+    ):
         logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
