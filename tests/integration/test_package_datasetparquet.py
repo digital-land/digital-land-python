@@ -523,7 +523,7 @@ def test_load_entities_basic(test_dataset_parquet_package, temp_dir):
             f.write(",".join(map(str, row)) + "\n")
 
     test_dataset_parquet_package.load_entities(
-        test_dataset_parquet_package.input_paths, output_dir, temp_dir
+        test_dataset_parquet_package.input_paths, output_dir, f"{temp_dir}/organisation.csv"
     )
 
     output_file = os.path.join(output_dir, "entity.parquet")
