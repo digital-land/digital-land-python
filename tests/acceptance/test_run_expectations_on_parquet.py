@@ -5,7 +5,7 @@ a sqlite dataset. There are quite a few things to set up and this specifically
 
 import pytest
 import csv
-
+import logging
 import numpy as np
 import pandas as pd
 import os
@@ -129,6 +129,7 @@ def test_run_some_expectations(
         catch_exceptions=False,
     )
 
+    logging.info("Completed 'dataset_create")
     # Check that the command exits with status code 0 (success)
     if result.exit_code != 0:
         # Print the command output if the test fails
