@@ -90,7 +90,8 @@ def cache_path(session_tmp_path):
 
 @pytest.fixture
 def output_dir(session_tmp_path):
-    output_dir = session_tmp_path / "output"
+    output_dir = Path(f"dataset/{testing_dir}")
+    # output_dir = session_tmp_path / "output"
     os.makedirs(output_dir, exist_ok=True)
     return output_dir
 
