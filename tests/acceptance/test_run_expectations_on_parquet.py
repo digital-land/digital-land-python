@@ -5,7 +5,6 @@ a sqlite dataset. There are quite a few things to set up and this specifically
 
 import pytest
 import csv
-import logging
 import numpy as np
 import pandas as pd
 import os
