@@ -129,7 +129,6 @@ def test_run_some_expectations(
         catch_exceptions=False,
     )
 
-    logging.info("Completed 'dataset_create")
     # Check that the command exits with status code 0 (success)
     if result.exit_code != 0:
         # Print the command output if the test fails
