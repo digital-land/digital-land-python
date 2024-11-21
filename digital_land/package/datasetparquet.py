@@ -253,14 +253,18 @@ class DatasetParquetPackage(Package):
          """
         self.conn.execute(sql)
 
-    def pq_to_sqlite(self, output_path):
+    def pq_to_sqlite(self, output_path, cache_dir):
+        # At present we are saving the parquet files in 'cache' but saving the sqlite files produced in 'dataset'
+        # In future when parquet files are saved to 'dataset' remove the 'cache_dir' in the function arguments and
+        # replace 'cache_dir' with 'output_path' in this function's code
+        logging.info(f"loading sqlite3 tables from parquet files in {cache_dir}")
         query = "INSTALL sqlite; LOAD sqlite;"
         self.conn.execute(query)
 
-        parquet_files = [
-            fn for fn in os.listdir(output_path) if fn.endswith(self.suffix)
-        ]
-        sqlite_file_path = f"{output_path}/{os.path.basename(output_path)}.sqlite3"
+        parquet_files = [fn for fn in os.listdir(cache_dir) if fn.endswith(self.suffix)]
+        if not os.path.exists(os.path.dirname(output_path)):
+            os.makedirs(os.path.dirname(output_path))
+        sqlite_file_path = output_path
 
         # Create the SQLite database connection
         sqlite_conn = sqlite3.connect(sqlite_file_path)
@@ -285,7 +289,7 @@ class DatasetParquetPackage(Package):
             self.conn.execute(
                 f"""
                 CREATE TABLE temp_table AS
-                SELECT * FROM parquet_scan('{output_path}/{parquet_file}');
+                SELECT * FROM parquet_scan('{cache_dir}/{parquet_file}');
             """
             )
 
@@ -320,6 +324,7 @@ class DatasetParquetPackage(Package):
         sqlite_conn.close()
 
     def close_conn(self):
+        logging.info("Close connection to duckdb database in session")
         if self.conn is not None:
             if os.path.exists(self.duckdb_file):
                 os.remove(self.duckdb_file)
