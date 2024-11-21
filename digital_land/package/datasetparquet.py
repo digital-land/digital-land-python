@@ -262,12 +262,7 @@ class DatasetParquetPackage(Package):
         self.conn.execute(query)
 
         parquet_files = [fn for fn in os.listdir(cache_dir) if fn.endswith(self.suffix)]
-        # os.makedirs(os.path.dirname(output_path), exist_ok=True)
         sqlite_file_path = output_path
-
-        # Quick bit of code to check that it is a new file
-        # sqlite_file_path = "dataset/conservation-area/conservation-area.sqlite3"
-        # output_path.replace(".sqlite3", "-new.sqlite3")
 
         # Create the SQLite database connection
         sqlite_conn = sqlite3.connect(sqlite_file_path)
