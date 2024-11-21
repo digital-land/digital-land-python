@@ -90,8 +90,10 @@ def cache_path(session_tmp_path):
 
 
 @pytest.fixture
-def output_path():
-    return f"dataset/{str(testing_dir)}/{testing_dir}.sqlite3"
+def output_dir(session_tmp_path):
+    output_dir = session_tmp_path / "output"
+    os.makedirs(output_dir, exist_ok=True)
+    return output_dir
 
 
 def test_run_some_expectations(
@@ -101,8 +103,10 @@ def test_run_some_expectations(
     config_path,
     specification_dir,
     cache_path,
-    output_path,
+    output_dir,
 ):
+    output_path = output_dir / f"{testing_dir}.sqlite3"
+
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -145,12 +149,10 @@ def test_run_some_expectations(
         np.sort(pq_files) == ["entity.parquet", "fact.parquet", "fact_resource.parquet"]
     ), "parquet file names not correct"
 
-    output_path = f"dataset/{testing_dir}"
-    sqlite_db_path = f"{output_path}/{testing_dir}.sqlite3"
     assert os.path.exists(
-        sqlite_db_path
+        output_path
     ), f"sqlite file {testing_dir}.sqlite3 does not exists"
-    conn = sqlite3.connect(sqlite_db_path)
+    conn = sqlite3.connect(output_path)
     cursor = conn.cursor()
     tables = cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table';"
