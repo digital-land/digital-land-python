@@ -6,8 +6,6 @@ a sqlite dataset. There are quite a few things to set up and this specifically
 import pytest
 import csv
 
-# import logging
-# import json
 import numpy as np
 import pandas as pd
 import os
@@ -91,6 +89,11 @@ def cache_path(session_tmp_path):
     return cache_path
 
 
+@pytest.fixture
+def output_path():
+    return f"dataset/{str(testing_dir)}/{testing_dir}.sqlite3"
+
+
 def test_run_some_expectations(
     session_tmp_path,
     organisation_path,
@@ -98,18 +101,19 @@ def test_run_some_expectations(
     config_path,
     specification_dir,
     cache_path,
+    output_path,
 ):
     runner = CliRunner()
     result = runner.invoke(
         cli,
         [
             "--dataset",
-            f"{testing_dir}",
+            str(testing_dir),
             "--pipeline-dir",
             str(f"tests/data/{testing_dir}/pipeline"),
             "dataset-create",
             "--output-path",
-            f"{str(cache_path)}/{testing_dir}.sqlite3",
+            str(output_path),
             "--organisation-path",
             str(organisation_path),
             "--column-field-dir",
@@ -125,9 +129,6 @@ def test_run_some_expectations(
         catch_exceptions=False,
     )
 
-    print("result.exit_code")
-    print(result.exit_code)
-    print("\n")
     # Check that the command exits with status code 0 (success)
     if result.exit_code != 0:
         # Print the command output if the test fails
@@ -138,16 +139,17 @@ def test_run_some_expectations(
         print(result.exception)
 
     assert result.exit_code == 0, "error returned when running expectations"
-
-    print("cache_path")
-    print(cache_path)
-    output_path = f"{str(cache_path)}/{testing_dir}"
-    pq_files = [file for file in os.listdir(output_path) if file.endswith(".parquet")]
+    pq_files = [file for file in os.listdir(cache_path) if file.endswith(".parquet")]
     assert len(pq_files) == 3, "Not all parquet files created"
     assert np.all(
         np.sort(pq_files) == ["entity.parquet", "fact.parquet", "fact_resource.parquet"]
     ), "parquet file names not correct"
+
+    output_path = f"dataset/{testing_dir}"
     sqlite_db_path = f"{output_path}/{testing_dir}.sqlite3"
+    assert os.path.exists(
+        sqlite_db_path
+    ), f"sqlite file {testing_dir}.sqlite3 does not exists"
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
     tables = cursor.execute(
@@ -161,7 +163,7 @@ def test_run_some_expectations(
     ), f"Missing following tables in sqlite database: {missing_tables}"
 
     for table in list(expected_tables):
-        pq_rows = len(pd.read_parquet(f"{output_path}/{table}.parquet"))
+        pq_rows = len(pd.read_parquet(f"{cache_path}/{table}.parquet"))
         sql_rows = cursor.execute(f"SELECT COUNT(*) FROM {table};").fetchone()[0]
         assert (
             pq_rows == sql_rows
