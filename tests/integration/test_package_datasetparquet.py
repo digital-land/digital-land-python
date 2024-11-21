@@ -542,17 +542,13 @@ def test_load_entities_basic(test_dataset_parquet_package, temp_dir):
 
 
 def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
-    output_dir = temp_dir
-    test_dataset_parquet_package.pq_to_sqlite(output_dir)
+    output_path = os.path.join(temp_dir, "integration_test.sqlite3")
+    test_dataset_parquet_package.pq_to_sqlite(output_path, temp_dir)
 
-    output_file = os.path.join(
-        output_dir, f"{os.path.basename(str(output_dir))}.sqlite3"
-    )
-    assert os.path.exists(output_file), "entity.parquet file does not exist"
+    assert os.path.exists(output_path), "sqlite3 file does not exist"
 
-    cnx = sqlite3.connect(output_file)
+    cnx = sqlite3.connect(output_path)
     df_sql = pd.read_sql_query("SELECT * FROM fact_resource", cnx)
-    print(df_sql)
     assert len(df_sql) > 0, "No data in fact_resource table"
     assert np.all(
         pd.isnull(df_sql["end-date"])
