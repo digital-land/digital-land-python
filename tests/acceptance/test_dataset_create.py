@@ -5,6 +5,7 @@ a sqlite dataset. There are quite a few things to set up and this specifically
 
 import pytest
 import csv
+
 import numpy as np
 import pandas as pd
 import os
@@ -18,7 +19,7 @@ from digital_land.cli import cli
 from digital_land.configuration.main import Config
 from digital_land.specification import Specification
 
-testing_dir = "conservation-area"
+test_dataset = "conservation-area"
 
 
 @pytest.fixture(scope="session")
@@ -30,7 +31,7 @@ def session_tmp_path():
 @pytest.fixture
 def input_paths():
     input_paths = []
-    directory = f"tests/data/{testing_dir}/transformed/{testing_dir}/"
+    directory = f"tests/data/{test_dataset}/transformed/{test_dataset}/"
     for root, dirs, files in os.walk(directory):
         for file in files:
             full_path = os.path.join(root, file)
@@ -44,7 +45,7 @@ def organisation_path():
     """
     build an organisations dataset to use
     """
-    orgs_path = f"tests/data/{testing_dir}/organisation.csv"
+    orgs_path = f"tests/data/{test_dataset}/organisation.csv"
 
     return orgs_path
 
@@ -82,49 +83,53 @@ def config_path(session_tmp_path, specification_dir):
 
 @pytest.fixture
 def cache_path(session_tmp_path):
-    cache_path = session_tmp_path / "var/cache"
-    if not os.path.exists(cache_path):
-        os.makedirs(cache_path)
+    cache_path = session_tmp_path / "var" / "cache"
+    os.makedirs(cache_path, exist_ok=True)
     return cache_path
 
 
 @pytest.fixture
-def output_dir(session_tmp_path):
-    output_dir = Path(f"dataset/{testing_dir}")
-    os.makedirs(output_dir, exist_ok=True)
-    return output_dir
+def dataset_dir(session_tmp_path):
+    dataset_dir = session_tmp_path / "dataset"
+    os.makedirs(dataset_dir, exist_ok=True)
+    return dataset_dir
 
 
-def test_run_some_expectations(
-    session_tmp_path,
+@pytest.fixture
+def issue_dir(session_tmp_path):
+    issue_dir = session_tmp_path / "issue"
+    os.makedirs(issue_dir, exist_ok=True)
+    return issue_dir
+
+
+def test_dataset_create(
     organisation_path,
     input_paths,
-    config_path,
-    specification_dir,
+    issue_dir,
     cache_path,
-    output_dir,
+    dataset_dir,
 ):
-    output_path = output_dir / f"{testing_dir}.sqlite3"
+    output_path = dataset_dir / f"{test_dataset}.sqlite3"
 
     runner = CliRunner()
     result = runner.invoke(
         cli,
         [
             "--dataset",
-            str(testing_dir),
+            str(test_dataset),
             "--pipeline-dir",
-            str(f"tests/data/{testing_dir}/pipeline"),
+            str(f"tests/data/{test_dataset}/pipeline"),
             "dataset-create",
             "--output-path",
             str(output_path),
             "--organisation-path",
             str(organisation_path),
             "--column-field-dir",
-            str(f"tests/data/{testing_dir}/var/column-field"),
+            str(f"tests/data/{test_dataset}/var/column-field"),
             "--dataset-resource-dir",
-            str(f"tests/data/{testing_dir}/var/dataset-resource"),
+            str(f"tests/data/{test_dataset}/var/dataset-resource"),
             "--issue-dir",
-            str(cache_path),
+            str(issue_dir),
             "--cache-dir",
             str(cache_path),
             str(input_paths[0]),
@@ -148,9 +153,9 @@ def test_run_some_expectations(
         np.sort(pq_files) == ["entity.parquet", "fact.parquet", "fact_resource.parquet"]
     ), "parquet file names not correct"
 
-    assert os.path.exists(
-        output_path
-    ), f"sqlite file {testing_dir}.sqlite3 does not exists"
+    # Check the sqlite file was created
+    assert os.path.exists(output_path), f"sqlite file {output_path} does not exists"
+
     conn = sqlite3.connect(output_path)
     cursor = conn.cursor()
     tables = cursor.execute(
