@@ -4,7 +4,6 @@ a sqlite dataset. There are quite a few things to set up and this specifically
 """
 
 import pytest
-import csv
 
 import numpy as np
 import pandas as pd
@@ -16,9 +15,8 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from digital_land.cli import cli
-from digital_land.configuration.main import Config
-from digital_land.specification import Specification
 
+test_collection = "conservation-area"
 test_dataset = "conservation-area"
 
 
@@ -31,7 +29,7 @@ def session_tmp_path():
 @pytest.fixture
 def input_paths():
     input_paths = []
-    directory = f"tests/data/{test_dataset}/transformed/{test_dataset}/"
+    directory = f"tests/data/{test_collection}/transformed/{test_dataset}/"
     for root, dirs, files in os.walk(directory):
         for file in files:
             full_path = os.path.join(root, file)
@@ -45,40 +43,8 @@ def organisation_path():
     """
     build an organisations dataset to use
     """
-    orgs_path = f"tests/data/{test_dataset}/organisation.csv"
-
+    orgs_path = f"tests/data/{test_collection}/organisation.csv"
     return orgs_path
-
-
-@pytest.fixture
-def config_path(session_tmp_path, specification_dir):
-    """create a configuration to use"""
-    config_path = session_tmp_path / "config.sqlite3"
-    rules = [
-        {
-            "datasets": "test",
-            "organisations": "local-authority:test",
-            "name": "test rule for {{ organisation.name }}",
-            "operation": "count_lpa_boundary",
-            "parameters": '{"expected":1,"lpa":"{{ organisation.local_planning_authority }}","organisation_entity":"{{ organisation.entity }}"}',
-            "responsibility": "internal",
-            "severity": "notice",
-        }
-    ]
-    # write rows
-    expect_path = session_tmp_path / "expect.csv"
-    # Writing data to CSV
-    with open(expect_path, mode="w", newline="") as file:
-        # Define the fieldnames (column headers) based on dictionary keys
-        writer = csv.DictWriter(file, fieldnames=rules[0].keys())
-        writer.writeheader()  # Write the header row
-        writer.writerows(rules)  # Write each dictionary as a row
-
-    spec = Specification(specification_dir)
-    config = Config(path=config_path, specification=spec)
-    config.create()
-    config.load({"expect": str(session_tmp_path)})
-    return config_path
 
 
 @pytest.fixture
@@ -119,22 +85,22 @@ def test_acceptance_dataset_create(
             "--dataset",
             str(test_dataset),
             "--pipeline-dir",
-            str(f"tests/data/{test_dataset}/pipeline"),
+            str(f"tests/data/{test_collection}/pipeline"),
             "dataset-create",
             "--output-path",
             str(output_path),
             "--organisation-path",
             str(organisation_path),
             "--column-field-dir",
-            str(f"tests/data/{test_dataset}/var/column-field"),
+            str(f"tests/data/{test_collection}/var/column-field"),
             "--dataset-resource-dir",
-            str(f"tests/data/{test_dataset}/var/dataset-resource"),
+            str(f"tests/data/{test_collection}/var/dataset-resource"),
             "--issue-dir",
             str(issue_dir),
             "--cache-dir",
             str(cache_path),
-            str(input_paths[0]),
-        ],
+        ]
+        + input_paths,
         catch_exceptions=False,
     )
 
@@ -147,7 +113,7 @@ def test_acceptance_dataset_create(
         print("Command error output:")
         print(result.exception)
 
-    assert result.exit_code == 0, "error returned when running expectations"
+    assert result.exit_code == 0, "error returned when building dataset"
     pq_files = [file for file in os.listdir(cache_path) if file.endswith(".parquet")]
     assert len(pq_files) == 3, "Not all parquet files created"
     assert np.all(
