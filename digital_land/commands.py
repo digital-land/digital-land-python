@@ -357,7 +357,7 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
-    cache_dir="var/cache/parquet",
+    cache_dir="var/cache",
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
@@ -396,14 +396,15 @@ def dataset_create(
 
     # Repeat for parquet
     # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
+    cache_dir = os.path.join(cache_dir, "parquet")
+    os.makedirs(cache_dir, exist_ok=True)
 
     pqpackage = DatasetParquetPackage(
         dataset,
         path=output_path,
         input_paths=input_paths,
         specification_dir=None,  # TBD: package should use this specification object
+        cache_dir=cache_dir,
     )
     pqpackage.create_temp_table(input_paths)
     pqpackage.load_facts(input_paths, cache_dir)

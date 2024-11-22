@@ -30,12 +30,13 @@ indexes = {
 class DatasetParquetPackage(Package):
     def __init__(self, dataset, input_paths, **kwargs):
         self.suffix = ".parquet"
+        cache_dir = kwargs.pop("cache_dir", "var/cache")
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.input_paths = input_paths
         self._spatialite = None
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
-        self.duckdb_file = "input_paths_database.duckdb"
+        self.duckdb_file = os.path.join(cache_dir, f"input_paths_{self.dataset}.duckdb")
         self.conn = duckdb.connect(self.duckdb_file)
         self.schema = self.get_schema(input_paths)
 
