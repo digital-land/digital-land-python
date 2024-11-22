@@ -148,11 +148,7 @@ def test_acceptance_dataset_create(
         print(result.exception)
 
     assert result.exit_code == 0, "error returned when running expectations"
-
-    # Check the parquet files were created
-    parquet_cache = cache_path / "parquet"
-
-    pq_files = [file for file in os.listdir(parquet_cache) if file.endswith(".parquet")]
+    pq_files = [file for file in os.listdir(cache_path) if file.endswith(".parquet")]
     assert len(pq_files) == 3, "Not all parquet files created"
     assert np.all(
         np.sort(pq_files) == ["entity.parquet", "fact.parquet", "fact_resource.parquet"]
@@ -161,7 +157,6 @@ def test_acceptance_dataset_create(
     # Check the sqlite file was created
     assert os.path.exists(output_path), f"sqlite file {output_path} does not exists"
 
-    # Check the tables match
     conn = sqlite3.connect(output_path)
     cursor = conn.cursor()
     tables = cursor.execute(
@@ -175,7 +170,7 @@ def test_acceptance_dataset_create(
     ), f"Missing following tables in sqlite database: {missing_tables}"
 
     for table in list(expected_tables):
-        pq_rows = len(pd.read_parquet(parquet_cache / f"{table}.parquet"))
+        pq_rows = len(pd.read_parquet(f"{cache_path}/{table}.parquet"))
         sql_rows = cursor.execute(f"SELECT COUNT(*) FROM {table};").fetchone()[0]
         assert (
             pq_rows == sql_rows
