@@ -378,10 +378,8 @@ def dataset_create(
     package.create()
     for path in input_paths:
         path_obj = Path(path)
-        # package.load_transformed(path)
         package.load_column_fields(column_field_dir / dataset / path_obj.name)
         package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    # package.load_entities()
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
     if os.path.exists(old_entity_path):
