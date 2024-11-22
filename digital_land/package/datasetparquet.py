@@ -5,6 +5,8 @@ import sqlite3
 import duckdb
 from .package import Package
 
+import traceback
+
 logger = logging.getLogger(__name__)
 
 # TBD: move to from specification datapackage definition
@@ -264,21 +266,6 @@ class DatasetParquetPackage(Package):
         parquet_files = [fn for fn in os.listdir(cache_dir) if fn.endswith(self.suffix)]
         sqlite_file_path = output_path
 
-        # Create the SQLite database connection
-        sqlite_conn = sqlite3.connect(sqlite_file_path)
-        sqlite_conn.enable_load_extension(True)
-        sqlite_conn.execute('SELECT load_extension("mod_spatialite");')
-
-        # Check if the spatial_ref_sys table already exists to avoid reinitializing spatial metadata
-        existing_tables = [
-            row[0]
-            for row in sqlite_conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table';"
-            ).fetchall()
-        ]
-        if "spatial_ref_sys" not in existing_tables:
-            sqlite_conn.execute("SELECT InitSpatialMetadata(1);")
-
         for parquet_file in parquet_files:
             table_name = os.path.splitext(os.path.basename(parquet_file))[0]
 
@@ -288,39 +275,17 @@ class DatasetParquetPackage(Package):
                 f"""
                 CREATE TABLE temp_table AS
                 SELECT * FROM parquet_scan('{cache_dir}/{parquet_file}');
-            """
+                """
             )
 
             # Export the DuckDB table to the SQLite database
-            self.conn.execute(f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db;")
+            self.conn.execute(f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db (TYPE SQLITE);")
             self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
             self.conn.execute(
                 f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;"
             )
             self.conn.execute("DETACH DATABASE sqlite_db;")
 
-            geom_columns_query = """
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name = 'temp_table'
-                  AND (column_name ILIKE '%geom%' OR lower(column_name) = 'geometry' OR lower(column_name) = 'point');
-            """
-            geom_columns = [
-                row[0] for row in self.conn.execute(geom_columns_query).fetchall()
-            ]
-            if self._spatialite:
-                if "geometry-geom" in geom_columns:
-                    self.conn.execute(
-                        "SELECT AddGeometryColumn('%s', 'geometry_geom', 4326, 'MULTIPOLYGON', 2);"
-                        % (table_name)
-                    )
-                if "point-geom" in geom_columns:
-                    self.conn.execute(
-                        "SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);"
-                        % (table_name)
-                    )
-
-        sqlite_conn.close()
 
     def close_conn(self):
         logging.info("Close connection to duckdb database in session")
