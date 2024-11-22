@@ -95,7 +95,7 @@ def output_dir(session_tmp_path):
     return output_dir
 
 
-def test_run_some_expectations(
+def test_acceptance_dataset_create(
     session_tmp_path,
     organisation_path,
     input_paths,
