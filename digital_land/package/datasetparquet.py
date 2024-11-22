@@ -1,11 +1,8 @@
 import os
 import logging
 from pathlib import Path
-import sqlite3
 import duckdb
 from .package import Package
-
-import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -279,13 +276,14 @@ class DatasetParquetPackage(Package):
             )
 
             # Export the DuckDB table to the SQLite database
-            self.conn.execute(f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db (TYPE SQLITE);")
+            self.conn.execute(
+                f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db (TYPE SQLITE);"
+            )
             self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
             self.conn.execute(
                 f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;"
             )
             self.conn.execute("DETACH DATABASE sqlite_db;")
-
 
     def close_conn(self):
         logging.info("Close connection to duckdb database in session")
