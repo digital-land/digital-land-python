@@ -154,7 +154,7 @@ class DatasetParquetPackage(Package):
             for field in distinct_fields
             if field not in entity_fields + ["organisation"]
         ]
-:wq
+
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
         extra_fields = [
@@ -226,6 +226,13 @@ class DatasetParquetPackage(Package):
         org_query = f"""
              SELECT * FROM read_csv_auto('{org_csv}')
          """
+
+        print("\n")
+        print("select_statement")
+        print(select_statement)
+        print("null_fields_statement")
+        print(null_fields_statement)
+        print("\n")
 
         sql = f"""
             INSTALL spatial; LOAD spatial;
