@@ -149,7 +149,7 @@ class DatasetParquetPackage(Package):
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
-        json_fields = [field for field in distinct_fields if field not in entity_fields]
+        json_fields = [field for field in distinct_fields if field not in entity_fields + ['organisation']]
 
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
