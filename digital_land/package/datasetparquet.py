@@ -149,6 +149,7 @@ class DatasetParquetPackage(Package):
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
+        # Need to ensure that 'organisation' is not included either
         json_fields = [
             field
             for field in distinct_fields
@@ -213,7 +214,11 @@ class DatasetParquetPackage(Package):
         select_statement = ", ".join([f"t1.{field}" for field in select_fields])
         # Don't want to include anything that ends with "_geom"
         null_fields_statement = ", ".join(
-            [f'NULL::VARCHAR AS "{field}"' for field in null_fields if not field.endswith("_geom")]
+            [
+                f'NULL::VARCHAR AS "{field}"'
+                for field in null_fields
+                if not field.endswith("_geom")
+            ]
         )
         json_statement = ", ".join(
             [
@@ -227,13 +232,6 @@ class DatasetParquetPackage(Package):
         org_query = f"""
              SELECT * FROM read_csv_auto('{org_csv}')
          """
-
-        print("\n")
-        print("select_statement")
-        print(select_statement)
-        print("null_fields_statement")
-        print(null_fields_statement)
-        print("\n")
 
         sql = f"""
             INSTALL spatial; LOAD spatial;
