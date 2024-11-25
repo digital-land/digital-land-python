@@ -8,6 +8,8 @@ import logging
 from packaging.version import Version
 import pandas as pd
 from pathlib import Path
+from urllib.parse import urlparse
+from datetime import datetime
 
 import geojson
 import shapely
@@ -529,6 +531,220 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
             logging.error(f"unrecognised argument '{key}'")
             sys.exit(2)
     add_source_endpoint(entry, directory=collection_dir)
+
+
+def is_url_valid(url, url_type):
+
+    if not url or url.strip() == "":
+        raise ValueError(f"The {url_type} must be populated")
+
+    try:
+        parsed_url = urlparse(url)
+
+        # is  url scheme valid i.e start with http:// or https://
+        if parsed_url.scheme not in ["http", "https"]:
+            raise ValueError(f"The {url_type} must start with 'http://' or 'https://'")
+
+        # does url have domain
+        if not parsed_url.netloc:
+            raise ValueError(f"The {url_type} must have a domain")
+
+        return True
+
+    except ValueError:
+        raise
+
+    except Exception as e:
+        # raises any unexpected error
+        return ValueError(f"An unexpected error occured validating {url}: {str(e)}")
+
+
+def add_data(
+    csv_file_path,
+    specification_dir,
+):
+
+    expected_cols = [
+        "pipelines",
+        "organisation",
+        "documentation-url",
+        "endpoint-url",
+        "start-date",
+        "licence",
+    ]
+
+    licence_csv_path = os.path.join(specification_dir, "licence.csv")
+    valid_licenses = []
+    with open(licence_csv_path, mode="r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        valid_licenses = [row["licence"] for row in reader]
+
+    organisation_path = "var/cache/organisation.csv"
+    valid_organisations = []
+    with open(organisation_path, mode="r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        valid_organisations = [row["organisation"] for row in reader]
+
+    collection_name = "conservation-area"
+    collection_dir = "collection/conservation-area"
+
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+    # ===== FIRST VALIDATION BASED ON IMPORT.CSV INFO
+    # - License okay, url okay, date format valid, organistion exist
+
+    # read and process each record of the new endpoints csv at csv_file_path i.e import.csv
+    with open(csv_file_path) as new_endpoints_file:
+        reader = csv.DictReader(new_endpoints_file)
+        csv_columns = reader.fieldnames
+
+        # validate the columns
+        for expected_col in expected_cols:
+            if expected_col not in csv_columns:
+                raise Exception(f"required column ({expected_col}) not found in csv")
+
+        endpoints = []
+        for row in reader:
+            if row["licence"] == "" or row["licence"] not in valid_licenses:
+                if row["licence"] == "":
+                    raise ValueError("Licence is blank")
+                else:
+                    raise ValueError(
+                        f"Licence '{row['licence']}' is not a valid licence according to the specification."
+                    )
+            # check if urls are not blank and valid urls
+            is_url_valid(row["documentation-url"], "documentation-url")
+            is_url_valid(row["endpoint-url"], "endpoint_url")
+
+            # if there is no start-date, do we want to populate it with today's date?
+            if row["start-date"]:
+                try:
+                    given_start_date = row["start-date"]
+
+                    try:
+                        given_start_date = datetime.strptime(
+                            row["start-date"], "%Y-%m-%d"
+                        ).date()
+                    # need to raise ValueError here otherwise datetime will raise it's own error, not the clear format we want
+                    except ValueError:
+                        raise ValueError(
+                            f"start-date {given_start_date} must be format YYYY-MM-DD"
+                        )
+
+                    if given_start_date > datetime.today().date():
+                        raise ValueError(
+                            f"The start_date {given_start_date} cannot be in the future"
+                        )
+                except ValueError:
+                    raise
+                except Exception as e:
+                    raise ValueError(f"An unexpected error occured: {str(e)}")
+
+            if (
+                row["organisation"] == ""
+                or row["organisation"] not in valid_organisations
+            ):
+                if row["organisation"] == "":
+                    raise ValueError(
+                        f"The given organisation '{row['organisation']}' is blank"
+                    )
+                if row["organisation"] not in valid_organisations:
+                    raise ValueError(
+                        f"The given organisation '{row['organisation']}' is not in our valid organisations"
+                    )
+
+            # do we need a check to see if the given pipeline exists?
+        # SHOULD HAVE ALL CHECKS DONE, NOW CREATE HASH FOR ENDPOINT AND
+    print("======================================================================")
+    print("Endpoint and source details")
+    print("======================================================================")
+    print("Endpoint URL: ", row["endpoint-url"])
+    print("Endpoint Hash:", hash_value(row["endpoint-url"]))
+    print("Documentation URL: ", row["documentation-url"])
+    print()
+
+    # if endpoint already exists, it will indicate it and quit function here
+    if collection.add_source_endpoint(row):
+        endpoint = {
+            "endpoint-url": row["endpoint-url"],
+            "endpoint": hash_value(row["endpoint-url"]),
+            "end-date": row.get("end-date", ""),
+            "plugin": row.get("plugin"),
+            "licence": row["licence"],
+        }
+        endpoints.append(endpoint)
+    # if passes above code we can now tr the 'downlaoad resource'part
+
+    # endpoints have been added now lets collect the resources using the endpoint information
+    collector = Collector(collection_dir=collection_dir)
+
+    for endpoint in endpoints:
+        collector.fetch(
+            url=endpoint["endpoint-url"],
+            endpoint=endpoint["endpoint"],
+            end_date=endpoint["end-date"],
+            plugin=endpoint["plugin"],
+        )
+    # reload log items
+    collection.load_log_items()
+
+    dataset_resource_map = collection.dataset_resource_map()
+
+    #  searching for the specific resources that we have downloaded
+    for dataset in dataset_resource_map:
+        # resources_to_assign = []
+        for resource in dataset_resource_map[dataset]:
+            resource_endpoints = collection.resource_endpoints(resource)
+            if any(
+                endpoint in [new_endpoint["endpoint"] for new_endpoint in endpoints]
+                for endpoint in resource_endpoints
+            ):
+                resource_file_path = Path(collection_dir) / "resource" / resource
+                # resources_to_assign.append(resource_file_path)
+                print("Resource Path is: ", resource_file_path)
+
+                log_datetime = datetime.utcnow().strftime(
+                    "%Y-%m-%d"
+                )  # Format datetime as a string
+                log_file_path = (
+                    Path(collection_dir)
+                    / "log"
+                    / log_datetime
+                    / (str(hash_value(row["endpoint-url"])) + ".json")
+                )
+
+                # get the status from the log file
+                if log_file_path.exists():
+                    with open(log_file_path, "r") as log_file:
+                        try:
+                            log_data = json.load(log_file)
+
+                            if log_data.get("status") == "200":
+                                print(
+                                    f"Log Status for {hash_value(row['endpoint-url'])}: The status is 200."
+                                )
+                            else:
+                                print(
+                                    f"Log Status for {hash_value(row['endpoint-url'])}: The status is not 200. It is {log_data.get('status')}."
+                                )
+                        except Exception:
+                            print(
+                                f"Error: The log file for {hash_value(row['endpoint-url'])} could not be read."
+                            )
+                else:
+                    print(
+                        f"Log file for {hash_value(row['endpoint-url'])} not found: {log_file_path}"
+                    )
+
+    user_response = (
+        input("Do you want to continue processing this resource? (yes/no): ")
+        .strip()
+        .lower()
+    )
+
+    if user_response != "yes":
+        print("Operation cancelled by user.")
+        return
 
 
 def add_endpoints_and_lookups(

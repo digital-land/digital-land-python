@@ -30,6 +30,7 @@ from digital_land.commands import (
     organisation_check,
     save_state,
     compare_state,
+    add_data,
 )
 from digital_land.expectations.commands import run_dataset_checkpoint
 
@@ -343,6 +344,23 @@ def expectations_run_dataset_checkpoint(
 @click.argument("csv-path", nargs=1, type=click.Path())
 def retire_endpoints_cmd(config_collections_dir, csv_path):
     return collection_retire_endpoints_and_sources(config_collections_dir, csv_path)
+
+
+@cli.command("add-data")
+@click.argument("csv-path", nargs=1, type=click.Path())
+@click.option(
+    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
+)
+def add_data_cmc(csv_path, specification_dir):
+    csv_file_path = Path(csv_path)
+    if not csv_file_path.is_file():
+        logging.error("no csv file was provided")
+        sys.exit(2)
+
+    return add_data(
+        csv_file_path,
+        specification_dir,
+    )
 
 
 # edit to add collection_name in
