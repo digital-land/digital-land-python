@@ -211,8 +211,9 @@ class DatasetParquetPackage(Package):
         # include columns in the json statement
         # Collate list of fields which don't exist but need to be in the final table
         select_statement = ", ".join([f"t1.{field}" for field in select_fields])
+        # Don't want to include anything that ends with "_geom"
         null_fields_statement = ", ".join(
-            [f'NULL::VARCHAR AS "{field}"' for field in null_fields]
+            [f'NULL::VARCHAR AS "{field}"' for field in null_fields if not field.endswith("_geom")]
         )
         json_statement = ", ".join(
             [
