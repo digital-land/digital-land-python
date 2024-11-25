@@ -8,6 +8,8 @@ import logging
 from packaging.version import Version
 import pandas as pd
 from pathlib import Path
+from urllib.parse import urlparse
+from datetime import datetime
 
 import geojson
 import shapely
@@ -529,6 +531,121 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
             logging.error(f"unrecognised argument '{key}'")
             sys.exit(2)
     add_source_endpoint(entry, directory=collection_dir)
+
+
+def is_url_valid(url, url_type):
+
+    if not url or url.strip() == "":
+        raise ValueError(f"The {url_type} must be populated")
+
+    try:
+        parsed_url = urlparse(url)
+
+        # is  url scheme valid i.e start with http:// or https://
+        if parsed_url.scheme not in ["http", "https"]:
+            raise ValueError(f"The {url_type} must start with 'http://' or 'https://'")
+
+        # does url have domain
+        if not parsed_url.netloc:
+            raise ValueError(f"The {url_type} must have a domain")
+
+        return True
+
+    except ValueError:
+        raise
+
+    except Exception as e:
+        # raises any unexpected error
+        return ValueError(f"An unexpected error occured validating {url}: {str(e)}")
+
+
+def add_data(
+    csv_file_path,
+    specification_dir,
+):
+
+    expected_cols = [
+        "pipelines",
+        "organisation",
+        "documentation-url",
+        "endpoint-url",
+        "start-date",
+        "licence",
+    ]
+
+    licence_csv_path = os.path.join(specification_dir, "licence.csv")
+    valid_licenses = []
+    with open(licence_csv_path, mode="r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        valid_licenses = [row["licence"] for row in reader]
+
+    organisation_path = "organisation.csv"
+    valid_organisations = []
+    with open(organisation_path, mode="r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        valid_organisations = [row["organisation"] for row in reader]
+
+    # ===== FIRST VALIDATION BASED ON IMPORT.CSV INFO
+    # - License okay, url okay, date format valid, organistion exist
+
+    # read and process each record of the new endpoints csv at csv_file_path i.e import.csv
+    with open(csv_file_path) as new_endpoints_file:
+        reader = csv.DictReader(new_endpoints_file)
+        csv_columns = reader.fieldnames
+
+        # validate the columns
+        for expected_col in expected_cols:
+            if expected_col not in csv_columns:
+                raise Exception(f"required column ({expected_col}) not found in csv")
+
+        for row in reader:
+            if row["licence"] == "" or row["licence"] not in valid_licenses:
+                if row["licence"] == "":
+                    raise ValueError("Licence is blank")
+                else:
+                    raise ValueError(
+                        f"Licence '{row['licence']}' is not a valid licence according to the specification."
+                    )
+            # check if urls are not blank and valid urls
+            is_url_valid(row["documentation-url"], "documentation-url")
+            is_url_valid(row["endpoint-url"], "endpoint_url")
+
+            # if there is no start-date, do we want to populate it with today's date?
+            if row["start-date"]:
+                try:
+                    given_start_date = row["start-date"]
+
+                    try:
+                        given_start_date = datetime.strptime(
+                            row["start-date"], "%Y-%m-%d"
+                        ).date()
+                    # need to raise ValueError here otherwise datetime will raise it's own error, not the clear format we want
+                    except ValueError:
+                        raise ValueError(
+                            f"start-date {given_start_date} must be format YYYY-MM-DD"
+                        )
+
+                    if given_start_date > datetime.today().date():
+                        raise ValueError(
+                            f"The start_date {given_start_date} cannot be in the future"
+                        )
+                except ValueError:
+                    raise
+                except Exception as e:
+                    raise ValueError(f"An unexpected error occured: {str(e)}")
+
+            if (
+                row["organisation"] == ""
+                or row["organisation"] not in valid_organisations
+            ):
+                if row["organisation"] == "":
+                    raise ValueError(
+                        f"The given organisation '{row['organisation']}' is blank"
+                    )
+                if row["organisation"] not in valid_organisations:
+                    raise ValueError(
+                        f"The given organisation '{row['organisation']}' is not in our valid organisations"
+                    )
 
 
 def add_endpoints_and_lookups(
