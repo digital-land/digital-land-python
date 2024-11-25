@@ -462,7 +462,7 @@ def test_dataset_parquet_package(temp_dir):
 
     # Instantiate the DatasetParquetPackage with temp_dir input paths and a mock schema
     package = DatasetParquetPackage(
-        dataset="test_dataset", input_paths=input_paths, specification_dir=None
+        dataset="conservation-area", input_paths=input_paths, specification_dir=None
     )
     package.create_temp_table(input_paths)
 

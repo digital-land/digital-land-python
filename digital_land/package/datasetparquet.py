@@ -1,6 +1,5 @@
 import os
 import logging
-from pathlib import Path
 import duckdb
 from .package import Package
 
@@ -37,6 +36,7 @@ class DatasetParquetPackage(Package):
         self.duckdb_file = "input_paths_database.duckdb"
         self.conn = duckdb.connect(self.duckdb_file)
         self.schema = self.get_schema(input_paths)
+        self.typology = self.specification.schema[dataset]["typology"]
 
     def get_schema(self, input_paths):
         # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
@@ -223,7 +223,6 @@ class DatasetParquetPackage(Package):
              SELECT * FROM read_csv_auto('{org_csv}')
          """
 
-        dataset = Path(output_path).name
         sql = f"""
             INSTALL spatial; LOAD spatial;
             COPY(
@@ -236,8 +235,8 @@ class DatasetParquetPackage(Package):
                             ELSE point
                         END AS point
                     FROM (
-                        SELECT '{dataset}' as dataset,
-                        '{dataset}' as typology,
+                        SELECT '{self.dataset}' as dataset,
+                        '{self.typology}' as typology,
                         t2.entity as organisation_entity,
                         {select_statement},
                         {null_fields_statement},
