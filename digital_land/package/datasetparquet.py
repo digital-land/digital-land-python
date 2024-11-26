@@ -33,7 +33,7 @@ class DatasetParquetPackage(Package):
         self.input_paths = input_paths
         self._spatialite = None
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
-        self.duckdb_file = "input_paths_database.duckdb"
+        self.duckdb_file = f"input_paths_{dataset}.duckdb"
         self.conn = duckdb.connect(self.duckdb_file)
         self.schema = self.get_schema(input_paths)
         self.typology = self.specification.schema[dataset]["typology"]
