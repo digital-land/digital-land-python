@@ -395,23 +395,23 @@ def dataset_create(
 
     package.add_counts()
 
-    # Repeat for parquet
-    # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
-
-    pqpackage = DatasetParquetPackage(
-        dataset,
-        path=output_path,
-        input_paths=input_paths,
-        specification_dir=None,  # TBD: package should use this specification object
-    )
-    pqpackage.create_temp_table(input_paths)
-    pqpackage.load_facts(input_paths, cache_dir)
-    pqpackage.load_fact_resource(input_paths, cache_dir)
-    pqpackage.load_entities(input_paths, cache_dir, organisation_path)
-    pqpackage.pq_to_sqlite(output_path, cache_dir)
-    pqpackage.close_conn()
+    # # Repeat for parquet
+    # # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
+    # if not os.path.exists(cache_dir):
+    #     os.makedirs(cache_dir)
+    #
+    # pqpackage = DatasetParquetPackage(
+    #     dataset,
+    #     path=output_path,
+    #     input_paths=input_paths,
+    #     specification_dir=None,  # TBD: package should use this specification object
+    # )
+    # pqpackage.create_temp_table(input_paths)
+    # pqpackage.load_facts(input_paths, cache_dir)
+    # pqpackage.load_fact_resource(input_paths, cache_dir)
+    # pqpackage.load_entities(input_paths, cache_dir, organisation_path)
+    # pqpackage.pq_to_sqlite(output_path, cache_dir)
+    # pqpackage.close_conn()
 
 
 def dataset_dump(input_path, output_path):
