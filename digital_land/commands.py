@@ -497,8 +497,9 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         print("a")
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
         print("subprocess.run(['ogr2ogr', '--version']).stdout")
+        env = os.environ.copy()
         try:
-            result = subprocess.run(["ogr2ogr", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = subprocess.run(["ogr2ogr", "--version"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             print(result.stdout.decode())
         except Exception as e:
             print(f"Error: {e}")
