@@ -114,7 +114,8 @@ def test_acceptance_dataset_create(
         print(result.exception)
 
     assert result.exit_code == 0, "error returned when building dataset"
-    pq_files = [file for file in os.listdir(cache_path) if file.endswith(".parquet")]
+    pq_cache = os.path.join(cache_path, test_dataset)
+    pq_files = [file for file in os.listdir(pq_cache) if file.endswith(".parquet")]
     assert len(pq_files) == 3, "Not all parquet files created"
     assert np.all(
         np.sort(pq_files) == ["entity.parquet", "fact.parquet", "fact_resource.parquet"]
@@ -136,7 +137,7 @@ def test_acceptance_dataset_create(
     ), f"Missing following tables in sqlite database: {missing_tables}"
 
     for table in list(expected_tables):
-        pq_rows = len(pd.read_parquet(f"{cache_path}/{table}.parquet"))
+        pq_rows = len(pd.read_parquet(f"{pq_cache}/{table}.parquet"))
         sql_rows = cursor.execute(f"SELECT COUNT(*) FROM {table};").fetchone()[0]
         assert (
             pq_rows == sql_rows

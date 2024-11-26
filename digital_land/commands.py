@@ -360,6 +360,8 @@ def dataset_create(
     dataset_resource_dir="var/dataset-resource",
     cache_dir="var/cache/parquet",
 ):
+    cache_dir = os.path.join(cache_dir, dataset)
+
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
@@ -474,6 +476,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     batch_size = 100000
     temp_geojson_files = []
     geography_entities = [e for e in entities if e["typology"] == "geography"]
+
     for i in range(0, len(geography_entities), batch_size):
         batch = geography_entities[i : i + batch_size]
         feature_collection = process_data_in_batches(batch, flattened_dir, dataset_name)
@@ -486,14 +489,22 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         except Exception as e:
             logging.error(f"Error writing to GeoJSON file: {e}")
 
+    print("Pre temp_geojson_files")
+    print(len(temp_geojson_files))
     if all(os.path.isfile(path) for path in temp_geojson_files):
+        print("a")
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
+        print("b")
+        print(get_gdal_version())
+        print(get_gdal_version() >= Version("3.5.2"))
         env = (
             dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
             if get_gdal_version() >= Version("3.5.2")
             else os.environ
         )
+        print("c")
         for temp_path in temp_geojson_files:
+            print(temp_path)
             responseCode, _, _ = execute(
                 [
                     "ogr2ogr",
@@ -526,6 +537,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             # clear up input geojson file
             if os.path.isfile(temp_path):
                 os.remove(temp_path)
+    print("Post temp_geojson_files")
 
 
 #
@@ -892,9 +904,10 @@ def process_data_in_batches(entities, flattened_dir, dataset_name):
                 logging.error(f"Error loading wkt from entity {entity['entity']}")
                 logging.error(e)
         else:
-            logging.error(
-                f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
-            )
+            pass
+            # logging.error(
+            #     f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
+            # )
 
     if features:
         feature_collection = geojson.FeatureCollection(

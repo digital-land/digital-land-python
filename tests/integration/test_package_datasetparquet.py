@@ -199,8 +199,6 @@ def test_dataset_parquet_package(temp_dir):
         for row in data:
             f.write(",".join(map(str, row)) + "\n")
 
-    # df = pd.read_csv(input_paths[0])
-
     # Test data for the tables. This has plenty of 'duplicates' to check
     data = [
         [
@@ -534,11 +532,9 @@ def test_load_entities_basic(test_dataset_parquet_package, temp_dir):
     df = pd.read_parquet(output_file)
     assert len(df) > 0, "No data in entity.parquet file"
     assert len(df) == 11, "No. of entities is not correct"
-    assert df.shape[1] == 16, "Not all columns saved in entity.parquet file"
+    assert df.shape[1] == 14, "Not all columns saved in entity.parquet file"
     assert df["end_date"].isnull().all()  # Check null handling
     assert df["geojson"].isnull().all()  # Check null handling
-    assert df["geometry_geom"].isnull().all()  # Check null handling
-    assert df["point_geom"].isnull().all()  # Check null handling
 
 
 def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):

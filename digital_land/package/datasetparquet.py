@@ -33,7 +33,7 @@ class DatasetParquetPackage(Package):
         self.input_paths = input_paths
         self._spatialite = None
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
-        self.duckdb_file = "input_paths_database.duckdb"
+        self.duckdb_file = f"input_paths_{dataset}.duckdb"
         self.conn = duckdb.connect(self.duckdb_file)
         self.schema = self.get_schema(input_paths)
         self.typology = self.specification.schema[dataset]["typology"]
@@ -149,7 +149,12 @@ class DatasetParquetPackage(Package):
 
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table
-        json_fields = [field for field in distinct_fields if field not in entity_fields]
+        # Need to ensure that 'organisation' is not included either
+        json_fields = [
+            field
+            for field in distinct_fields
+            if field not in entity_fields + ["organisation"]
+        ]
 
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
@@ -207,8 +212,13 @@ class DatasetParquetPackage(Package):
         # include columns in the json statement
         # Collate list of fields which don't exist but need to be in the final table
         select_statement = ", ".join([f"t1.{field}" for field in select_fields])
+        # Don't want to include anything that ends with "_geom"
         null_fields_statement = ", ".join(
-            [f'NULL::VARCHAR AS "{field}"' for field in null_fields]
+            [
+                f'NULL::VARCHAR AS "{field}"'
+                for field in null_fields
+                if not field.endswith("_geom")
+            ]
         )
         json_statement = ", ".join(
             [
