@@ -678,63 +678,44 @@ def add_data(
     # endpoints have been added now lets collect the resources using the endpoint information
     collector = Collector(collection_dir=collection_dir)
 
+    endpoint_log_dict = {}
     for endpoint in endpoints:
-        collector.fetch(
+        status, log_path = collector.fetch(
             url=endpoint["endpoint-url"],
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
         )
+        endpoint_log_dict[endpoint["endpoint"]] = {
+            "status": status,
+            "log_path": log_path,
+        }
+
+    for k, v in endpoint_log_dict.items():
+        endpoint = k
+        log_path = v["log_path"]
+        try:
+            with open(log_path, "r") as f:
+                log = json.load(f)
+
+            resource_file_path = Path(collection_dir) / "resource" / log.get("resource")
+            # Resource path will only be printed if downloaded successfully
+            if resource_file_path:
+                print("Resource Path is: ", resource_file_path)
+            status = log.get("status", None)
+            # Use exception if there is no status
+            if not status:
+                status = log.get("exception")
+            log_message = f"Log Status for {endpoint}:"
+            if status != "200":
+                log_message += " The status is not 200."
+            print(log_message + f" The status is {status}")
+        except Exception:
+            print(
+                f"Error: The log file for {endpoint} could not be read from path {log_path}."
+            )
     # reload log items
     collection.load_log_items()
-
-    dataset_resource_map = collection.dataset_resource_map()
-
-    #  searching for the specific resources that we have downloaded
-    for dataset in dataset_resource_map:
-        # resources_to_assign = []
-        for resource in dataset_resource_map[dataset]:
-            resource_endpoints = collection.resource_endpoints(resource)
-            if any(
-                endpoint in [new_endpoint["endpoint"] for new_endpoint in endpoints]
-                for endpoint in resource_endpoints
-            ):
-                resource_file_path = Path(collection_dir) / "resource" / resource
-                # resources_to_assign.append(resource_file_path)
-                print("Resource Path is: ", resource_file_path)
-
-                log_datetime = datetime.utcnow().strftime(
-                    "%Y-%m-%d"
-                )  # Format datetime as a string
-                log_file_path = (
-                    Path(collection_dir)
-                    / "log"
-                    / log_datetime
-                    / (str(hash_value(row["endpoint-url"])) + ".json")
-                )
-
-                # get the status from the log file
-                if log_file_path.exists():
-                    with open(log_file_path, "r") as log_file:
-                        try:
-                            log_data = json.load(log_file)
-
-                            if log_data.get("status") == "200":
-                                print(
-                                    f"Log Status for {hash_value(row['endpoint-url'])}: The status is 200."
-                                )
-                            else:
-                                print(
-                                    f"Log Status for {hash_value(row['endpoint-url'])}: The status is not 200. It is {log_data.get('status')}."
-                                )
-                        except Exception:
-                            print(
-                                f"Error: The log file for {hash_value(row['endpoint-url'])} could not be read."
-                            )
-                else:
-                    print(
-                        f"Log file for {hash_value(row['endpoint-url'])} not found: {log_file_path}"
-                    )
 
     user_response = (
         input("Do you want to continue processing this resource? (yes/no): ")

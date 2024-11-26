@@ -128,7 +128,7 @@ class Collector:
         plugin="",
     ):
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
-            return FetchStatus.EXPIRED
+            return FetchStatus.EXPIRED, None
 
         url_endpoint = self.url_endpoint(url)
         if not endpoint:
@@ -137,13 +137,13 @@ class Collector:
             logging.error(
                 "url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint)
             )
-            return FetchStatus.HASH_FAILURE
+            return FetchStatus.HASH_FAILURE, None
 
         # fetch each source at most once per-day
         log_path = self.log_path(log_datetime, endpoint)
         if os.path.isfile(log_path):
             logging.debug(f"{log_path} exists")
-            return FetchStatus.ALREADY_FETCHED
+            return FetchStatus.ALREADY_FETCHED, log_path
 
         log = {
             "endpoint-url": url,
@@ -169,7 +169,7 @@ class Collector:
         status = self.save_resource(content, log_path, log)
 
         self.save_log(log_path, log)
-        return status
+        return status, log_path
 
     def save_resource(self, content, url, log):
         if content:
