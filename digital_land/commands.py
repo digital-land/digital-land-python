@@ -490,6 +490,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             logging.error(f"Error writing to GeoJSON file: {e}")
 
     print("Pre temp_geojson_files")
+    print(len(temp_geojson_files))
     if all(os.path.isfile(path) for path in temp_geojson_files):
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
         env = (
@@ -498,6 +499,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             else os.environ
         )
         for temp_path in temp_geojson_files:
+            print(temp_path)
             responseCode, _, _ = execute(
                 [
                     "ogr2ogr",
