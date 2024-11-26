@@ -462,13 +462,12 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             json_string = row.pop("json") or "{}"
             row.update(json.loads(json_string))
             kebab_case_row = dict(
-                [(key.replace("_", "-"), val) for key, val in row.items() if key.replace("_", "-") in field_names]
+                [(key.replace("_", "-"), val) for key, val in row.items()]
             )
-            if 'organisation' in kebab_case_row.keys():
-                print("kebab_case_row")
-                print(kebab_case_row)
-                print(row)
-                print("\n")
+            print("kebab_case_row")
+            print(kebab_case_row)
+            print(row)
+            print("\n")
             writer.writerow(kebab_case_row)
             entities.append(kebab_case_row)
 
