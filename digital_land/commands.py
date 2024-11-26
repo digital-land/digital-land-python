@@ -496,6 +496,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     if all(os.path.isfile(path) for path in temp_geojson_files):
         print("a")
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
+        print("subprocess.run(['ls']).stdout")
+        print(subprocess.run(['ls']).stdout)
         print("subprocess.run(['ogr2ogr', '--version']).stdout")
         env = os.environ.copy()
         try:
