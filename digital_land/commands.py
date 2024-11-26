@@ -360,6 +360,8 @@ def dataset_create(
     dataset_resource_dir="var/dataset-resource",
     cache_dir="var/cache/parquet",
 ):
+    cache_dir = os.path.join(cache_dir, dataset)
+
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
