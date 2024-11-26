@@ -26,7 +26,6 @@ from digital_land.log import (
 )
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
-from digital_land.package.datasetparquet import DatasetParquetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
@@ -358,7 +357,6 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
-    cache_dir="var/cache/parquet",
 ):
     if not output_path:
         print("missing output path", file=sys.stderr)
@@ -379,8 +377,10 @@ def dataset_create(
     package.create()
     for path in input_paths:
         path_obj = Path(path)
+        package.load_transformed(path)
         package.load_column_fields(column_field_dir / dataset / path_obj.name)
         package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
+    package.load_entities()
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
     if os.path.exists(old_entity_path):
@@ -394,24 +394,6 @@ def dataset_create(
         logging.warning("No directory for this dataset in the provided issue_directory")
 
     package.add_counts()
-
-    # Repeat for parquet
-    # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
-
-    pqpackage = DatasetParquetPackage(
-        dataset,
-        path=output_path,
-        input_paths=input_paths,
-        specification_dir=None,  # TBD: package should use this specification object
-    )
-    pqpackage.create_temp_table(input_paths)
-    pqpackage.load_facts(input_paths, cache_dir)
-    pqpackage.load_fact_resource(input_paths, cache_dir)
-    pqpackage.load_entities(input_paths, cache_dir, organisation_path)
-    pqpackage.pq_to_sqlite(output_path, cache_dir)
-    pqpackage.close_conn()
 
 
 def dataset_dump(input_path, output_path):
