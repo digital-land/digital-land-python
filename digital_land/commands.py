@@ -379,10 +379,8 @@ def dataset_create(
     package.create()
     for path in input_paths:
         path_obj = Path(path)
-        package.load_transformed(path)  # Remove this to use Parquet
         package.load_column_fields(column_field_dir / dataset / path_obj.name)
         package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    package.load_entities()  # Remove this to use Parquet
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
     if os.path.exists(old_entity_path):
@@ -408,13 +406,12 @@ def dataset_create(
         input_paths=input_paths,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    if False:
-        pqpackage.create_temp_table(input_paths)
-        pqpackage.load_facts(input_paths, cache_dir)
-        pqpackage.load_fact_resource(input_paths, cache_dir)
-        pqpackage.load_entities(input_paths, cache_dir, organisation_path)
-        pqpackage.pq_to_sqlite(output_path, cache_dir)
-        pqpackage.close_conn()
+    pqpackage.create_temp_table(input_paths)
+    pqpackage.load_facts(input_paths, cache_dir)
+    pqpackage.load_fact_resource(input_paths, cache_dir)
+    pqpackage.load_entities(input_paths, cache_dir, organisation_path)
+    pqpackage.pq_to_sqlite(output_path, cache_dir)
+    pqpackage.close_conn()
 
 
 def dataset_dump(input_path, output_path):
