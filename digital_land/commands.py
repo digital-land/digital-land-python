@@ -12,6 +12,8 @@ from pathlib import Path
 import geojson
 import shapely
 
+import subprocess
+
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
@@ -495,6 +497,12 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         print("a")
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
         print("b")
+        out, _ = subprocess.Popen(
+            ["ogr2ogr", "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        ).communicate()
+        print(out)
         print(get_gdal_version())
         print(get_gdal_version() >= Version("3.5.2"))
         env = (
