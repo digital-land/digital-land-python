@@ -495,6 +495,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         print('a')
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
         print('b')
+        print(get_gdal_version())
         env = (
             dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
             if get_gdal_version() >= Version("3.5.2")
