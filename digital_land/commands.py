@@ -496,32 +496,35 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     if all(os.path.isfile(path) for path in temp_geojson_files):
         print("a")
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
-        print("subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)")
-        try:
-            process = subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
-            print(f"stdout: {stdout.decode()}")
-            print(f"stderr: {stderr.decode()}")
-        except Exception as e:
-            print(f"Error: {e}")
-        print("subprocess.run(['ogr2ogr', '--version']).stdout")
         env = os.environ.copy()
-        try:
-            result = subprocess.run(["ogr2ogr", "--version"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print(result.stdout.decode())
-        except Exception as e:
-            print(f"Error: {e}")
-        print("subprocess.Popen")
-        try:
-            process = subprocess.Popen(
-                ["ogr2ogr", "--version"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-            stdout, stderr = process.communicate()
-            print(stdout.decode(), stderr.decode())
-        except Exception as e:
-            print(f"Error: {e}")
+        print("env")
+        print(env)
+        # print("subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)")
+        # try:
+        #     process = subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #     stdout, stderr = process.communicate()
+        #     print(f"stdout: {stdout.decode()}")
+        #     print(f"stderr: {stderr.decode()}")
+        # except Exception as e:
+        #     print(f"Error: {e}")
+        # print("subprocess.run(['ogr2ogr', '--version']).stdout")
+        # env = os.environ.copy()
+        # try:
+        #     result = subprocess.run(["ogr2ogr", "--version"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #     print(result.stdout.decode())
+        # except Exception as e:
+        #     print(f"Error: {e}")
+        # print("subprocess.Popen")
+        # try:
+        #     process = subprocess.Popen(
+        #         ["ogr2ogr", "--version"],
+        #         stdout=subprocess.PIPE,
+        #         stderr=subprocess.PIPE
+        #     )
+        #     stdout, stderr = process.communicate()
+        #     print(stdout.decode(), stderr.decode())
+        # except Exception as e:
+        #     print(f"Error: {e}")
 
         print("b")
         out, _ = subprocess.Popen(
