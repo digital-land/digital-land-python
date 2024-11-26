@@ -430,6 +430,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         logging.error(f"Can't extract  datapackage name from {csv_path}")
         sys.exit(-1)
 
+    print("dataset_name")
+    print(dataset_name)
     flattened_csv_path = os.path.join(flattened_dir, f"{dataset_name}.csv")
     with open(csv_path, "r") as read_file, open(flattened_csv_path, "w+") as write_file:
         reader = csv.DictReader(read_file)
@@ -464,20 +466,20 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             kebab_case_row = dict(
                 [(key.replace("_", "-"), val) for key, val in row.items()]
             )
-            print("kebab_case_row")
-            print(kebab_case_row)
-            print(row)
-            print("\n")
             writer.writerow(kebab_case_row)
             entities.append(kebab_case_row)
+    print(f"Finished {dataset_name}")
 
     # write the entities to json file as well
     flattened_json_path = os.path.join(flattened_dir, f"{dataset_name}.json")
+    print("flattened_json_path")
+    print(flattened_json_path)
     with open(flattened_json_path, "w") as out_json:
         out_json.write(json.dumps({"entities": entities}))
     batch_size = 100000
     temp_geojson_files = []
     geography_entities = [e for e in entities if e["typology"] == "geography"]
+    print("Before process_data_in_batches")
     for i in range(0, len(geography_entities), batch_size):
         batch = geography_entities[i : i + batch_size]
         feature_collection = process_data_in_batches(batch, flattened_dir, dataset_name)
@@ -489,6 +491,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
                 out_geojson.write(geojson.dumps(feature_collection))
         except Exception as e:
             logging.error(f"Error writing to GeoJSON file: {e}")
+    print("After process_data_in_batches")
 
     if all(os.path.isfile(path) for path in temp_geojson_files):
         rfc7946_geojson_path = os.path.join(flattened_dir, f"{dataset_name}.geojson")
