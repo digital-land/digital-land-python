@@ -197,7 +197,9 @@ def test_dataset_parquet_package(temp_dir):
     with open(input_paths[0], "w") as f:
         f.write(",".join(columns) + "\n")
         for row in data:
-            f.write(",".join(map(str, row)) + "\n")
+            f.write(
+                ",".join(map(lambda x: str(x) if x is not np.nan else "", row)) + "\n"
+            )
 
     # Test data for the tables. This has plenty of 'duplicates' to check
     data = [
@@ -452,11 +454,13 @@ def test_dataset_parquet_package(temp_dir):
     with open(input_paths[1], "w") as f:
         f.write(",".join(columns) + "\n")
         for row in data:
-            f.write(",".join(map(str, row)) + "\n")
+            f.write(
+                ",".join(map(lambda x: str(x) if x is not np.nan else "", row)) + "\n"
+            )
 
     # Leave hash3.csv empty except for the headers (to test that an empty csv doesn't screw things up).
     with open(input_paths[2], "w") as f:
-        f.write(",".join(columns) + "\n")  # Only write the header row
+        f.write(",".join(map(lambda x: str(x) if x is not np.nan else "", row)) + "\n")
 
     # Instantiate the DatasetParquetPackage with temp_dir input paths and a mock schema
     package = DatasetParquetPackage(
@@ -496,6 +500,7 @@ def test_load_fact_resource_basic(test_dataset_parquet_package, temp_dir):
     df = pd.read_parquet(output_file)
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == 31, "Not all data saved in fact-resource.parquet file"
+
     assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
 
 
@@ -539,6 +544,61 @@ def test_load_entities_basic(test_dataset_parquet_package, temp_dir):
 
 def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
     output_path = os.path.join(temp_dir, "integration_test.sqlite3")
+    conn = sqlite3.connect(output_path)
+    conn.execute(
+        """
+        CREATE TABLE entity(
+            dataset TEXT,
+            end_date TEXT,
+            entity INTEGER PRIMARY KEY,
+            entry_date TEXT,
+            geojson JSON,
+            geometry TEXT,
+            json JSON,
+            name TEXT,
+            organisation_entity TEXT,
+            point TEXT,
+            prefix TEXT,
+            reference TEXT,
+            start_date TEXT,
+            typology TEXT
+        );
+    """
+    )
+    conn.execute(
+        """
+        CREATE TABLE fact(
+            end_date TEXT,
+            entity INTEGER,
+            fact TEXT PRIMARY KEY,
+            field TEXT,
+            entry_date TEXT,
+            priority INTEGER,
+            reference_entity TEXT,
+            start_date TEXT,
+            value TEXT,
+            FOREIGN KEY(entity) REFERENCES entity(entity)
+            );
+    """
+    )
+    conn.execute(
+        """
+        CREATE TABLE fact_resource(
+            end_date TEXT,
+            fact TEXT,
+            entry_date TEXT,
+            entry_number INTEGER,
+            priority INTEGER,
+            resource TEXT,
+            start_date TEXT,
+            FOREIGN KEY(fact) REFERENCES fact(fact)
+        );
+    """
+    )
+
+    conn.commit()
+    conn.close()
+
     test_dataset_parquet_package.pq_to_sqlite(output_path, temp_dir)
 
     assert os.path.exists(output_path), "sqlite3 file does not exist"
@@ -546,14 +606,15 @@ def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
     cnx = sqlite3.connect(output_path)
     df_sql = pd.read_sql_query("SELECT * FROM fact_resource", cnx)
     assert len(df_sql) > 0, "No data in fact_resource table"
+
     assert np.all(
-        pd.isnull(df_sql["end-date"])
+        len(df_sql["end_date"] == 0)
     ), "Non-empty strings in end_date from fact_resource table"
 
     df_sql = pd.read_sql_query("SELECT * FROM fact", cnx)
     assert len(df_sql) > 0, "No data in fact table"
     assert np.all(
-        pd.isnull(df_sql["end-date"])
+        len(df_sql["end_date"] == 0)
     ), "Non-empty strings in end_date from fact table"
 
     df_sql = pd.read_sql_query("SELECT * FROM entity", cnx)
@@ -561,4 +622,8 @@ def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
     assert np.any(
         pd.isnull(df_sql["geometry"])
     ), "All geometries from entity table have values"
+    assert np.any(
+        len(df_sql["geometry"] == 0)
+    ), "All geometries from entity table have non-blank values"
+
     cnx.close()
