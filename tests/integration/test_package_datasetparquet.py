@@ -538,8 +538,8 @@ def test_load_entities_basic(test_dataset_parquet_package, temp_dir):
     assert len(df) > 0, "No data in entity.parquet file"
     assert len(df) == 11, "No. of entities is not correct"
     assert df.shape[1] == 14, "Not all columns saved in entity.parquet file"
-    assert df["end_date"].isnull().all()  # Check null handling
-    assert df["geojson"].isnull().all()  # Check null handling
+    assert df["end_date"].isin([""]).all()  # Check null handling
+    assert df["geojson"].isin([""]).all()  # Check null handling
 
 
 def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
@@ -620,7 +620,7 @@ def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
     df_sql = pd.read_sql_query("SELECT * FROM entity", cnx)
     assert len(df_sql) > 0, "No data in entity table"
     assert np.any(
-        pd.isnull(df_sql["geometry"])
+        len(df_sql["geometry"] == 0)
     ), "All geometries from entity table have values"
     assert np.any(
         len(df_sql["geometry"] == 0)

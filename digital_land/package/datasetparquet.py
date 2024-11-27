@@ -35,11 +35,12 @@ class DatasetParquetPackage(Package):
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
         self.duckdb_file = f"input_paths_{dataset}.duckdb"
         self.conn = duckdb.connect(self.duckdb_file)
-        self.schema = self.get_schema(input_paths)
+        self.schema = self.get_schema()
         self.typology = self.specification.schema[dataset]["typology"]
 
-    def get_schema(self, input_paths):
+    def get_schema(self):
         schema = {}
+
         for field in sorted(
             list(
                 set(self.specification.schema["fact"]["fields"]).union(
@@ -47,33 +48,10 @@ class DatasetParquetPackage(Package):
                 )
             )
         ):
-            schema[field] = "VARCHAR"
+            datatype = self.specification.field[field]["datatype"]
+            schema[field] = "BIGINT" if datatype == "integer" else "VARCHAR"
 
         return schema
-
-        set(self.specification.schema["fact"]["fields"])
-
-        # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
-        # Plan is to find the largest file, create an initial database schema from that then use that in future
-        largest_file = max(input_paths, key=os.path.getsize)
-
-        create_temp_table_query = f"""
-            DROP TABLE IF EXISTS schema_table;
-            CREATE TEMP TABLE schema_table AS
-            SELECT * FROM read_csv_auto('{largest_file}')
-            LIMIT 1000;
-        """
-        self.conn.query(create_temp_table_query)
-
-        # Extract the schema from the temporary table
-        schema_query = """
-            SELECT column_name, data_type
-            FROM information_schema.columns
-            WHERE table_name = 'schema_table';
-        """
-        schema_df = self.conn.query(schema_query).df()
-
-        return dict(zip(schema_df["column_name"], schema_df["data_type"]))
 
     def create_temp_table(self, input_paths):
         # Create a temp table of the data from input_paths as we need the information stored there at various times
@@ -82,7 +60,6 @@ class DatasetParquetPackage(Package):
         )
 
         input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
-        all_columns_str = ", ".join(f"'{key}'" for key in self.schema.keys())
 
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
         query = f"""
@@ -92,7 +69,7 @@ class DatasetParquetPackage(Package):
                 [{input_paths_str}],
                 columns = {self.schema},
                 header = true,
-                force_not_null = [{all_columns_str}]
+                force_not_null = {[field for field in self.schema.keys()]}
             )
         """
         self.conn.execute(query)
@@ -232,7 +209,7 @@ class DatasetParquetPackage(Package):
         # Don't want to include anything that ends with "_geom"
         null_fields_statement = ", ".join(
             [
-                f'NULL::VARCHAR AS "{field}"'
+                f"''::VARCHAR AS \"{field}\""
                 for field in null_fields
                 if not field.endswith("_geom")
             ]
