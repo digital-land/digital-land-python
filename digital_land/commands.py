@@ -13,6 +13,7 @@ import geojson
 import shapely
 
 import subprocess
+import gc
 
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.check import duplicate_reference_check
@@ -499,14 +500,15 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         env = os.environ.copy()
         print("env")
         print(env)
-        # print("subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)")
-        # try:
-        #     process = subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        #     stdout, stderr = process.communicate()
-        #     print(f"stdout: {stdout.decode()}")
-        #     print(f"stderr: {stderr.decode()}")
-        # except Exception as e:
-        #     print(f"Error: {e}")
+        gc()
+        print("subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)")
+        try:
+            process = subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            print(f"stdout: {stdout.decode()}")
+            print(f"stderr: {stderr.decode()}")
+        except Exception as e:
+            print(f"Error: {e}")
         # print("subprocess.run(['ogr2ogr', '--version']).stdout")
         # env = os.environ.copy()
         # try:
