@@ -559,11 +559,9 @@ def is_url_valid(url, url_type):
         return ValueError(f"An unexpected error occured validating {url}: {str(e)}")
 
 
-def add_data(
-    csv_file_path,
-    specification_dir,
+def validate_add_data_input(
+    csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
 ):
-
     expected_cols = [
         "pipelines",
         "organisation",
@@ -579,14 +577,10 @@ def add_data(
         reader = csv.DictReader(csvfile)
         valid_licenses = [row["licence"] for row in reader]
 
-    organisation_path = "var/cache/organisation.csv"
     valid_organisations = []
     with open(organisation_path, mode="r", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
         valid_organisations = [row["organisation"] for row in reader]
-
-    collection_name = "conservation-area"
-    collection_dir = "collection/conservation-area"
 
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
@@ -594,6 +588,7 @@ def add_data(
     # - License okay, url okay, date format valid, organistion exist
 
     # read and process each record of the new endpoints csv at csv_file_path i.e import.csv
+
     with open(csv_file_path) as new_endpoints_file:
         reader = csv.DictReader(new_endpoints_file)
         csv_columns = reader.fieldnames
@@ -702,10 +697,12 @@ def add_data(
             # Resource path will only be printed if downloaded successfully
             if resource_file_path:
                 print("Resource Path is: ", resource_file_path)
+
             status = log.get("status", None)
             # Use exception if there is no status
             if not status:
                 status = log.get("exception")
+
             log_message = f"Log Status for {endpoint}:"
             if status != "200":
                 log_message += " The status is not 200."
@@ -714,8 +711,20 @@ def add_data(
             print(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}."
             )
-    # reload log items
-    collection.load_log_items()
+    return collection
+
+
+def add_data(
+    csv_file_path,
+    specification_dir,
+):
+    collection_name = "conservation-area"
+    collection_dir = "collection/conservation-area"
+
+    # First validate the input .csv and collect from the endpoint
+    collection = validate_add_data_input(
+        csv_file_path, collection_name, collection_dir, specification_dir
+    )
 
     user_response = (
         input("Do you want to continue processing this resource? (yes/no): ")
@@ -726,6 +735,8 @@ def add_data(
     if user_response != "yes":
         print("Operation cancelled by user.")
         return
+    # reload log items as source and endpoint have been added
+    collection.load_log_items()
 
 
 def add_endpoints_and_lookups(
