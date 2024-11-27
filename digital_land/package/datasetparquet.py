@@ -39,6 +39,20 @@ class DatasetParquetPackage(Package):
         self.typology = self.specification.schema[dataset]["typology"]
 
     def get_schema(self, input_paths):
+        schema = {}
+        for field in sorted(
+            list(
+                set(self.specification.schema["fact"]["fields"]).union(
+                    set(self.specification.schema["fact-resource"]["fields"])
+                )
+            )
+        ):
+            schema[field] = "VARCHAR"
+
+        return schema
+
+        set(self.specification.schema["fact"]["fields"])
+
         # There are issues with the schema when reading in lots of files, namely smaller files have few or zero rows
         # Plan is to find the largest file, create an initial database schema from that then use that in future
         largest_file = max(input_paths, key=os.path.getsize)
@@ -68,14 +82,17 @@ class DatasetParquetPackage(Package):
         )
 
         input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
+        all_columns_str = ", ".join(f"'{key}'" for key in self.schema.keys())
 
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
         query = f"""
             CREATE TEMPORARY TABLE temp_table AS
             SELECT *
-            FROM read_csv_auto(
+            FROM read_csv(
                 [{input_paths_str}],
-                columns = {self.schema}
+                columns = {self.schema},
+                header = true,
+                force_not_null = [{all_columns_str}]
             )
         """
         self.conn.execute(query)
@@ -299,6 +316,7 @@ class DatasetParquetPackage(Package):
                         f"ALTER TABLE temp_table RENAME COLUMN '{column[0]}' TO '{column[0].replace('-','_')}';"
                     )
 
+            # Copy the data
             self.conn.execute(
                 f"INSERT INTO sqlite_db.{table_name} BY NAME (SELECT * FROM temp_table);"
             )
@@ -312,9 +330,9 @@ class DatasetParquetPackage(Package):
     def close_conn(self):
         logging.info("Close connection to duckdb database in session")
         if self.conn is not None:
+            self.conn.close()
             if os.path.exists(self.duckdb_file):
                 os.remove(self.duckdb_file)
-            self.conn.close()
 
     def load(self):
         pass

@@ -422,7 +422,7 @@ def dataset_create(
 
 
 def dataset_dump(input_path, output_path):
-    cmd = f"sqlite3 -header -csv {input_path} 'select * from entity order by entity;' > {output_path}"
+    cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
     logging.info(cmd)
     os.system(cmd)
 
