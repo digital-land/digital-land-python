@@ -288,10 +288,22 @@ class DatasetParquetPackage(Package):
             self.conn.execute(
                 f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db (TYPE SQLITE);"
             )
-            self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
+
+            # Fix the column names
+            for column in self.conn.execute("DESCRIBE TABLE temp_table;").fetchall():
+                if "-" in column[0]:
+                    self.conn.execute(
+                        f"ALTER TABLE temp_table RENAME COLUMN '{column[0]}' TO '{column[0].replace('-','_')}';"
+                    )
+
             self.conn.execute(
-                f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;"
+                f"INSERT INTO sqlite_db.{table_name} BY NAME (SELECT * FROM temp_table);"
             )
+
+            # self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
+            # self.conn.execute(
+            #     f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;"
+            # )
             self.conn.execute("DETACH DATABASE sqlite_db;")
 
     def close_conn(self):

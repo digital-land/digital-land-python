@@ -420,7 +420,7 @@ def dataset_create(
 
 
 def dataset_dump(input_path, output_path):
-    cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
+    cmd = f"sqlite3 -header -csv {input_path} 'select * from entity order by entity;' > {output_path}"
     logging.info(cmd)
     os.system(cmd)
 
@@ -432,7 +432,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     elif isinstance(csv_path, Path):
         dataset_name = csv_path.stem
     else:
-        logging.error(f"Can't extract  datapackage name from {csv_path}")
+        logging.error(f"Can't extract datapackage name from {csv_path}")
         sys.exit(-1)
 
     flattened_csv_path = os.path.join(flattened_dir, f"{dataset_name}.csv")
