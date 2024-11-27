@@ -256,7 +256,10 @@ class DatasetParquetPackage(Package):
                         on t1.organisation = t2.organisation
                         )
                     )
-                SELECT * FROM computed_centroid
+                SELECT
+                    * EXCLUDE (json),
+                    CASE WHEN json = '{{}}' THEN NULL ELSE json END AS json
+                FROM computed_centroid
             ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
          """
         self.conn.execute(sql)

@@ -502,9 +502,13 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         env = os.environ.copy()
         print("env")
         print(env)
-        print("subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)")
+        print(
+            "subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)"
+        )
         try:
-            process = subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(
+                ["ls"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
             stdout, stderr = process.communicate()
             print(f"stdout: {stdout.decode()}")
             print(f"stderr: {stderr.decode()}")
