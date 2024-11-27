@@ -26,14 +26,16 @@ indexes = {
 
 
 class DatasetParquetPackage(Package):
-    def __init__(self, dataset, input_paths, **kwargs):
+    def __init__(self, dataset, organisation, cache_dir, **kwargs):
         self.suffix = ".parquet"
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
-        self.input_paths = input_paths
+        self.organisation = organisation
+        self.cache_dir = cache_dir
         self._spatialite = None
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
-        self.duckdb_file = f"input_paths_{dataset}.duckdb"
+        os.makedirs(cache_dir, exist_ok=True)
+        self.duckdb_file = os.path.join(cache_dir, f"{dataset}.duckdb")
         self.conn = duckdb.connect(self.duckdb_file)
         self.schema = self.get_schema()
         self.typology = self.specification.schema[dataset]["typology"]
@@ -74,8 +76,8 @@ class DatasetParquetPackage(Package):
         """
         self.conn.execute(query)
 
-    def load_facts(self, input_paths, output_path):
-        logging.info(f"loading facts from {os.path.dirname(input_paths[0])}")
+    def load_facts(self):
+        logging.info("loading facts from temp table")
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join(
@@ -96,12 +98,12 @@ class DatasetParquetPackage(Package):
             f"""
             COPY (
                 {query}
-            ) TO '{output_path}/fact{self.suffix}' (FORMAT PARQUET);
+            ) TO '{self.cache_dir}/fact{self.suffix}' (FORMAT PARQUET);
         """
         )
 
-    def load_fact_resource(self, input_paths, output_path):
-        logging.info(f"loading fact resources from {os.path.dirname(input_paths[0])}")
+    def load_fact_resource(self):
+        logging.info("loading fact resources from temp table")
 
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         fields_str = ", ".join(
@@ -118,19 +120,19 @@ class DatasetParquetPackage(Package):
             f"""
             COPY (
                 {query}
-            ) TO '{output_path}/fact_resource{self.suffix}' (FORMAT PARQUET);
+            ) TO '{self.cache_dir}/fact_resource{self.suffix}' (FORMAT PARQUET);
         """
         )
 
-    def load_entities(
-        self, input_paths, output_path, organisation_path="./var/cache/organisation.csv"
-    ):
-        logging.info(f"loading entities from {os.path.dirname(input_paths[0])}")
+    def load_entities(self):
+        organisation_path = self.organisation.organisation_path
+
+        logging.info("loading entities from temp table")
 
         entity_fields = self.specification.schema["entity"]["fields"]
         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
-        input_paths_str = f"{output_path}/fact{self.suffix}"
+        input_paths_str = f"{self.cache_dir}/fact{self.suffix}"
 
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
@@ -254,20 +256,23 @@ class DatasetParquetPackage(Package):
                     * EXCLUDE (json),
                     CASE WHEN json = '{{}}' THEN NULL ELSE json END AS json
                 FROM computed_centroid
-            ) TO '{output_path}/entity{self.suffix}' (FORMAT PARQUET);
+            ) TO '{self.cache_dir}/entity{self.suffix}' (FORMAT PARQUET);
          """
         self.conn.execute(sql)
 
-    def pq_to_sqlite(self, output_path, cache_dir):
+    def pq_to_sqlite(self):
         # At present we are saving the parquet files in 'cache' but saving the sqlite files produced in 'dataset'
         # In future when parquet files are saved to 'dataset' remove the 'cache_dir' in the function arguments and
         # replace 'cache_dir' with 'output_path' in this function's code
-        logging.info(f"loading sqlite3 tables from parquet files in {cache_dir}")
+        logging.info(
+            f"loading sqlite3 tables in {self.path} from parquet files in {self.cache_dir}"
+        )
         query = "INSTALL sqlite; LOAD sqlite;"
         self.conn.execute(query)
 
-        parquet_files = [fn for fn in os.listdir(cache_dir) if fn.endswith(self.suffix)]
-        sqlite_file_path = output_path
+        parquet_files = [
+            fn for fn in os.listdir(self.cache_dir) if fn.endswith(self.suffix)
+        ]
 
         for parquet_file in parquet_files:
             table_name = os.path.splitext(os.path.basename(parquet_file))[0]
@@ -277,13 +282,13 @@ class DatasetParquetPackage(Package):
             self.conn.execute(
                 f"""
                 CREATE TABLE temp_table AS
-                SELECT * FROM parquet_scan('{cache_dir}/{parquet_file}');
+                SELECT * FROM parquet_scan('{self.cache_dir}/{parquet_file}');
                 """
             )
 
             # Export the DuckDB table to the SQLite database
             self.conn.execute(
-                f"ATTACH DATABASE '{sqlite_file_path}' AS sqlite_db (TYPE SQLITE);"
+                f"ATTACH DATABASE '{self.path}' AS sqlite_db (TYPE SQLITE);"
             )
 
             # Fix the column names

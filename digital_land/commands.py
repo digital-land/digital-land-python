@@ -362,7 +362,6 @@ def dataset_create(
     dataset_resource_dir="var/dataset-resource",
     cache_dir="var/cache/parquet",
 ):
-    print("In dataset_create")
     cache_dir = os.path.join(cache_dir, dataset)
 
     if not output_path:
@@ -405,24 +404,23 @@ def dataset_create(
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
 
-    print("\nPre DatasetParquetPackage\n")
     pqpackage = DatasetParquetPackage(
         dataset,
+        organisation=organisation,
         path=output_path,
-        input_paths=input_paths,
+        cache_dir=cache_dir,
         specification_dir=None,  # TBD: package should use this specification object
     )
     pqpackage.create_temp_table(input_paths)
-    pqpackage.load_facts(input_paths, cache_dir)
-    pqpackage.load_fact_resource(input_paths, cache_dir)
-    pqpackage.load_entities(input_paths, cache_dir, organisation_path)
-    pqpackage.pq_to_sqlite(output_path, cache_dir)
+    pqpackage.load_facts()
+    pqpackage.load_fact_resource()
+    pqpackage.load_entities()
+    pqpackage.pq_to_sqlite()
     pqpackage.close_conn()
-    print("\nPost DatasetParquetPackage\n")
 
 
 def dataset_dump(input_path, output_path):
-    cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
+    cmd = f"sqlite3 -header -csv {input_path} 'select * from entity order by entity;' > {output_path}"
     logging.info(cmd)
     os.system(cmd)
 
@@ -502,18 +500,14 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
         env = os.environ.copy()
         print("env")
         print(env)
-        print(
-            "subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)"
-        )
-        try:
-            process = subprocess.Popen(
-                ["ls"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = process.communicate()
-            print(f"stdout: {stdout.decode()}")
-            print(f"stderr: {stderr.decode()}")
-        except Exception as e:
-            print(f"Error: {e}")
+        # print("subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)")
+        # try:
+        #     process = subprocess.Popen(['ls'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #     stdout, stderr = process.communicate()
+        #     print(f"stdout: {stdout.decode()}")
+        #     print(f"stderr: {stderr.decode()}")
+        # except Exception as e:
+        #     print(f"Error: {e}")
         # print("subprocess.run(['ogr2ogr', '--version']).stdout")
         # env = os.environ.copy()
         # try:

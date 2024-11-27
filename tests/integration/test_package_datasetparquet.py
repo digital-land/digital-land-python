@@ -6,6 +6,11 @@ import os
 from digital_land.package.datasetparquet import DatasetParquetPackage
 
 
+class MockOrganisation(object):
+    def __init__(self, organisation_path):
+        self.organisation_path = organisation_path
+
+
 # Fixture to create a shared temporary directory
 @pytest.fixture(scope="session")
 def temp_dir(tmpdir_factory):
@@ -464,7 +469,11 @@ def test_dataset_parquet_package(temp_dir):
 
     # Instantiate the DatasetParquetPackage with temp_dir input paths and a mock schema
     package = DatasetParquetPackage(
-        dataset="conservation-area", input_paths=input_paths, specification_dir=None
+        dataset="conservation-area",
+        organisation=MockOrganisation(os.path.join(temp_dir, "organisation.csv")),
+        path=os.path.join(temp_dir, "integration_test.sqlite3"),
+        cache_dir=temp_dir,
+        specification_dir=None,
     )
     package.create_temp_table(input_paths)
 
@@ -473,9 +482,7 @@ def test_dataset_parquet_package(temp_dir):
 
 def test_load_fact_basic(test_dataset_parquet_package, temp_dir):
     output_dir = temp_dir
-    test_dataset_parquet_package.load_facts(
-        test_dataset_parquet_package.input_paths, output_dir
-    )
+    test_dataset_parquet_package.load_facts()
 
     output_file = output_dir / "fact.parquet"
     assert os.path.exists(output_file), "fact.parquet file does not exist"
@@ -488,9 +495,7 @@ def test_load_fact_basic(test_dataset_parquet_package, temp_dir):
 
 def test_load_fact_resource_basic(test_dataset_parquet_package, temp_dir):
     output_dir = temp_dir
-    test_dataset_parquet_package.load_fact_resource(
-        test_dataset_parquet_package.input_paths, output_dir
-    )
+    test_dataset_parquet_package.load_fact_resource()
 
     # Check if the output parquet file exists and verify contents
     output_file = output_dir / "fact_resource.parquet"
@@ -525,11 +530,7 @@ def test_load_entities_basic(test_dataset_parquet_package, temp_dir):
         for row in data:
             f.write(",".join(map(str, row)) + "\n")
 
-    test_dataset_parquet_package.load_entities(
-        test_dataset_parquet_package.input_paths,
-        output_dir,
-        f"{temp_dir}/organisation.csv",
-    )
+    test_dataset_parquet_package.load_entities()
 
     output_file = os.path.join(output_dir, "entity.parquet")
     assert os.path.exists(output_file), "entity.parquet file does not exist"
@@ -599,7 +600,7 @@ def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
     conn.commit()
     conn.close()
 
-    test_dataset_parquet_package.pq_to_sqlite(output_path, temp_dir)
+    test_dataset_parquet_package.pq_to_sqlite()
 
     assert os.path.exists(output_path), "sqlite3 file does not exist"
 
