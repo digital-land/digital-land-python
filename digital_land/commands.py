@@ -534,29 +534,18 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
 
 
 def is_url_valid(url, url_type):
-
     if not url or url.strip() == "":
-        raise ValueError(f"The {url_type} must be populated")
+        return False, f"The {url_type} must be populated"
 
-    try:
-        parsed_url = urlparse(url)
+    parsed_url = urlparse(url)
+    # is  url scheme valid i.e start with http:// or https://
+    if parsed_url.scheme not in ["http", "https"] or not parsed_url.scheme:
+        return False, f"The {url_type} must start with 'http://' or 'https://'"
 
-        # is  url scheme valid i.e start with http:// or https://
-        if parsed_url.scheme not in ["http", "https"]:
-            raise ValueError(f"The {url_type} must start with 'http://' or 'https://'")
-
-        # does url have domain
-        if not parsed_url.netloc:
-            raise ValueError(f"The {url_type} must have a domain")
-
-        return True
-
-    except ValueError:
-        raise
-
-    except Exception as e:
-        # raises any unexpected error
-        return ValueError(f"An unexpected error occured validating {url}: {str(e)}")
+    # does url have domain
+    if not parsed_url.netloc:
+        return False, f"The {url_type} must have a domain"
+    return True, None
 
 
 def validate_add_data_input(
@@ -608,8 +597,16 @@ def validate_add_data_input(
                         f"Licence '{row['licence']}' is not a valid licence according to the specification."
                     )
             # check if urls are not blank and valid urls
-            is_url_valid(row["documentation-url"], "documentation-url")
-            is_url_valid(row["endpoint-url"], "endpoint_url")
+            is_endpoint_valid, endpoint_valid_error = is_url_valid(
+                row["endpoint-url"], "endpoint_url"
+            )
+            is_documentation_valid, documentation_valid_error = is_url_valid(
+                row["documentation-url"], "documentation_url"
+            )
+            if not is_endpoint_valid or not is_documentation_valid:
+                raise ValueError(
+                    f"{endpoint_valid_error} \n {documentation_valid_error}"
+                )
 
             # if there is no start-date, do we want to populate it with today's date?
             if row["start-date"]:
@@ -640,9 +637,7 @@ def validate_add_data_input(
                 or row["organisation"] not in valid_organisations
             ):
                 if row["organisation"] == "":
-                    raise ValueError(
-                        f"The given organisation '{row['organisation']}' is blank"
-                    )
+                    raise ValueError("The organisation must not be blank")
                 if row["organisation"] not in valid_organisations:
                     raise ValueError(
                         f"The given organisation '{row['organisation']}' is not in our valid organisations"
@@ -693,10 +688,12 @@ def validate_add_data_input(
             with open(log_path, "r") as f:
                 log = json.load(f)
 
-            resource_file_path = Path(collection_dir) / "resource" / log.get("resource")
             # Resource path will only be printed if downloaded successfully
-            if resource_file_path:
-                print("Resource Path is: ", resource_file_path)
+            if log.get("resource", None):
+                print(
+                    "Resource Path is: ",
+                    Path(collection_dir) / "resource" / log.get("resource"),
+                )
 
             status = log.get("status", None)
             # Use exception if there is no status
@@ -707,9 +704,9 @@ def validate_add_data_input(
             if status != "200":
                 log_message += " The status is not 200."
             print(log_message + f" The status is {status}")
-        except Exception:
+        except Exception as e:
             print(
-                f"Error: The log file for {endpoint} could not be read from path {log_path}."
+                f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
             )
     return collection
 
