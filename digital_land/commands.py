@@ -724,10 +724,16 @@ def validate_add_data_input(
     return collection
 
 
-def add_data(csv_file_path, collection_name, collection_dir, specification_dir):
+def add_data(
+    csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
+):
     # First validate the input .csv and collect from the endpoint
     collection = validate_add_data_input(
-        csv_file_path, collection_name, collection_dir, specification_dir
+        csv_file_path,
+        collection_name,
+        collection_dir,
+        specification_dir,
+        organisation_path,
     )
 
     user_response = (

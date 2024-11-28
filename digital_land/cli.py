@@ -350,11 +350,19 @@ def retire_endpoints_cmd(config_collections_dir, csv_path):
 @cli.command("add-data")
 @click.argument("csv-path", nargs=1, type=click.Path())
 @click.argument("collection-name", nargs=1, type=click.STRING)
-@click.argument("collection-dir", nargs=1, type=click.Path(exists=True))
+@click.option("--collection-dir", "-c", nargs=1, type=click.Path(exists=True))
 @click.option(
     "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
 )
-def add_data_cmc(csv_path, collection_name, collection_dir, specification_dir):
+@click.option(
+    "--organisation-path",
+    "-o",
+    type=click.Path(exists=True),
+    default="var/cache/organisation.csv",
+)
+def add_data_cmd(
+    csv_path, collection_name, collection_dir, specification_dir, organisation_path
+):
     csv_file_path = Path(csv_path)
     if not csv_file_path.is_file():
         logging.error("no csv file was provided")
@@ -365,6 +373,7 @@ def add_data_cmc(csv_path, collection_name, collection_dir, specification_dir):
         collection_name,
         collection_dir,
         specification_dir,
+        organisation_path,
     )
 
 
