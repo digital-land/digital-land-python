@@ -610,9 +610,9 @@ def validate_add_data_input(
 
             # if there is no start-date, do we want to populate it with today's date?
             if row["start-date"]:
+                # Can we do some of this validation using existing date datatype?
                 try:
                     given_start_date = row["start-date"]
-
                     try:
                         given_start_date = datetime.strptime(
                             row["start-date"], "%Y-%m-%d"
@@ -643,7 +643,20 @@ def validate_add_data_input(
                         f"The given organisation '{row['organisation']}' is not in our valid organisations"
                     )
 
-            # do we need a check to see if the given pipeline exists?
+            # Now check if the pipeline(s) given exist and are in the collection
+            pipelines = row["pipelines"].split(";")
+            dataset_df = pd.read_csv(os.path.join(specification_dir, "dataset.csv"))
+            for pipeline in pipelines:
+                pipeline_row = dataset_df[dataset_df["dataset"] == pipeline]
+                if len(pipeline_row) == 0:
+                    raise ValueError(
+                        f"'{pipeline}' is not a valid dataset in the specification"
+                    )
+                if pipeline_row["collection"].values[0] != collection_name:
+                    raise ValueError(
+                        f"'{pipeline}' does not belong to provided collection {collection_name}"
+                    )
+
         # SHOULD HAVE ALL CHECKS DONE, NOW CREATE HASH FOR ENDPOINT AND
     print("======================================================================")
     print("Endpoint and source details")
@@ -711,13 +724,7 @@ def validate_add_data_input(
     return collection
 
 
-def add_data(
-    csv_file_path,
-    specification_dir,
-):
-    collection_name = "conservation-area"
-    collection_dir = "collection/conservation-area"
-
+def add_data(csv_file_path, collection_name, collection_dir, specification_dir):
     # First validate the input .csv and collect from the endpoint
     collection = validate_add_data_input(
         csv_file_path, collection_name, collection_dir, specification_dir

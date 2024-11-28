@@ -418,6 +418,73 @@ def test_validate_add_data_input_unknown_organisation(
     assert "'???' is not in our valid organisations" in str(error)
 
 
+def test_validate_add_data_input_invalid_pipeline(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    organisation_csv,
+    mock_request_get,
+):
+    collection_name = "conservation-area"
+    invalid_pipeline_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area;invalid-pipeline",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+
+    tmp_input_path = create_input_csv(invalid_pipeline_input_data)
+
+    with pytest.raises(ValueError) as error:
+        validate_add_data_input(
+            tmp_input_path,
+            collection_name,
+            collection_dir,
+            specification_dir,
+            organisation_csv,
+        )
+    assert "'invalid-pipeline' is not a valid dataset in the specification" in str(
+        error
+    )
+
+
+def test_validate_add_data_input_pipeline_not_in_collection(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    organisation_csv,
+    mock_request_get,
+):
+    collection_name = "conservation-area"
+    pipeline_not_in_collection_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area;brownfield-land",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+
+    tmp_input_path = create_input_csv(pipeline_not_in_collection_input_data)
+
+    with pytest.raises(ValueError) as error:
+        validate_add_data_input(
+            tmp_input_path,
+            collection_name,
+            collection_dir,
+            specification_dir,
+            organisation_csv,
+        )
+    assert (
+        f"'brownfield-land' does not belong to provided collection {collection_name}"
+        in str(error)
+    )
+
+
 def test_validate_add_data_input_non_200(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, capsys, mocker
 ):
