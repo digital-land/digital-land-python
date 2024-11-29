@@ -218,7 +218,7 @@ class DatasetParquetPackage(Package):
         )
         json_statement = ", ".join(
             [
-                f"CASE WHEN t1.{field} IS NOT NULL THEN '{field}' ELSE NULL END, t1.{field}"
+                f"CASE WHEN t1.{field} IS NOT NULL THEN REPLACE('{field}', '_', '-') ELSE NULL END, t1.{field}"
                 for field in json_fields
             ]
         )
