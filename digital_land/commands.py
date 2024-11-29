@@ -713,7 +713,7 @@ def validate_and_add_data_input(
             if not status:
                 status = log.get("exception")
 
-            log_message = f"Log Status for {endpoint}:"
+            log_message = f"Log Status for {endpoint['endpoint']}:"
             if status != "200":
                 log_message += " The status is not 200."
             print(log_message + f" The status is {status}")
