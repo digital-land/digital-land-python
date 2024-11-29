@@ -718,8 +718,6 @@ def validate_and_add_data_input(
                 log_message += " The status is not 200."
             print(log_message + f" The status is {status}")
 
-            # Need a better way to handle leftover log files on consectutive runs
-            os.remove(log_path)
         except Exception as e:
             print(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
@@ -730,6 +728,8 @@ def validate_and_add_data_input(
 def add_data(
     csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
 ):
+    # Potentially track a list of files to clean up at the end of session? e.g log file
+
     # First validate the input .csv and collect from the endpoint
     validate_and_add_data_input(
         csv_file_path,

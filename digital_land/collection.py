@@ -168,11 +168,17 @@ class ResourceLogStore(CSVStore):
             organisations = set()
             datasets = set()
             for endpoint in resource["endpoints"]:
-                for entry in source.records[endpoint]:
-                    organisations.add(entry["organisation"])
-                    datasets = set(
-                        entry.get("datasets", entry.get("pipelines", "")).split(";")
-                    )
+                try:
+                    for entry in source.records[endpoint]:
+                        organisations.add(entry["organisation"])
+                        datasets = set(
+                            entry.get("datasets", entry.get("pipelines", "")).split(";")
+                        )
+                except KeyError:
+                    # This occurs when there is a log for an endpoint, but the endpoint isn't in endpoint.csv/source.csv
+                    # This can happen when there is an unsuccessful attempt to add an endpoint and the log still exists
+                    # In this case we don't want to load this endpoint so skip
+                    continue
 
             new_entries[key] = {
                 "bytes": resource["bytes"],
