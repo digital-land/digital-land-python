@@ -200,244 +200,142 @@ def test_validate_and_add_data_input_missing_columns(
     assert "required column (licence) not found in csv" in str(error)
 
 
-def test_validate_and_add_data_input_blank_licence(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    blank_licence_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "",
-    }
-
-    tmp_input_path = create_input_csv(blank_licence_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "Licence is blank" in str(error)
-
-
-def test_validate_and_add_data_input_incorrect_licence(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    incorrect_licence_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "incorrect",
-    }
-
-    tmp_input_path = create_input_csv(incorrect_licence_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "'incorrect' is not a valid licence according to the specification" in str(
-        error
-    )
-
-
-def test_validate_and_add_data_input_blank_endpoint_url(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    blank_endpoint_url_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "",
-        "start-date": "",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(blank_endpoint_url_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "endpoint_url must be populated" in str(error)
-
-
-def test_validate_and_add_data_input_non_http_endpoint_url(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    non_http_endpoint_url_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(non_http_endpoint_url_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "endpoint_url must start with 'http://' or 'https://'" in str(error)
-
-
-def test_validate_and_add_data_input_incorrect_date_format(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    incorrect_date_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "01/01/2000",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(incorrect_date_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "start-date 01/01/2000 must be format YYYY-MM-DD'" in str(error)
-
-
-def test_validate_and_add_data_input_future_date(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    future_date_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "9999-01-01",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(future_date_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "start_date 9999-01-01 cannot be in the future" in str(error)
-
-
-def test_validate_and_add_data_input_blank_organisation(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    blank_organisation_input_data = {
-        "organisation": "",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(blank_organisation_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "organisation must not be blank" in str(error)
-
-
-def test_validate_and_add_data_input_unknown_organisation(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
-):
-    collection_name = "conservation-area"
-    unknown_organisation_input_data = {
-        "organisation": "???",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "",
-        "pipelines": "conservation-area",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(unknown_organisation_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert "'???' is not in our valid organisations" in str(error)
-
-
-def test_validate_and_add_data_input_invalid_pipeline(
+@pytest.mark.parametrize(
+    "input_data, error_message",
+    [
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "",
+            },
+            "Licence is blank",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "incorrect",
+            },
+            "'incorrect' is not a valid licence according to the specification",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "",
+                "start-date": "",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "endpoint_url must be populated",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "endpoint_url must start with 'http://' or 'https://'",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "01/01/2000",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "start-date 01/01/2000 must be format YYYY-MM-DD'",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "9999-01-01",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "start_date 9999-01-01 cannot be in the future",
+        ),
+        (
+            {
+                "organisation": "",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "organisation must not be blank",
+        ),
+        (
+            {
+                "organisation": "???",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "'???' is not in our valid organisations",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "",
+                "pipelines": "conservation-area;invalid-pipeline",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "'invalid-pipeline' is not a valid dataset in the specification",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+                "start-date": "",
+                "pipelines": "conservation-area;brownfield-land",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "'brownfield-land' does not belong to provided collection conservation-area",
+        ),
+    ],
+)
+def test_validate_and_add_data(
     collection_dir,
     specification_dir,
     pipeline_dir,
     organisation_csv,
     mock_request_get,
+    input_data,
+    error_message,
 ):
     collection_name = "conservation-area"
-    invalid_pipeline_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "",
-        "pipelines": "conservation-area;invalid-pipeline",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(invalid_pipeline_input_data)
-
+    tmp_input_path = create_input_csv(input_data)
     with pytest.raises(ValueError) as error:
         validate_and_add_data_input(
             tmp_input_path,
@@ -446,43 +344,7 @@ def test_validate_and_add_data_input_invalid_pipeline(
             specification_dir,
             organisation_csv,
         )
-    assert "'invalid-pipeline' is not a valid dataset in the specification" in str(
-        error
-    )
-
-
-def test_validate_and_add_data_input_pipeline_not_in_collection(
-    collection_dir,
-    specification_dir,
-    pipeline_dir,
-    organisation_csv,
-    mock_request_get,
-):
-    collection_name = "conservation-area"
-    pipeline_not_in_collection_input_data = {
-        "organisation": "local-authority:SST",
-        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
-        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "",
-        "pipelines": "conservation-area;brownfield-land",
-        "plugin": "",
-        "licence": "ogl3",
-    }
-
-    tmp_input_path = create_input_csv(pipeline_not_in_collection_input_data)
-
-    with pytest.raises(ValueError) as error:
-        validate_and_add_data_input(
-            tmp_input_path,
-            collection_name,
-            collection_dir,
-            specification_dir,
-            organisation_csv,
-        )
-    assert (
-        f"'brownfield-land' does not belong to provided collection {collection_name}"
-        in str(error)
-    )
+    assert error_message in str(error)
 
 
 def test_validate_and_add_data_input_non_200(
