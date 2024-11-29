@@ -255,6 +255,18 @@ def test_validate_and_add_data_input_missing_columns(
             {
                 "organisation": "local-authority:SST",
                 "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+                "endpoint-url": "https://sstaffs",
+                "start-date": "",
+                "pipelines": "conservation-area",
+                "plugin": "",
+                "licence": "ogl3",
+            },
+            "The endpoint_url must have a valid domain with a top-level domain (e.g., '.gov.uk', '.com')",
+        ),
+        (
+            {
+                "organisation": "local-authority:SST",
+                "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
                 "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
                 "start-date": "01/01/2000",
                 "pipelines": "conservation-area",

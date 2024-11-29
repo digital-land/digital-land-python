@@ -545,6 +545,14 @@ def is_url_valid(url, url_type):
     # does url have domain
     if not parsed_url.netloc:
         return False, f"The {url_type} must have a domain"
+
+    # ensure domain has correct format
+    if "." not in parsed_url.netloc:
+        return (
+            False,
+            f"The {url_type} must have a valid domain with a top-level domain (e.g., '.gov.uk', '.com')",
+        )
+
     return True, None
 
 
