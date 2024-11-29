@@ -234,9 +234,9 @@ class DatasetParquetPackage(Package):
             COPY(
                 WITH computed_centroid AS (
                     SELECT
-                        * EXCLUDE (point), -- Calculate centroid point
+                        * EXCLUDE (point), -- Calculate centroid point if not given
                         CASE
-                            WHEN geometry IS NOT NULL AND point IS NULL
+                            WHEN geometry IS NOT NULL AND (point IS NULL OR point = '')
                             THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
                             ELSE point
                         END AS point
@@ -303,10 +303,6 @@ class DatasetParquetPackage(Package):
                 f"INSERT INTO sqlite_db.{table_name} BY NAME (SELECT * FROM temp_table);"
             )
 
-            # self.conn.execute(f"DROP TABLE IF EXISTS sqlite_db.{table_name};")
-            # self.conn.execute(
-            #     f"CREATE TABLE sqlite_db.{table_name} AS SELECT * FROM temp_table;"
-            # )
             self.conn.execute("DETACH DATABASE sqlite_db;")
 
     def close_conn(self):
