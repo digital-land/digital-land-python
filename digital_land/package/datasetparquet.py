@@ -237,7 +237,7 @@ class DatasetParquetPackage(Package):
                         * EXCLUDE (point), -- Calculate centroid point if not given
                         CASE
                             WHEN (geometry IS NOT NULL and geometry <> '') AND (point IS NULL OR point = '')
-                            THEN ST_AsText(ST_Centroid(ST_GeomFromText(geometry)))
+                            THEN ST_AsText(ST_ReducePrecision(ST_Centroid(ST_GeomFromText(geometry)),0.000001))
                             ELSE point
                         END AS point
                     FROM (
