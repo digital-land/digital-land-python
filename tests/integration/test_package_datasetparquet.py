@@ -684,9 +684,15 @@ def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
     assert np.any(
         len(df_sql["geometry"] == 0)
     ), "All geometries from entity table have non-blank values"
-    assert not any([
-        any("_" in key for key in json.loads(row).keys()) if isinstance(row, str) else False
-        for row in df_sql['json']
-    ]), "Some json object have underscores in their 'keys'"
+    assert not any(
+        [
+            (
+                any("_" in key for key in json.loads(row).keys())
+                if isinstance(row, str)
+                else False
+            )
+            for row in df_sql["json"]
+        ]
+    ), "Some json object have underscores in their 'keys'"
 
     cnx.close()
