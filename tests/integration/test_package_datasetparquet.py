@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import os
+import json
 from digital_land.package.datasetparquet import DatasetParquetPackage
 
 
@@ -79,7 +80,7 @@ def test_dataset_parquet_package(temp_dir):
             np.nan,
             "zyxwvu",
             np.nan,
-            '"POINT(-0.4812, 53.788)"',  # This checks that point is not recalculated if given
+            '"POINT(-0.481 53.788)"',  # This checks that point is not recalculated if given
         ],
         [
             np.nan,
@@ -662,24 +663,30 @@ def test_load_pq_to_sqlite_basic(test_dataset_parquet_package, temp_dir):
     cnx = sqlite3.connect(output_path)
     df_sql = pd.read_sql_query("SELECT * FROM fact_resource", cnx)
     assert len(df_sql) > 0, "No data in fact_resource table"
-
+    assert len(df_sql) == 35, "Not all data saved in fact_resource table"
     assert np.all(
         len(df_sql["end_date"] == 0)
     ), "Non-empty strings in end_date from fact_resource table"
 
     df_sql = pd.read_sql_query("SELECT * FROM fact", cnx)
     assert len(df_sql) > 0, "No data in fact table"
+    assert len(df_sql) == 35, "Not all data saved in fact table"
     assert np.all(
         len(df_sql["end_date"] == 0)
     ), "Non-empty strings in end_date from fact table"
 
     df_sql = pd.read_sql_query("SELECT * FROM entity", cnx)
     assert len(df_sql) > 0, "No data in entity table"
+    assert len(df_sql) == 11, "Not all data saved in entity table"
     assert np.any(
         len(df_sql["geometry"] == 0)
     ), "All geometries from entity table have values"
     assert np.any(
         len(df_sql["geometry"] == 0)
     ), "All geometries from entity table have non-blank values"
+    assert not any([
+        any("_" in key for key in json.loads(row).keys()) if isinstance(row, str) else False
+        for row in df_sql['json']
+    ]), "Some json object have underscores in their 'keys'"
 
     cnx.close()
