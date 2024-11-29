@@ -677,11 +677,15 @@ def validate_and_add_data_input(
             "licence": row["licence"],
         }
         endpoints.append(endpoint)
-    # if successfully added we can now attempt to fetch from endpoint
+    else:
+        # We rely on the add_source_endpoint function to log why it couldn't be added
+        raise Exception(
+            "Endpoint and source could not be added - is this a duplicate endpoint?"
+        )
 
+    # if successfully added we can now attempt to fetch from endpoint
     collector = Collector(collection_dir=collection_dir)
 
-    endpoint_log_dict = {}
     for endpoint in endpoints:
         status, log_path = collector.fetch(
             url=endpoint["endpoint-url"],
@@ -689,16 +693,6 @@ def validate_and_add_data_input(
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
         )
-        # store endpoint and log path in map
-        endpoint_log_dict[endpoint["endpoint"]] = {
-            "status": status,
-            "log_path": log_path,
-        }
-
-    # loop over endpoint log map to display information from log
-    for k, v in endpoint_log_dict.items():
-        endpoint = k
-        log_path = v["log_path"]
         try:
             with open(log_path, "r") as f:
                 log = json.load(f)
@@ -737,7 +731,7 @@ def add_data(
     csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
 ):
     # First validate the input .csv and collect from the endpoint
-    collection = validate_and_add_data_input(
+    validate_and_add_data_input(
         csv_file_path,
         collection_name,
         collection_dir,
@@ -755,8 +749,6 @@ def add_data(
     if user_response != "yes":
         print("Operation cancelled by user.")
         return
-    # reload log items as source and endpoint have been added
-    collection.load_log_items()
 
 
 def add_endpoints_and_lookups(

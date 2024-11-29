@@ -382,3 +382,58 @@ def test_validate_and_add_data_input_non_200(
     )
 
     assert "The status is not 200" in capsys.readouterr().out
+
+
+def test_validate_and_add_data_input_duplicate_endpoint(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    organisation_csv,
+    capsys,
+    mock_request_get,
+):
+    endpoint_fieldnames = [
+        "endpoint",
+        "endpoint-url",
+        "parameters",
+        "plugin",
+        "entry-date",
+        "start-date",
+        "end-date",
+    ]
+    endpoint_duplicate_row = {
+        "endpoint": "ebeea8689113e04aa6e709520e0b437aa0f39e80952498dd00663d9cfabb2030",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "parameters": "",
+        "plugin": "",
+        "entry-date": "",
+        "start-date": "",
+        "end-date": "",
+    }
+    with open(os.path.join(collection_dir, "endpoint.csv"), "a") as f:
+        writer = csv.DictWriter(f, fieldnames=endpoint_fieldnames)
+        writer.writeheader()
+        writer.writerow(endpoint_duplicate_row)
+
+    collection_name = "conservation-area"
+    no_error_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+
+    tmp_input_path = create_input_csv(no_error_input_data)
+
+    with pytest.raises(Exception):
+        validate_and_add_data_input(
+            tmp_input_path,
+            collection_name,
+            collection_dir,
+            specification_dir,
+            organisation_csv,
+        )
+    assert "endpoint already exists" in capsys.readouterr().out
