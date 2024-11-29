@@ -66,7 +66,7 @@ class DatasetParquetPackage(Package):
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
         query = f"""
             CREATE TEMPORARY TABLE temp_table AS
-            SELECT *, ROW_NUMBER() OVER () AS row_number
+            SELECT *
             FROM read_csv(
                 [{input_paths_str}],
                 columns = {self.schema},
@@ -193,7 +193,7 @@ class DatasetParquetPackage(Package):
             FROM temp_table
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY entity, field
-                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, row_number DESC --resource, fact
+                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource, fact
             ) = 1
         """
 
