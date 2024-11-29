@@ -548,7 +548,7 @@ def is_url_valid(url, url_type):
     return True, None
 
 
-def validate_add_data_input(
+def validate_and_add_data_input(
     csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
 ):
     expected_cols = [
@@ -574,7 +574,7 @@ def validate_add_data_input(
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
     # ===== FIRST VALIDATION BASED ON IMPORT.CSV INFO
-    # - License okay, url okay, date format valid, organistion exist
+    # - Check licence, url, date, organisation
 
     # read and process each record of the new endpoints csv at csv_file_path i.e import.csv
 
@@ -582,13 +582,14 @@ def validate_add_data_input(
         reader = csv.DictReader(new_endpoints_file)
         csv_columns = reader.fieldnames
 
-        # validate the columns
+        # validate the columns in input .csv
         for expected_col in expected_cols:
             if expected_col not in csv_columns:
                 raise Exception(f"required column ({expected_col}) not found in csv")
 
         endpoints = []
         for row in reader:
+            # validate licence
             if row["licence"] == "" or row["licence"] not in valid_licenses:
                 if row["licence"] == "":
                     raise ValueError("Licence is blank")
@@ -610,7 +611,6 @@ def validate_add_data_input(
 
             # if there is no start-date, do we want to populate it with today's date?
             if row["start-date"]:
-                # Can we do some of this validation using existing date datatype?
                 try:
                     given_start_date = row["start-date"]
                     try:
@@ -632,6 +632,7 @@ def validate_add_data_input(
                 except Exception as e:
                     raise ValueError(f"An unexpected error occured: {str(e)}")
 
+            # validate organisation
             if (
                 row["organisation"] == ""
                 or row["organisation"] not in valid_organisations
@@ -643,7 +644,7 @@ def validate_add_data_input(
                         f"The given organisation '{row['organisation']}' is not in our valid organisations"
                     )
 
-            # Now check if the pipeline(s) given exist and are in the collection
+            # validate pipeline(s) - do they exist and are they in the collection
             pipelines = row["pipelines"].split(";")
             dataset_df = pd.read_csv(os.path.join(specification_dir, "dataset.csv"))
             for pipeline in pipelines:
@@ -657,7 +658,7 @@ def validate_add_data_input(
                         f"'{pipeline}' does not belong to provided collection {collection_name}"
                     )
 
-        # SHOULD HAVE ALL CHECKS DONE, NOW CREATE HASH FOR ENDPOINT AND
+    # VALIDATION DONE, NOW ADD TO COLLECTION
     print("======================================================================")
     print("Endpoint and source details")
     print("======================================================================")
@@ -676,9 +677,8 @@ def validate_add_data_input(
             "licence": row["licence"],
         }
         endpoints.append(endpoint)
-    # if passes above code we can now tr the 'downlaoad resource'part
+    # if successfully added we can now attempt to fetch from endpoint
 
-    # endpoints have been added now lets collect the resources using the endpoint information
     collector = Collector(collection_dir=collection_dir)
 
     endpoint_log_dict = {}
@@ -689,11 +689,13 @@ def validate_add_data_input(
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
         )
+        # store endpoint and log path in map
         endpoint_log_dict[endpoint["endpoint"]] = {
             "status": status,
             "log_path": log_path,
         }
 
+    # loop over endpoint log map to display information from log
     for k, v in endpoint_log_dict.items():
         endpoint = k
         log_path = v["log_path"]
@@ -701,15 +703,19 @@ def validate_add_data_input(
             with open(log_path, "r") as f:
                 log = json.load(f)
 
-            # Resource path will only be printed if downloaded successfully
+            # Resource and path will only be printed if downloaded successfully
             if log.get("resource", None):
+                print(
+                    "Resource collected: ",
+                    log.get("resource"),
+                )
                 print(
                     "Resource Path is: ",
                     Path(collection_dir) / "resource" / log.get("resource"),
                 )
 
             status = log.get("status", None)
-            # Use exception if there is no status
+            # Use exception instead of status if there is no status
             if not status:
                 status = log.get("exception")
 
@@ -728,13 +734,14 @@ def add_data(
     csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
 ):
     # First validate the input .csv and collect from the endpoint
-    collection = validate_add_data_input(
+    collection = validate_and_add_data_input(
         csv_file_path,
         collection_name,
         collection_dir,
         specification_dir,
         organisation_path,
     )
+    # At this point the endpoint will have been added to the collection
 
     user_response = (
         input("Do you want to continue processing this resource? (yes/no): ")

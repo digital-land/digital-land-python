@@ -346,7 +346,6 @@ def retire_endpoints_cmd(config_collections_dir, csv_path):
     return collection_retire_endpoints_and_sources(config_collections_dir, csv_path)
 
 
-# Need to add more arguments here!
 @cli.command("add-data")
 @click.argument("csv-path", nargs=1, type=click.Path())
 @click.argument("collection-name", nargs=1, type=click.STRING)
@@ -365,7 +364,7 @@ def add_data_cmd(
 ):
     csv_file_path = Path(csv_path)
     if not csv_file_path.is_file():
-        logging.error("no csv file was provided")
+        logging.error(f"CSV file not found at path: {csv_path}")
         sys.exit(2)
 
     return add_data(

@@ -5,7 +5,7 @@ import tempfile
 from unittest.mock import Mock
 import pytest
 
-from digital_land.commands import validate_add_data_input
+from digital_land.commands import validate_and_add_data_input
 from tests.acceptance.conftest import copy_latest_specification_files_to
 
 
@@ -133,7 +133,7 @@ def create_input_csv(
     return tmp_input_path
 
 
-def test_validate_add_data_input_no_error(
+def test_validate_and_add_data_input_no_error(
     collection_dir,
     specification_dir,
     pipeline_dir,
@@ -155,7 +155,7 @@ def test_validate_add_data_input_no_error(
     tmp_input_path = create_input_csv(no_error_input_data)
 
     with caplog.at_level(logging.ERROR):
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -165,7 +165,7 @@ def test_validate_add_data_input_no_error(
         assert len(caplog.text) == 0
 
 
-def test_validate_add_data_input_missing_columns(
+def test_validate_and_add_data_input_missing_columns(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -190,7 +190,7 @@ def test_validate_add_data_input_missing_columns(
     )
 
     with pytest.raises(Exception) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -200,7 +200,7 @@ def test_validate_add_data_input_missing_columns(
     assert "required column (licence) not found in csv" in str(error)
 
 
-def test_validate_add_data_input_blank_licence(
+def test_validate_and_add_data_input_blank_licence(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -217,7 +217,7 @@ def test_validate_add_data_input_blank_licence(
     tmp_input_path = create_input_csv(blank_licence_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -227,7 +227,7 @@ def test_validate_add_data_input_blank_licence(
     assert "Licence is blank" in str(error)
 
 
-def test_validate_add_data_input_incorrect_licence(
+def test_validate_and_add_data_input_incorrect_licence(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -244,7 +244,7 @@ def test_validate_add_data_input_incorrect_licence(
     tmp_input_path = create_input_csv(incorrect_licence_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -256,7 +256,7 @@ def test_validate_add_data_input_incorrect_licence(
     )
 
 
-def test_validate_add_data_input_blank_endpoint_url(
+def test_validate_and_add_data_input_blank_endpoint_url(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -273,7 +273,7 @@ def test_validate_add_data_input_blank_endpoint_url(
     tmp_input_path = create_input_csv(blank_endpoint_url_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -283,7 +283,7 @@ def test_validate_add_data_input_blank_endpoint_url(
     assert "endpoint_url must be populated" in str(error)
 
 
-def test_validate_add_data_input_non_http_endpoint_url(
+def test_validate_and_add_data_input_non_http_endpoint_url(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -300,7 +300,7 @@ def test_validate_add_data_input_non_http_endpoint_url(
     tmp_input_path = create_input_csv(non_http_endpoint_url_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -310,7 +310,7 @@ def test_validate_add_data_input_non_http_endpoint_url(
     assert "endpoint_url must start with 'http://' or 'https://'" in str(error)
 
 
-def test_validate_add_data_input_incorrect_date_format(
+def test_validate_and_add_data_input_incorrect_date_format(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -327,7 +327,7 @@ def test_validate_add_data_input_incorrect_date_format(
     tmp_input_path = create_input_csv(incorrect_date_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -337,7 +337,7 @@ def test_validate_add_data_input_incorrect_date_format(
     assert "start-date 01/01/2000 must be format YYYY-MM-DD'" in str(error)
 
 
-def test_validate_add_data_input_future_date(
+def test_validate_and_add_data_input_future_date(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -354,7 +354,7 @@ def test_validate_add_data_input_future_date(
     tmp_input_path = create_input_csv(future_date_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -364,7 +364,7 @@ def test_validate_add_data_input_future_date(
     assert "start_date 9999-01-01 cannot be in the future" in str(error)
 
 
-def test_validate_add_data_input_blank_organisation(
+def test_validate_and_add_data_input_blank_organisation(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -381,7 +381,7 @@ def test_validate_add_data_input_blank_organisation(
     tmp_input_path = create_input_csv(blank_organisation_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -391,7 +391,7 @@ def test_validate_add_data_input_blank_organisation(
     assert "organisation must not be blank" in str(error)
 
 
-def test_validate_add_data_input_unknown_organisation(
+def test_validate_and_add_data_input_unknown_organisation(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
@@ -408,7 +408,7 @@ def test_validate_add_data_input_unknown_organisation(
     tmp_input_path = create_input_csv(unknown_organisation_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -418,7 +418,7 @@ def test_validate_add_data_input_unknown_organisation(
     assert "'???' is not in our valid organisations" in str(error)
 
 
-def test_validate_add_data_input_invalid_pipeline(
+def test_validate_and_add_data_input_invalid_pipeline(
     collection_dir,
     specification_dir,
     pipeline_dir,
@@ -439,7 +439,7 @@ def test_validate_add_data_input_invalid_pipeline(
     tmp_input_path = create_input_csv(invalid_pipeline_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -451,7 +451,7 @@ def test_validate_add_data_input_invalid_pipeline(
     )
 
 
-def test_validate_add_data_input_pipeline_not_in_collection(
+def test_validate_and_add_data_input_pipeline_not_in_collection(
     collection_dir,
     specification_dir,
     pipeline_dir,
@@ -472,7 +472,7 @@ def test_validate_add_data_input_pipeline_not_in_collection(
     tmp_input_path = create_input_csv(pipeline_not_in_collection_input_data)
 
     with pytest.raises(ValueError) as error:
-        validate_add_data_input(
+        validate_and_add_data_input(
             tmp_input_path,
             collection_name,
             collection_dir,
@@ -485,7 +485,7 @@ def test_validate_add_data_input_pipeline_not_in_collection(
     )
 
 
-def test_validate_add_data_input_non_200(
+def test_validate_and_add_data_input_non_200(
     collection_dir, specification_dir, pipeline_dir, organisation_csv, capsys, mocker
 ):
 
@@ -511,7 +511,7 @@ def test_validate_add_data_input_non_200(
 
     tmp_input_path = create_input_csv(no_error_input_data)
 
-    validate_add_data_input(
+    validate_and_add_data_input(
         tmp_input_path,
         collection_name,
         collection_dir,
