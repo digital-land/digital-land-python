@@ -209,3 +209,63 @@ def test_cli_add_data_incorrect_input_data(
     )
     assert result.exit_code == 1
     assert "organisation must not be blank" in str(result.exception)
+
+
+# This test exists as there is potential for the collection.load() to fail when
+# there are leftover log files from a previous run
+def test_cli_add_data_consecutive_runs(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    organisation_csv,
+    mock_request_get,
+    monkeypatch,
+):
+    no_error_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+    csv_path = create_input_csv(no_error_input_data)
+
+    # Mock in user input
+    monkeypatch.setattr("builtins.input", lambda _: "no")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "add-data",
+            csv_path,
+            "conservation-area",
+            "--collection-dir",
+            str(collection_dir),
+            "--specification-dir",
+            str(specification_dir),
+            "--organisation-path",
+            str(organisation_csv),
+        ],
+    )
+    assert result.exit_code == 0
+
+    monkeypatch.setattr("builtins.input", lambda _: "yes")
+    # Now run a second time
+    result = runner.invoke(
+        cli,
+        [
+            "add-data",
+            csv_path,
+            "conservation-area",
+            "--collection-dir",
+            str(collection_dir),
+            "--specification-dir",
+            str(specification_dir),
+            "--organisation-path",
+            str(organisation_csv),
+        ],
+    )
+    assert result.exit_code == 0

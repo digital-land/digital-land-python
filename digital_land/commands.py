@@ -723,6 +723,9 @@ def validate_and_add_data_input(
             if status != "200":
                 log_message += " The status is not 200."
             print(log_message + f" The status is {status}")
+
+            # Need a better way to handle leftover log files on consectutive runs
+            os.remove(log_path)
         except Exception as e:
             print(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
