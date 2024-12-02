@@ -8,8 +8,6 @@ import logging
 from packaging.version import Version
 import pandas as pd
 from pathlib import Path
-from urllib.parse import urlparse
-from datetime import datetime
 
 import geojson
 import shapely
@@ -59,6 +57,7 @@ from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
 from digital_land.api import API
 from digital_land.state import State
+from digital_land.utils.add_data_utils import is_date_valid, is_url_valid
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
@@ -533,29 +532,6 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
     add_source_endpoint(entry, directory=collection_dir)
 
 
-def is_url_valid(url, url_type):
-    if not url or url.strip() == "":
-        return False, f"The {url_type} must be populated"
-
-    parsed_url = urlparse(url)
-    # is  url scheme valid i.e start with http:// or https://
-    if parsed_url.scheme not in ["http", "https"] or not parsed_url.scheme:
-        return False, f"The {url_type} must start with 'http://' or 'https://'"
-
-    # does url have domain
-    if not parsed_url.netloc:
-        return False, f"The {url_type} must have a domain"
-
-    # ensure domain has correct format
-    if "." not in parsed_url.netloc:
-        return (
-            False,
-            f"The {url_type} must have a valid domain with a top-level domain (e.g., '.gov.uk', '.com')",
-        )
-
-    return True, None
-
-
 def validate_and_add_data_input(
     csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
 ):
@@ -568,16 +544,8 @@ def validate_and_add_data_input(
         "licence",
     ]
 
-    licence_csv_path = os.path.join(specification_dir, "licence.csv")
-    valid_licenses = []
-    with open(licence_csv_path, mode="r", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        valid_licenses = [row["licence"] for row in reader]
-
-    valid_organisations = []
-    with open(organisation_path, mode="r", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        valid_organisations = [row["organisation"] for row in reader]
+    specification = Specification(specification_dir)
+    organisation = Organisation(organisation_path=organisation_path)
 
     collection = Collection(name=collection_name, directory=collection_dir)
     collection.load()
@@ -598,13 +566,12 @@ def validate_and_add_data_input(
         endpoints = []
         for row in reader:
             # validate licence
-            if row["licence"] == "" or row["licence"] not in valid_licenses:
-                if row["licence"] == "":
-                    raise ValueError("Licence is blank")
-                else:
-                    raise ValueError(
-                        f"Licence '{row['licence']}' is not a valid licence according to the specification."
-                    )
+            if row["licence"] == "":
+                raise ValueError("Licence is blank")
+            elif not specification.licence.get(row["licence"], None):
+                raise ValueError(
+                    f"Licence '{row['licence']}' is not a valid licence according to the specification."
+                )
             # check if urls are not blank and valid urls
             is_endpoint_valid, endpoint_valid_error = is_url_valid(
                 row["endpoint-url"], "endpoint_url"
@@ -619,47 +586,29 @@ def validate_and_add_data_input(
 
             # if there is no start-date, do we want to populate it with today's date?
             if row["start-date"]:
-                try:
-                    given_start_date = row["start-date"]
-                    try:
-                        given_start_date = datetime.strptime(
-                            row["start-date"], "%Y-%m-%d"
-                        ).date()
-                    # need to raise ValueError here otherwise datetime will raise it's own error, not the clear format we want
-                    except ValueError:
-                        raise ValueError(
-                            f"start-date {given_start_date} must be format YYYY-MM-DD"
-                        )
-
-                    if given_start_date > datetime.today().date():
-                        raise ValueError(
-                            f"The start_date {given_start_date} cannot be in the future"
-                        )
-                except Exception as e:
-                    raise ValueError(f"An unexpected error occured: {str(e)}")
+                valid_date, error = is_date_valid(row["start-date"], "start-date")
+                if not valid_date:
+                    raise ValueError(error)
 
             # validate organisation
-            if (
-                row["organisation"] == ""
-                or row["organisation"] not in valid_organisations
-            ):
-                if row["organisation"] == "":
-                    raise ValueError("The organisation must not be blank")
-                if row["organisation"] not in valid_organisations:
-                    raise ValueError(
-                        f"The given organisation '{row['organisation']}' is not in our valid organisations"
-                    )
+            if row["organisation"] == "":
+                raise ValueError("The organisation must not be blank")
+            elif not organisation.lookup(row["organisation"]):
+                raise ValueError(
+                    f"The given organisation '{row['organisation']}' is not in our valid organisations"
+                )
 
             # validate pipeline(s) - do they exist and are they in the collection
             pipelines = row["pipelines"].split(";")
-            dataset_df = pd.read_csv(os.path.join(specification_dir, "dataset.csv"))
             for pipeline in pipelines:
-                pipeline_row = dataset_df[dataset_df["dataset"] == pipeline]
-                if len(pipeline_row) == 0:
+                if not specification.dataset.get(pipeline, None):
                     raise ValueError(
                         f"'{pipeline}' is not a valid dataset in the specification"
                     )
-                if pipeline_row["collection"].values[0] != collection_name:
+                collection_in_specification = specification.dataset.get(
+                    pipeline, None
+                ).get("collection")
+                if collection_name != collection_in_specification:
                     raise ValueError(
                         f"'{pipeline}' does not belong to provided collection {collection_name}"
                     )

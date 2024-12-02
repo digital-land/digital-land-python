@@ -278,7 +278,7 @@ def test_validate_and_add_data_input_missing_columns(
                 "plugin": "",
                 "licence": "ogl3",
             },
-            "start_date 9999-01-01 cannot be in the future",
+            "start-date 9999-01-01 cannot be in the future",
         ),
         (
             {
