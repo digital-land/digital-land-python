@@ -635,8 +635,6 @@ def validate_and_add_data_input(
                         raise ValueError(
                             f"The start_date {given_start_date} cannot be in the future"
                         )
-                except ValueError:
-                    raise
                 except Exception as e:
                     raise ValueError(f"An unexpected error occured: {str(e)}")
 
