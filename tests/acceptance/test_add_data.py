@@ -17,12 +17,6 @@ def specification_dir(tmp_path_factory):
 
 
 @pytest.fixture(scope="function")
-def pipeline_dir(tmp_path_factory):
-    pipeline_dir = tmp_path_factory.mktemp("pipeline")
-    return pipeline_dir
-
-
-@pytest.fixture(scope="function")
 def collection_dir(tmp_path_factory):
     collection_dir = tmp_path_factory.mktemp("collection")
 
@@ -136,7 +130,6 @@ def create_input_csv(
 def test_cli_add_data(
     collection_dir,
     specification_dir,
-    pipeline_dir,
     organisation_csv,
     mock_request_get,
     monkeypatch,
@@ -177,7 +170,6 @@ def test_cli_add_data(
 def test_cli_add_data_incorrect_input_data(
     collection_dir,
     specification_dir,
-    pipeline_dir,
     organisation_csv,
     mock_request_get,
 ):
@@ -216,7 +208,6 @@ def test_cli_add_data_incorrect_input_data(
 def test_cli_add_data_consecutive_runs(
     collection_dir,
     specification_dir,
-    pipeline_dir,
     organisation_csv,
     mock_request_get,
     monkeypatch,

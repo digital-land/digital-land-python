@@ -17,12 +17,6 @@ def specification_dir(tmp_path_factory):
 
 
 @pytest.fixture(scope="function")
-def pipeline_dir(tmp_path_factory):
-    pipeline_dir = tmp_path_factory.mktemp("pipeline")
-    return pipeline_dir
-
-
-@pytest.fixture(scope="function")
 def collection_dir(tmp_path_factory):
     collection_dir = tmp_path_factory.mktemp("collection")
 
@@ -136,7 +130,6 @@ def create_input_csv(
 def test_validate_and_add_data_input_no_error(
     collection_dir,
     specification_dir,
-    pipeline_dir,
     organisation_csv,
     caplog,
     mock_request_get,
@@ -166,7 +159,7 @@ def test_validate_and_add_data_input_no_error(
 
 
 def test_validate_and_add_data_input_missing_columns(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, mock_request_get
+    collection_dir, specification_dir, organisation_csv, mock_request_get
 ):
     collection_name = "conservation-area"
     missing_column_input_data = {
@@ -340,7 +333,6 @@ def test_validate_and_add_data_input_missing_columns(
 def test_validate_and_add_data(
     collection_dir,
     specification_dir,
-    pipeline_dir,
     organisation_csv,
     mock_request_get,
     input_data,
@@ -360,7 +352,7 @@ def test_validate_and_add_data(
 
 
 def test_validate_and_add_data_input_non_200(
-    collection_dir, specification_dir, pipeline_dir, organisation_csv, capsys, mocker
+    collection_dir, specification_dir, organisation_csv, capsys, mocker
 ):
 
     mock_response = Mock()
@@ -399,7 +391,6 @@ def test_validate_and_add_data_input_non_200(
 def test_validate_and_add_data_input_duplicate_endpoint(
     collection_dir,
     specification_dir,
-    pipeline_dir,
     organisation_csv,
     capsys,
     mock_request_get,
