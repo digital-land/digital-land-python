@@ -102,7 +102,7 @@ def count_lpa_boundary(
 
     result = comparison_rules[comparison_rule]
 
-    message = f"there were {actual} enttities found"
+    message = f"there were {actual} entities found"
 
     details = {
         "actual": actual,
