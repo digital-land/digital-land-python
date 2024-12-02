@@ -189,12 +189,16 @@ class DatasetParquetPackage(Package):
         # Take original data, group by entity & field, and order by highest priority then latest record.
         # If there are still matches then pick the first resource (and fact, just to make sure)
         query = f"""
-            SELECT {fields_str}
-            FROM temp_table
-            QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY entity, field
-                ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource, fact
-            ) = 1
+            SELECT {fields_str} FROM (
+                SELECT {fields_str}, CASE WHEN b.end_date IS NULL THEN '2999-12-31'
+                FROM temp_table a
+                LEFT JOIN read_csv_auto('collection/resource.csv') b
+                ON a.resource = b.resource
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY entity, field
+                    ORDER BY a.priority, "a.entry-date" DESC, "a.entry-number" DESC, b.end_date DESC, a.resource, a.fact
+                ) = 1
+            )
         """
 
         pivot_query = f"""
