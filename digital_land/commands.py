@@ -898,10 +898,9 @@ def process_data_in_batches(entities, flattened_dir, dataset_name):
                 logging.error(f"Error loading wkt from entity {entity['entity']}")
                 logging.error(e)
         else:
-            pass
-            # logging.error(
-            #     f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
-            # )
+            logging.error(
+                f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
+            )
 
     if features:
         feature_collection = geojson.FeatureCollection(
