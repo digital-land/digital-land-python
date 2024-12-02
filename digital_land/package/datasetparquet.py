@@ -26,13 +26,14 @@ indexes = {
 
 
 class DatasetParquetPackage(Package):
-    def __init__(self, dataset, organisation, cache_dir, **kwargs):
+    def __init__(self, dataset, organisation, cache_dir, resource_path, **kwargs):
         self.suffix = ".parquet"
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.organisation = organisation
         self.cache_dir = cache_dir
         self._spatialite = None
+        self.resource_path = resource_path
         # Persistent connection for the class. Given name to ensure that table is stored on disk (not purely in memory)
         os.makedirs(cache_dir, exist_ok=True)
         self.duckdb_file = os.path.join(cache_dir, f"{dataset}.duckdb")
@@ -192,7 +193,7 @@ class DatasetParquetPackage(Package):
             SELECT {fields_str} FROM (
                 SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
                 FROM temp_table
-                LEFT JOIN read_csv_auto('collection/resource.csv') resource_csv
+                LEFT JOIN read_csv_auto('{self.resource_path}') resource_csv
                 ON temp_table.resource = resource_csv.resource
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY entity, field

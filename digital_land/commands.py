@@ -361,6 +361,7 @@ def dataset_create(
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
     cache_dir="var/cache/parquet",
+    resource_path="collection/resource.csv",
 ):
     cache_dir = os.path.join(cache_dir, dataset)
 
@@ -409,6 +410,7 @@ def dataset_create(
         organisation=organisation,
         path=output_path,
         cache_dir=cache_dir,
+        resource_path=resource_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
     pqpackage.create_temp_table(input_paths)

@@ -68,6 +68,15 @@ def issue_dir(session_tmp_path):
     return issue_dir
 
 
+@pytest.fixture
+def resource_path(session_tmp_path):
+    resource_path = session_tmp_path / "resource.csv"
+    columns = ["resource", "end-date"]
+    with open(resource_path, "w") as f:
+        f.write(",".join(columns) + "\n")
+    return resource_path
+
+
 def test_acceptance_dataset_create(
     session_tmp_path,
     organisation_path,
@@ -75,6 +84,7 @@ def test_acceptance_dataset_create(
     issue_dir,
     cache_path,
     dataset_dir,
+    resource_path,
 ):
     output_path = dataset_dir / f"{test_dataset}.sqlite3"
 
@@ -99,6 +109,8 @@ def test_acceptance_dataset_create(
             str(issue_dir),
             "--cache-dir",
             str(cache_path),
+            "--resource-path",
+            str(resource_path),
         ]
         + input_paths,
         catch_exceptions=False,

@@ -518,7 +518,13 @@ def test_dataset_parquet_package(temp_dir):
 
     # Leave hash3.csv empty except for the headers (to test that an empty csv doesn't screw things up).
     with open(input_paths[2], "w") as f:
-        f.write(",".join(map(lambda x: str(x) if x is not np.nan else "", row)) + "\n")
+        f.write(",".join(columns) + "\n")
+        # f.write(",".join(map(lambda x: str(x) if x is not np.nan else "", row)) + "\n")
+
+    resource_path = str(temp_dir / "resource.csv")
+    resource_columns = ["resource", "end-date"]
+    with open(resource_path, "w") as f:
+        f.write(",".join(resource_columns) + "\n")
 
     # Instantiate the DatasetParquetPackage with temp_dir input paths and a mock schema
     package = DatasetParquetPackage(
@@ -526,6 +532,7 @@ def test_dataset_parquet_package(temp_dir):
         organisation=MockOrganisation(os.path.join(temp_dir, "organisation.csv")),
         path=os.path.join(temp_dir, "integration_test.sqlite3"),
         cache_dir=temp_dir,
+        resource_path=resource_path,
         specification_dir=None,
     )
     package.create_temp_table(input_paths)
