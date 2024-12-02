@@ -190,13 +190,13 @@ class DatasetParquetPackage(Package):
         # If there are still matches then pick the first resource (and fact, just to make sure)
         query = f"""
             SELECT {fields_str} FROM (
-                SELECT {fields_str}, CASE WHEN b.end_date IS NULL THEN '2999-12-31'
-                FROM temp_table a
-                LEFT JOIN read_csv_auto('collection/resource.csv') b
-                ON a.resource = b.resource
+                SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
+                FROM temp_table
+                LEFT JOIN read_csv_auto('collection/resource.csv') resource_csv
+                ON temp_table.resource = resource_csv.resource
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY entity, field
-                    ORDER BY a.priority, "a.entry-date" DESC, "a.entry-number" DESC, b.end_date DESC, a.resource, a.fact
+                    ORDER BY priority, "entry-date" DESC, "entry-number" DESC, resource_end_date DESC, temp_table.resource, fact
                 ) = 1
             )
         """
