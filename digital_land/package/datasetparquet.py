@@ -193,7 +193,7 @@ class DatasetParquetPackage(Package):
             SELECT {fields_str} FROM (
                 SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
                 FROM temp_table
-                LEFT JOIN read_csv_auto('{self.resource_path}') resource_csv
+                LEFT JOIN read_csv_auto('{self.resource_path}', max_line_size=10000000) resource_csv
                 ON temp_table.resource = resource_csv.resource
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY entity, field
@@ -232,7 +232,7 @@ class DatasetParquetPackage(Package):
         # define organisation query
         org_csv = organisation_path
         org_query = f"""
-             SELECT * FROM read_csv_auto('{org_csv}')
+             SELECT * FROM read_csv_auto('{org_csv}', max_line_size=10000000)
          """
 
         sql = f"""
