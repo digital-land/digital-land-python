@@ -85,7 +85,9 @@ class DatasetParquetPackage(Package):
                 )
             """
             self.conn.execute(query)
-        except duckdb.Error as e:  # Catch specific DuckDB error when running border collection
+        except (
+            duckdb.Error
+        ) as e:  # Catch specific DuckDB error when running border collection
             if "Value with unterminated quote" in str(e):
                 dataframes = []
                 for file_path in input_paths_str:
