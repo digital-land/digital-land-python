@@ -8,6 +8,7 @@ import logging
 from packaging.version import Version
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
 
 import geojson
 import shapely
@@ -642,13 +643,14 @@ def validate_and_add_data_input(
     collector = Collector(collection_dir=collection_dir)
 
     for endpoint in endpoints:
-        status, log_path = collector.fetch(
+        status = collector.fetch(
             url=endpoint["endpoint-url"],
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
         )
         try:
+            log_path = collector.log_path(datetime.utcnow(), endpoint["endpoint"])
             with open(log_path, "r") as f:
                 log = json.load(f)
 
