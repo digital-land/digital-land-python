@@ -68,8 +68,9 @@ class DatasetParquetPackage(Package):
         # Initial max_line_size and increment step
         max_size = 40000000
         increment_step = 20000000
-        max_limit = 200000000  # Maximum allowable line size to attempt
+        # max_limit = 200000000  # Maximum allowable line size to attempt
 
+        increment = False
         while True:
             try:
                 query = f"""
@@ -84,15 +85,13 @@ class DatasetParquetPackage(Package):
                     )
                 """
                 self.conn.execute(query)
+                if increment:
+                    logging.info(f"Ended up needing a value of max_size = {max_size}")
                 break
             except duckdb.Error as e:  # Catch specific DuckDB error
                 if "Value with unterminated quote" in str(e):
+                    increment = True
                     max_size += increment_step
-                    if max_size > max_limit:
-                        print(
-                            f"Exceeded max_limit of {max_limit}. Could not resolve the issue."
-                        )
-                        raise
                 else:
                     raise
 
