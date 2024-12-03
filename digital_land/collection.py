@@ -16,6 +16,8 @@ from .store.item import ItemStore
 # rename and change variable
 DEFAULT_COLLECTION_DIR = "./collection"
 
+logger = logging.getLogger("__name__")
+
 
 def isodate(s):
     return datetime.fromisoformat(s).strftime("%Y-%m-%d")
@@ -116,6 +118,7 @@ class ResourceLogStore(CSVStore):
         source: CSVStore,
         directory: str = DEFAULT_COLLECTION_DIR,
         after: datetime = None,
+        logging: bool = False,
     ):
         """
         Rebuild or update resource.csv file from the log store.
@@ -178,9 +181,10 @@ class ResourceLogStore(CSVStore):
                     # This occurs when there is a log for an endpoint, but the endpoint isn't in endpoint.csv/source.csv
                     # This can happen when there is an unsuccessful attempt to add an endpoint and the log still exists
                     # In this case we don't want to load this endpoint so skip
-                    print(
-                        f"Log for endpoint {endpoint} detected but endpoint is not in source.csv"
-                    )
+                    if logging:
+                        logging.error(
+                            f"Log for endpoint {endpoint} detected but endpoint is not in source.csv"
+                        )
                     continue
 
             new_entries[key] = {
