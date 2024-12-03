@@ -65,7 +65,6 @@ class DatasetParquetPackage(Package):
 
         input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
 
-        self.conn.execute("DROP TABLE IF EXISTS temp_table")
         # Initial max_line_size and increment step
         max_size = 40000000
         # increment_step = 20000000
@@ -74,6 +73,7 @@ class DatasetParquetPackage(Package):
         # increment = False
         while True:
             try:
+                self.conn.execute("DROP TABLE IF EXISTS temp_table")
                 query = f"""
                     CREATE TEMPORARY TABLE temp_table AS
                     SELECT *
@@ -86,25 +86,20 @@ class DatasetParquetPackage(Package):
                     )
                 """
                 self.conn.execute(query)
-                # if increment:
-                #     logging.info(f"Ended up needing a value of max_size = {max_size}")
-                # break
+                break
             except duckdb.Error as e:  # Catch specific DuckDB error
-                _, hard_limit = resource.getrlimit(resource.RLIMIT_AS)
-                if max_size <= hard_limit / 2:
-                    logging.info(
-                        f"Initial max_size did not work, setting it to {hard_limit / 2}"
-                    )
-                    max_size = hard_limit / 2
+                if "Value with unterminated quote" in str(e):
+                    hard_limit = int(resource.getrlimit(resource.RLIMIT_AS)[1])
+                    if max_size < hard_limit / 3:
+                        logging.info(
+                            f"Initial max_size did not work, setting it to {hard_limit / 2}"
+                        )
+                        max_size = hard_limit / 2
+                    else:
+                        raise
                 else:
-                    logging.info(f"Failed to read in when max_size = {hard_limit / 2}")
-                    logging.info(e)
+                    logging.info(f"Failed to read in when max_size = {max_size}")
                     raise
-                # if "Value with unterminated quote" in str(e):
-                #     increment = True
-                #     max_size += increment_step
-                # else:
-                #     raise
 
     def load_facts(self):
         logging.info("loading facts from temp table")
