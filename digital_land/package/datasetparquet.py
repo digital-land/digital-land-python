@@ -72,7 +72,8 @@ class DatasetParquetPackage(Package):
                 [{input_paths_str}],
                 columns = {self.schema},
                 header = true,
-                force_not_null = {[field for field in self.schema.keys()]}
+                force_not_null = {[field for field in self.schema.keys()]},
+                max_line_size=40000000
             )
         """
 
