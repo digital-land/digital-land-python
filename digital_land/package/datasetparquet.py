@@ -2,6 +2,7 @@ import os
 import logging
 import duckdb
 from .package import Package
+import resource
 
 logger = logging.getLogger(__name__)
 
@@ -89,11 +90,20 @@ class DatasetParquetPackage(Package):
                     logging.info(f"Ended up needing a value of max_size = {max_size}")
                 break
             except duckdb.Error as e:  # Catch specific DuckDB error
-                if "Value with unterminated quote" in str(e):
-                    increment = True
-                    max_size += increment_step
+                _, hard_limit = resource.getrlimit(resource.RLIMIT_AS)
+                if max_size <= hard_limit / 2:
+                    logging.info(
+                        f"Initial max_size did not work, setting it to {hard_limit / 2}"
+                    )
+                    max_size = hard_limit / 2
                 else:
+                    logging.info(f"Failed to read in when max_size = {hard_limit / 2}")
                     raise
+                # if "Value with unterminated quote" in str(e):
+                #     increment = True
+                #     max_size += increment_step
+                # else:
+                #     raise
 
     def load_facts(self):
         logging.info("loading facts from temp table")
