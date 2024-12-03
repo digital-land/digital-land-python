@@ -519,7 +519,6 @@ def test_dataset_parquet_package(temp_dir):
     # Leave hash3.csv empty except for the headers (to test that an empty csv doesn't screw things up).
     with open(input_paths[2], "w") as f:
         f.write(",".join(columns) + "\n")
-        # f.write(",".join(map(lambda x: str(x) if x is not np.nan else "", row)) + "\n")
 
     resource_path = str(temp_dir / "resource.csv")
     resource_columns = ["resource", "end-date"]
