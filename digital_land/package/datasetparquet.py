@@ -68,10 +68,10 @@ class DatasetParquetPackage(Package):
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
         # Initial max_line_size and increment step
         max_size = 40000000
-        increment_step = 20000000
+        # increment_step = 20000000
         # max_limit = 200000000  # Maximum allowable line size to attempt
 
-        increment = False
+        # increment = False
         while True:
             try:
                 query = f"""
@@ -86,9 +86,9 @@ class DatasetParquetPackage(Package):
                     )
                 """
                 self.conn.execute(query)
-                if increment:
-                    logging.info(f"Ended up needing a value of max_size = {max_size}")
-                break
+                # if increment:
+                #     logging.info(f"Ended up needing a value of max_size = {max_size}")
+                # break
             except duckdb.Error as e:  # Catch specific DuckDB error
                 _, hard_limit = resource.getrlimit(resource.RLIMIT_AS)
                 if max_size <= hard_limit / 2:
