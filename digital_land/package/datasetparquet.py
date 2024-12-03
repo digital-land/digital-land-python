@@ -98,6 +98,7 @@ class DatasetParquetPackage(Package):
                     max_size = hard_limit / 2
                 else:
                     logging.info(f"Failed to read in when max_size = {hard_limit / 2}")
+                    logging.info(e)
                     raise
                 # if "Value with unterminated quote" in str(e):
                 #     increment = True
