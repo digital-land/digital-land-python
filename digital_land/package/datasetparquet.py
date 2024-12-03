@@ -2,6 +2,7 @@ import os
 import logging
 import duckdb
 from .package import Package
+import resource
 
 logger = logging.getLogger(__name__)
 
@@ -64,15 +65,15 @@ class DatasetParquetPackage(Package):
 
         input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
 
-        self.conn.execute("DROP TABLE IF EXISTS temp_table")
         # Initial max_line_size and increment step
         max_size = 40000000
-        increment_step = 20000000
+        # increment_step = 20000000
         # max_limit = 200000000  # Maximum allowable line size to attempt
 
-        increment = False
+        # increment = False
         while True:
             try:
+                self.conn.execute("DROP TABLE IF EXISTS temp_table")
                 query = f"""
                     CREATE TEMPORARY TABLE temp_table AS
                     SELECT *
@@ -85,14 +86,19 @@ class DatasetParquetPackage(Package):
                     )
                 """
                 self.conn.execute(query)
-                if increment:
-                    logging.info(f"Ended up needing a value of max_size = {max_size}")
                 break
             except duckdb.Error as e:  # Catch specific DuckDB error
                 if "Value with unterminated quote" in str(e):
-                    increment = True
-                    max_size += increment_step
+                    hard_limit = int(resource.getrlimit(resource.RLIMIT_AS)[1])
+                    if max_size < hard_limit / 3:
+                        logging.info(
+                            f"Initial max_size did not work, setting it to {hard_limit / 2}"
+                        )
+                        max_size = hard_limit / 2
+                    else:
+                        raise
                 else:
+                    logging.info(f"Failed to read in when max_size = {max_size}")
                     raise
 
     def load_facts(self):
