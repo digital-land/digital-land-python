@@ -65,19 +65,36 @@ class DatasetParquetPackage(Package):
         input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
 
         self.conn.execute("DROP TABLE IF EXISTS temp_table")
-        query = f"""
-            CREATE TEMPORARY TABLE temp_table AS
-            SELECT *
-            FROM read_csv(
-                [{input_paths_str}],
-                columns = {self.schema},
-                header = true,
-                force_not_null = {[field for field in self.schema.keys()]},
-                max_line_size=40000000
-            )
-        """
+        # Initial max_line_size and increment step
+        max_size = 40000000
+        increment_step = 20000000
+        max_limit = 200000000  # Maximum allowable line size to attempt
 
-        self.conn.execute(query)
+        while True:
+            try:
+                query = f"""
+                    CREATE TEMPORARY TABLE temp_table AS
+                    SELECT *
+                    FROM read_csv(
+                        [{input_paths_str}],
+                        columns = {self.schema},
+                        header = true,
+                        force_not_null = {[field for field in self.schema.keys()]},
+                        max_line_size={max_size}
+                    )
+                """
+                self.conn.execute(query)
+                break
+            except duckdb.Error as e:  # Catch specific DuckDB error
+                if "Value with unterminated quote" in str(e):
+                    max_size += increment_step
+                    if max_size > max_limit:
+                        print(
+                            f"Exceeded max_limit of {max_limit}. Could not resolve the issue."
+                        )
+                        raise
+                else:
+                    raise
 
     def load_facts(self):
         logging.info("loading facts from temp table")
