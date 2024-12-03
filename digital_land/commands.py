@@ -11,6 +11,7 @@ from pathlib import Path
 from datetime import datetime
 
 import geojson
+from requests import HTTPError
 import shapely
 
 from digital_land.package.organisation import OrganisationPackage
@@ -641,7 +642,6 @@ def validate_and_add_data_input(
 
     # if successfully added we can now attempt to fetch from endpoint
     collector = Collector(collection_dir=collection_dir)
-
     for endpoint in endpoints:
         status = collector.fetch(
             url=endpoint["endpoint-url"],
@@ -653,32 +653,33 @@ def validate_and_add_data_input(
             log_path = collector.log_path(datetime.utcnow(), endpoint["endpoint"])
             with open(log_path, "r") as f:
                 log = json.load(f)
-
-            # Resource and path will only be printed if downloaded successfully
-            if log.get("resource", None):
-                print(
-                    "Resource collected: ",
-                    log.get("resource"),
-                )
-                print(
-                    "Resource Path is: ",
-                    Path(collection_dir) / "resource" / log.get("resource"),
-                )
-
-            status = log.get("status", None)
-            # Use exception instead of status if there is no status
-            if not status:
-                status = log.get("exception")
-
-            log_message = f"Log Status for {endpoint['endpoint']}:"
-            if status != "200":
-                log_message += " The status is not 200."
-            print(log_message + f" The status is {status}")
-
         except Exception as e:
             print(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
             )
+            break
+
+        status = log.get("status", None)
+        # Raise exception if status is not 200
+        if not status or status != "200":
+            exception = log.get("exception", None)
+            raise HTTPError(
+                f"Failed to collect from URL with status: {status if status else exception}"
+            )
+
+        # Resource and path will only be printed if downloaded successfully
+        if log.get("resource", None):
+            print(
+                "Resource collected: ",
+                log.get("resource"),
+            )
+            print(
+                "Resource Path is: ",
+                Path(collection_dir) / "resource" / log.get("resource"),
+            )
+
+        print(f"Log Status for {endpoint['endpoint']}: The status is {status}")
+
     return collection
 
 

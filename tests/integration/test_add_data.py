@@ -4,6 +4,7 @@ import os
 import tempfile
 from unittest.mock import Mock
 import pytest
+from requests import HTTPError
 
 from digital_land.commands import validate_and_add_data_input
 from tests.acceptance.conftest import copy_latest_specification_files_to
@@ -352,7 +353,7 @@ def test_validate_and_add_data(
 
 
 def test_validate_and_add_data_input_non_200(
-    collection_dir, specification_dir, organisation_csv, capsys, mocker
+    collection_dir, specification_dir, organisation_csv, mocker
 ):
 
     mock_response = Mock()
@@ -377,15 +378,16 @@ def test_validate_and_add_data_input_non_200(
 
     tmp_input_path = create_input_csv(no_error_input_data)
 
-    validate_and_add_data_input(
-        tmp_input_path,
-        collection_name,
-        collection_dir,
-        specification_dir,
-        organisation_csv,
-    )
+    with pytest.raises(HTTPError) as error:
+        validate_and_add_data_input(
+            tmp_input_path,
+            collection_name,
+            collection_dir,
+            specification_dir,
+            organisation_csv,
+        )
 
-    assert "The status is not 200" in capsys.readouterr().out
+    assert "Failed to collect from URL with status: 404" in str(error)
 
 
 def test_validate_and_add_data_input_duplicate_endpoint(
