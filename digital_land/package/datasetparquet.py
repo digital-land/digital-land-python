@@ -89,11 +89,12 @@ class DatasetParquetPackage(Package):
                 if "Value with unterminated quote" in str(e):
                     max_size += increment_step
                     if max_size > max_limit:
-                        print(f"Exceeded max_limit of {max_limit}. Could not resolve the issue.")
+                        print(
+                            f"Exceeded max_limit of {max_limit}. Could not resolve the issue."
+                        )
                         raise
                 else:
                     raise
-
 
     def load_facts(self):
         logging.info("loading facts from temp table")
