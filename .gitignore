@@ -15,11 +15,11 @@ demodata/
 *.gfs
 .venv
 .direnv
-/var/cache
+var/cache
 /collection
 /specification
 ssl.pem
-/var
+var
 .junitxml
 pyrightconfig.json
 .idea
