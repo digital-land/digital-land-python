@@ -118,7 +118,7 @@ class ResourceLogStore(CSVStore):
         source: CSVStore,
         directory: str = DEFAULT_COLLECTION_DIR,
         after: datetime = None,
-        logging: bool = False,
+        logging: bool = True,
     ):
         """
         Rebuild or update resource.csv file from the log store.
