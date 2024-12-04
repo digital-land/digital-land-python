@@ -2,7 +2,8 @@ import os
 import logging
 import duckdb
 from .package import Package
-import resource
+
+# import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -67,39 +68,60 @@ class DatasetParquetPackage(Package):
 
         # Initial max_line_size and increment step
         max_size = 40000000
-        # increment_step = 20000000
-        # max_limit = 200000000  # Maximum allowable line size to attempt
 
-        # increment = False
-        while True:
-            try:
-                self.conn.execute("DROP TABLE IF EXISTS temp_table")
-                query = f"""
-                    CREATE TEMPORARY TABLE temp_table AS
-                    SELECT *
-                    FROM read_csv(
-                        [{input_paths_str}],
-                        columns = {self.schema},
-                        header = true,
-                        force_not_null = {[field for field in self.schema.keys()]},
-                        max_line_size={max_size}
-                    )
-                """
-                self.conn.execute(query)
-                break
-            except duckdb.Error as e:  # Catch specific DuckDB error
-                if "Value with unterminated quote" in str(e):
-                    hard_limit = int(resource.getrlimit(resource.RLIMIT_AS)[1])
-                    if max_size < hard_limit / 3:
-                        logging.info(
-                            f"Initial max_size did not work, setting it to {hard_limit / 2}"
-                        )
-                        max_size = hard_limit / 2
-                    else:
-                        raise
-                else:
-                    logging.info(f"Failed to read in when max_size = {max_size}")
-                    raise
+        try:
+            self.conn.execute("DROP TABLE IF EXISTS temp_table")
+            query = f"""
+                CREATE TEMPORARY TABLE temp_table AS
+                SELECT *
+                FROM read_csv(
+                    [{input_paths_str}],
+                    columns = {self.schema},
+                    header = true,
+                    force_not_null = {[field for field in self.schema.keys()]},
+                    max_line_size={max_size}
+                )
+            """
+            self.conn.execute(query)
+        except duckdb.Error as e:  # Catch specific DuckDB error
+            if "Value with unterminated quote" in str(e):
+                # For boundary collection we only have a few files so can run it using pandas
+                # Possible complication is we may need to set up a schema in Python to build the table properly to
+                # match the table we've seen in the past
+                # schema = {
+                #     'column1': 'str',
+                #     'column2': 'int',
+                #     'column3': 'float'
+                # }
+
+                # # Add in one big dataframe
+                # dataframes = []
+                # for file_path in input_paths:
+                #     df = pd.read_csv(file_path, lineterminator="\n")
+                #     # Enforce schema: rename and cast columns
+                #     # df = df.astype(schema)  # Cast columns to match schema
+                #     # df = df.rename(columns={k: k for k in schema.keys()})  # Ensure column names match
+                #     dataframes.append(df)
+                #
+                # # Combine all DataFrames
+                # combined_df = pd.concat(dataframes, ignore_index=True)
+                #
+                # # Register the combined DataFrame
+                # self.conn.register('temp_table', combined_df)
+
+                # # incrementally adding
+                # for file_path in input_paths_str:
+                #     df = pd.read_csv(file_path)
+                #
+                #     # Rename columns to match the schema if necessary
+                #     df = df.rename(columns={col: col for col in schema.keys() if col in df.columns})
+                #
+                #     # Insert data into the DuckDB table
+                #     self.conn.register('temp_df', df)
+                #     self.conn.execute("INSERT INTO temp_table SELECT * FROM temp_df")
+                raise
+            else:
+                raise
 
     def load_facts(self):
         logging.info("loading facts from temp table")
