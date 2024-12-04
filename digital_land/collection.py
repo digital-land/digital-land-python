@@ -118,7 +118,7 @@ class ResourceLogStore(CSVStore):
         source: CSVStore,
         directory: str = DEFAULT_COLLECTION_DIR,
         after: datetime = None,
-        debug: bool = True,
+        error_logging: bool = True,
     ):
         """
         Rebuild or update resource.csv file from the log store.
@@ -181,7 +181,7 @@ class ResourceLogStore(CSVStore):
                     # This occurs when there is a log for an endpoint, but the endpoint isn't in endpoint.csv/source.csv
                     # This can happen when there is an unsuccessful attempt to add an endpoint and the log still exists
                     # In this case we don't want to load this endpoint so skip
-                    if debug:
+                    if error_logging:
                         logging.error(
                             f"Log for endpoint {endpoint} detected but endpoint is not in source.csv"
                         )
