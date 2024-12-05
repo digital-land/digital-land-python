@@ -370,6 +370,8 @@ def dataset_create(
     cache_dir="var/cache/parquet",
     resource_path="collection/resource.csv",
 ):
+    # directories to be overwritten
+    transformed_parquet_dir = f"var/cache/transformed_parquet/{dataset}"
     cache_dir = os.path.join(cache_dir, dataset)
 
     if not output_path:
@@ -420,9 +422,9 @@ def dataset_create(
         resource_path=resource_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    pqpackage.create_temp_table(input_paths)
-    pqpackage.load_facts()
-    pqpackage.load_fact_resource()
+    # pqpackage.create_temp_table(input_paths)
+    pqpackage.load_facts(transformed_parquet_dir)
+    pqpackage.load_fact_resource(transformed_parquet_dir)
     pqpackage.load_entities()
     pqpackage.pq_to_sqlite()
     pqpackage.close_conn()

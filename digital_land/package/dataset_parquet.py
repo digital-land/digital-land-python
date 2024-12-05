@@ -2,7 +2,6 @@ import os
 import logging
 import duckdb
 from .package import Package
-import resource
 
 logger = logging.getLogger(__name__)
 
@@ -57,51 +56,52 @@ class DatasetParquetPackage(Package):
 
         return schema
 
-    def create_temp_table(self, input_paths):
-        # Create a temp table of the data from input_paths as we need the information stored there at various times
-        logging.info(
-            f"loading data into temp table from {os.path.dirname(input_paths[0])}"
-        )
+    # def create_temp_table(self, input_paths):
+    #     # Create a temp table of the data from input_paths as we need the information stored there at various times
+    #     logging.info(
+    #         f"loading data into temp table from {os.path.dirname(input_paths[0])}"
+    #     )
 
-        input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
+    #     input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
 
-        # Initial max_line_size and increment step
-        max_size = 40000000
-        # increment_step = 20000000
-        # max_limit = 200000000  # Maximum allowable line size to attempt
+    #     # Initial max_line_size and increment step
+    #     max_size = 40000000
+    #     # increment_step = 20000000
+    #     # max_limit = 200000000  # Maximum allowable line size to attempt
 
-        # increment = False
-        while True:
-            try:
-                self.conn.execute("DROP TABLE IF EXISTS temp_table")
-                query = f"""
-                    CREATE TEMPORARY TABLE temp_table AS
-                    SELECT *
-                    FROM read_csv(
-                        [{input_paths_str}],
-                        columns = {self.schema},
-                        header = true,
-                        force_not_null = {[field for field in self.schema.keys()]},
-                        max_line_size={max_size}
-                    )
-                """
-                self.conn.execute(query)
-                break
-            except duckdb.Error as e:  # Catch specific DuckDB error
-                if "Value with unterminated quote" in str(e):
-                    hard_limit = int(resource.getrlimit(resource.RLIMIT_AS)[1])
-                    if max_size < hard_limit / 3:
-                        logging.info(
-                            f"Initial max_size did not work, setting it to {hard_limit / 2}"
-                        )
-                        max_size = hard_limit / 2
-                    else:
-                        raise
-                else:
-                    logging.info(f"Failed to read in when max_size = {max_size}")
-                    raise
+    #     # increment = False
+    #     while True:
+    #         try:
+    #             self.conn.execute("DROP TABLE IF EXISTS temp_table")
+    #             query = f"""
+    #                 CREATE TEMPORARY TABLE temp_table AS
+    #                 SELECT *
+    #                 FROM read_csv(
+    #                     [{input_paths_str}],
+    #                     columns = {self.schema},
+    #                     header = true,
+    #                     force_not_null = {[field for field in self.schema.keys()]},
+    #                     max_line_size={max_size}
+    #                 )
+    #             """
+    #     self.conn.execute(query)
+    #     break
+    # except duckdb.Error as e:  # Catch specific DuckDB error
+    #     if "Value with unterminated quote" in str(e):
+    #         hard_limit = int(resource.getrlimit(resource.RLIMIT_AS)[1])
+    #         if max_size < hard_limit / 3:
+    #             logging.info(
+    #                 f"Initial max_size did not work, setting it to {hard_limit / 2}"
+    #             )
+    #             max_size = hard_limit / 2
+    #         else:
+    #             raise
+    #     else:
+    #         logging.info(f"Failed to read in when max_size = {max_size}")
+    #         raise
 
-    def load_facts(self):
+    def load_facts(self, transformed_parquet_dir):
+        """ """
         logging.info("loading facts from temp table")
 
         fact_fields = self.specification.schema["fact"]["fields"]
@@ -113,7 +113,7 @@ class DatasetParquetPackage(Package):
         # priority or latest record
         query = f"""
             SELECT {fields_str}
-            FROM temp_table
+            FROM {transformed_parquet_dir}/*.parquet
             QUALIFY ROW_NUMBER() OVER (
                 PARTITION BY fact ORDER BY priority, "entry-date" DESC, "entry-number" DESC
             ) = 1
@@ -127,7 +127,7 @@ class DatasetParquetPackage(Package):
         """
         )
 
-    def load_fact_resource(self):
+    def load_fact_resource(self, transformed_parquet_dir):
         logging.info("loading fact resources from temp table")
 
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
@@ -138,7 +138,7 @@ class DatasetParquetPackage(Package):
         # All CSV files have been loaded into a temporary table. Extract several columns and export
         query = f"""
             SELECT {fields_str}
-            FROM temp_table
+            FROM {transformed_parquet_dir}/*.parquet
         """
 
         self.conn.execute(
@@ -150,6 +150,8 @@ class DatasetParquetPackage(Package):
         )
 
     def load_entities(self):
+        fact_resource_parquet_path = f"{self.cache_dir}/fact_resource{self.suffix}"
+        # fact_parquet_path = f"{self.cache_dir}/fact{self.suffix}"
         organisation_path = self.organisation.organisation_path
 
         logging.info("loading entities from temp table")
@@ -157,11 +159,11 @@ class DatasetParquetPackage(Package):
         entity_fields = self.specification.schema["entity"]["fields"]
         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
-        input_paths_str = f"{self.cache_dir}/fact{self.suffix}"
+        # input_paths_str = f"{self.cache_dir}/fact{self.suffix}"
 
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
-            FROM parquet_scan('{str(input_paths_str)}')
+            FROM parquet_scan('{fact_resource_parquet_path}')
         """
 
         # distinct_fields - list of fields in the field in fact
@@ -212,6 +214,15 @@ class DatasetParquetPackage(Package):
 
         # Take original data, group by entity & field, and order by highest priority then latest record.
         # If there are still matches then pick the first resource (and fact, just to make sure)
+        # changes to make
+        # not sure why this is bringing a raw resourcce AND the temp_table this data is essentially the same
+        # need the resource hash and entry number of the file, this is important for ordering
+        # between these two, the onlly other metric that isn't in the factt resource table is the start date of the resource
+        # query to get this info
+        # query to use this info to get the most recent facts
+        # query to turn the most recent facts into a pivot
+        # query to sort the final table
+        # query  to create the file
         query = f"""
             SELECT {fields_str} FROM (
                 SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
