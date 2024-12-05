@@ -31,7 +31,6 @@ from digital_land.commands import (
     save_state,
     compare_state,
 )
-from digital_land.expectations.commands import run_dataset_checkpoint
 
 from digital_land.command_arguments import (
     collection_dir,
@@ -331,6 +330,8 @@ def expectations_run_dataset_checkpoint(
     organisation_path,
     specification_dir,
 ):
+    from digital_land.expectations.commands import run_dataset_checkpoint
+
     specification = Specification(specification_dir)
     output_dir = Path(log_dir) / "expectation"
     config = Config(path=configuration_path, specification=specification)
