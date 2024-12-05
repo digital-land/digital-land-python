@@ -8,12 +8,12 @@ from pathlib import Path
 # load in specification
 
 
-def convert_tranformed_csv_to_pq(input, output):
+def convert_tranformed_csv_to_pq(input_path, output_path):
     """
     function to convert a transformed resource to a parrquet file.
     """
-    input_path = Path(input)
-    output_path = Path(output)
+    input_path = Path(input_path)
+    output_path = Path(output_path)
     if output_path.exists():
         os.remove(output_path)
 
