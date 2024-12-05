@@ -52,6 +52,7 @@ from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrun
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
+from digital_land.pipeline.process import convert_tranformed_csv_to_pq
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
@@ -342,6 +343,14 @@ def pipeline_run(
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
+    # create converted parquet in the var directory
+    cache_dir = Path(organisation_path).parent
+    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+    transformed_parquet_dir.mkdir(exists_ok=True, parents=True)
+    convert_tranformed_csv_to_pq(
+        input_path=input_path,
+        output_path=transformed_parquet_dir / f"{resource}.parquet",
+    )
 
 
 #
