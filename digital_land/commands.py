@@ -348,7 +348,7 @@ def pipeline_run(
     transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
     transformed_parquet_dir.mkdir(exist_ok=True, parents=True)
     convert_tranformed_csv_to_pq(
-        input_path=input_path,
+        input_path=output_path,
         output_path=transformed_parquet_dir / f"{resource}.parquet",
     )
 
