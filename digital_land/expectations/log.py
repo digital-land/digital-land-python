@@ -20,6 +20,7 @@ class ExpectationLog:
             "dataset",
             "organisation",
             "name",
+            "operation",
             "passed",
             "parameters",
             "message",
