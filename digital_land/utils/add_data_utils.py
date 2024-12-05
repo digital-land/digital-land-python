@@ -1,5 +1,8 @@
+import os
 from datetime import datetime
 from urllib.parse import urlparse
+
+from digital_land.collect import Collector
 
 
 def is_url_valid(url, url_type):
@@ -38,3 +41,10 @@ def is_date_valid(date, date_type):
         return False, f"The {date_type} {date} cannot be in the future"
 
     return True, ""
+
+
+def clear_log(collection_dir, endpoint):
+    collector = Collector(collection_dir=collection_dir)
+    log_path = collector.log_path(datetime.utcnow(), endpoint)
+    if os.path.isfile(log_path):
+        os.remove(log_path)

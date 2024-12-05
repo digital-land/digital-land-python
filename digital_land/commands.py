@@ -59,7 +59,7 @@ from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
 from digital_land.api import API
 from digital_land.state import State
-from digital_land.utils.add_data_utils import is_date_valid, is_url_valid
+from digital_land.utils.add_data_utils import clear_log, is_date_valid, is_url_valid
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
@@ -565,7 +565,6 @@ def validate_and_add_data_input(
             if expected_col not in csv_columns:
                 raise Exception(f"required column ({expected_col}) not found in csv")
 
-        endpoints = []
         for row in reader:
             # validate licence
             if row["licence"] == "":
@@ -624,6 +623,7 @@ def validate_and_add_data_input(
     print("Documentation URL: ", row["documentation-url"])
     print()
 
+    endpoints = []
     # if endpoint already exists, it will indicate it and quit function here
     if collection.add_source_endpoint(row):
         endpoint = {
@@ -642,6 +642,7 @@ def validate_and_add_data_input(
 
     # if successfully added we can now attempt to fetch from endpoint
     collector = Collector(collection_dir=collection_dir)
+    endpoint_resource_info = {}
     for endpoint in endpoints:
         status = collector.fetch(
             url=endpoint["endpoint-url"],
@@ -667,20 +668,28 @@ def validate_and_add_data_input(
                 f"Failed to collect from URL with status: {status if status else exception}"
             )
 
-        # Resource and path will only be printed if downloaded successfully
-        if log.get("resource", None):
+        # Resource and path will only be printed if downloaded successfully but should only happen if status is 200
+        resource = log.get("resource", None)
+        if resource:
             print(
                 "Resource collected: ",
-                log.get("resource"),
+                resource,
             )
             print(
                 "Resource Path is: ",
-                Path(collection_dir) / "resource" / log.get("resource"),
+                Path(collection_dir) / "resource" / resource,
             )
 
         print(f"Log Status for {endpoint['endpoint']}: The status is {status}")
+        endpoint_resource_info.update(
+            {
+                "endpoint": endpoint["endpoint"],
+                "resource": log.get("resource"),
+                "pipelines": row["pipelines"].split(";"),
+            }
+        )
 
-    return collection
+    return collection, endpoint_resource_info
 
 
 def add_data(
@@ -689,7 +698,7 @@ def add_data(
     # Potentially track a list of files to clean up at the end of session? e.g log file
 
     # First validate the input .csv and collect from the endpoint
-    validate_and_add_data_input(
+    collection, endpoint_resource_info = validate_and_add_data_input(
         csv_file_path,
         collection_name,
         collection_dir,
@@ -706,6 +715,7 @@ def add_data(
 
     if user_response != "yes":
         print("Operation cancelled by user.")
+        clear_log(collection_dir, endpoint_resource_info["endpoint"])
         return
 
 

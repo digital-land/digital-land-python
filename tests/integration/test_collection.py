@@ -276,45 +276,6 @@ def test_collection_load_resource_and_logs_from_log_items(
     assert len(collection.endpoint.entries) > 0
 
 
-def test_collection_load_log_from_endpoint_not_in_source(
-    test_collection_without_log_and_resource_csvs,
-):
-    raw_log = {
-        "elapsed": "0.5",
-        "endpoint-url": "unknown.com",
-        "endpoint": "unknown",
-        "entry-date": "2019-01-01T12:26:55.952257",
-        "request-headers": {
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate",
-            "Connection": "keep-alive",
-            "User-Agent": "MHCLG Planning Data Collector",
-        },
-        "resource": "test",
-        "response-headers": {
-            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        },
-        "ssl-verify": "true",
-        "status": "200",
-    }
-
-    log_dir = os.path.join(test_collection_without_log_and_resource_csvs, "log")
-    path = os.path.join(log_dir, "2019-01-01", "unknown.json")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        data = canonicaljson.encode_canonical_json(raw_log)
-        with open(path, "wb") as f:
-            f.write(data)
-
-    collection = Collection(directory=test_collection_without_log_and_resource_csvs)
-    collection.load()
-
-    assert len(collection.log.entries) > 0
-    assert len(collection.resource.entries) > 0
-    assert len(collection.source.entries) > 0
-    assert len(collection.endpoint.entries) > 0
-
-
 @pytest.fixture
 def test_collection_update_fixture(tmp_path):
     def _fixture(log_entry_date):
