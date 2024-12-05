@@ -26,6 +26,7 @@ from digital_land.log import (
 )
 from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
+from digital_land.package.dataset_parquet import DatasetParquetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
@@ -366,7 +367,11 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
+    cache_dir="var/cache/parquet",
+    resource_path="collection/resource.csv",
 ):
+    cache_dir = os.path.join(cache_dir, dataset)
+
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
@@ -386,10 +391,8 @@ def dataset_create(
     package.create()
     for path in input_paths:
         path_obj = Path(path)
-        package.load_transformed(path)
         package.load_column_fields(column_field_dir / dataset / path_obj.name)
         package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    package.load_entities()
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
     if os.path.exists(old_entity_path):
@@ -403,6 +406,26 @@ def dataset_create(
         logging.warning("No directory for this dataset in the provided issue_directory")
 
     package.add_counts()
+
+    # Repeat for parquet
+    # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+
+    pqpackage = DatasetParquetPackage(
+        dataset,
+        organisation=organisation,
+        path=output_path,
+        cache_dir=cache_dir,
+        resource_path=resource_path,
+        specification_dir=None,  # TBD: package should use this specification object
+    )
+    pqpackage.create_temp_table(input_paths)
+    pqpackage.load_facts()
+    pqpackage.load_fact_resource()
+    pqpackage.load_entities()
+    pqpackage.pq_to_sqlite()
+    pqpackage.close_conn()
 
 
 def dataset_dump(input_path, output_path):
