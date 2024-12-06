@@ -28,3 +28,5 @@ pyrightconfig.json
 
 # don't store html build file for docs
 /docs/_build
+docs/digital_land*
+docs/modules.rst
