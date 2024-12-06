@@ -38,7 +38,7 @@ jobs:
 
     - name: Generate Documentation
       run: |
-        sphinx-build -b html docs/ docs/_build
+        make docs
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
