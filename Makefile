@@ -42,7 +42,7 @@ endif
 
 # Build documentation with Sphinx use for deploying documentation
 .PHONY: docs
-docs: api-docs
+docs:
 	sphinx-apidoc -o docs/ digital_land
 	sphinx-build -b html docs/ docs/_build
 
