@@ -321,7 +321,7 @@ def pipeline_run(
         ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
         PriorityPhase(config=config),
-        PivotPhase(),
+        PivotPhase(issue_log=issue_log),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),
         FactReferencePhase(
