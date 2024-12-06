@@ -1,6 +1,10 @@
 from .phase import Phase
 
-EXCLUDE_ISSUES = ["invalid geometry"]
+EXCLUDE_ISSUES = [
+    "invalid coordinates",
+    "WGS84 out of bounds of England",
+    "OSGB out of bounds of England",
+]
 
 
 class PivotPhase(Phase):
@@ -9,10 +13,18 @@ class PivotPhase(Phase):
     """
 
     def __init__(self, issue_log=None):
-        self.issue_map = {}
-        if issue_log:
-            for row in issue_log.rows:
-                self.issue_map[(row["field"], row["entry-number"])] = row
+        self.issue_log = issue_log
+
+    def get_issue(self, field, entry_number):
+        if self.issue_log:
+            for row in self.issue_log.rows:
+                # Hack for the GeoX,GeoY field in brownfield land
+                if (
+                    row["field"] == field
+                    or (row["field"] == "GeoX,GeoY" and field == "point")
+                ) and row["entry-number"] == entry_number:
+                    return row
+        return None
 
     def process(self, stream):
         for block in stream:
@@ -21,7 +33,7 @@ class PivotPhase(Phase):
                 if field in ["entity"]:
                     continue
 
-                issue = self.issue_map.get((field, block["entry-number"]))
+                issue = self.get_issue(field, block["entry-number"])
 
                 if issue and issue["issue-type"] in EXCLUDE_ISSUES:
                     continue
