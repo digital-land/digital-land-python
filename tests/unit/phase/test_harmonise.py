@@ -259,3 +259,27 @@ def test_validate_categorical_field_dataset():
     assert len(issues.rows) == 1
     # but we get an issue generated
     assert issues.rows[0]["issue-type"] == "invalid category value"
+
+
+def test_harmonise_geox_geoy():
+    field_datatye_map = {
+        "GeoX": "string",
+        "GeoY": "string",
+    }
+    issues = IssueLog()
+
+    h = HarmonisePhase(field_datatype_map=field_datatye_map, issues=issues)
+    reader = FakeDictReader(
+        [
+            {"GeoX": "-1.543611", "GeoY": "53.7975"},
+            {"GeoX": "3.141329", "GeoY": "42.25472"},
+        ]
+    )
+    output = list(h.process(reader))
+
+    assert len(output) == 2
+    assert output[0]["row"] == {"GeoX": "-1.543611", "GeoY": "53.7975"}
+    assert output[1]["row"] == {}
+
+    assert len(issues.rows) == 1
+    assert "out of bounds" in issues.rows[0]["issue-type"]
