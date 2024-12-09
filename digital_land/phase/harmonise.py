@@ -125,6 +125,10 @@ class HarmonisePhase(Phase):
                         point_geometry = shapely.wkt.loads(geometry)
                         x, y = point_geometry.coords[0]
                         (o["GeoX"], o["GeoY"]) = [str(x), str(y)]
+                    else:
+                        # Remove the invalid point
+                        del o["GeoX"]
+                        del o["GeoY"]
                 except Exception as e:
                     logger.error(
                         f"Exception occurred while fetching geoX, geoY coordinates: {e}"
