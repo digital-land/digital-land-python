@@ -351,6 +351,7 @@ def retire_endpoints_cmd(config_collections_dir, csv_path):
 @click.argument("csv-path", nargs=1, type=click.Path())
 @click.argument("collection-name", nargs=1, type=click.STRING)
 @click.option("--collection-dir", "-c", nargs=1, type=click.Path(exists=True))
+@click.option("--pipeline-dir", "-p", nargs=1, type=click.Path(exists=True))
 @click.option(
     "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
 )
@@ -361,7 +362,12 @@ def retire_endpoints_cmd(config_collections_dir, csv_path):
     default="var/cache/organisation.csv",
 )
 def add_data_cmd(
-    csv_path, collection_name, collection_dir, specification_dir, organisation_path
+    csv_path,
+    collection_name,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
 ):
     csv_file_path = Path(csv_path)
     if not csv_file_path.is_file():
@@ -372,6 +378,7 @@ def add_data_cmd(
         csv_file_path,
         collection_name,
         collection_dir,
+        pipeline_dir,
         specification_dir,
         organisation_path,
     )

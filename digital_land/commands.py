@@ -686,6 +686,8 @@ def validate_and_add_data_input(
                 "endpoint": endpoint["endpoint"],
                 "resource": log.get("resource"),
                 "pipelines": row["pipelines"].split(";"),
+                "organisation": row["organisation"],
+                "entry-date": row["entry-date"],
             }
         )
 
@@ -693,7 +695,12 @@ def validate_and_add_data_input(
 
 
 def add_data(
-    csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
+    csv_file_path,
+    collection_name,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
 ):
     # Potentially track a list of files to clean up at the end of session? e.g log file
 
@@ -717,6 +724,46 @@ def add_data(
         print("Operation cancelled by user.")
         clear_log(collection_dir, endpoint_resource_info["endpoint"])
         return
+
+    temp_dir = Path("var/cache/add_data/")
+    output_path = os.path.join(
+        temp_dir, "transformed", endpoint_resource_info["resource"] + ".csv"
+    )
+    issue_dir = os.path.join(temp_dir, "issue/")
+    column_field_dir = os.path.join(temp_dir, "column_field/")
+    dataset_resource_dir = os.path.join(temp_dir, "dataset_resource/")
+    converted_dir = os.path.join(temp_dir, "converted/")
+    output_log_dir = os.path.join(temp_dir, "log/")
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(issue_dir, exist_ok=True)
+    os.makedirs(column_field_dir, exist_ok=True)
+    os.makedirs(dataset_resource_dir, exist_ok=True)
+    os.makedirs(converted_dir, exist_ok=True)
+    os.makedirs(output_log_dir, exist_ok=True)
+
+    collection.load_log_items()
+    for pipeline in endpoint_resource_info["pipelines"]:
+
+        pipeline_run(
+            pipeline,
+            Pipeline(pipeline_dir, pipeline),
+            Specification(specification_dir),
+            Path(collection_dir) / "resource" / endpoint_resource_info["resource"],
+            output_path=output_path,
+            collection_dir=collection_dir,
+            issue_dir=issue_dir,
+            column_field_dir=temp_dir,
+            dataset_resource_dir=os.path.join(temp_dir, "dataset_resource/"),
+            converted_resource_dir=os.path.join(temp_dir, "converted/"),
+            organisation_path=organisation_path,
+            endpoints=[endpoint_resource_info["endpoint"]],
+            organisations=[endpoint_resource_info["organisation"]],
+            resource=endpoint_resource_info["resource"],
+            output_log_dir=os.path.join(temp_dir, "log/"),
+        )
+
+    clear_log(collection_dir, endpoint_resource_info["endpoint"])
 
 
 def add_endpoints_and_lookups(
