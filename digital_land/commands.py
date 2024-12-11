@@ -59,7 +59,14 @@ from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
 from digital_land.api import API
 from digital_land.state import State
-from digital_land.utils.add_data_utils import clear_log, is_date_valid, is_url_valid
+from digital_land.utils.add_data_utils import (
+    clear_log,
+    get_column_field_summary,
+    get_entity_summary,
+    get_issue_summary,
+    is_date_valid,
+    is_url_valid,
+)
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
@@ -202,6 +209,7 @@ def pipeline_run(
     config_path="var/cache/config.sqlite3",
     resource=None,
     output_log_dir=None,
+    converted_path=None,
 ):
     if resource is None:
         resource = resource_from_path(input_path)
@@ -267,6 +275,7 @@ def pipeline_run(
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
             custom_temp_dir=custom_temp_dir,
+            output_path=converted_path,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
@@ -671,13 +680,14 @@ def validate_and_add_data_input(
         # Resource and path will only be printed if downloaded successfully but should only happen if status is 200
         resource = log.get("resource", None)
         if resource:
+            resource_path = Path(collection_dir) / "resource" / resource
             print(
                 "Resource collected: ",
                 resource,
             )
             print(
                 "Resource Path is: ",
-                Path(collection_dir) / "resource" / resource,
+                resource_path,
             )
 
         print(f"Log Status for {endpoint['endpoint']}: The status is {status}")
@@ -685,6 +695,7 @@ def validate_and_add_data_input(
             {
                 "endpoint": endpoint["endpoint"],
                 "resource": log.get("resource"),
+                "resource_path": resource_path,
                 "pipelines": row["pipelines"].split(";"),
                 "organisation": row["organisation"],
                 "entry-date": row["entry-date"],
@@ -714,6 +725,9 @@ def add_data(
     )
     # At this point the endpoint will have been added to the collection
 
+    # We need to delete the collection log to enable consecutive runs due to collection.load()
+    clear_log(collection_dir, endpoint_resource_info["endpoint"])
+
     user_response = (
         input("Do you want to continue processing this resource? (yes/no): ")
         .strip()
@@ -722,7 +736,6 @@ def add_data(
 
     if user_response != "yes":
         print("Operation cancelled by user.")
-        clear_log(collection_dir, endpoint_resource_info["endpoint"])
         return
 
     temp_dir = Path("var/cache/add_data/")
@@ -732,6 +745,7 @@ def add_data(
     issue_dir = os.path.join(temp_dir, "issue/")
     column_field_dir = os.path.join(temp_dir, "column_field/")
     dataset_resource_dir = os.path.join(temp_dir, "dataset_resource/")
+    converted_resource_dir = os.path.join(temp_dir, "converted_resource/")
     converted_dir = os.path.join(temp_dir, "converted/")
     output_log_dir = os.path.join(temp_dir, "log/")
 
@@ -739,31 +753,69 @@ def add_data(
     os.makedirs(issue_dir, exist_ok=True)
     os.makedirs(column_field_dir, exist_ok=True)
     os.makedirs(dataset_resource_dir, exist_ok=True)
+    os.makedirs(converted_resource_dir, exist_ok=True)
     os.makedirs(converted_dir, exist_ok=True)
     os.makedirs(output_log_dir, exist_ok=True)
 
     collection.load_log_items()
     for pipeline in endpoint_resource_info["pipelines"]:
+        print("======================================================================")
+        print("Run pipeline")
+        print("======================================================================")
+        try:
+            pipeline_run(
+                pipeline,
+                Pipeline(pipeline_dir, pipeline),
+                Specification(specification_dir),
+                endpoint_resource_info["resource_path"],
+                output_path=output_path,
+                collection_dir=collection_dir,
+                issue_dir=issue_dir,
+                column_field_dir=column_field_dir,
+                dataset_resource_dir=dataset_resource_dir,
+                converted_resource_dir=converted_resource_dir,
+                organisation_path=organisation_path,
+                endpoints=[endpoint_resource_info["endpoint"]],
+                organisations=[endpoint_resource_info["organisation"]],
+                resource=endpoint_resource_info["resource"],
+                output_log_dir=output_log_dir,
+                converted_path=os.path.join(
+                    converted_dir, endpoint_resource_info["resource"] + ".csv"
+                ),
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Resource failed to process with the following error: {e}"
+            )
+        print("======================================================================")
+        print("Pipeline successful!")
+        print("======================================================================")
 
-        pipeline_run(
-            pipeline,
-            Pipeline(pipeline_dir, pipeline),
-            Specification(specification_dir),
-            Path(collection_dir) / "resource" / endpoint_resource_info["resource"],
-            output_path=output_path,
-            collection_dir=collection_dir,
-            issue_dir=issue_dir,
-            column_field_dir=temp_dir,
-            dataset_resource_dir=os.path.join(temp_dir, "dataset_resource/"),
-            converted_resource_dir=os.path.join(temp_dir, "converted/"),
-            organisation_path=organisation_path,
-            endpoints=[endpoint_resource_info["endpoint"]],
-            organisations=[endpoint_resource_info["organisation"]],
-            resource=endpoint_resource_info["resource"],
-            output_log_dir=os.path.join(temp_dir, "log/"),
+        converted_path = os.path.join(
+            converted_dir, endpoint_resource_info["resource"] + ".csv"
         )
+        if not os.path.isfile(converted_path):
+            # The pipeline doesn't convert .csv resources so direct user to original resource
+            converted_path = endpoint_resource_info["resource_path"]
+        print(f"Converted .csv resource path: {converted_path}")
+        print(f"Transformed resource path: {output_path}")
 
-    clear_log(collection_dir, endpoint_resource_info["endpoint"])
+        column_field_summary = get_column_field_summary(
+            pipeline,
+            endpoint_resource_info,
+            column_field_dir,
+            converted_dir,
+            specification_dir,
+        )
+        print(column_field_summary)
+
+        issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
+        print(issue_summary)
+
+        entity_summary = get_entity_summary(
+            endpoint_resource_info, output_path, issue_dir
+        )
+        print(entity_summary)
 
 
 def add_endpoints_and_lookups(
