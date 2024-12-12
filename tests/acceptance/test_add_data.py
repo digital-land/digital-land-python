@@ -16,6 +16,36 @@ def specification_dir(tmp_path_factory):
     return specification_dir
 
 
+@pytest.fixture
+def pipeline_dir(tmp_path_factory):
+    pipeline_dir = tmp_path_factory.mktemp("specification")
+
+    collection_name = "ancient-woodland"
+    # create lookups
+    row = {
+        "prefix": collection_name,
+        "resource": "",
+        "entry-number": "",
+        "organisation": "local-authority:SST",
+        "reference": "reference",
+        "entity": 44000001,
+    }
+
+    fieldnames = row.keys()
+
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    return pipeline_dir
+
+
+@pytest.fixture
+def cache_dir(tmp_path_factory):
+    return tmp_path_factory.mktemp("cache")
+
+
 @pytest.fixture(scope="function")
 def collection_dir(tmp_path_factory):
     collection_dir = tmp_path_factory.mktemp("collection")
@@ -91,9 +121,8 @@ def organisation_csv():
 
 @pytest.fixture
 def mock_request_get(mocker):
-    data = {"reference": "1", "value": "test"}
-    csv_content = str(data).encode("utf-8")
-
+    data = "reference,documentation-url\n1,url"
+    csv_content = data.encode("utf-8")
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.request.headers = {"test": "test"}
@@ -130,6 +159,8 @@ def create_input_csv(
 def test_cli_add_data(
     collection_dir,
     specification_dir,
+    pipeline_dir,
+    cache_dir,
     organisation_csv,
     mock_request_get,
     monkeypatch,
@@ -159,8 +190,12 @@ def test_cli_add_data(
             str(collection_dir),
             "--specification-dir",
             str(specification_dir),
+            "--pipeline-dir",
+            str(pipeline_dir),
             "--organisation-path",
             str(organisation_csv),
+            "--cache-dir",
+            str(cache_dir),
         ],
     )
 
@@ -170,8 +205,10 @@ def test_cli_add_data(
 def test_cli_add_data_incorrect_input_data(
     collection_dir,
     specification_dir,
+    pipeline_dir,
     organisation_csv,
     mock_request_get,
+    cache_dir,
 ):
     incorrect_input_data = {
         "organisation": "",
@@ -195,8 +232,12 @@ def test_cli_add_data_incorrect_input_data(
             str(collection_dir),
             "--specification-dir",
             str(specification_dir),
+            "--pipeline-dir",
+            str(pipeline_dir),
             "--organisation-path",
             str(organisation_csv),
+            "--cache-dir",
+            str(cache_dir),
         ],
     )
     assert result.exit_code == 1
@@ -208,9 +249,11 @@ def test_cli_add_data_incorrect_input_data(
 def test_cli_add_data_consecutive_runs(
     collection_dir,
     specification_dir,
+    pipeline_dir,
     organisation_csv,
     mock_request_get,
     monkeypatch,
+    cache_dir,
 ):
     no_error_input_data = {
         "organisation": "local-authority:SST",
@@ -237,8 +280,12 @@ def test_cli_add_data_consecutive_runs(
             str(collection_dir),
             "--specification-dir",
             str(specification_dir),
+            "--pipeline-dir",
+            str(pipeline_dir),
             "--organisation-path",
             str(organisation_csv),
+            "--cache-dir",
+            str(cache_dir),
         ],
     )
     assert result.exit_code == 0
@@ -255,8 +302,12 @@ def test_cli_add_data_consecutive_runs(
             str(collection_dir),
             "--specification-dir",
             str(specification_dir),
+            "--pipeline-dir",
+            str(pipeline_dir),
             "--organisation-path",
             str(organisation_csv),
+            "--cache-dir",
+            str(cache_dir),
         ],
     )
     assert result.exit_code == 0

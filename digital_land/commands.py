@@ -712,6 +712,7 @@ def add_data(
     pipeline_dir,
     specification_dir,
     organisation_path,
+    cache_dir=None,
 ):
     # Potentially track a list of files to clean up at the end of session? e.g log file
 
@@ -738,16 +739,18 @@ def add_data(
         print("Operation cancelled by user.")
         return
 
-    temp_dir = Path("var/cache/add_data/")
+    if not cache_dir:
+        cache_dir = Path("var/cache/add_data/")
     output_path = os.path.join(
-        temp_dir, "transformed", endpoint_resource_info["resource"] + ".csv"
+        cache_dir, "transformed", endpoint_resource_info["resource"] + ".csv"
     )
-    issue_dir = os.path.join(temp_dir, "issue/")
-    column_field_dir = os.path.join(temp_dir, "column_field/")
-    dataset_resource_dir = os.path.join(temp_dir, "dataset_resource/")
-    converted_resource_dir = os.path.join(temp_dir, "converted_resource/")
-    converted_dir = os.path.join(temp_dir, "converted/")
-    output_log_dir = os.path.join(temp_dir, "log/")
+    issue_dir = os.path.join(cache_dir, "issue/")
+    column_field_dir = os.path.join(cache_dir, "column_field/")
+    dataset_resource_dir = os.path.join(cache_dir, "dataset_resource/")
+    converted_resource_dir = os.path.join(cache_dir, "converted_resource/")
+    converted_dir = os.path.join(cache_dir, "converted/")
+    output_log_dir = os.path.join(cache_dir, "log/")
+    operational_issue_dir = os.path.join(cache_dir, "performance", "operational_issue")
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     os.makedirs(issue_dir, exist_ok=True)
@@ -756,6 +759,7 @@ def add_data(
     os.makedirs(converted_resource_dir, exist_ok=True)
     os.makedirs(converted_dir, exist_ok=True)
     os.makedirs(output_log_dir, exist_ok=True)
+    os.makedirs(operational_issue_dir, exist_ok=True)
 
     collection.load_log_items()
     for pipeline in endpoint_resource_info["pipelines"]:
@@ -771,6 +775,7 @@ def add_data(
                 output_path=output_path,
                 collection_dir=collection_dir,
                 issue_dir=issue_dir,
+                operational_issue_dir=operational_issue_dir,
                 column_field_dir=column_field_dir,
                 dataset_resource_dir=dataset_resource_dir,
                 converted_resource_dir=converted_resource_dir,

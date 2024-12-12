@@ -361,6 +361,10 @@ def retire_endpoints_cmd(config_collections_dir, csv_path):
     type=click.Path(exists=True),
     default="var/cache/organisation.csv",
 )
+@click.option(
+    "--cache-dir",
+    type=click.Path(exists=True),
+)
 def add_data_cmd(
     csv_path,
     collection_name,
@@ -368,6 +372,7 @@ def add_data_cmd(
     pipeline_dir,
     specification_dir,
     organisation_path,
+    cache_dir,
 ):
     csv_file_path = Path(csv_path)
     if not csv_file_path.is_file():
@@ -381,6 +386,7 @@ def add_data_cmd(
         pipeline_dir,
         specification_dir,
         organisation_path,
+        cache_dir=cache_dir,
     )
 
 
