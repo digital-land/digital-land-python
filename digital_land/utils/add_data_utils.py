@@ -145,9 +145,8 @@ def get_issue_summary(endpoint_resource_info, issue_dir):
     )
 
     issue_summary += "\n"
-    issue_summary += (
-        issue_df.groupby("issue-type")["issue-type"].count().to_string(header=False)
-    )
+    issue_summary += issue_df.groupby(["issue-type", "field"]).size().to_string()
+    print(issue_df.groupby(["issue-type", "field"]).size())
 
     return issue_summary
 
@@ -181,13 +180,14 @@ def get_entity_summary(endpoint_resource_info, output_path, issue_dir):
         entity_summary += "\nWARNING: No new entities in resource"
     else:
         entity_summary += f"\nNumber of new entities in resource: {new_entities}"
-        entity_summary += "\n"
+        entity_summary += "\n\nNew entity breakdown:\n"
         # Remove prefix from value column to get just reference
         new_entities_df["value"] = new_entities_df[
             new_entities_df["issue-type"] == "unknown entity"
         ]["value"].apply(lambda x: x.split(":")[1])
         entity_summary += (
             new_entities_df[["value", "line-number"]]
+            .astype({"line-number": int})
             .rename({"value": "reference", "line-number": "line-number"}, axis=1)
             .to_string(index=False)
         )
