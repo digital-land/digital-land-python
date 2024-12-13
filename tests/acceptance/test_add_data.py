@@ -1,6 +1,7 @@
 import csv
 import os
 import tempfile
+from unittest import mock
 from unittest.mock import Mock
 from click.testing import CliRunner
 import pytest
@@ -311,3 +312,59 @@ def test_cli_add_data_consecutive_runs(
         ],
     )
     assert result.exit_code == 0
+
+
+def mock_exception():
+    raise Exception("An error occured in the pipeline")
+
+
+def test_cli_add_data_pipeline_fail(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    cache_dir,
+    organisation_csv,
+    mock_request_get,
+    monkeypatch,
+):
+    no_error_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+    csv_path = create_input_csv(no_error_input_data)
+
+    # Mock in user input
+    monkeypatch.setattr("builtins.input", lambda _: "yes")
+
+    runner = CliRunner()
+    with mock.patch("digital_land.commands.pipeline_run") as pipeline_mock:
+        pipeline_mock.side_effect = Exception("Exception while running pipeline")
+        result = runner.invoke(
+            cli,
+            [
+                "add-data",
+                csv_path,
+                "conservation-area",
+                "--collection-dir",
+                str(collection_dir),
+                "--specification-dir",
+                str(specification_dir),
+                "--pipeline-dir",
+                str(pipeline_dir),
+                "--organisation-path",
+                str(organisation_csv),
+                "--cache-dir",
+                str(cache_dir),
+            ],
+        )
+
+    assert result.exit_code == 1
+    assert "Pipeline failed to process resource with the following error" in str(
+        result.exception
+    )
+    assert "Exception while running pipeline" in str(result.exception)

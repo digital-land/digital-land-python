@@ -790,7 +790,7 @@ def add_data(
             )
         except Exception as e:
             raise RuntimeError(
-                f"Resource failed to process with the following error: {e}"
+                f"Pipeline failed to process resource with the following error: {e}"
             )
         print("======================================================================")
         print("Pipeline successful!")
