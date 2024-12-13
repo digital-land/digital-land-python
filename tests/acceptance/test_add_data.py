@@ -314,10 +314,6 @@ def test_cli_add_data_consecutive_runs(
     assert result.exit_code == 0
 
 
-def mock_exception():
-    raise Exception("An error occured in the pipeline")
-
-
 def test_cli_add_data_pipeline_fail(
     collection_dir,
     specification_dir,
