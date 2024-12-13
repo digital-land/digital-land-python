@@ -70,7 +70,6 @@ def get_column_field_summary(
     column_field_df = pd.read_csv(column_field_path)
 
     column_field_summary += "\nMapped Columns:"
-    mapped_columns = column_field_df["column"].values
     column_field_summary += "\n"
     column_field_summary += column_field_df[["column", "field"]].to_string(index=False)
 
@@ -90,14 +89,6 @@ def get_column_field_summary(
         if column not in column_field_df["column"].values
     ]
 
-    # Need to revisit this to double check
-    # Handle cases where we have created a WKT or geometry column in conversion
-    if ("geometry" in unmapped_columns or "WKT" in unmapped_columns) and (
-        "geometry" in mapped_columns or "WKT" in mapped_columns
-    ):
-        unmapped_columns = [
-            column for column in unmapped_columns if column not in ["geometry", "WKT"]
-        ]
     if len(unmapped_columns) > 0:
         column_field_summary += "\n"
         column_field_summary += ", ".join(unmapped_columns)
@@ -146,7 +137,6 @@ def get_issue_summary(endpoint_resource_info, issue_dir):
 
     issue_summary += "\n"
     issue_summary += issue_df.groupby(["issue-type", "field"]).size().to_string()
-    print(issue_df.groupby(["issue-type", "field"]).size())
 
     return issue_summary
 
@@ -182,7 +172,7 @@ def get_entity_summary(endpoint_resource_info, output_path, issue_dir):
         entity_summary += f"\nNumber of new entities in resource: {new_entities}"
         entity_summary += "\n\nNew entity breakdown:\n"
         # Remove prefix from value column to get just reference
-        new_entities_df["value"] = new_entities_df[
+        new_entities_df.loc[:, "value"] = new_entities_df[
             new_entities_df["issue-type"] == "unknown entity"
         ]["value"].apply(lambda x: x.split(":")[1])
         entity_summary += (
