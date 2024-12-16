@@ -1,3 +1,4 @@
+import csv
 import os
 from datetime import datetime
 from urllib.parse import urlparse
@@ -76,16 +77,21 @@ def get_column_field_summary(
     column_field_summary += "\n\nUnmapped Columns:"
     # Try reading from converted .csv, if FileNotFound then resource is already .csv
     try:
-        converted_resource_df = pd.read_csv(
-            os.path.join(converted_dir, endpoint_resource_info["resource"] + ".csv")
-        )
+        with open(
+            os.path.join(converted_dir, endpoint_resource_info["resource"] + ".csv"),
+            "r",
+        ) as f:
+            reader = csv.DictReader(f)
+            converted_resource_columns = reader.fieldnames
     except FileNotFoundError:
-        converted_resource_df = pd.read_csv(endpoint_resource_info["resource_path"])
+        with open(endpoint_resource_info["resource_path"], "r") as f:
+            reader = csv.DictReader(f)
+            converted_resource_columns = reader.fieldnames
 
     # Find columns that are in resource that aren't in the column field log
     unmapped_columns = [
         column
-        for column in converted_resource_df.columns
+        for column in converted_resource_columns
         if column not in column_field_df["column"].values
     ]
 
