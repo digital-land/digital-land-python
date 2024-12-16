@@ -741,25 +741,29 @@ def add_data(
 
     if not cache_dir:
         cache_dir = Path("var/cache/add_data/")
-    output_path = os.path.join(
-        cache_dir, "transformed", endpoint_resource_info["resource"] + ".csv"
-    )
-    issue_dir = os.path.join(cache_dir, "issue/")
-    column_field_dir = os.path.join(cache_dir, "column_field/")
-    dataset_resource_dir = os.path.join(cache_dir, "dataset_resource/")
-    converted_resource_dir = os.path.join(cache_dir, "converted_resource/")
-    converted_dir = os.path.join(cache_dir, "converted/")
-    output_log_dir = os.path.join(cache_dir, "log/")
-    operational_issue_dir = os.path.join(cache_dir, "performance", "operational_issue")
+    else:
+        cache_dir = Path(cache_dir)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    os.makedirs(issue_dir, exist_ok=True)
-    os.makedirs(column_field_dir, exist_ok=True)
-    os.makedirs(dataset_resource_dir, exist_ok=True)
-    os.makedirs(converted_resource_dir, exist_ok=True)
-    os.makedirs(converted_dir, exist_ok=True)
-    os.makedirs(output_log_dir, exist_ok=True)
-    os.makedirs(operational_issue_dir, exist_ok=True)
+    output_path = (
+        cache_dir / "transformed/" / (endpoint_resource_info["resource"] + ".csv")
+    )
+
+    issue_dir = cache_dir / "issue/"
+    column_field_dir = cache_dir / "column_field/"
+    dataset_resource_dir = cache_dir / "dataset_resource/"
+    converted_resource_dir = cache_dir / "converted_resource/"
+    converted_dir = cache_dir / "converted/"
+    output_log_dir = cache_dir / "log/"
+    operational_issue_dir = cache_dir / "performance/ " / "operational_issue/"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    issue_dir.mkdir(parents=True, exist_ok=True)
+    column_field_dir.mkdir(parents=True, exist_ok=True)
+    dataset_resource_dir.mkdir(parents=True, exist_ok=True)
+    converted_resource_dir.mkdir(parents=True, exist_ok=True)
+    converted_dir.mkdir(parents=True, exist_ok=True)
+    output_log_dir.mkdir(parents=True, exist_ok=True)
+    operational_issue_dir.mkdir(parents=True, exist_ok=True)
 
     collection.load_log_items()
     for pipeline in endpoint_resource_info["pipelines"]:
