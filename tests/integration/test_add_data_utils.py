@@ -53,9 +53,14 @@ def test_get_issue_summary(tmp_path_factory):
 def test_get_entity_summary(tmp_path_factory):
     issue_dir = tmp_path_factory.mktemp("issue")
     transformed_dir = tmp_path_factory.mktemp("tranformed")
+    pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     resource = "resource"
-    endpoint_resource_info = {"resource": resource}
+    endpoint_resource_info = {
+        "organisation": "local-authority-eng:SST",
+        "resource": resource,
+    }
+    pipeline = "dataset"
 
     issue_headers = ["issue-type", "field", "value", "line-number"]
     issue_rows = [
@@ -94,13 +99,184 @@ def test_get_entity_summary(tmp_path_factory):
         writer.writeheader()
         writer.writerows(transformed_rows)
 
-    entity_summary = get_entity_summary(endpoint_resource_info, output_path, issue_dir)
-    print(entity_summary)
+    rows = [
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference",
+            "entity": 10,
+        },
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference",
+            "entity": 11,
+        },
+    ]
+
+    fieldnames = rows[0].keys()
+
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerows(rows)
+
+    entity_summary = get_entity_summary(
+        endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
+    )
     assert "Number of existing entities in resource: 4" in entity_summary
     assert "Number of new entities in resource: 2" in entity_summary
     assert "reference  line-number" in entity_summary
     assert "reference            1" in entity_summary
     assert "NaN            2" in entity_summary
+
+
+def test_get_entity_summary_missing_entity(tmp_path_factory):
+    issue_dir = tmp_path_factory.mktemp("issue")
+    transformed_dir = tmp_path_factory.mktemp("tranformed")
+    pipeline_dir = tmp_path_factory.mktemp("pipeline")
+
+    resource = "resource"
+    endpoint_resource_info = {
+        "organisation": "local-authority:SST",
+        "resource": resource,
+    }
+    pipeline = "dataset"
+
+    issue_headers = ["issue-type", "field", "value", "line-number"]
+    with open(os.path.join(issue_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=issue_headers)
+        writer.writeheader()
+
+    output_path = os.path.join(transformed_dir, resource + ".csv")
+    transformed_headers = ["entity"]
+    transformed_rows = [
+        {"entity": 1},
+        {"entity": 2},
+    ]
+    with open(output_path, "w") as f:
+        writer = csv.DictWriter(f, fieldnames=transformed_headers)
+        writer.writeheader()
+        writer.writerows(transformed_rows)
+
+        # create lookups
+    rows = [
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference",
+            "entity": 1,
+        },
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference2",
+            "entity": 2,
+        },
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference3",
+            "entity": 3,
+        },
+    ]
+
+    fieldnames = rows[0].keys()
+
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerows(rows)
+
+    entity_summary = get_entity_summary(
+        endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
+    )
+    assert (
+        "WARNING: There are 1 entities on the platform for this provision that aren't present in this resource"
+        in entity_summary
+    )
+
+
+def test_get_entity_summary_missing_all_entity(tmp_path_factory):
+    issue_dir = tmp_path_factory.mktemp("issue")
+    transformed_dir = tmp_path_factory.mktemp("tranformed")
+    pipeline_dir = tmp_path_factory.mktemp("pipeline")
+
+    resource = "resource"
+    endpoint_resource_info = {
+        "organisation": "local-authority:SST",
+        "resource": resource,
+    }
+    pipeline = "dataset"
+
+    issue_headers = ["issue-type", "field", "value", "line-number"]
+    with open(os.path.join(issue_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=issue_headers)
+        writer.writeheader()
+
+    output_path = os.path.join(transformed_dir, resource + ".csv")
+    transformed_headers = ["entity"]
+    transformed_rows = [
+        {"entity": 1},
+        {"entity": 2},
+    ]
+    with open(output_path, "w") as f:
+        writer = csv.DictWriter(f, fieldnames=transformed_headers)
+        writer.writeheader()
+        writer.writerows(transformed_rows)
+
+        # create lookups
+    rows = [
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference",
+            "entity": 11,
+        },
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference2",
+            "entity": 12,
+        },
+        {
+            "prefix": "dataset",
+            "resource": "",
+            "entry-number": "",
+            "organisation": "local-authority:SST",
+            "reference": "reference3",
+            "entity": 13,
+        },
+    ]
+
+    fieldnames = rows[0].keys()
+
+    with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        dictwriter.writeheader()
+        dictwriter.writerows(rows)
+
+    entity_summary = get_entity_summary(
+        endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
+    )
+    assert (
+        "WARNING: NONE of the 3 entities on the platform for this provision are in the resource - is this correct?"
+        in entity_summary
+    )
 
 
 # This test also tests the 'exclude fields' functionality

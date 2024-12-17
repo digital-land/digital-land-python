@@ -378,6 +378,9 @@ def add_data_cmd(
     if not csv_file_path.is_file():
         logging.error(f"CSV file not found at path: {csv_path}")
         sys.exit(2)
+    collection_dir = Path(collection_dir)
+    pipeline_dir = Path(pipeline_dir)
+    specification_dir = Path(specification_dir)
 
     return add_data(
         csv_file_path,

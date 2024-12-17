@@ -822,7 +822,7 @@ def add_data(
         print(issue_summary)
 
         entity_summary = get_entity_summary(
-            endpoint_resource_info, output_path, issue_dir
+            endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
         )
         print(entity_summary)
 

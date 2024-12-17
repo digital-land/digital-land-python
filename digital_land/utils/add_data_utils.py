@@ -1,5 +1,6 @@
 import csv
 import os
+import duckdb
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -147,7 +148,9 @@ def get_issue_summary(endpoint_resource_info, issue_dir):
     return issue_summary
 
 
-def get_entity_summary(endpoint_resource_info, output_path, issue_dir):
+def get_entity_summary(
+    endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
+):
     entity_summary = ""
     entity_summary += (
         "\n======================================================================"
@@ -159,8 +162,11 @@ def get_entity_summary(endpoint_resource_info, output_path, issue_dir):
 
     # Get number of entities in resource from transformed file
     transformed_df = pd.read_csv(output_path)
-    entity_count = transformed_df["entity"].nunique()
-    entity_summary += f"\nNumber of existing entities in resource: {entity_count}"
+    existing_entities = transformed_df["entity"].unique().tolist()
+    existing_entity_count = len(existing_entities)
+    entity_summary += (
+        f"\nNumber of existing entities in resource: {existing_entity_count}"
+    )
 
     # Get new entities by looking at unknown entity issues
     issue_df = pd.read_csv(
@@ -171,11 +177,12 @@ def get_entity_summary(endpoint_resource_info, output_path, issue_dir):
             ["unknown entity", "unknown entity - missing reference"]
         )
     ]
-    new_entities = len(new_entities_df)
-    if new_entities == 0:
+    new_entity_count = len(new_entities_df)
+
+    if new_entity_count == 0:
         entity_summary += "\nWARNING: No new entities in resource"
     else:
-        entity_summary += f"\nNumber of new entities in resource: {new_entities}"
+        entity_summary += f"\nNumber of new entities in resource: {new_entity_count}"
         entity_summary += "\n\nNew entity breakdown:\n"
         # Remove prefix from value column to get just reference
         new_entities_df.loc[:, "value"] = new_entities_df[
@@ -187,5 +194,26 @@ def get_entity_summary(endpoint_resource_info, output_path, issue_dir):
             .rename({"value": "reference", "line-number": "line-number"}, axis=1)
             .to_string(index=False)
         )
+
+    # Get list of entities for this provision from lookup.csv
+    # Potential for failure here when reading huge lookup file
+    lookup_path = pipeline_dir / "lookup.csv"
+    conn = duckdb.connect()
+    provision_entity_df = conn.execute(
+        f"SELECT entity FROM '{lookup_path}' WHERE prefix='{pipeline}' AND organisation='{endpoint_resource_info['organisation']}'"
+    ).df()
+    if len(provision_entity_df) > 0:
+        provision_entities = provision_entity_df["entity"].values
+    else:
+        provision_entities = []
+
+    # Compare entities found in resource with entities in lookup.csv
+    missing_entity_count = len(
+        [entity for entity in provision_entities if entity not in existing_entities]
+    )
+    if missing_entity_count == len(provision_entities) and len(provision_entities) > 0:
+        entity_summary += f"\nWARNING: NONE of the {len(provision_entities)} entities on the platform for this provision are in the resource - is this correct?"
+    elif missing_entity_count != 0:
+        entity_summary += f"\nWARNING: There are {missing_entity_count} entities on the platform for this provision that aren't present in this resource"
 
     return entity_summary

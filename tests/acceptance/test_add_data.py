@@ -19,7 +19,7 @@ def specification_dir(tmp_path_factory):
 
 @pytest.fixture
 def pipeline_dir(tmp_path_factory):
-    pipeline_dir = tmp_path_factory.mktemp("specification")
+    pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     collection_name = "ancient-woodland"
     # create lookups
