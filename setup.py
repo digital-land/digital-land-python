@@ -55,6 +55,7 @@ setup(
         "json-stream",
         "duckdb",
         "dask",
+        "arrow",
         "pyarrow",
         "pygit2",
     ],
