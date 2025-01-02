@@ -2,6 +2,7 @@ from collections import OrderedDict
 import csv
 import itertools
 import os
+import shutil
 import sys
 import json
 import logging
@@ -9,7 +10,7 @@ from packaging.version import Version
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
-
+from distutils.dir_util import copy_tree
 import geojson
 from requests import HTTPError
 import shapely
@@ -712,7 +713,7 @@ def add_data(
     pipeline_dir,
     specification_dir,
     organisation_path,
-    cache_dir=None,
+    cache_dir=Path("var/cache/add_data/"),
 ):
     # Potentially track a list of files to clean up at the end of session? e.g log file
 
@@ -766,14 +767,14 @@ def add_data(
     operational_issue_dir.mkdir(parents=True, exist_ok=True)
 
     collection.load_log_items()
-    for pipeline in endpoint_resource_info["pipelines"]:
+    for dataset in endpoint_resource_info["pipelines"]:
         print("======================================================================")
         print("Run pipeline")
         print("======================================================================")
         try:
             pipeline_run(
-                pipeline,
-                Pipeline(pipeline_dir, pipeline),
+                dataset,
+                Pipeline(pipeline_dir, dataset),
                 Specification(specification_dir),
                 endpoint_resource_info["resource_path"],
                 output_path=output_path,
@@ -810,7 +811,7 @@ def add_data(
         print(f"Transformed resource path: {output_path}")
 
         column_field_summary = get_column_field_summary(
-            pipeline,
+            dataset,
             endpoint_resource_info,
             column_field_dir,
             converted_dir,
@@ -822,9 +823,97 @@ def add_data(
         print(issue_summary)
 
         entity_summary = get_entity_summary(
-            endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
+            endpoint_resource_info, output_path, dataset, issue_dir, pipeline_dir
         )
         print(entity_summary)
+
+        user_response = (
+            input("Do you want to assign entities for this resource? (yes/no): ")
+            .strip()
+            .lower()
+        )
+
+        if user_response != "yes":
+            print("Operation cancelled by user.")
+            return
+
+        # Resource has been processed, run assign entities and reprocess
+
+        # Copy pipeline dir to cache dir so we can modify it
+        cache_pipeline_dir = cache_dir / "pipeline"
+        copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
+
+        assign_entities(
+            resource_file_paths=[endpoint_resource_info["resource_path"]],
+            collection=collection,
+            dataset=dataset,
+            organisation=[endpoint_resource_info["organisation"]],
+            pipeline_dir=cache_pipeline_dir,
+            specification_dir=specification_dir,
+            organisation_path=organisation_path,
+            endpoints=[endpoint_resource_info["endpoint"]],
+            tmp_dir=cache_dir,
+        )
+
+        pipeline = Pipeline(cache_pipeline_dir, dataset)
+
+        # Now rerun pipeline with new assigned entities
+        try:
+            pipeline_run(
+                dataset,
+                pipeline,
+                Specification(specification_dir),
+                endpoint_resource_info["resource_path"],
+                output_path=output_path,
+                collection_dir=collection_dir,
+                issue_dir=issue_dir,
+                operational_issue_dir=operational_issue_dir,
+                column_field_dir=column_field_dir,
+                dataset_resource_dir=dataset_resource_dir,
+                converted_resource_dir=converted_resource_dir,
+                organisation_path=organisation_path,
+                endpoints=[endpoint_resource_info["endpoint"]],
+                organisations=[endpoint_resource_info["organisation"]],
+                resource=endpoint_resource_info["resource"],
+                output_log_dir=output_log_dir,
+                converted_path=os.path.join(
+                    converted_dir, endpoint_resource_info["resource"] + ".csv"
+                ),
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Pipeline failed to process resource with the following error: {e}"
+            )
+
+        entity_summary = get_entity_summary(
+            endpoint_resource_info, output_path, dataset, issue_dir, cache_pipeline_dir
+        )
+        print(entity_summary)
+
+        # Check if there are unassigned entities in the issue summary - raise exception if they still exist
+        issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
+        if (
+            "unknown entity" in issue_summary
+            or "unknown entity - missing reference" in issue_summary
+        ):
+            print(issue_summary)
+            raise Exception(
+                f"Unknown entities remain in resource {endpoint_resource_info['resource']} after assigning entities"
+            )
+
+        user_response = (
+            input("Do you want to save changes made in this session? (yes/no): ")
+            .strip()
+            .lower()
+        )
+
+        if user_response != "yes":
+            print("Operation cancelled by user.")
+            return
+
+        # Save changes to collection and lookup.csv
+        collection.save_csv()
+        shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
 
 
 def add_endpoints_and_lookups(
@@ -935,6 +1024,7 @@ def add_endpoints_and_lookups(
             endpoints=resource_endpoints,
             tmp_dir=tmp_dir,
         )
+        collection.save_csv()
 
 
 def resource_from_path(path):
@@ -1019,7 +1109,6 @@ def assign_entities(
     # TO DO: Currently using pipeline_name to find dataset min, max, current
     # This would not function properly if each resource had a different dataset
 
-    collection.save_csv()
     new_lookups = lookups.save_csv()
 
     for entity in new_lookups:

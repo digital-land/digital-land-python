@@ -135,6 +135,21 @@ def mock_request_get(mocker):
     )
 
 
+@pytest.fixture
+def mock_request_get_no_reference(mocker):
+    data = "reference,documentation-url\n,url"
+    csv_content = data.encode("utf-8")
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.request.headers = {"test": "test"}
+    mock_response.headers = {"test": "test"}
+    mock_response.content = csv_content
+    mocker.patch(
+        "requests.Session.get",
+        return_value=mock_response,
+    )
+
+
 def create_input_csv(
     data,
     fieldnames=[
@@ -364,3 +379,50 @@ def test_cli_add_data_pipeline_fail(
         result.exception
     )
     assert "Exception while running pipeline" in str(result.exception)
+
+
+def test_cli_add_data_remaining_unassigned_entities(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    cache_dir,
+    organisation_csv,
+    mock_request_get_no_reference,
+    monkeypatch,
+):
+    no_error_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+    csv_path = create_input_csv(no_error_input_data)
+
+    # Mock in user input
+    monkeypatch.setattr("builtins.input", lambda _: "yes")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "add-data",
+            csv_path,
+            "conservation-area",
+            "--collection-dir",
+            str(collection_dir),
+            "--specification-dir",
+            str(specification_dir),
+            "--pipeline-dir",
+            str(pipeline_dir),
+            "--organisation-path",
+            str(organisation_csv),
+            "--cache-dir",
+            str(cache_dir),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Unknown entities remain in resource" in str(result.exception)
