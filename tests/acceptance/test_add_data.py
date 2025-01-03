@@ -327,6 +327,16 @@ def test_cli_add_data_consecutive_runs(
         ],
     )
     assert result.exit_code == 0
+    # Check summaries are in stdout
+    assert "Endpoint and source details" in result.stdout
+    assert "Run pipeline" in result.stdout
+    assert "Column Field Summary" in result.stdout
+    assert "Issue Summary" in result.stdout
+    assert "Entity Summary" in result.stdout
+
+    # Check entity assigning has worked
+    assert "Total number of new entities: 1" in result.stdout
+    assert "No new entities in resource" in result.stdout
 
 
 def test_cli_add_data_pipeline_fail(
