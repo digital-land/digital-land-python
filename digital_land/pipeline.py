@@ -502,6 +502,8 @@ class Lookups:
 
         new_entities = []
         get_entity = None
+        minimum_generated_entity = None
+        maximum_generated_entity = None
         for idx, entry in enumerate(entries):
             if not entry:
                 continue
@@ -521,12 +523,25 @@ class Lookups:
 
                         if str(generated_entity) not in entity_values:
                             entry["entity"] = generated_entity
+                            if (
+                                not minimum_generated_entity
+                            ) or generated_entity < minimum_generated_entity:
+                                minimum_generated_entity = generated_entity
+                            if (
+                                not maximum_generated_entity
+                            ) or generated_entity > maximum_generated_entity:
+                                maximum_generated_entity = generated_entity
                             new_entities.append(entry)
                             entity_values.append(str(generated_entity))
                             writer.writerow(entry)
                             break
                 else:
                     writer.writerow(entry)
+        if len(new_entities) > 0:
+            print("Total number of new entities:", len(new_entities))
+            print("Minimum generated entity number:", minimum_generated_entity)
+            print("Maximum generated entity number:", maximum_generated_entity)
+            print("\n")
         return new_entities
 
     # @staticmethod
