@@ -47,6 +47,11 @@ def convert_tranformed_csv_to_pq(input_path, output_path):
     schema = pa.schema(fields)
     table = pa.Table.from_pandas(first_chunk, schema=schema)
 
+    # rename columns for parquet files to make querying easier in s3
+    # Replace '-' with '_' in column names
+    new_column_names = [name.replace("-", "_") for name in table.column_names]
+    table = table.rename_columns(new_column_names)
+
     # Create a Parquet writer
     parquet_writer = pq.ParquetWriter(output_path, table.schema)
 
@@ -57,7 +62,9 @@ def convert_tranformed_csv_to_pq(input_path, output_path):
     while True:
         try:
             chunk = next(csv_iterator)
-            table = pa.Table.from_pandas(chunk)
+            table = pa.Table.from_pandas(chunk, schema=schema)
+            new_column_names = [name.replace("-", "_") for name in table.column_names]
+            table = table.rename_columns(new_column_names)
             parquet_writer.write_table(table)
             # size += len(chunk)
         except StopIteration:
