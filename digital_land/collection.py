@@ -168,6 +168,11 @@ class ResourceLogStore(CSVStore):
             organisations = set()
             datasets = set()
             for endpoint in resource["endpoints"]:
+                if endpoint not in source.records:
+                    raise RuntimeError(
+                        f"Endpoint '{endpoint}' not found in source. Check the endpoint.csv and source.csv files."
+                    )
+
                 for entry in source.records[endpoint]:
                     organisations.add(entry["organisation"])
                     datasets = set(

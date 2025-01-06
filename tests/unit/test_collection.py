@@ -1,5 +1,6 @@
+import pytest
 from digital_land.register import hash_value, Item
-from digital_land.collection import Collection, LogStore
+from digital_land.collection import Collection, LogStore, ResourceLogStore, CSVStore
 from digital_land.schema import Schema
 from datetime import datetime
 
@@ -90,3 +91,30 @@ def test_format_date():
         for date in dates:
             print(date)
             assert Collection.format_date(date) == check
+
+
+def test_endpoint_source_mismatch():
+    log = LogStore(Schema("log"))
+    log.add_entry(
+        {
+            "endpoint": "abc123",
+            "entry-date": "2025-01-06",
+            "resource": "aaa",
+            "bytes": "1024",
+        }
+    )
+
+    # This one matches
+    source = CSVStore(Schema("source"))
+    source.add_entry({"endpoint": "abc123", "organisation": "test-org"})
+
+    resource = ResourceLogStore(Schema("resource"))
+    resource.load(log, source)
+
+    # This one doesn't
+    source = CSVStore(Schema("source"))
+    source.add_entry({"endpoint": "abc124", "organisation": "test-org"})
+
+    resource = ResourceLogStore(Schema("resource"))
+    with pytest.raises(RuntimeError):
+        resource.load(log, source)
