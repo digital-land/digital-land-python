@@ -42,38 +42,39 @@ def count_lpa_boundary(
 
     # now deal with spatial options
     # Determine the spatial condition based on the geometric_relation parameter
-    if geometric_relation == "within":
-        spatial_condition = f"""
+    spatial_options = {
+        "within": f"""
             CASE
                 WHEN geometry != '' THEN ST_WITHIN(ST_GeomFromText(geometry), ST_GeomFromText('{lpa_geometry}'))
                 ELSE ST_WITHIN(ST_GeomFromText(point), ST_GeomFromText('{lpa_geometry}'))
             END
-        """
-    elif geometric_relation == "intersects":
-        spatial_condition = f"""
+        """,
+        "intersects": f"""
             CASE
                 WHEN geometry != '' THEN ST_INTERSECTS(ST_GeomFromText(geometry), ST_GeomFromText('{lpa_geometry}'))
                 ELSE ST_INTERSECTS(ST_GeomFromText(point), ST_GeomFromText('{lpa_geometry}'))
             END
-        """
-    elif geometric_relation == "not_intersects":
-        spatial_condition = f"""
+        """,
+        "not_intersects": f"""
             CASE
                 WHEN geometry != '' THEN NOT ST_INTERSECTS(ST_GeomFromText(geometry), ST_GeomFromText('{lpa_geometry}'))
                 ELSE NOT ST_INTERSECTS(ST_GeomFromText(point), ST_GeomFromText('{lpa_geometry}'))
             END
-        """
-    elif geometric_relation == "centroid_within_geometry":
-        spatial_condition = f"""
+        """,
+        "centroid_within": f"""
                 CASE
-                    WHEN point != '' THEN NOT ST_WITHIN(ST_GeomFromText(point), ST_GeomFromText('{lpa_geometry}'))
-                    ELSE NOT ST_WITHIN(ST_CENTROID(ST_GeomFromText(geometry)), ST_GeomFromText('{lpa_geometry}'))
+                    WHEN point != '' THEN ST_WITHIN(ST_GeomFromText(point), ST_GeomFromText('{lpa_geometry}'))
+                    ELSE ST_WITHIN(ST_CENTROID(ST_GeomFromText(geometry)), ST_GeomFromText('{lpa_geometry}'))
                 END
-            """
-    else:
+            """,
+    }
+
+    if geometric_relation not in spatial_options:
         raise ValueError(
-            f"Invalid geometric_relation: '{geometric_relation}'. Must be one of ['within', 'intersects', 'not_intersects','centroid_within_geometry']."
+            f"Invalid geometric_relation: '{geometric_relation}'. Must be one of {list(spatial_options.keys())}."
         )
+
+    spatial_condition = spatial_options[geometric_relation]
 
     # set up initial query
     query = """
