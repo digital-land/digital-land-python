@@ -67,7 +67,7 @@ from digital_land.utils.add_data_utils import (
     get_issue_summary,
     is_date_valid,
     is_url_valid,
-    proceed,
+    get_user_response,
 )
 
 from .register import hash_value
@@ -714,7 +714,7 @@ def add_data(
     pipeline_dir,
     specification_dir,
     organisation_path,
-    cache_dir=Path("var/cache/add_data/"),
+    cache_dir=None,
 ):
     # Potentially track a list of files to clean up at the end of session? e.g log file
 
@@ -732,25 +732,31 @@ def add_data(
     clear_log(collection_dir, endpoint_resource_info["endpoint"])
 
     # Ask if user wants to proceed
-    if not proceed("Do you want to continue processing this resource? (yes/no): "):
+    if not get_user_response(
+        "Do you want to continue processing this resource? (yes/no): "
+    ):
         return
 
     if not cache_dir:
-        cache_dir = Path("var/cache/add_data/")
+        cache_dir = Path("var/cache/")
     else:
         cache_dir = Path(cache_dir)
 
+    add_data_cache_dir = cache_dir / "add_data"
+
     output_path = (
-        cache_dir / "transformed/" / (endpoint_resource_info["resource"] + ".csv")
+        add_data_cache_dir
+        / "transformed/"
+        / (endpoint_resource_info["resource"] + ".csv")
     )
 
-    issue_dir = cache_dir / "issue/"
-    column_field_dir = cache_dir / "column_field/"
-    dataset_resource_dir = cache_dir / "dataset_resource/"
-    converted_resource_dir = cache_dir / "converted_resource/"
-    converted_dir = cache_dir / "converted/"
-    output_log_dir = cache_dir / "log/"
-    operational_issue_dir = cache_dir / "performance/ " / "operational_issue/"
+    issue_dir = add_data_cache_dir / "issue/"
+    column_field_dir = add_data_cache_dir / "column_field/"
+    dataset_resource_dir = add_data_cache_dir / "dataset_resource/"
+    converted_resource_dir = add_data_cache_dir / "converted_resource/"
+    converted_dir = add_data_cache_dir / "converted/"
+    output_log_dir = add_data_cache_dir / "log/"
+    operational_issue_dir = add_data_cache_dir / "performance/ " / "operational_issue/"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     issue_dir.mkdir(parents=True, exist_ok=True)
@@ -829,7 +835,7 @@ def add_data(
         ):
             # Ask if user wants to proceed
             print("\nThere are unknown entities")
-            if not proceed(
+            if not get_user_response(
                 "Do you want to assign entities for this resource? (yes/no): "
             ):
                 return
@@ -837,7 +843,7 @@ def add_data(
             # Resource has been processed, run assign entities and reprocess
 
             # Copy pipeline dir to cache dir so we can modify it
-            cache_pipeline_dir = cache_dir / "pipeline"
+            cache_pipeline_dir = add_data_cache_dir / "pipeline"
             copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
 
             assign_entities(
@@ -849,7 +855,7 @@ def add_data(
                 specification_dir=specification_dir,
                 organisation_path=organisation_path,
                 endpoints=[endpoint_resource_info["endpoint"]],
-                tmp_dir=cache_dir,
+                tmp_dir=add_data_cache_dir,
             )
 
             pipeline = Pipeline(cache_pipeline_dir, dataset)
@@ -903,7 +909,7 @@ def add_data(
                 )
 
             # Ask if user wants to proceed
-            if not proceed(
+            if not get_user_response(
                 "Do you want to save changes made in this session? (yes/no): "
             ):
                 return
@@ -912,7 +918,7 @@ def add_data(
             shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
         else:
             # Ask if user wants to proceed
-            if not proceed(
+            if not get_user_response(
                 "Do you want to save changes made in this session? (yes/no): "
             ):
                 return

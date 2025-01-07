@@ -48,7 +48,7 @@ def is_date_valid(date, date_type):
     return True, ""
 
 
-def proceed(message):
+def get_user_response(message):
     user_response = input(message).strip().lower()
 
     if user_response != "yes":
