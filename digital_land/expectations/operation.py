@@ -63,9 +63,16 @@ def count_lpa_boundary(
                 ELSE NOT ST_INTERSECTS(ST_GeomFromText(point), ST_GeomFromText('{lpa_geometry}'))
             END
         """
+    elif geometric_relation == "centroid_within_geometry":
+        spatial_condition = f"""
+                CASE
+                    WHEN point != '' THEN NOT ST_WITHIN(ST_GeomFromText(point), ST_GeomFromText('{lpa_geometry}'))
+                    ELSE NOT ST_WITHIN(ST_CENTROID(ST_GeomFromText(geometry)), ST_GeomFromText('{lpa_geometry}'))
+                END
+            """
     else:
         raise ValueError(
-            f"Invalid geometric_relation: '{geometric_relation}'. Must be one of ['within', 'intersects', 'not_intersects']."
+            f"Invalid geometric_relation: '{geometric_relation}'. Must be one of ['within', 'intersects', 'not_intersects','centroid_within_geometry']."
         )
 
     # set up initial query
