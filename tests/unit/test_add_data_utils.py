@@ -1,7 +1,7 @@
 import pytest
 
 from digital_land.commands import is_url_valid
-from digital_land.utils.add_data_utils import is_date_valid
+from digital_land.utils.add_data_utils import get_user_response, is_date_valid
 
 
 def test_is_url_valid():
@@ -68,3 +68,23 @@ def test_is_date_valid_error(date, error_message):
 
     assert not isValid
     assert error == error_message
+
+
+def test_get_user_response(monkeypatch):
+
+    # Mock in user input
+    monkeypatch.setattr("builtins.input", lambda _: "yes")
+
+    result = get_user_response("message")
+
+    assert result
+
+
+def test_get_user_response_fail(monkeypatch):
+
+    # Mock in user input
+    monkeypatch.setattr("builtins.input", lambda _: "not yes")
+
+    result = get_user_response("message")
+
+    assert not result
