@@ -367,23 +367,32 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
-    cache_dir="var/cache/parquet",
+    cache_dir="var/cache",
     resource_path="collection/resource.csv",
 ):
-    # directories to be overwritten
-    transformed_parquet_dir = f"var/cache/transformed_parquet/{dataset}"
-    cache_dir = os.path.join(cache_dir, dataset)
+    # chek all paths are paths
+    issue_dir = Path(issue_dir)
+    column_field_dir = Path(column_field_dir)
+    dataset_resource_dir = Path(dataset_resource_dir)
+    cache_dir = Path(cache_dir)
+    resource_path = Path(resource_path)
+
+    # get  the transformed files from the cache directory this  is  assumed right now but we may want to be stricter in the future
+    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+
+    # creat directory for dataset_parquet_package
+    dataset_parquet_path = cache_dir / dataset
 
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
 
     # Set up initial objects
-    column_field_dir = Path(column_field_dir)
-    dataset_resource_dir = Path(dataset_resource_dir)
     organisation = Organisation(
         organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
     )
+
+    # create sqlite dataset packageas before and load inn data that isn't in the parquetpackage yet
     package = DatasetPackage(
         dataset,
         organisation=organisation,
@@ -393,15 +402,17 @@ def dataset_create(
     package.create()
     for path in input_paths:
         path_obj = Path(path)
-        package.load_column_fields(column_field_dir / dataset / path_obj.name)
-        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
+        package.load_column_fields(column_field_dir / dataset / f"{path_obj.stem}.csv")
+        package.load_dataset_resource(
+            dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
+        )
 
-    old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
-    if os.path.exists(old_entity_path):
+    old_entity_path = Path(pipeline.path) / "old-entity.csv"
+    if old_entity_path.exists():
         package.load_old_entities(old_entity_path)
 
-    issue_paths = os.path.join(issue_dir, dataset)
-    if os.path.exists(issue_paths):
+    issue_paths = issue_dir / dataset
+    if issue_paths.exists():
         for issue_path in os.listdir(issue_paths):
             package.load_issues(os.path.join(issue_paths, issue_path))
     else:
@@ -416,18 +427,14 @@ def dataset_create(
 
     pqpackage = DatasetParquetPackage(
         dataset,
-        organisation=organisation,
-        path=output_path,
-        cache_dir=cache_dir,
-        resource_path=resource_path,
+        path=dataset_parquet_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
     # pqpackage.create_temp_table(input_paths)
     pqpackage.load_facts(transformed_parquet_dir)
     pqpackage.load_fact_resource(transformed_parquet_dir)
-    pqpackage.load_entities()
-    pqpackage.pq_to_sqlite()
-    pqpackage.close_conn()
+    pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
+    pqpackage.load_to_sqlite(output_path)
 
 
 def dataset_dump(input_path, output_path):

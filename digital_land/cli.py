@@ -139,6 +139,18 @@ def convert_cmd(input_path, output_path):
 @column_field_dir
 @dataset_resource_dir
 @issue_dir
+@click.option(
+    "--cache-dir",
+    type=click.Path(),
+    default="var/cache",
+    help="link to a cache directory to store temporary data that can be deleted once process is finished",
+)
+@click.option(
+    "--resource-path",
+    type=click.Path(exists=True),
+    default="collection/resource.csv",
+    help="link to where the resource list is stored",
+)
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_create_cmd(
@@ -149,6 +161,8 @@ def dataset_create_cmd(
     column_field_dir,
     dataset_resource_dir,
     issue_dir,
+    cache_dir,
+    resource_path,
 ):
     return dataset_create(
         input_paths=input_paths,
@@ -160,6 +174,8 @@ def dataset_create_cmd(
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
         issue_dir=issue_dir,
+        cache_dir=cache_dir,
+        resource_path=resource_path,
     )
 
 
