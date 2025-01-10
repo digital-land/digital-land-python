@@ -218,6 +218,9 @@ class DatasetParquetPackage(Package):
             if field not in (distinct_fields + extra_fields)
         ]
 
+        if "organisation" not in distinct_fields:
+            null_fields.append("organisation")
+
         # select fields - a list  of fields which have to be selected directly from the pivoted table
         # these are entity fields that are not null fields or a few special ones
         extra_fields = [
@@ -235,6 +238,12 @@ class DatasetParquetPackage(Package):
         fields_to_include = ["entity", "field", "value"]
         fields_str = ", ".join(fields_to_include)
 
+        # create this statement to add a nul org  column, this is needed when no entities have an associated organisation
+        if "organisation" not in distinct_fields:
+            optional_org_str = ",''::VARCHAR AS \"organisation\""
+        else:
+            optional_org_str = ""
+
         # Take original data, group by entity & field, and order by highest priority then latest record.
         # If there are still matches then pick the first resource (and fact, just to make sure)
         # changes to make
@@ -248,7 +257,7 @@ class DatasetParquetPackage(Package):
         # query  to create the file
 
         query = f"""
-            SELECT {fields_str} FROM (
+            SELECT {fields_str}{optional_org_str} FROM (
                 SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
                 FROM parquet_scan('{transformed_parquet_dir}/*.parquet') tf
                 LEFT JOIN read_csv_auto('{resource_path}', max_line_size=40000000) resource_csv

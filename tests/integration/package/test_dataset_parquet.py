@@ -612,7 +612,37 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
 
 @pytest.mark.parametrize(
     "data,expected_count,expected_props",
-    [(transformed_1_data, 2, {11: {"end_date": ""}})],
+    # need to buid an example where organisation is blank
+    [
+        (transformed_1_data, 2, {11: {"end_date": ""}}),
+        (
+            {
+                "end_date": [np.nan],  # 19 records
+                "entity": [
+                    110,
+                ],
+                "entry_date": [
+                    "2023-01-01",
+                ],
+                "entry_number": [2],
+                "fact": [
+                    "badcfe1",
+                ],
+                "field": [
+                    "entry-date",
+                ],
+                "priority": [2],
+                "reference_entity": [np.nan],  # 19 records
+                "resource": [
+                    "zyx123",
+                ],
+                "start_date": [np.nan],  # 19 records
+                "value": ["2023-01-01"],
+            },
+            1,
+            {},
+        ),
+    ],
 )
 def test_load_entities_single_file(
     data, expected_count, expected_props, tmp_path, org_path, resource_path

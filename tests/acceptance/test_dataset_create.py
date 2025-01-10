@@ -290,7 +290,6 @@ def test_acceptance_dataset_create(
             cache_path / "conservation-area" / "dataset=conservation-area"
         ).iterdir()
     ]
-    logging.error(files)
     for file in ["entity.parquet", "fact.parquet", "fact_resource.parquet"]:
         assert file in files, f"file {file} not created. files found {', '.join(files)}"
     assert result.exit_code == 0, "error returned when building dataset"
@@ -340,3 +339,29 @@ def test_acceptance_dataset_create(
         assert (
             pq_rows == sql_rows
         ), f"Different rows between the parquet files and database table for {table}"
+
+    # entity table specific tests to check how we expect the data to be used
+
+    # json field checks
+    # where no json  value  is present  we  expect the value to be null. not blank or an empty json bracket
+    # so will ensure these aren't in the results of  any test
+    sql = """
+        SELECT *
+        FROM entity
+        WHERE json = '{}'
+        ;"""
+
+    results = cursor.execute(sql).fetchall()
+    assert (
+        len(results) == 0
+    ), "there should be no rows where json is an empty json bracket"
+
+    # check no json values are arrays
+    sql = """
+        SELECT *
+        FROM entity
+        WHERE json_type(json) NOT IN ('object', NULL)
+        ;"""
+
+    results = cursor.execute(sql).fetchall()
+    assert len(results) == 0, "all json values should be objects or null"
