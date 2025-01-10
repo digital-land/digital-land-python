@@ -54,6 +54,7 @@ def dataset_path(tmp_path):
         (1, "within", "less_than_or_equal_to"),
         (0, "within", "greater_than"),
         (1, "within", "greater_than_or_equal_to"),
+        (1, "centroid_within", "equals_to"),
     ],
 )
 def test_count_lpa_boundary_passes(
