@@ -203,7 +203,9 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
 @click.option(
-    "--cache-dir", help="cache directory to store conveted files etc. in", default=None
+    "--cache-dir",
+    help="cache directory to store conveted files etc. in",
+    default="var/cache",
 )
 @click.option("--config-path", help="Path  to a configuration sqlite", default=None)
 @click.option(
