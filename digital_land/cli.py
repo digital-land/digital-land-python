@@ -202,7 +202,9 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--endpoints", help="list of endpoint hashes", default="")
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
-@click.option("--custom-temp-dir", help="default temporary directory", default=None)
+@click.option(
+    "--cache-dir", help="cache directory to store conveted files etc. in", default=None
+)
 @click.option("--config-path", help="Path  to a configuration sqlite", default=None)
 @click.option(
     "--resource",
@@ -232,7 +234,7 @@ def pipeline_command(
     endpoints,
     organisations,
     entry_date,
-    custom_temp_dir,
+    cache_dir,
     collection_dir,
     operational_issue_dir,
     config_path,
@@ -263,7 +265,7 @@ def pipeline_command(
         endpoints=endpoints,
         organisations=organisations,
         entry_date=entry_date,
-        custom_temp_dir=custom_temp_dir,
+        cache_dir=cache_dir,
         config_path=config_path,
         resource=resource,
         output_log_dir=output_log_dir,
