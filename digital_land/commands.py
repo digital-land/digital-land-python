@@ -162,17 +162,17 @@ def collection_retire_endpoints_and_sources(
 #
 #  pipeline commands
 #
-def convert(input_path, output_path, custom_temp_dir=None):
+def convert(input_path, output_path):
     if not output_path:
         output_path = default_output_path("converted", input_path)
     dataset_resource_log = DatasetResourceLog()
     converted_resource_log = ConvertedResourceLog()
+    # TBD this actualy duplictaes the data and does nothing else, should just convert it?
     run_pipeline(
         ConvertPhase(
             input_path,
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
-            custom_temp_dir=custom_temp_dir,
         ),
         DumpPhase(output_path),
     )
@@ -191,10 +191,11 @@ def pipeline_run(
     operational_issue_dir="performance/operational_issue/",
     organisation_path=None,
     save_harmonised=False,
+    #  TBD save all logs in  a log directory, this will mean only one path passed in.
     column_field_dir=None,
     dataset_resource_dir=None,
     converted_resource_dir=None,
-    custom_temp_dir=None,  # TBD: rename to "tmpdir"
+    cache_dir="var/cache",
     endpoints=[],
     organisations=[],
     entry_date="",
@@ -202,6 +203,9 @@ def pipeline_run(
     resource=None,
     output_log_dir=None,
 ):
+    # set up paths
+    cache_dir = Path(cache_dir)
+
     if resource is None:
         resource = resource_from_path(input_path)
     dataset = dataset
@@ -265,7 +269,7 @@ def pipeline_run(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
-            custom_temp_dir=custom_temp_dir,
+            output_path=cache_dir / "converted_resources" / dataset / f"{resource}.csv",
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
