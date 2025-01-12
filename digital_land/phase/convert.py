@@ -363,8 +363,9 @@ class ConvertPhase(Phase):
             if internal_path:
                 self.dataset_resource_log.internal_path = internal_path
                 self.dataset_resource_log.internal_mime_type = mime_type
+                # TODO erpace temp path with output path
                 temp_path = tempfile.NamedTemporaryFile(
-                    suffix=".zip", **self.temp_file_extra_kwargs
+                    suffix=".zip", dir=self.output_path.parent
                 ).name
                 os.link(input_path, temp_path)
                 zip_path = f"/vsizip/{temp_path}{internal_path}"
