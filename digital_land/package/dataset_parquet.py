@@ -171,11 +171,51 @@ class DatasetParquetPackage(Package):
         """
         )
 
-    def load_entities(self, transformed_parquet_dir, resource_path, organisation_path):
-        output_path = self.path / f"dataset={self.dataset}" / "entity.parquet"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        # get the other paths
-        # fact_resource_parquet_path = f"{self.cache_dir}/fact_resource{self.suffix}"
+    # def combine_parquet_files(input_path,output_path):
+    #     """
+    #     This method combines multiple parquet files into a single parquet file
+    #     """
+    #     # check input path is a directory using  Path
+    #     if not Path(input_path).is_dir():
+    #         raise ValueError("Input path must be a directory")
+
+    #     # check output_path is a file that doesn't exist
+    #     if not Path(output_path).is_file():
+    #         raise ValueError("Output path must be a file")
+
+    #     # use self.conn to use  duckdb to combine files
+    #     sql = f"""
+    #         COPY (select * from parquet_scan('{input_path}/*.parquet')) TO '{output_path}' (FORMAT PARQUET);
+    #     """
+    #     self.conn.execute(sql)
+
+    #     # Combine all the parquet files into a single parquet file
+    #     combined_df = pd.concat(
+    #         [pd.read_parquet(f"{input_path}/{file}") for file in parquet_files]
+    #     )
+
+    #     # Save the combined dataframe to a parquet file
+    #     combined_df.to_parquet(output_path, index=False)
+
+    def load_entities_range(
+        self,
+        transformed_parquet_dir,
+        resource_path,
+        organisation_path,
+        output_path,
+        entity_range=None,
+    ):
+        # figure  out which resources we actually need to do  expensive queries on, store  in parquet
+        # sql = f"""
+        # COPY(
+        #     SELECT DISTINCT resource
+        #     FROM parquet_scan('{transformed_parquet_dir}/*.parquet')
+        #     QUALIFY ROW_NUMBER() OVER (
+        #         PARTITION BY enttity,field
+        #         ORDER BY prioity, enttry_date DESC, entry_number DESC, resource, fact
+        #         ) = 1
+        #     ) TO '{self.cache_path / 'duckdb_temp_files' / 'distinct_resource.parquet'}' (FORMAT PARQUET);
+        # """
 
         logging.info(f"loading entities from {transformed_parquet_dir}")
 
@@ -256,12 +296,20 @@ class DatasetParquetPackage(Package):
         # query to sort the final table
         # query  to create the file
 
+        # craft a where clause to limit entities in quetion, this chunking helps solve memory issues
+        if entity_range is not None:
+            entity_where_clause = (
+                f"WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}"
+            )
+        else:
+            entity_where_clause = ""
         query = f"""
             SELECT {fields_str}{optional_org_str} FROM (
                 SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
                 FROM parquet_scan('{transformed_parquet_dir}/*.parquet') tf
                 LEFT JOIN read_csv_auto('{resource_path}', max_line_size=40000000) resource_csv
                 ON tf.resource = resource_csv.resource
+                {entity_where_clause}
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY entity, field
                     ORDER BY priority, entry_date DESC, entry_number DESC, resource_end_date DESC, tf.resource, fact
@@ -335,6 +383,40 @@ class DatasetParquetPackage(Package):
          """
         #  might  need  to un some fetch all toget result back
         self.conn.execute(sql)
+
+    def load_entities(self, transformed_parquet_dir, resource_path, organisation_path):
+        output_path = self.path / f"dataset={self.dataset}" / "entity.parquet"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # retrieve entity counnts including and minimum
+        min_sql = f"select MIN(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
+        min_entity = self.conn.execute(min_sql).fetchone()
+        max_sql = f"select MAX(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
+        max_entity = self.conn.execute(max_sql).fetchone()
+        total_entities = max_entity - min_entity
+        entity_limit = 1000000
+        if total_entities > entity_limit:
+            logger.info(f"total entities {total_entities} exceeds limit {entity_limit}")
+            _ = 0
+            file_count = 1
+            while _ < max_entity:
+                output_path = (
+                    self.path
+                    / f"dataset={self.dataset}"
+                    / f"entity_{file_count}.parquet"
+                )
+                entity_range = [_, entity_limit]
+                logger.info(
+                    f"loading entities from {entity_range[0]} to {entity_range[1]}"
+                )
+                self.load_entities_range(
+                    transformed_parquet_dir,
+                    resource_path,
+                    organisation_path,
+                    output_path,
+                    entity_range,
+                )
+                _ += entity_limit
 
     def load_to_sqlite(self, sqlite_path):
         """

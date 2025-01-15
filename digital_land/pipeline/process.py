@@ -8,6 +8,7 @@ from pathlib import Path
 # load in specification
 
 
+# TODO need to take in the correct data types for the columns
 def convert_tranformed_csv_to_pq(input_path, output_path):
     """
     function to convert a transformed resource to a parrquet file.
