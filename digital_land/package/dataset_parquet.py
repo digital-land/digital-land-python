@@ -400,7 +400,7 @@ class DatasetParquetPackage(Package):
             _ = 0
             file_count = 1
             while _ < max_entity:
-                output_path = (
+                temp_output_path = (
                     self.path
                     / f"dataset={self.dataset}"
                     / f"entity_{file_count}.parquet"
@@ -413,10 +413,15 @@ class DatasetParquetPackage(Package):
                     transformed_parquet_dir,
                     resource_path,
                     organisation_path,
-                    output_path,
+                    temp_output_path,
                     entity_range,
                 )
                 _ += entity_limit
+
+        else:
+            self.load_entities_range(
+                transformed_parquet_dir, resource_path, organisation_path, output_path
+            )
 
     def load_to_sqlite(self, sqlite_path):
         """
