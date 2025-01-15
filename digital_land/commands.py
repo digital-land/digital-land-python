@@ -402,7 +402,6 @@ def dataset_create(
         organisation=organisation,
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
-        duckdb_path=cache_dir / "overflow.duckdb",
     )
     package.create()
     for path in input_paths:
