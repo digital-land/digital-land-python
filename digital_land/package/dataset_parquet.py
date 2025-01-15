@@ -227,6 +227,7 @@ class DatasetParquetPackage(Package):
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
             FROM parquet_scan('{transformed_parquet_dir}/*.parquet')
+            WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}
         """
 
         # distinct_fields - list of fields in the field in fact
@@ -397,7 +398,7 @@ class DatasetParquetPackage(Package):
         entity_limit = 1000000
         if total_entities > entity_limit:
             logger.info(f"total entities {total_entities} exceeds limit {entity_limit}")
-            _ = 0
+            _ = min_entity
             file_count = 1
             while _ < max_entity:
                 temp_output_path = (
