@@ -391,9 +391,9 @@ class DatasetParquetPackage(Package):
 
         # retrieve entity counnts including and minimum
         min_sql = f"select MIN(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
-        min_entity = self.conn.execute(min_sql).fetchone()
+        min_entity = self.conn.execute(min_sql).fetchone()[0]
         max_sql = f"select MAX(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
-        max_entity = self.conn.execute(max_sql).fetchone()
+        max_entity = self.conn.execute(max_sql).fetchone()[0]
         total_entities = max_entity - min_entity
         entity_limit = 1000000
         if total_entities > entity_limit:
