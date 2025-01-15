@@ -406,7 +406,7 @@ class DatasetParquetPackage(Package):
                     / f"dataset={self.dataset}"
                     / f"entity_{file_count}.parquet"
                 )
-                entity_range = [_, entity_limit]
+                entity_range = [_, _ + entity_limit]
                 logger.info(
                     f"loading entities from {entity_range[0]} to {entity_range[1]}"
                 )
