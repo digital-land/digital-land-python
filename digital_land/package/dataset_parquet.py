@@ -1,6 +1,7 @@
 import os
 import logging
 import duckdb
+import shutil
 from pathlib import Path
 from .package import Package
 
@@ -445,7 +446,7 @@ class DatasetParquetPackage(Package):
             self.combine_parquet_files(temp_dir, output_path)
 
             # remove temporary files
-            temp_dir.rmdir()
+            shutil.rmtree(temp_dir)
         else:
             self.load_entities_range(
                 transformed_parquet_dir, resource_path, organisation_path, output_path
