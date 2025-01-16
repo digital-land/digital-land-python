@@ -26,7 +26,7 @@ from digital_land.log import (
 )
 from digital_land.organisation import Organisation
 
-# from digital_land.package.dataset import DatasetPackage
+from digital_land.package.dataset import DatasetPackage
 from digital_land.package.dataset_parquet import DatasetParquetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
@@ -393,37 +393,37 @@ def dataset_create(
         sys.exit(2)
 
     # Set up initial objects
-    # organisation = Organisation(
-    #     organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
-    # )
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
 
     # create sqlite dataset packageas before and load inn data that isn't in the parquetpackage yet
-    # package = DatasetPackage(
-    #     dataset,
-    #     organisation=organisation,
-    #     path=output_path,
-    #     specification_dir=None,  # TBD: package should use this specification object
-    # )
-    # package.create()
-    # for path in input_paths:
-    #     path_obj = Path(path)
-    #     package.load_column_fields(column_field_dir / dataset / f"{path_obj.stem}.csv")
-    #     package.load_dataset_resource(
-    #         dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
-    #     )
+    package = DatasetPackage(
+        dataset,
+        organisation=organisation,
+        path=output_path,
+        specification_dir=None,  # TBD: package should use this specification object
+    )
+    package.create()
+    for path in input_paths:
+        path_obj = Path(path)
+        package.load_column_fields(column_field_dir / dataset / f"{path_obj.stem}.csv")
+        package.load_dataset_resource(
+            dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
+        )
 
-    # old_entity_path = Path(pipeline.path) / "old-entity.csv"
-    # if old_entity_path.exists():
-    #     package.load_old_entities(old_entity_path)
+    old_entity_path = Path(pipeline.path) / "old-entity.csv"
+    if old_entity_path.exists():
+        package.load_old_entities(old_entity_path)
 
-    # issue_paths = issue_dir / dataset
-    # if issue_paths.exists():
-    #     for issue_path in os.listdir(issue_paths):
-    #         package.load_issues(os.path.join(issue_paths, issue_path))
-    # else:
-    #     logging.warning("No directory for this dataset in the provided issue_directory")
+    issue_paths = issue_dir / dataset
+    if issue_paths.exists():
+        for issue_path in os.listdir(issue_paths):
+            package.load_issues(os.path.join(issue_paths, issue_path))
+    else:
+        logging.warning("No directory for this dataset in the provided issue_directory")
 
-    # package.add_counts()
+    package.add_counts()
 
     # Repeat for parquet
     # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
@@ -436,11 +436,10 @@ def dataset_create(
         specification_dir=None,  # TBD: package should use this specification object
         duckdb_path=cache_dir / "overflow.duckdb",
     )
-    # pqpackage.create_temp_table(input_paths)
-    # pqpackage.load_facts(transformed_parquet_dir)
-    # pqpackage.load_fact_resource(transformed_parquet_dir)
+    pqpackage.load_facts(transformed_parquet_dir)
+    pqpackage.load_fact_resource(transformed_parquet_dir)
     pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
-    # pqpackage.load_to_sqlite(output_path)
+    pqpackage.load_to_sqlite(output_path)
 
 
 def dataset_dump(input_path, output_path):
