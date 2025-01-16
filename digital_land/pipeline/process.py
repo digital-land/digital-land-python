@@ -21,10 +21,21 @@ def convert_tranformed_csv_to_pq(input_path, output_path):
     # Define the chunk size for reading the CSV file
     chunk_size = 1000000  # Number of rows per chunk
 
+    # expand on column names
     # Open a CSV reader with PyArrow
     # csv_reader = pv.open_csv(input_path, read_options=pv.ReadOptions(block_size=chunk_size))
     csv_iterator = pd.read_csv(
-        input_path, chunksize=chunk_size, dtype=str, na_filter=False
+        input_path,
+        chunksize=chunk_size,
+        dtype={
+            "entity": int,
+            **{
+                col: str
+                for col in pd.read_csv(input_path, nrows=1).columns
+                if col != "entity"
+            },
+        },
+        na_filter=False,
     )
 
     # Initialize the Parquet writer with the schema from the first chunk
