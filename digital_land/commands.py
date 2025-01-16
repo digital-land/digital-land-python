@@ -375,6 +375,9 @@ def dataset_create(
     cache_dir="var/cache",
     resource_path="collection/resource.csv",
 ):
+    # set level for logging to see what's going on
+    logger.setLevel(logging.INFO)
+
     # chek all paths are paths
     issue_dir = Path(issue_dir)
     column_field_dir = Path(column_field_dir)
@@ -439,6 +442,8 @@ def dataset_create(
     pqpackage.load_facts(transformed_parquet_dir)
     pqpackage.load_fact_resource(transformed_parquet_dir)
     pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
+
+    logger.info("parquet files created")
     pqpackage.load_to_sqlite(output_path)
 
 
