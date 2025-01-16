@@ -417,7 +417,7 @@ class DatasetParquetPackage(Package):
         if total_entities > entity_limit:
             # create a temparary output path to store separate entity file in
             temp_dir = (
-                self.cache_dir
+                output_path.parent
                 / "temp_parquet_files"
                 / "title-boundaries"
                 / "entity_files"
