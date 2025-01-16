@@ -377,6 +377,8 @@ def dataset_create(
 ):
     # set level for logging to see what's going on
     logger.setLevel(logging.INFO)
+    dataset_parquet_logger = logging.getLogger("dataset_parquet")
+    dataset_parquet_logger.setLevel(logging.INFO)
 
     # chek all paths are paths
     issue_dir = Path(issue_dir)
@@ -410,23 +412,24 @@ def dataset_create(
     package.create()
     for path in input_paths:
         path_obj = Path(path)
+        logging.info(f"loading column field log into {output_path}")
         package.load_column_fields(column_field_dir / dataset / f"{path_obj.stem}.csv")
+        logging.info(f"loading dataset resource log into {output_path}")
         package.load_dataset_resource(
             dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
         )
-
+    logging.info(f"loading old entities into {output_path}")
     old_entity_path = Path(pipeline.path) / "old-entity.csv"
     if old_entity_path.exists():
         package.load_old_entities(old_entity_path)
 
+    logging.info(f"loading issues into {output_path}")
     issue_paths = issue_dir / dataset
     if issue_paths.exists():
         for issue_path in os.listdir(issue_paths):
             package.load_issues(os.path.join(issue_paths, issue_path))
     else:
         logging.warning("No directory for this dataset in the provided issue_directory")
-
-    package.add_counts()
 
     # Repeat for parquet
     # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
@@ -443,8 +446,11 @@ def dataset_create(
     pqpackage.load_fact_resource(transformed_parquet_dir)
     pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
 
-    logger.info("parquet files created")
+    logger.info("loading fact,fact_resource and entity into {output_path}")
     pqpackage.load_to_sqlite(output_path)
+
+    logger.info(f"creating dataset package {output_path} counts")
+    package.add_counts()
 
 
 def dataset_dump(input_path, output_path):
