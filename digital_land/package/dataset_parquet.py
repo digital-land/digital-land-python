@@ -422,6 +422,7 @@ class DatasetParquetPackage(Package):
                 / "title-boundaries"
                 / "entity_files"
             )
+            temp_dir.mkdir(parents=True, exist_ok=True)
             logger.info(f"total entities {total_entities} exceeds limit {entity_limit}")
             _ = min_entity
             file_count = 1
