@@ -385,6 +385,24 @@ class DatasetParquetPackage(Package):
         #  might  need  to un some fetch all toget result back
         self.conn.execute(sql)
 
+    def combine_parquet_files(self, input_path, output_path):
+        """
+        This method combines multiple parquet files into a single parquet file
+        """
+        # check input path is a directory using  Path
+        if not Path(input_path).is_dir():
+            raise ValueError("Input path must be a directory")
+
+        # check output_path is a file that doesn't exist
+        if not Path(output_path).is_file():
+            raise ValueError("Output path must be a file")
+
+        # use self.conn to use  duckdb to combine files
+        sql = f"""
+            COPY (select * from parquet_scan('{input_path}/*.parquet')) TO '{output_path}' (FORMAT PARQUET);
+        """
+        self.conn.execute(sql)
+
     def load_entities(self, transformed_parquet_dir, resource_path, organisation_path):
         output_path = self.path / f"dataset={self.dataset}" / "entity.parquet"
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -397,15 +415,18 @@ class DatasetParquetPackage(Package):
         total_entities = max_entity - min_entity
         entity_limit = 1000000
         if total_entities > entity_limit:
+            # create a temparary output path to store separate entity file in
+            temp_dir = (
+                self.cache_dir
+                / "temp_parquet_files"
+                / "title-boundaries"
+                / "entity_files"
+            )
             logger.info(f"total entities {total_entities} exceeds limit {entity_limit}")
             _ = min_entity
             file_count = 1
             while _ < max_entity:
-                temp_output_path = (
-                    self.path
-                    / f"dataset={self.dataset}"
-                    / f"entity_{file_count}.parquet"
-                )
+                temp_output_path = temp_dir / f"entity_{file_count}.parquet"
                 entity_range = [_, _ + entity_limit]
                 logger.info(
                     f"loading entities from {entity_range[0]} to {entity_range[1]}"
@@ -419,7 +440,11 @@ class DatasetParquetPackage(Package):
                 )
                 _ += entity_limit
                 file_count += 1
+            # combine all the parquet files into a single parquet file
+            self.combine_parquet_files(temp_dir, output_path)
 
+            # remove temporary files
+            temp_dir.rmdir()
         else:
             self.load_entities_range(
                 transformed_parquet_dir, resource_path, organisation_path, output_path
