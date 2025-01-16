@@ -376,9 +376,7 @@ def dataset_create(
     resource_path="collection/resource.csv",
 ):
     # set level for logging to see what's going on
-    logger.setLevel(logging.INFO)
-    dataset_parquet_logger = logging.getLogger("digital_land.package.dataset_parquet")
-    dataset_parquet_logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
     # chek all paths are paths
     issue_dir = Path(issue_dir)
