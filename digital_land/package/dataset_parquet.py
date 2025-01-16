@@ -224,11 +224,17 @@ class DatasetParquetPackage(Package):
         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         # input_paths_str = f"{self.cache_dir}/fact{self.suffix}"
+        if entity_range is not None:
+            entity_where_clause = (
+                f"WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}"
+            )
+        else:
+            entity_where_clause = ""
 
         query = f"""
             SELECT DISTINCT REPLACE(field,'-','_')
             FROM parquet_scan('{transformed_parquet_dir}/*.parquet')
-            WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}
+            {entity_where_clause}
         """
 
         # distinct_fields - list of fields in the field in fact
@@ -299,12 +305,7 @@ class DatasetParquetPackage(Package):
         # query  to create the file
 
         # craft a where clause to limit entities in quetion, this chunking helps solve memory issues
-        if entity_range is not None:
-            entity_where_clause = (
-                f"WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}"
-            )
-        else:
-            entity_where_clause = ""
+
         query = f"""
             SELECT {fields_str}{optional_org_str} FROM (
                 SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
