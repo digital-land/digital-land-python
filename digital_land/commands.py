@@ -408,7 +408,9 @@ def dataset_create(
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    package.create()
+    # don'tt use create as we don't want to create the indexes
+    package.create_database()
+    package.disconnect()
     for path in input_paths:
         path_obj = Path(path)
         logging.info(f"loading column field log into {output_path}")
@@ -447,6 +449,11 @@ def dataset_create(
 
     logger.info("loading fact,fact_resource and entity into {output_path}")
     pqpackage.load_to_sqlite(output_path)
+
+    logger.info(f"add indexes to {output_path}")
+    package.connect()
+    package.create_indexes()
+    package.disconnect()
 
     logger.info(f"creating dataset package {output_path} counts")
     package.add_counts()
