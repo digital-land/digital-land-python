@@ -218,7 +218,7 @@ class DatasetParquetPackage(Package):
         #     ) TO '{self.cache_path / 'duckdb_temp_files' / 'distinct_resource.parquet'}' (FORMAT PARQUET);
         # """
 
-        logging.info(f"loading entities from {transformed_parquet_dir}")
+        logger.info(f"loading entities from {transformed_parquet_dir}")
 
         entity_fields = self.specification.schema["entity"]["fields"]
         # Do this to match with later field names.
@@ -391,6 +391,7 @@ class DatasetParquetPackage(Package):
         """
         This method combines multiple parquet files into a single parquet file
         """
+        logger.info(f"combining parquet files from {input_path} into {output_path}")
         # check input path is a directory using  Path
         if not Path(input_path).is_dir():
             raise ValueError("Input path must be a directory")
@@ -461,7 +462,7 @@ class DatasetParquetPackage(Package):
         # At present we are saving the parquet files in 'cache' but saving the sqlite files produced in 'dataset'
         # In future when parquet files are saved to 'dataset' remove the 'cache_dir' in the function arguments and
         # replace 'cache_dir' with 'output_path' in this function's code
-        logging.info(
+        logger.info(
             f"loading sqlite3 tables in {sqlite_path} from parquet files in {self.path}"
         )
         # migrate to connection creation
@@ -477,6 +478,8 @@ class DatasetParquetPackage(Package):
         fields_str = ", ".join(
             [field.replace("-", "_") for field in fact_resource_fields]
         )
+
+        logger.info("loading fact_resource data")
         # insert fact_resource data
         self.conn.execute(
             f"""
@@ -485,6 +488,7 @@ class DatasetParquetPackage(Package):
             """
         )
 
+        logger.info("loading fact data")
         # insert fact data
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
@@ -496,6 +500,7 @@ class DatasetParquetPackage(Package):
             """
         )
 
+        logger.info("loading entity data")
         # insert entity data
         entity_fields = self.specification.schema["entity"]["fields"]
         fields_str = ", ".join(
@@ -511,18 +516,6 @@ class DatasetParquetPackage(Package):
                 SELECT {fields_str} FROM parquet_scan('{self.entity_path}')
             """
         )
-
-        # Fix the column names
-        # for column in self.conn.execute("DESCRIBE TABLE temp_table;").fetchall():
-        #     if "-" in column[0]:
-        #         self.conn.execute(
-        #             f"ALTER TABLE temp_table RENAME COLUMN '{column[0]}' TO '{column[0].replace('-','_')}';"
-        #         )
-
-        # Copy the data
-        # self.conn.execute(
-        #     f"INSERT INTO sqlite_db.{table_name} BY NAME (SELECT * FROM temp_table);"
-        # )
 
         self.conn.execute("DETACH DATABASE sqlite_db;")
 
