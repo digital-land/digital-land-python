@@ -418,6 +418,7 @@ class DatasetParquetPackage(Package):
                     entity_range,
                 )
                 _ += entity_limit
+                file_count += 1
 
         else:
             self.load_entities_range(
