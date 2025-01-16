@@ -452,6 +452,7 @@ def dataset_create(
 
     logger.info(f"add indexes to {output_path}")
     package.connect()
+    package.create_cursor()
     package.create_indexes()
     package.disconnect()
 
