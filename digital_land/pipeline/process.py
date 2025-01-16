@@ -45,7 +45,7 @@ def convert_tranformed_csv_to_pq(input_path, output_path):
 
     fields = [
         ("end-date", pa.string()),
-        ("entity", pa.string()),
+        ("entity", pa.int64()),
         ("entry-date", pa.string()),
         ("entry-number", pa.string()),
         ("fact", pa.string()),
