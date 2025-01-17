@@ -236,7 +236,7 @@ def test_package_dataset_update(
     csv_path = output_dir.joinpath(f"{dataset_name}.csv")
 
     dataset_create(
-        [input_paths[0]],
+        [],
         sqlite_path,
         organisation_path,
         pipeline,
@@ -247,7 +247,74 @@ def test_package_dataset_update(
         dataset_resource_dir,
     )
 
-    for input_path in input_paths[1:]:
+    for input_path in input_paths:
+        dataset_update(
+            [input_path],
+            sqlite_path,
+            organisation_path,
+            pipeline,
+            dataset_name,
+            None,
+            "issue",
+            column_field_dir,
+            dataset_resource_dir,
+        )
+
+    dataset_dump(sqlite_path, csv_path)
+
+    # Assert
+    with csv_path.open() as actual, expected_csv_result.open() as expected:
+        actual_dict_reader = DictReader(actual)
+        expected_dict_reader = DictReader(expected)
+        assert actual_dict_reader.fieldnames == expected_dict_reader.fieldnames
+        assert list(actual_dict_reader) == list(expected_dict_reader)
+
+
+def test_package_dataset_update_reverse(
+    column_field_dir,
+    dataset_resource_dir,
+    organisation_path,
+    tmp_path,
+):
+    collection_name = "listed-building"
+    dataset_name = "listed-building-outline"
+
+    test_data_path = Path("tests", "data", collection_name)
+
+    transformed_dir = test_data_path / "transformed"
+
+    pipeline = Pipeline(Path("tests", "data", "pipeline"), dataset_name)
+
+    # Setup
+    expected_csv_result = Path(
+        "tests", "data", "expected_output", "dataset_create", f"{dataset_name}.csv"
+    )
+
+    input_paths = reversed(
+        [
+            str(transformed_path)
+            for transformed_path in transformed_dir.joinpath(dataset_name).iterdir()
+        ]
+    )
+
+    output_dir = tmp_path.joinpath("dataset_output")
+    output_dir.mkdir()
+    sqlite_path = output_dir.joinpath(f"{dataset_name}.sqlite3")
+    csv_path = output_dir.joinpath(f"{dataset_name}.csv")
+
+    dataset_create(
+        [],
+        sqlite_path,
+        organisation_path,
+        pipeline,
+        dataset_name,
+        None,
+        "issue",
+        column_field_dir,
+        dataset_resource_dir,
+    )
+
+    for input_path in input_paths:
         dataset_update(
             [input_path],
             sqlite_path,
