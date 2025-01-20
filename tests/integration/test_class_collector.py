@@ -301,7 +301,6 @@ def test_collector(test_dataset_collector, collection_dir):
     assert log_hash2 == log_hash1, "log file changed after second run"
     assert resource_hash2 == resource_hash1, "resource file after second run"
 
-
     # Test what happens when we deleted a json file and that the collector collects the missing json file
     json_files = np.sort(json_files)
     Path.unlink(json_files[0])
