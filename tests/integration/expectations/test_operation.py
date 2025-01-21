@@ -152,11 +152,11 @@ def test_count_deleted_entities(dataset_path, mocker):
 
     with spatialite.connect(dataset_path) as conn:
         # load data into required tables
-        test_entity_data.to_sql("entity", conn, if_exists="append", index=False)
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
         test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="append", index=False
+            "fact_resource", conn, if_exists="replace", index=False
         )
-        test_fact_data.to_sql("fact", conn, if_exists="append", index=False)
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
         # run expectation
         passed, message, details = count_deleted_entities(

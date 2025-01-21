@@ -136,7 +136,7 @@ def count_deleted_entities(
     # get dataset specific active resource list
     params = urllib.parse.urlencode(
         {
-            "sql": f"""select *,o.entity from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
+            "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
                         where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
             "_size": "max",
         }
