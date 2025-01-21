@@ -239,9 +239,9 @@ def test_collector(test_dataset_collector, collection_dir):
     assert log_hash0 != log_hash1, "log file not updated after first run"
     assert resource_hash0 != resource_hash1, "resource file not updated after first run"
 
-    # Always add a sleep before we start a new test since we want to check the timings of when files were created
+    # Always add a sleep before we start a new test since we want to check the timings of when files were modified
     # and we make get a situation where the file information has not finished updating before we're asking for the
-    # creation time. A small sleep will give the system time to update and make sure it doesn't fail the CI tests
+    # modification time. A small sleep will give the system time to update and make sure it doesn't fail the CI tests.
     time.sleep(2)
     # Test 2: check that the log and resource.csv files are recreated if they are deleted
     Path.unlink(collection_dir / "log.csv")
