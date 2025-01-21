@@ -2,7 +2,10 @@ import spatialite
 import pytest
 import pandas as pd
 
-from digital_land.expectations.operation import count_lpa_boundary
+from digital_land.expectations.operation import (
+    count_lpa_boundary,
+    count_deleted_entities,
+)
 
 
 @pytest.fixture
@@ -106,6 +109,67 @@ def test_count_lpa_boundary_passes(
         passed
     ), f"test expected to pass but it failed expected {details['expected']} but got {details['actual']}"
     assert message, "test should have had a message returned"
+    detail_keys = ["actual", "expected"]
+    for key in detail_keys:
+        assert key in details, f"{key} missing from details"
+
+
+def test_count_deleted_entities(dataset_path, mocker):
+    # define constant parameters
+    organisation_entity = 109
+    expected = 0
+
+    # load data into sqlite for entity, fact_resource and fact table
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001"],
+            "name": ["test1"],
+            "organisation_entity": [109],
+            "reference": ["ref1"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
+            "entry_number": ["1", "1"],
+        },
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "entity": ["1001", "1001"],
+            "field": ["name", "reference"],
+            "value": ["abc", "ref1"],
+        }
+    )
+
+    # mock `pandas.read_csv` to return the mock DataFrame
+    mock_df = pd.DataFrame({"resource": ["2f7d900dd48fd02"]})
+    mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    with spatialite.connect(dataset_path) as conn:
+        # load data into required tables
+        test_entity_data.to_sql("entity", conn, if_exists="append", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="append", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="append", index=False)
+
+        # run expectation
+        passed, message, details = count_deleted_entities(
+            conn,
+            expected=expected,
+            organisation_entity=organisation_entity,
+        )
+
+    assert (
+        passed
+    ), f"test failed : expected {details['expected']} but got {details['actual']} entities"
+    assert message, "test requires a message"
+
     detail_keys = ["actual", "expected"]
     for key in detail_keys:
         assert key in details, f"{key} missing from details"
