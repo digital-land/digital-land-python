@@ -48,6 +48,16 @@ def is_date_valid(date, date_type):
     return True, ""
 
 
+def get_user_response(message):
+    user_response = input(message).strip().lower()
+
+    if user_response != "yes":
+        print("Operation cancelled by user.")
+        return False
+
+    return True
+
+
 def clear_log(collection_dir, endpoint):
     collector = Collector(collection_dir=collection_dir)
     log_path = collector.log_path(datetime.utcnow(), endpoint)
