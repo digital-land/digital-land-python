@@ -188,6 +188,7 @@ def test_dataset_collector(temp_dir, collection_dir):
 
 
 def test_collector(test_dataset_collector, collection_dir):
+    # Test 0: Has data been set up correctly (Collector class)
     # test that we have an endpoint.csv file available
     endpoint_path = collection_dir / "endpoint.csv"
     assert Path.exists(endpoint_path), "endpoint_path does not exist"
@@ -208,8 +209,7 @@ def test_collector(test_dataset_collector, collection_dir):
     log_hash0 = file_hash(collection_dir / "log.csv")
     resource_hash0 = file_hash(collection_dir / "resource.csv")
 
-    # Need to create a new Collection object, otherwise info from original Collection class gets saved and we're
-    # adding repeated data
+    # Test 1: Does the Collection object work as expected
     collection_object1 = Collection(name=None, directory=collection_dir)
     collection_object1.load()
     collection_object1.update()
@@ -239,8 +239,11 @@ def test_collector(test_dataset_collector, collection_dir):
     assert log_hash0 != log_hash1, "log file not updated after first run"
     assert resource_hash0 != resource_hash1, "resource file not updated after first run"
 
-    # This test will check that the log and resource.csv files will be recreated if they are deleted.
+    # Always add a sleep before we start a new test since we want to check the timings of when files were created
+    # and we make get a situation where the file information has not finished updating before we're asking for the
+    # creation time. A small sleep will give the system time to update and make sure it doesn't fail the CI tests
     time.sleep(2)
+    # Test 2: check that the log and resource.csv files are recreated if they are deleted
     Path.unlink(collection_dir / "log.csv")
     Path.unlink(collection_dir / "resource.csv")
     assert not Path.exists(collection_dir / "log.csv"), "log.csv file not deleted"
@@ -248,6 +251,8 @@ def test_collector(test_dataset_collector, collection_dir):
         collection_dir / "resource.csv"
     ), "resource.csv file not deleted"
 
+    # Need to create a new Collection object, otherwise info from original Collection class gets saved and we're
+    # adding repeated data
     collection_object2 = Collection(name=None, directory=collection_dir)
     collection_object2.load()
     collection_object2.update()
@@ -276,7 +281,7 @@ def test_collector(test_dataset_collector, collection_dir):
     assert log_hash2 == log_hash1, "log file changed after second run"
     assert resource_hash2 == resource_hash1, "resource file after second run"
 
-    # test that the log and resource.csv files are not changed if we rerun `make collection`
+    # Test 3: check that the log and resource.csv files are not changed if we rerun `make collection`
     time.sleep(2)
     collection_object3 = Collection(name=None, directory=collection_dir)
     collection_object3.load()
@@ -304,7 +309,7 @@ def test_collector(test_dataset_collector, collection_dir):
     assert log_hash3 == log_hash1, "log file changed after third run"
     assert resource_hash3 == resource_hash1, "resource file after third run"
 
-    # Test what happens when we deleted a json file and that the collector collects the missing json file
+    # Test 4: check that if a json file is deleted then it is collected
     time.sleep(2)
     json_files = np.sort(json_files)
     Path.unlink(json_files[0])
@@ -340,7 +345,7 @@ def test_collector(test_dataset_collector, collection_dir):
     assert log_hash4 == log_hash1, "log file changed after first run"
     assert resource_hash4 == resource_hash1, "resource file after first run"
 
-    # Add dummy json file (not in the endpoint.csv file) and ensure that the log and resource files are not changed
+    # Test 5: check that if an extra json file is added then it does not alter the log and resource files
     time.sleep(2)
     Path.touch(collection_dir / "aaaaaaaaaaa.json")
 
