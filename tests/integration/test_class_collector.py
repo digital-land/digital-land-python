@@ -3,7 +3,7 @@ import pytest
 from digital_land.collect import Collector
 from digital_land.collection import Collection
 from pathlib import Path
-
+from unittest.mock import Mock
 import hashlib
 import time
 
@@ -28,6 +28,64 @@ def line_count(path):
 def temp_dir(tmpdir_factory):
     temp_dir = tmpdir_factory.mktemp("shared_session_temp_dir")
     yield temp_dir
+
+
+@pytest.fixture
+def mock_request_get(mocker):
+    # Define the first mock response
+    data1 = "reference1"
+    csv_content1 = data1.encode("utf-8")
+    mock_response1 = Mock()
+    mock_response1.status_code = 200
+    mock_response1.request.headers = {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "User-Agent": "MHCLG Planning Data Collector",
+    }
+    mock_response1.headers = {
+        "Cache-Control": "private",
+        "Content-Length": "209483",
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Mon, 20 Jan 2025 16:46:54 GMT",
+        "Strict-Transport-Security": "max-age=31536000",
+        "X-Frame-Options": "sameorigin",
+    }
+    mock_response1.content = csv_content1
+
+    # This is the same as the last one, but is linked to an endpoint that has passed, but we need to fill in this part
+    # as we will be calling requests.Session.get three times (the same length as the simulated dataset)
+    data2 = "reference2"
+    csv_content2 = data2.encode("utf-8")
+    mock_response2 = Mock()
+    mock_response2.status_code = 200
+    mock_response2.request.headers = mock_response1.request.headers
+    mock_response2.headers = mock_response1.headers
+    mock_response2.content = csv_content2
+
+    data3 = "reference3"
+    csv_content3 = data3.encode("utf-8")
+    mock_response3 = Mock()
+    mock_response3.status_code = 200
+    mock_response3.request.headers = {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "User-Agent": "MHCLG Planning Data Collector",
+    }
+    mock_response3.headers = {
+        "Cache-Control": "private, max-age=300",
+        "Content-Length": "64",
+        "Content-Type": "text/plain; charset=utf-8",
+        "Date": "Mon, 20 Jan 2025 16:46:54 GMT",
+    }
+    mock_response3.content = csv_content3
+
+    # Use side_effect to return the responses in order
+    mocker.patch(
+        "requests.Session.get",
+        side_effect=[mock_response1, mock_response2, mock_response3],
+    )
 
 
 # Create collection directory from temp_dir
@@ -187,7 +245,7 @@ def test_dataset_collector(temp_dir, collection_dir):
     yield collector
 
 
-def test_collector(test_dataset_collector, collection_dir):
+def test_collector(test_dataset_collector, collection_dir, mock_request_get):
     # Test 0: Has data been set up correctly (Collector class)
     # test that we have an endpoint.csv file available
     endpoint_path = collection_dir / "endpoint.csv"
