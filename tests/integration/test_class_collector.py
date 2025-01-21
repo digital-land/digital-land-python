@@ -8,7 +8,7 @@ import hashlib
 import time
 
 
-# Hasher function for file to check if things have changed
+# Hasher function for file to check if file contents have changed
 def file_hash(file_path):
     hasher = hashlib.sha256()
     with open(file_path, "rb") as f:
@@ -30,6 +30,7 @@ def temp_dir(tmpdir_factory):
     yield temp_dir
 
 
+# mocking sessions from requests
 @pytest.fixture
 def mock_request_get(mocker):
     # Define the first mock response
@@ -53,7 +54,7 @@ def mock_request_get(mocker):
     }
     mock_response1.content = csv_content1
 
-    # This is the same as the last one, but is linked to an endpoint that has passed, but we need to fill in this part
+    # This is the same as the last one, but is linked to an endpoint that has passed, but we need to fill run this
     # as we will be calling requests.Session.get three times (the same length as the simulated dataset)
     data2 = "reference2"
     csv_content2 = data2.encode("utf-8")
