@@ -246,6 +246,33 @@ def test_collector(test_dataset_collector, collection_dir):
         collection_dir / "resource.csv"
     ), "resource.csv file not deleted"
 
+    collection_object2 = Collection(name=None, directory=collection_dir)
+    collection_object2.load()
+    collection_object2.update()
+    collection_object2.save_csv()
+
+    assert Path.exists(
+        collection_dir / "log.csv"
+    ), "log.csv file not created after third run"
+    assert Path.exists(
+        collection_dir / "resource.csv"
+    ), "resource.csv file not created after third run"
+
+    log_modification_time2 = Path(collection_dir / "log.csv").stat().st_mtime
+    resource_modification_time2 = Path(collection_dir / "resource.csv").stat().st_mtime
+    log_hash2 = file_hash(Path(collection_dir / "log.csv"))
+    resource_hash2 = file_hash(Path(collection_dir / "resource.csv"))
+
+    assert (
+        log_modification_time2 != log_modification_time1
+    ), "log file not updated after second run"
+    assert (
+        resource_modification_time2 != resource_modification_time1
+    ), "resource file not updated after second run"
+    assert log_hash2 == log_hash1, "log file changed after second run"
+    assert resource_hash2 == resource_hash1, "resource file after second run"
+
+    # test that the log and resource.csv files are not changed if we rerun `make collection`
     collection_object3 = Collection(name=None, directory=collection_dir)
     collection_object3.load()
     collection_object3.update()
@@ -263,43 +290,16 @@ def test_collector(test_dataset_collector, collection_dir):
     log_hash3 = file_hash(Path(collection_dir / "log.csv"))
     resource_hash3 = file_hash(Path(collection_dir / "resource.csv"))
 
-    assert (
-        log_modification_time3 != log_modification_time1
-    ), "log file not updated after third run"
-    assert (
-        resource_modification_time3 != resource_modification_time1
-    ), "resource file not updated after third run"
-    assert log_hash3 == log_hash1, "log file changed after third run"
-    assert resource_hash3 == resource_hash1, "resource file after third run"
-
-    # test that the log and resource.csv files are not changed if we rerun `make collection`
-    collection_object2 = Collection(name=None, directory=collection_dir)
-    collection_object2.load()
-    collection_object2.update()
-    collection_object2.save_csv()
-
-    assert Path.exists(
-        collection_dir / "log.csv"
-    ), "log.csv file not created after second run"
-    assert Path.exists(
-        collection_dir / "resource.csv"
-    ), "resource.csv file not created after second run"
-
-    log_modification_time2 = Path(collection_dir / "log.csv").stat().st_mtime
-    resource_modification_time2 = Path(collection_dir / "resource.csv").stat().st_mtime
-    log_hash2 = file_hash(Path(collection_dir / "log.csv"))
-    resource_hash2 = file_hash(Path(collection_dir / "resource.csv"))
-
     # In this test we want the modification time to be different but the file hashes to be the same (to represent the
     # fact that the files have been 'updated' but they have exactly the same values as before)
     assert (
-        log_modification_time2 != log_modification_time1
-    ), "log file not updated after second run"
+        log_modification_time3 != log_modification_time2
+    ), "log file not updated after third run"
     assert (
-        resource_modification_time2 != resource_modification_time1
-    ), "resource file not updated after second run"
-    assert log_hash2 == log_hash1, "log file changed after second run"
-    assert resource_hash2 == resource_hash1, "resource file after second run"
+        resource_modification_time3 != resource_modification_time2
+    ), "resource file not updated after third run"
+    assert log_hash3 == log_hash1, "log file changed after third run"
+    assert resource_hash3 == resource_hash1, "resource file after third run"
 
     # Test what happens when we deleted a json file and that the collector collects the missing json file
     json_files = np.sort(json_files)
@@ -328,10 +328,10 @@ def test_collector(test_dataset_collector, collection_dir):
     resource_hash4 = file_hash(Path(collection_dir / "resource.csv"))
 
     assert (
-        log_modification_time4 != log_modification_time1
+        log_modification_time4 != log_modification_time3
     ), "log file not updated  after fourth run"
     assert (
-        resource_modification_time4 != resource_modification_time1
+        resource_modification_time4 != resource_modification_time3
     ), "resource file not updated  after fourth run"
     assert log_hash4 == log_hash1, "log file changed after first run"
     assert resource_hash4 == resource_hash1, "resource file after first run"
@@ -360,10 +360,10 @@ def test_collector(test_dataset_collector, collection_dir):
     resource_hash5 = file_hash(Path(collection_dir / "resource.csv"))
 
     assert (
-        log_modification_time5 != log_modification_time1
+        log_modification_time5 != log_modification_time4
     ), "log file not updated after fifth run"
     assert (
-        resource_modification_time5 != resource_modification_time1
+        resource_modification_time5 != resource_modification_time4
     ), "resource file not updated after fifth run"
     assert log_hash5 == log_hash1, "log file changed after fifth run"
     assert resource_hash5 == resource_hash1, "resource file after fifth run"
