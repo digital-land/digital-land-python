@@ -1,4 +1,7 @@
 import requests
+import pandas as pd
+import urllib
+import os
 
 
 # # TODO is there a way to represent this in a generalised count or not
@@ -112,6 +115,58 @@ def count_lpa_boundary(
 
     message = f"there were {actual} entities found"
 
+    details = {
+        "actual": actual,
+        "expected": expected,
+        "entities": entities,
+    }
+
+    return result, message, details
+
+
+def count_deleted_entities(
+    conn,
+    expected: int,
+    organisation_entity: int = None,
+):
+    # get database name to identify dataset
+    db_path = conn.execute("PRAGMA database_list").fetchall()[0][2]
+    db_name = os.path.splitext(os.path.basename(db_path))[0]
+
+    # get dataset specific active resource list
+    params = urllib.parse.urlencode(
+        {
+            "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
+                        where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
+            "_size": "max",
+        }
+    )
+    base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
+    get_resource = pd.read_csv(base_url)
+    resource_list = get_resource["resource"].to_list()
+
+    # use resource list to get current entities
+    query = f"""select e.reference,fe.entry_number,f.entity,e.name,e.organisation_entity
+                from fact_resource fe join fact f on fe.fact=f.fact join entity e on f.entity=e.entity
+                where resource in ({','.join(f"'{x}'" for x in resource_list)})
+                group by reference
+    """
+    rows = conn.execute(query).fetchall()
+    get_active_entities = [row[0] for row in rows]
+
+    # get entities from entity table to compare against resource entities
+    query = f"""
+    select reference from entity where organisation_entity = '{organisation_entity}';
+    """
+    rows = conn.execute(query).fetchall()
+    get_entities = [row[0] for row in rows]
+
+    # identify entities present in the entity table but missing from the resource
+    entities = [item for item in get_entities if item not in get_active_entities]
+    actual = len(entities)
+
+    result = bool(actual == expected)
+    message = f"there were {actual} entities found"
     details = {
         "actual": actual,
         "expected": expected,
