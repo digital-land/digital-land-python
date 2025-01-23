@@ -319,7 +319,6 @@ class DatasetParquetPackage(Package):
                 ) = 1
             )
         """
-        logging.error(query)
 
         pivot_query = f"""
             PIVOT (
@@ -392,14 +391,6 @@ class DatasetParquetPackage(Package):
         This method combines multiple parquet files into a single parquet file
         """
         logger.info(f"combining parquet files from {input_path} into {output_path}")
-        # check input path is a directory using  Path
-        if not Path(input_path).is_dir():
-            raise ValueError("Input path must be a directory")
-
-        # check output_path is a file that doesn't exist
-        if not Path(output_path).is_file():
-            raise ValueError("Output path must be a file")
-
         # use self.conn to use  duckdb to combine files
         sql = f"""
             COPY (select * from parquet_scan('{input_path}/*.parquet')) TO '{output_path}' (FORMAT PARQUET);
