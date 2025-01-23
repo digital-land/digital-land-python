@@ -122,10 +122,10 @@ def test_count_deleted_entities(dataset_path, mocker):
     # load data into sqlite for entity, fact_resource and fact table
     test_entity_data = pd.DataFrame.from_dict(
         {
-            "entity": ["1001"],
-            "name": ["test1"],
-            "organisation_entity": [109],
-            "reference": ["ref1"],
+            "entity": ["1001", "1002"],
+            "name": ["test1", "test2"],
+            "organisation_entity": [109, 109],
+            "reference": ["ref1", "ref2"],
         }
     )
 
@@ -166,10 +166,11 @@ def test_count_deleted_entities(dataset_path, mocker):
         )
 
     assert (
-        passed
+        not passed
     ), f"test failed : expected {details['expected']} but got {details['actual']} entities"
     assert message, "test requires a message"
 
-    detail_keys = ["actual", "expected"]
+    detail_keys = ["actual", "expected", "entities"]
     for key in detail_keys:
         assert key in details, f"{key} missing from details"
+    assert "1002" in details["entities"]
