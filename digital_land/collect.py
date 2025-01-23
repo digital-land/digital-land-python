@@ -48,6 +48,8 @@ class Collector:
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
     def log_path(self, log_datetime, endpoint):
+        # Should we be using this instead?
+        # log_date = log_datetime..date()isoformat()
         log_date = log_datetime.isoformat()[:10]
         return os.path.join(self.log_dir, log_date, endpoint + ".json")
 
@@ -123,9 +125,10 @@ class Collector:
         self,
         url,
         endpoint=None,
-        log_datetime=datetime.utcnow(),
+        log_datetime=datetime.utcnow(),   # should we be using datetime.now() ?
         end_date="",
         plugin="",
+        force_refetch=False
     ):
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return FetchStatus.EXPIRED
@@ -139,11 +142,14 @@ class Collector:
             )
             return FetchStatus.HASH_FAILURE
 
-        # fetch each source at most once per-day
+        # fetch each source at most once per-day, though with an option to re-collect the latest day's sources
         log_path = self.log_path(log_datetime, endpoint)
+        # if not force_refetch:
         if os.path.isfile(log_path):
             logging.debug(f"{log_path} exists")
             return FetchStatus.ALREADY_FETCHED
+
+        print(f"Reloading in file {log_path}")
 
         log = {
             "endpoint-url": url,
@@ -182,7 +188,7 @@ class Collector:
 
         return FetchStatus.FAILED
 
-    def collect(self, endpoint_path):
+    def collect(self, endpoint_path, force_refetch=False):
         for row in csv.DictReader(open(endpoint_path, newline="")):
             endpoint = row["endpoint"]
             url = row["endpoint-url"]
@@ -197,4 +203,5 @@ class Collector:
                 endpoint=endpoint,
                 end_date=row.get("end-date", ""),
                 plugin=plugin,
+                force_refetch=force_refetch
             )
