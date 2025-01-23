@@ -179,6 +179,7 @@ class Collector:
             except Exception as exception:
                 logging.warning(f"Failed to save data from '{url} ({exception})")
                 log["exception"] = type(exception).__name__
+                log["status"] = ""
 
         return FetchStatus.FAILED
 
