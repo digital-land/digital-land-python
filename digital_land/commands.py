@@ -283,7 +283,7 @@ def pipeline_run(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
-            output_path=cache_dir / "converted_resources" / dataset / f"{resource}.csv",
+            output_path=converted_path,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
