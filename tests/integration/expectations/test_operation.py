@@ -173,4 +173,4 @@ def test_count_deleted_entities(dataset_path, mocker):
     detail_keys = ["actual", "expected", "entities"]
     for key in detail_keys:
         assert key in details, f"{key} missing from details"
-    assert "1002" in details["entities"]
+    assert "ref2" in details["entities"]
