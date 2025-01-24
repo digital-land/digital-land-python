@@ -54,11 +54,16 @@ class DatasetParquetPackage(Package):
         self.typology = self.specification.schema[dataset]["typology"]
 
         # set up key file paths
-        self.fact_path = self.path / f"dataset={self.dataset}" / "fact.parquet"
+        self.fact_path = self.path / "fact" / f"dataset={self.dataset}" / "fact.parquet"
         self.fact_resource_path = (
-            self.path / f"dataset={self.dataset}" / "fact_resource.parquet"
+            self.path
+            / "fact-resource"
+            / f"dataset={self.dataset}"
+            / "fact-resource.parquet"
         )
-        self.entity_path = self.path / f"dataset={self.dataset}" / "entity.parquet"
+        self.entity_path = (
+            self.path / "entity" / f"dataset={self.dataset}" / "entity.parquet"
+        )
 
     def get_schema(self):
         schema = {}
@@ -124,7 +129,7 @@ class DatasetParquetPackage(Package):
         """
         This method loads facts into a fact table from a directory containing all transformed files as parquet files
         """
-        output_path = self.path / f"dataset={self.dataset}" / "fact.parquet"
+        output_path = self.fact_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         logging.info("loading facts from temp table")
 
@@ -151,7 +156,7 @@ class DatasetParquetPackage(Package):
 
     def load_fact_resource(self, transformed_parquet_dir):
         logging.info(f"loading fact resources from {str(transformed_parquet_dir)}")
-        output_path = self.path / f"dataset={self.dataset}" / "fact_resource.parquet"
+        output_path = self.fact_resource_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         fields_str = ", ".join(
@@ -171,32 +176,6 @@ class DatasetParquetPackage(Package):
             ) TO '{str(output_path)}' (FORMAT PARQUET);
         """
         )
-
-    # def combine_parquet_files(input_path,output_path):
-    #     """
-    #     This method combines multiple parquet files into a single parquet file
-    #     """
-    #     # check input path is a directory using  Path
-    #     if not Path(input_path).is_dir():
-    #         raise ValueError("Input path must be a directory")
-
-    #     # check output_path is a file that doesn't exist
-    #     if not Path(output_path).is_file():
-    #         raise ValueError("Output path must be a file")
-
-    #     # use self.conn to use  duckdb to combine files
-    #     sql = f"""
-    #         COPY (select * from parquet_scan('{input_path}/*.parquet')) TO '{output_path}' (FORMAT PARQUET);
-    #     """
-    #     self.conn.execute(sql)
-
-    #     # Combine all the parquet files into a single parquet file
-    #     combined_df = pd.concat(
-    #         [pd.read_parquet(f"{input_path}/{file}") for file in parquet_files]
-    #     )
-
-    #     # Save the combined dataframe to a parquet file
-    #     combined_df.to_parquet(output_path, index=False)
 
     def load_entities_range(
         self,
@@ -398,7 +377,7 @@ class DatasetParquetPackage(Package):
         self.conn.execute(sql)
 
     def load_entities(self, transformed_parquet_dir, resource_path, organisation_path):
-        output_path = self.path / f"dataset={self.dataset}" / "entity.parquet"
+        output_path = self.entity_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # retrieve entity counnts including and minimum

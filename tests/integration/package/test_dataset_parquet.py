@@ -380,7 +380,11 @@ def test_load_facts_single_file(data: dict, expected: int, tmp_path):
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
     output_file = (
-        tmp_path / "conservation-area" / "dataset=conservation-area" / "fact.parquet"
+        tmp_path
+        / "conservation-area"
+        / "fact"
+        / "dataset=conservation-area"
+        / "fact.parquet"
     )
     assert os.path.exists(output_file), "fact.parquet file does not exist"
 
@@ -421,7 +425,11 @@ def test_load_facts_multiple_files(data1, data2, expected, tmp_path):
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
     output_file = (
-        tmp_path / "conservation-area" / "dataset=conservation-area" / "fact.parquet"
+        tmp_path
+        / "conservation-area"
+        / "fact"
+        / "dataset=conservation-area"
+        / "fact.parquet"
     )
     assert os.path.exists(output_file), "fact.parquet file does not exist"
 
@@ -472,7 +480,11 @@ def test_load_facts_one_file_with_empty_file(data, expected, tmp_path):
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
     output_file = (
-        tmp_path / "conservation-area" / "dataset=conservation-area" / "fact.parquet"
+        tmp_path
+        / "conservation-area"
+        / "fact"
+        / "dataset=conservation-area"
+        / "fact.parquet"
     )
     assert os.path.exists(output_file), "fact.parquet file does not exist"
 
@@ -504,8 +516,9 @@ def test_load_fact_resource_single_file(data, expected, tmp_path):
     output_file = (
         tmp_path
         / "conservation-area"
+        / "fact-resource"
         / "dataset=conservation-area"
-        / "fact_resource.parquet"
+        / "fact-resource.parquet"
     )
     assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
 
@@ -544,8 +557,9 @@ def test_load_fact_resource_two_filea(data_1, data_2, expected, tmp_path):
     output_file = (
         tmp_path
         / "conservation-area"
+        / "fact-resource"
         / "dataset=conservation-area"
-        / "fact_resource.parquet"
+        / "fact-resource.parquet"
     )
     assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
 
@@ -596,8 +610,9 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
     output_file = (
         tmp_path
         / "conservation-area"
+        / "fact-resource"
         / "dataset=conservation-area"
-        / "fact_resource.parquet"
+        / "fact-resource.parquet"
     )
     assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
 
@@ -662,7 +677,11 @@ def test_load_entities_single_file(
     package.load_entities(transformed_parquet_dir, resource_path, org_path)
 
     output_file = (
-        tmp_path / "conservation-area" / "dataset=conservation-area" / "entity.parquet"
+        tmp_path
+        / "conservation-area"
+        / "entity"
+        / "dataset=conservation-area"
+        / "entity.parquet"
     )
     assert os.path.exists(output_file), "entity.parquet file does not exist"
 
@@ -737,15 +756,32 @@ def test_load_pq_to_sqlite_basic(
     fact_resource_df = pd.DataFrame.from_dict(fact_resource_data)
     entity_df = pd.DataFrame.from_dict(entity_data)
 
+    (dataset_parquet_path / "fact" / "dataset=conservation-area").mkdir(
+        parents=True, exist_ok=True
+    )
+    (dataset_parquet_path / "fact-resource" / "dataset=conservation-area").mkdir(
+        parents=True, exist_ok=True
+    )
+    (dataset_parquet_path / "entity" / "dataset=conservation-area").mkdir(
+        parents=True, exist_ok=True
+    )
+
     fact_df.to_parquet(
-        dataset_parquet_path / "dataset=conservation-area" / "fact.parquet", index=False
+        dataset_parquet_path / "fact" / "dataset=conservation-area" / "fact.parquet",
+        index=False,
     )
     fact_resource_df.to_parquet(
-        dataset_parquet_path / "dataset=conservation-area" / "fact_resource.parquet",
+        dataset_parquet_path
+        / "fact-resource"
+        / "dataset=conservation-area"
+        / "fact-resource.parquet",
         index=False,
     )
     entity_df.to_parquet(
-        dataset_parquet_path / "dataset=conservation-area" / "entity.parquet",
+        dataset_parquet_path
+        / "entity"
+        / "dataset=conservation-area"
+        / "entity.parquet",
         index=False,
     )
 
