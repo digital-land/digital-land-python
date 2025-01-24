@@ -221,6 +221,7 @@ def test_run_some_expectations(
         "parameters",
         "organisation",
         "dataset",
+        "operation",
     ]
     for field in required_fields:
         assert field in results[0].keys(), f"field : {field} not found in log"

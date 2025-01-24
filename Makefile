@@ -40,17 +40,15 @@ endif
 # install pre-commits
 	pre-commit install
 
-# build docs from doc strings
-.PHONY: api-docs
-api-docs:
-	sphinx-apidoc -o docs/ api/digital_land
-# Build documentation with Sphinx
+# Build documentation with Sphinx use for deploying documentation
 .PHONY: docs
-docs: api-docs
+docs:
+	sphinx-apidoc -o docs/ digital_land
 	sphinx-build -b html docs/ docs/_build
 
-# Serve the documentation locally with live-reloading
-serve-docs: api-docs
+# Serve the documentation locally with live-reloading. Use this for local building
+serve-docs:
+	sphinx-apidoc -o docs/ digital_land
 	sphinx-autobuild docs/ docs/_build --host 0.0.0.0 --port 8000
 
 # Clean up the generated documentation

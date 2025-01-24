@@ -5,7 +5,7 @@ on:
     branches:
       - main  # Adjust to your main branch
   workflow_dispatch: null
-    
+
 # Set permissions of GITHUB_TOKEN
 permissions:
   contents: read
@@ -19,11 +19,13 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -32,20 +34,19 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install sphinx sphinx-autobuild sphinx_rtd_theme
+        make init
 
     - name: Generate Documentation
       run: |
-        sphinx-build -b html docs/ docs/_build
+        make docs
 
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v1
+      uses: actions/upload-pages-artifact@v3
       with:
         path: docs/_build
-        
+
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: build
     permissions:
       pages: write
@@ -53,4 +54,4 @@ jobs:
 
     steps:
     - name: Deploy to GitHub Pages
-      uses: actions/deploy-pages@v1
+      uses: actions/deploy-pages@v4

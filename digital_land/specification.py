@@ -39,6 +39,7 @@ class Specification:
         self.schema_field = {}
         self.typology = {}
         self.pipeline = {}
+        self.licence = {}
         self.load_dataset(path)
         self.load_schema(path)
         self.load_dataset_schema(path)
@@ -48,6 +49,7 @@ class Specification:
         self.load_typology(path)
         self.load_pipeline(path)
         self.load_dataset_field(path)
+        self.load_licence(path)
 
         self.index_field()
         self.index_schema()
@@ -110,6 +112,11 @@ class Specification:
         reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
         for row in reader:
             self.pipeline[row["pipeline"]] = row
+
+    def load_licence(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "licence.csv")))
+        for row in reader:
+            self.licence[row["licence"]] = row
 
     def index_schema(self):
         self.schema_dataset = {}

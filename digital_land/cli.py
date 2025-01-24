@@ -30,6 +30,7 @@ from digital_land.commands import (
     organisation_check,
     save_state,
     compare_state,
+    add_data,
 )
 
 from digital_land.command_arguments import (
@@ -364,6 +365,52 @@ def expectations_run_dataset_checkpoint(
 @click.argument("csv-path", nargs=1, type=click.Path())
 def retire_endpoints_cmd(config_collections_dir, csv_path):
     return collection_retire_endpoints_and_sources(config_collections_dir, csv_path)
+
+
+@cli.command("add-data")
+@click.argument("csv-path", nargs=1, type=click.Path())
+@click.argument("collection-name", nargs=1, type=click.STRING)
+@click.option("--collection-dir", "-c", nargs=1, type=click.Path(exists=True))
+@click.option("--pipeline-dir", "-p", nargs=1, type=click.Path(exists=True))
+@click.option(
+    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
+)
+@click.option(
+    "--organisation-path",
+    "-o",
+    type=click.Path(exists=True),
+    default="var/cache/organisation.csv",
+)
+@click.option(
+    "--cache-dir",
+    type=click.Path(exists=True),
+)
+def add_data_cmd(
+    csv_path,
+    collection_name,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    cache_dir,
+):
+    csv_file_path = Path(csv_path)
+    if not csv_file_path.is_file():
+        logging.error(f"CSV file not found at path: {csv_path}")
+        sys.exit(2)
+    collection_dir = Path(collection_dir)
+    pipeline_dir = Path(pipeline_dir)
+    specification_dir = Path(specification_dir)
+
+    return add_data(
+        csv_file_path,
+        collection_name,
+        collection_dir,
+        pipeline_dir,
+        specification_dir,
+        organisation_path,
+        cache_dir=cache_dir,
+    )
 
 
 # edit to add collection_name in
