@@ -354,7 +354,7 @@ class Collection:
         self.log.save_csv(directory=directory)
         self.resource.save_csv(directory=directory)
 
-    def load(self, directory=None):
+    def load(self, directory=None, overwrite_today=None):
         directory = directory or self.dir
         self.source.load(directory=directory)
         self.endpoint.load(directory=directory)
@@ -362,8 +362,9 @@ class Collection:
         regenerate_resources = False
 
         # Try to load log store from csv first
+        # overwrite_today = True
         try:
-            self.log.load_csv(directory=directory)
+           self.log.load_csv(directory=directory, overwrite_today=overwrite_today)
             logging.info(f"Log loaded from CSV - {len(self.log.entries)} entries")
         except FileNotFoundError:
             logging.info("No log.csv - building from log items")

@@ -84,11 +84,12 @@ def fetch_cmd(ctx, url):
     type=click.Path(exists=True),
     default="collection/endpoint.csv",
 )
+@click.option("--force-refetch", default=False)
 @collection_dir
 @click.pass_context
-def collect_cmd(ctx, endpoint_path, collection_dir):
+def collect_cmd(ctx, endpoint_path, collection_dir, force_refetch):
     """fetch resources from collection endpoints"""
-    return collect(endpoint_path, collection_dir, ctx.obj["PIPELINE"])
+    return collect(endpoint_path, collection_dir, ctx.obj["PIPELINE"], force_refetch=force_refetch)
 
 
 #
@@ -110,9 +111,10 @@ def collection_pipeline_makerules_cmd(collection_dir):
 
 
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
+@click.option("--overwrite-today", default=False)
 @collection_dir
-def collection_save_csv_cmd(collection_dir):
-    return collection_save_csv(collection_dir)
+def collection_save_csv_cmd(collection_dir, overwrite_today):
+    return collection_save_csv(collection_dir, overwrite_today)
 
 
 @cli.command(
