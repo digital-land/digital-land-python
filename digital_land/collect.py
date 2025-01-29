@@ -53,8 +53,8 @@ class Collector:
         log_date = log_datetime.isoformat()[:10]
         return os.path.join(self.log_dir, log_date, endpoint + ".json")
 
-    def save_log(self, path, log):
-        self.save(path, canonicaljson.encode_canonical_json(log))
+    def save_log(self, path, log, force_refetch=False):
+        self.save(path, canonicaljson.encode_canonical_json(log), force_refetch=force_refetch)
 
     def save_content(self, content):
         resource = hashlib.sha256(content).hexdigest()
@@ -62,9 +62,10 @@ class Collector:
         self.save(path, content)
         return resource
 
-    def save(self, path, data):
+    def save(self, path, data, force_refetch=False):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        if not os.path.exists(path):
+        # if force_refetch=True then files in log_path need to be overwritten
+        if not os.path.exists(path) or force_refetch:
             logging.info(path)
             with open(path, "wb") as f:
                 f.write(data)
@@ -144,12 +145,11 @@ class Collector:
 
         # fetch each source at most once per-day, though with an option to re-collect the latest day's sources
         log_path = self.log_path(log_datetime, endpoint)
-        # if not force_refetch:
-        if os.path.isfile(log_path):
-            logging.debug(f"{log_path} exists")
-            return FetchStatus.ALREADY_FETCHED
-
-        print(f"Reloading in file {log_path}")
+        # force_refetch = True
+        if not force_refetch:
+            if os.path.isfile(log_path):
+                logging.debug(f"{log_path} exists")
+                return FetchStatus.ALREADY_FETCHED
 
         log = {
             "endpoint-url": url,
@@ -173,8 +173,7 @@ class Collector:
         log["elapsed"] = str(round(timer() - start, 3))
 
         status = self.save_resource(content, log_path, log)
-
-        self.save_log(log_path, log)
+        self.save_log(log_path, log, force_refetch=force_refetch)
         return status
 
     def save_resource(self, content, url, log):
