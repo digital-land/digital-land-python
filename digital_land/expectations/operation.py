@@ -150,7 +150,7 @@ def count_deleted_entities(
         try:
             get_resource = pd.read_csv(base_url)
             break
-        except urllib.error.HTTPError as e:
+        except urllib.error.HTTPError:
             time.sleep(60)
     else:
         raise Exception("Failed to fetch datasette after multiple attempts")
