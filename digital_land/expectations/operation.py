@@ -145,7 +145,7 @@ def count_deleted_entities(
     base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
 
     # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
-    max_retries = 60 # Retry for an hour
+    max_retries = 60  # Retry for an hour
     for attempt in range(max_retries):
         try:
             get_resource = pd.read_csv(base_url)
