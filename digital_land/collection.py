@@ -364,7 +364,7 @@ class Collection:
         # Try to load log store from csv first
         # overwrite_today = True
         try:
-           self.log.load_csv(directory=directory, overwrite_today=overwrite_today)
+            self.log.load_csv(directory=directory, overwrite_today=overwrite_today)
             logging.info(f"Log loaded from CSV - {len(self.log.entries)} entries")
         except FileNotFoundError:
             logging.info("No log.csv - building from log items")

@@ -18,13 +18,15 @@ class CSVStore(MemoryStore):
         logging.debug("loading %s" % path)
         reader = csv.DictReader(open(path, newline=""))
         for row in reader:
-            if overwrite_today is None:  # Don't load in values of today's log as that will be overwritten
+            if (
+                overwrite_today is None
+            ):  # Don't load in values of today's log as that will be overwritten
                 self.add_entry(row)
             else:
-                if datetime.fromisoformat(row['entry-date']).date() < today:
+                if datetime.fromisoformat(row["entry-date"]).date() < today:
                     self.add_entry(row)
 
-    def load(self,  *args, **kwargs):
+    def load(self, *args, **kwargs):
         self.load_csv(*args, **kwargs)
 
     def save_csv(self, path=None, directory="", entries=None):

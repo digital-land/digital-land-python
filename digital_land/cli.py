@@ -89,7 +89,9 @@ def fetch_cmd(ctx, url):
 @click.pass_context
 def collect_cmd(ctx, endpoint_path, collection_dir, force_refetch):
     """fetch resources from collection endpoints"""
-    return collect(endpoint_path, collection_dir, ctx.obj["PIPELINE"], force_refetch=force_refetch)
+    return collect(
+        endpoint_path, collection_dir, ctx.obj["PIPELINE"], force_refetch=force_refetch
+    )
 
 
 #

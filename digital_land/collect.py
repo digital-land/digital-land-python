@@ -54,7 +54,9 @@ class Collector:
         return os.path.join(self.log_dir, log_date, endpoint + ".json")
 
     def save_log(self, path, log, force_refetch=False):
-        self.save(path, canonicaljson.encode_canonical_json(log), force_refetch=force_refetch)
+        self.save(
+            path, canonicaljson.encode_canonical_json(log), force_refetch=force_refetch
+        )
 
     def save_content(self, content):
         resource = hashlib.sha256(content).hexdigest()
@@ -126,10 +128,10 @@ class Collector:
         self,
         url,
         endpoint=None,
-        log_datetime=datetime.utcnow(),   # should we be using datetime.now() ?
+        log_datetime=datetime.utcnow(),  # should we be using datetime.now() ?
         end_date="",
         plugin="",
-        force_refetch=False
+        force_refetch=False,
     ):
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return FetchStatus.EXPIRED
@@ -202,5 +204,5 @@ class Collector:
                 endpoint=endpoint,
                 end_date=row.get("end-date", ""),
                 plugin=plugin,
-                force_refetch=force_refetch
+                force_refetch=force_refetch,
             )
