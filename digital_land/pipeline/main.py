@@ -5,9 +5,9 @@ import importlib.util
 import logging
 from pathlib import Path
 
-from .phase.map import normalise
-from .phase.lookup import key as lookup_key
-from .schema import Schema
+from digital_land.phase.map import normalise
+from digital_land.phase.lookup import key as lookup_key
+from digital_land.schema import Schema
 
 
 def chain_phases(phases):

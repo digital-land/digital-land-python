@@ -140,6 +140,18 @@ def convert_cmd(input_path, output_path):
 @column_field_dir
 @dataset_resource_dir
 @issue_dir
+@click.option(
+    "--cache-dir",
+    type=click.Path(),
+    default="var/cache",
+    help="link to a cache directory to store temporary data that can be deleted once process is finished",
+)
+@click.option(
+    "--resource-path",
+    type=click.Path(exists=True),
+    default="collection/resource.csv",
+    help="link to where the resource list is stored",
+)
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_create_cmd(
@@ -150,6 +162,8 @@ def dataset_create_cmd(
     column_field_dir,
     dataset_resource_dir,
     issue_dir,
+    cache_dir,
+    resource_path,
 ):
     return dataset_create(
         input_paths=input_paths,
@@ -161,6 +175,8 @@ def dataset_create_cmd(
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
         issue_dir=issue_dir,
+        cache_dir=cache_dir,
+        resource_path=resource_path,
     )
 
 
@@ -187,7 +203,11 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--endpoints", help="list of endpoint hashes", default="")
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
-@click.option("--custom-temp-dir", help="default temporary directory", default=None)
+@click.option(
+    "--cache-dir",
+    help="cache directory to store conveted files etc. in",
+    default="var/cache",
+)
 @click.option("--config-path", help="Path  to a configuration sqlite", default=None)
 @click.option(
     "--resource",
@@ -217,7 +237,7 @@ def pipeline_command(
     endpoints,
     organisations,
     entry_date,
-    custom_temp_dir,
+    cache_dir,
     collection_dir,
     operational_issue_dir,
     config_path,
@@ -248,7 +268,7 @@ def pipeline_command(
         endpoints=endpoints,
         organisations=organisations,
         entry_date=entry_date,
-        custom_temp_dir=custom_temp_dir,
+        cache_dir=cache_dir,
         config_path=config_path,
         resource=resource,
         output_log_dir=output_log_dir,
