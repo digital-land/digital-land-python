@@ -12,18 +12,20 @@ class CSVStore(MemoryStore):
     def csv_path(store, directory=""):
         return Path(directory) / (store.schema.name + ".csv")
 
-    def load_csv(self, path=None, directory="", overwrite_today=None):
+    def load_csv(self, path=None, directory="", overwrite_today=False):
         path = path or self.csv_path(directory)
         today = datetime.now().date()
         logging.debug("loading %s" % path)
         reader = csv.DictReader(open(path, newline=""))
         for row in reader:
-            if (
-                not overwrite_today
-            ):  # Don't load in values of today's log as that will be overwritten
+            if not overwrite_today:
                 self.add_entry(row)
             else:
-                if datetime.fromisoformat(row["entry-date"]).date() < today:
+                # Don't load in values of today's log as that will be overwritten
+                if (
+                    "entry-date" in row
+                    and datetime.fromisoformat(row["entry-date"]).date() < today
+                ):
                     self.add_entry(row)
 
     def load(self, *args, **kwargs):
