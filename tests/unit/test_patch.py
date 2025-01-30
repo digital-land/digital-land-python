@@ -14,7 +14,10 @@ def test_patch_regex():
             "^2\\*$": "II*",
             "^2 Star$": "II*",
             "^3$": "III",
-        }
+        },
+        "OrganisationURI": {
+            "https://example.com/search?query=data&filter=name%20contains%20test": "patch_organisation",
+        },
     }
 
     p = PatchPhase(patches=patches, issues=issues)
@@ -47,4 +50,20 @@ def test_patch_regex():
     assert issue["field"] == "grade"
     assert issue["issue-type"] == "patch"
     assert issue["value"] == "2 Star"
+    assert issues.rows == []
+
+    assert (
+        p.apply_patch(
+            "OrganisationURI",
+            "https://example.com/search?query=data&filter=name%20contains%20test",
+        )
+        == "patch_organisation"
+    )
+    issue = issues.rows.pop()
+    assert issue["field"] == "OrganisationURI"
+    assert issue["issue-type"] == "patch"
+    assert (
+        issue["value"]
+        == "https://example.com/search?query=data&filter=name%20contains%20test"
+    )
     assert issues.rows == []
