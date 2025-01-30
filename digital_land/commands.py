@@ -106,9 +106,9 @@ def collection_pipeline_makerules(collection_dir):
     collection.pipeline_makerules()
 
 
-def collection_save_csv(collection_dir, overwrite_today):
+def collection_save_csv(collection_dir, overwrite_today=False):
     collection = Collection(name=None, directory=collection_dir)
-    collection.load(overwrite_today=None)
+    collection.load(overwrite_today=overwrite_today)
     collection.update()
     collection.save_csv()
 

@@ -270,7 +270,7 @@ def test_collector(test_dataset_collector, collection_dir, mock_request_get):
 
     # Test 1: Does the Collection object work as expected
     collection_object1 = Collection(name=None, directory=collection_dir)
-    collection_object1.load()
+    collection_object1.load(overwrite_today=True)
     collection_object1.update()
     collection_object1.save_csv()
     # Check that info has been saved to log and resource.csv

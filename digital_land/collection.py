@@ -354,7 +354,7 @@ class Collection:
         self.log.save_csv(directory=directory)
         self.resource.save_csv(directory=directory)
 
-    def load(self, directory=None, overwrite_today=None):
+    def load(self, directory=None, overwrite_today=False):
         directory = directory or self.dir
         self.source.load(directory=directory)
         self.endpoint.load(directory=directory)
