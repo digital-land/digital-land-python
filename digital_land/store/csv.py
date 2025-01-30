@@ -19,7 +19,7 @@ class CSVStore(MemoryStore):
         reader = csv.DictReader(open(path, newline=""))
         for row in reader:
             if (
-                overwrite_today is None
+                not overwrite_today
             ):  # Don't load in values of today's log as that will be overwritten
                 self.add_entry(row)
             else:
