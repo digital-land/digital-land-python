@@ -426,6 +426,75 @@ def test_collection_update_today(test_collection_update_fixture):
     assert collection.resource.entries[0]["end-date"] == ""
 
 
+def test_collection_update_overwrite_today(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+
+    # Write the existing log and resource file
+    _write_csv(
+        dir=collection_dir,
+        log={
+            "bytes": "2",
+            "content-type": "",
+            "elapsed": "0.5",
+            "endpoint": "test",
+            "resource": "test",
+            "status": "200",
+            "entry-date": datetime.datetime.utcnow().isoformat(),
+            "start-date": datetime.datetime.utcnow().isoformat(),
+            "end-date": "",
+            "exception": "",
+        },
+        resource={
+            "resource": "test",
+            "bytes": "2",
+            "organisations": "test",
+            "datasets": "test",
+            "endpoints": "test",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    )
+
+    # Write the endpoint/source for the new log item
+    _write_csv(
+        dir=collection_dir,
+        endpoint={
+            "endpoint": "test",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        source={
+            "source": "test1",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    )
+
+    collection = Collection(directory=collection_dir)
+
+    # Load from CSVs
+    # With overwrite today true it shouldn't load today's log
+    collection.load(overwrite_today=True)
+    assert len(collection.log.entries) == 0
+
+    # While False it should load todays log as normal
+    collection.load(overwrite_today=False)
+    assert len(collection.log.entries) == 1
+
+
 def test_collection_retire_endpoints_and_sources(tmp_path):
 
     # Create a temporary directory for the test collection
