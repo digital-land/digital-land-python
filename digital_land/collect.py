@@ -48,8 +48,6 @@ class Collector:
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
     def log_path(self, log_datetime, endpoint):
-        # Should we be using this instead?
-        # log_date = log_datetime..date()isoformat()
         log_date = log_datetime.isoformat()[:10]
         return os.path.join(self.log_dir, log_date, endpoint + ".json")
 
@@ -128,7 +126,7 @@ class Collector:
         self,
         url,
         endpoint=None,
-        log_datetime=datetime.utcnow(),  # should we be using datetime.now() ?
+        log_datetime=datetime.utcnow(),
         end_date="",
         plugin="",
         force_refetch=False,
@@ -147,7 +145,6 @@ class Collector:
 
         # fetch each source at most once per-day, though with an option to re-collect the latest day's sources
         log_path = self.log_path(log_datetime, endpoint)
-        # force_refetch = True
         if not force_refetch:
             if os.path.isfile(log_path):
                 logging.debug(f"{log_path} exists")

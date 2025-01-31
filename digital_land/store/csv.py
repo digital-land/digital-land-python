@@ -21,7 +21,7 @@ class CSVStore(MemoryStore):
             if not overwrite_today:
                 self.add_entry(row)
             else:
-                # Don't load in values of today's log as that will be overwritten
+                # Don't load in values of today's log so it can be overwritten
                 if (
                     "entry-date" in row
                     and datetime.fromisoformat(row["entry-date"]).date() < today
