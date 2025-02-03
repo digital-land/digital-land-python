@@ -60,11 +60,11 @@ def test_already_fetched(collector, prepared_response):
 
 
 @responses.activate
-def test_refill_todays_log(collector, prepared_response):
+def test_refill_todays_logs(collector, prepared_response):
     status = collector.fetch("http://some.url")
     assert status == FetchStatus.OK
 
-    new_status = collector.fetch("http://some.url", refill_todays_log=True)
+    new_status = collector.fetch("http://some.url", refill_todays_logs=True)
     assert new_status == FetchStatus.OK
 
 

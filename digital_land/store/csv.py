@@ -12,13 +12,13 @@ class CSVStore(MemoryStore):
     def csv_path(store, directory=""):
         return Path(directory) / (store.schema.name + ".csv")
 
-    def load_csv(self, path=None, directory="", refill_todays_log=False):
+    def load_csv(self, path=None, directory="", refill_todays_logs=False):
         path = path or self.csv_path(directory)
         today = datetime.now().date()
         logging.debug("loading %s" % path)
         reader = csv.DictReader(open(path, newline=""))
         for row in reader:
-            if not refill_todays_log:
+            if not refill_todays_logs:
                 self.add_entry(row)
             else:
                 # Don't load in values of today's log so it can be overwritten

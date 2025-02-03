@@ -84,16 +84,16 @@ def fetch_cmd(ctx, url):
     type=click.Path(exists=True),
     default="collection/endpoint.csv",
 )
-@click.option("--refill-todays-log", default=False)
+@click.option("--refill-todays-logs", default=False)
 @collection_dir
 @click.pass_context
-def collect_cmd(ctx, endpoint_path, collection_dir, refill_todays_log):
+def collect_cmd(ctx, endpoint_path, collection_dir, refill_todays_logs):
     """fetch resources from collection endpoints"""
     return collect(
         endpoint_path,
         collection_dir,
         ctx.obj["PIPELINE"],
-        refill_todays_log=refill_todays_log,
+        refill_todays_logs=refill_todays_logs,
     )
 
 
@@ -118,8 +118,8 @@ def collection_pipeline_makerules_cmd(collection_dir):
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
 @click.option("--refill-todays-logs", default=False)
 @collection_dir
-def collection_save_csv_cmd(collection_dir, refill_todays_log):
-    return collection_save_csv(collection_dir, refill_todays_log)
+def collection_save_csv_cmd(collection_dir, refill_todays_logs):
+    return collection_save_csv(collection_dir, refill_todays_logs)
 
 
 @cli.command(
