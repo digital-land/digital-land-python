@@ -426,7 +426,7 @@ def test_collection_update_today(test_collection_update_fixture):
     assert collection.resource.entries[0]["end-date"] == ""
 
 
-def test_collection_update_overwrite_today(tmp_path):
+def test_collection_update_refill_todays_log(tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
 
@@ -487,11 +487,11 @@ def test_collection_update_overwrite_today(tmp_path):
 
     # Load from CSVs
     # With overwrite today true it shouldn't load today's log
-    collection.load(overwrite_today=True)
+    collection.load(refill_todays_log=True)
     assert len(collection.log.entries) == 0
 
     # While False it should load todays log as normal
-    collection.load(overwrite_today=False)
+    collection.load(refill_todays_log=False)
     assert len(collection.log.entries) == 1
 
 

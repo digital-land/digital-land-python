@@ -51,9 +51,11 @@ class Collector:
         log_date = log_datetime.isoformat()[:10]
         return os.path.join(self.log_dir, log_date, endpoint + ".json")
 
-    def save_log(self, path, log, force_refetch=False):
+    def save_log(self, path, log, refill_todays_log=False):
         self.save(
-            path, canonicaljson.encode_canonical_json(log), force_refetch=force_refetch
+            path,
+            canonicaljson.encode_canonical_json(log),
+            refill_todays_log=refill_todays_log,
         )
 
     def save_content(self, content):
@@ -62,10 +64,10 @@ class Collector:
         self.save(path, content)
         return resource
 
-    def save(self, path, data, force_refetch=False):
+    def save(self, path, data, refill_todays_log=False):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        # if force_refetch=True then files in log_path need to be overwritten
-        if not os.path.exists(path) or force_refetch:
+        # if refill_todays_log=True then files in log_path need to be overwritten
+        if not os.path.exists(path) or refill_todays_log:
             logging.info(path)
             with open(path, "wb") as f:
                 f.write(data)
@@ -129,7 +131,7 @@ class Collector:
         log_datetime=datetime.utcnow(),
         end_date="",
         plugin="",
-        force_refetch=False,
+        refill_todays_log=False,
     ):
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return FetchStatus.EXPIRED
@@ -145,7 +147,7 @@ class Collector:
 
         # fetch each source at most once per-day, though with an option to re-collect the latest day's sources
         log_path = self.log_path(log_datetime, endpoint)
-        if not force_refetch:
+        if not refill_todays_log:
             if os.path.isfile(log_path):
                 logging.debug(f"{log_path} exists")
                 return FetchStatus.ALREADY_FETCHED
@@ -172,7 +174,7 @@ class Collector:
         log["elapsed"] = str(round(timer() - start, 3))
 
         status = self.save_resource(content, log_path, log)
-        self.save_log(log_path, log, force_refetch=force_refetch)
+        self.save_log(log_path, log, refill_todays_log=refill_todays_log)
         return status
 
     def save_resource(self, content, url, log):
@@ -186,7 +188,7 @@ class Collector:
 
         return FetchStatus.FAILED
 
-    def collect(self, endpoint_path, force_refetch=False):
+    def collect(self, endpoint_path, refill_todays_log=False):
         for row in csv.DictReader(open(endpoint_path, newline="")):
             endpoint = row["endpoint"]
             url = row["endpoint-url"]
@@ -201,5 +203,5 @@ class Collector:
                 endpoint=endpoint,
                 end_date=row.get("end-date", ""),
                 plugin=plugin,
-                force_refetch=force_refetch,
+                refill_todays_log=refill_todays_log,
             )
