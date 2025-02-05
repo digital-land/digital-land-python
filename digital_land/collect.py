@@ -100,9 +100,19 @@ class Collector:
                 verify=verify_ssl,
             )
         except (requests.RequestException,) as exception:
-            logging.warning(exception)
-            log["exception"] = type(exception).__name__
-            response = None
+            if isinstance(exception, requests.exceptions.ConnectionError) or "RemoteDisconnected" in str(exception):
+                self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                try:
+                    response = self.session.get(
+                    url,
+                    headers={"User-Agent": self.user_agent},
+                    timeout=120,
+                    verify=verify_ssl,
+                )
+                except requests.RequestException as fallback_exception:
+                    logging.warning(fallback_exception)
+                    log["exception"] = type(fallback_exception).__name__
+                    response = None
 
         content = None
 
