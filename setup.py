@@ -53,7 +53,7 @@ setup(
         "dataclasses-json",
         "pydantic",
         "json-stream",
-        "duckdb",
+        "duckdb==1.1.3",
         "dask",
         "pyarrow",
         "pygit2",
