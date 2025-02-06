@@ -1211,7 +1211,7 @@ def get_resource_unidentified_lookups(
     # could alter resource_from_path to file from path and promote to a utils folder
     resource = resource_from_path(input_path)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
-    custom_temp_dir = tmp_dir  # './var'
+    # custom_temp_dir = tmp_dir  # './var'
 
     print("")
     print("----------------------------------------------------------------------")
