@@ -47,7 +47,7 @@ class DatasetParquetPackage(Package):
             self.duckdb_path = Path(duckdb_path)
             self.duckdb_path.parent.mkdir(parents=True, exist_ok=True)
             self.conn = duckdb.connect(self.duckdb_path)
-            self.conn.execute("INSTALL spatial; LOAD spatial;")
+            # self.conn.execute("INSTALL spatial; LOAD spatial;")
         else:
             self.conn = duckdb.connect()
 
