@@ -188,7 +188,7 @@ class ConvertPhase(Phase):
         dataset_resource_log=None,
         converted_resource_log=None,
         output_path=None,
-        custom_temp_dir=None,
+        # custom_temp_dir=None,
     ):
         """
         given a fie/filepath will aim to convert it to a csv and return the path to a csv, if the file is already a csv
@@ -208,9 +208,9 @@ class ConvertPhase(Phase):
             output_dir = os.path.dirname(output_path)
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
-        self.custom_temp_dir = custom_temp_dir
-        if custom_temp_dir:
-            os.makedirs(custom_temp_dir, exist_ok=True)
+        # self.custom_temp_dir = custom_temp_dir
+        # if custom_temp_dir:
+        #     os.makedirs(custom_temp_dir, exist_ok=True)
 
     def process(self, stream=None):
         input_path = self.path
