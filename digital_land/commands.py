@@ -1265,7 +1265,6 @@ def get_resource_unidentified_lookups(
         ConvertPhase(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
-            custom_temp_dir=custom_temp_dir,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
