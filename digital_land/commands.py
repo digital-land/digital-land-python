@@ -28,7 +28,9 @@ from digital_land.log import (
     ConvertedResourceLog,
 )
 from digital_land.organisation import Organisation
+
 from digital_land.package.dataset import DatasetPackage
+from digital_land.package.dataset_parquet import DatasetParquetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
@@ -55,6 +57,7 @@ from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrun
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
+from digital_land.pipeline.process import convert_tranformed_csv_to_pq
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
@@ -172,17 +175,17 @@ def collection_retire_endpoints_and_sources(
 #
 #  pipeline commands
 #
-def convert(input_path, output_path, custom_temp_dir=None):
+def convert(input_path, output_path):
     if not output_path:
         output_path = default_output_path("converted", input_path)
     dataset_resource_log = DatasetResourceLog()
     converted_resource_log = ConvertedResourceLog()
+    # TBD this actualy duplictaes the data and does nothing else, should just convert it?
     run_pipeline(
         ConvertPhase(
             input_path,
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
-            custom_temp_dir=custom_temp_dir,
         ),
         DumpPhase(output_path),
     )
@@ -201,10 +204,11 @@ def pipeline_run(
     operational_issue_dir="performance/operational_issue/",
     organisation_path=None,
     save_harmonised=False,
+    #  TBD save all logs in  a log directory, this will mean only one path passed in.
     column_field_dir=None,
     dataset_resource_dir=None,
     converted_resource_dir=None,
-    custom_temp_dir=None,  # TBD: rename to "tmpdir"
+    cache_dir="var/cache",
     endpoints=[],
     organisations=[],
     entry_date="",
@@ -213,6 +217,9 @@ def pipeline_run(
     output_log_dir=None,
     converted_path=None,
 ):
+    # set up paths
+    cache_dir = Path(cache_dir)
+
     if resource is None:
         resource = resource_from_path(input_path)
     dataset = dataset
@@ -276,7 +283,6 @@ def pipeline_run(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
-            custom_temp_dir=custom_temp_dir,
             output_path=converted_path,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
@@ -356,6 +362,14 @@ def pipeline_run(
     column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
+    # create converted parquet in the var directory
+    cache_dir = Path(organisation_path).parent
+    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+    transformed_parquet_dir.mkdir(exist_ok=True, parents=True)
+    convert_tranformed_csv_to_pq(
+        input_path=output_path,
+        output_path=transformed_parquet_dir / f"{resource}.parquet",
+    )
 
 
 #
@@ -371,42 +385,91 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
+    cache_dir="var/cache",
+    resource_path="collection/resource.csv",
 ):
+    # set level for logging to see what's going on
+    logger.setLevel(logging.INFO)
+    logging.getLogger("digital_land.package.dataset_parquet").setLevel(logging.INFO)
+
+    # chek all paths are paths
+    issue_dir = Path(issue_dir)
+    column_field_dir = Path(column_field_dir)
+    dataset_resource_dir = Path(dataset_resource_dir)
+    cache_dir = Path(cache_dir)
+    resource_path = Path(resource_path)
+
+    # get  the transformed files from the cache directory this  is  assumed right now but we may want to be stricter in the future
+    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+
+    # creat directory for dataset_parquet_package
+    dataset_parquet_path = cache_dir / dataset
+
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
 
     # Set up initial objects
-    column_field_dir = Path(column_field_dir)
-    dataset_resource_dir = Path(dataset_resource_dir)
     organisation = Organisation(
         organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
     )
+
+    # create sqlite dataset packageas before and load inn data that isn't in the parquetpackage yet
     package = DatasetPackage(
         dataset,
         organisation=organisation,
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    package.create()
+    # don'tt use create as we don't want to create the indexes
+    package.create_database()
+    package.disconnect()
     for path in input_paths:
         path_obj = Path(path)
-        package.load_transformed(path)
-        package.load_column_fields(column_field_dir / dataset / path_obj.name)
-        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    package.load_entities()
-
-    old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
-    if os.path.exists(old_entity_path):
+        logging.info(f"loading column field log into {output_path}")
+        package.load_column_fields(column_field_dir / dataset / f"{path_obj.stem}.csv")
+        logging.info(f"loading dataset resource log into {output_path}")
+        package.load_dataset_resource(
+            dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
+        )
+    logging.info(f"loading old entities into {output_path}")
+    old_entity_path = Path(pipeline.path) / "old-entity.csv"
+    if old_entity_path.exists():
         package.load_old_entities(old_entity_path)
 
-    issue_paths = os.path.join(issue_dir, dataset)
-    if os.path.exists(issue_paths):
+    logging.info(f"loading issues into {output_path}")
+    issue_paths = issue_dir / dataset
+    if issue_paths.exists():
         for issue_path in os.listdir(issue_paths):
             package.load_issues(os.path.join(issue_paths, issue_path))
     else:
         logging.warning("No directory for this dataset in the provided issue_directory")
 
+    # Repeat for parquet
+    # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+
+    pqpackage = DatasetParquetPackage(
+        dataset,
+        path=dataset_parquet_path,
+        specification_dir=None,  # TBD: package should use this specification object
+        duckdb_path=cache_dir / "overflow.duckdb",
+    )
+    pqpackage.load_facts(transformed_parquet_dir)
+    pqpackage.load_fact_resource(transformed_parquet_dir)
+    pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
+
+    logger.info("loading fact,fact_resource and entity into {output_path}")
+    pqpackage.load_to_sqlite(output_path)
+
+    logger.info(f"add indexes to {output_path}")
+    package.connect()
+    package.create_cursor()
+    package.create_indexes()
+    package.disconnect()
+
+    logger.info(f"creating dataset package {output_path} counts")
     package.add_counts()
 
 
@@ -1148,7 +1211,7 @@ def get_resource_unidentified_lookups(
     # could alter resource_from_path to file from path and promote to a utils folder
     resource = resource_from_path(input_path)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
-    custom_temp_dir = tmp_dir  # './var'
+    # custom_temp_dir = tmp_dir  # './var'
 
     print("")
     print("----------------------------------------------------------------------")
@@ -1202,7 +1265,6 @@ def get_resource_unidentified_lookups(
         ConvertPhase(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
-            custom_temp_dir=custom_temp_dir,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
