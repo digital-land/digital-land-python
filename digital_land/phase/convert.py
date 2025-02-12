@@ -187,20 +187,21 @@ class ConvertPhase(Phase):
         path=None,
         dataset_resource_log=None,
         converted_resource_log=None,
-        custom_temp_dir=None,
         output_path=None,
     ):
+        """
+        given a fie/filepath will aim to convert  it to a csv and return the path to a csv, if the file is aready a csv
+
+        Args:
+            path (str): Path to the shapefile or geojson
+            dataset_resource_log (DatasetResourceLog): DatasetResourceLog object
+            converted_resource_log (ConvertedResourceLog): ConvertedResourceLog object
+            output_path (str): Optional output path for the converted csv
+        """
         self.path = path
         self.dataset_resource_log = dataset_resource_log
         self.converted_resource_log = converted_resource_log
         self.charset = ""
-        # Allows for custom temporary directory to be specified
-        # This allows symlink creation in case of /tmp & path being on different partitions
-        if custom_temp_dir:
-            self.temp_file_extra_kwargs = {"dir": custom_temp_dir}
-        else:
-            self.temp_file_extra_kwargs = {}
-
         self.output_path = output_path
         if output_path:
             output_dir = os.path.dirname(output_path)
@@ -247,6 +248,7 @@ class ConvertPhase(Phase):
 
             return Stream(input_path, f=iter(()), log=self.dataset_resource_log)
 
+    # should  this  be  a method and not a function? I think we  re-factor it  into a function let's remove references to self
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
         self.dataset_resource_log.mime_type = "text/csv" + self.charset
@@ -361,9 +363,13 @@ class ConvertPhase(Phase):
             if internal_path:
                 self.dataset_resource_log.internal_path = internal_path
                 self.dataset_resource_log.internal_mime_type = mime_type
-                temp_path = tempfile.NamedTemporaryFile(
-                    suffix=".zip", **self.temp_file_extra_kwargs
-                ).name
+                # TODO erpace temp path with output path
+                if self.output_path:
+                    temp_path = tempfile.NamedTemporaryFile(
+                        suffix=".zip", dir=str(self.output_path.parent)
+                    ).name
+                else:
+                    temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
                 os.link(input_path, temp_path)
                 zip_path = f"/vsizip/{temp_path}{internal_path}"
                 logging.debug(f"zip_path: {zip_path} mime_type: {mime_type}")
