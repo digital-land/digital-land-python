@@ -86,10 +86,10 @@ def fetch(url, pipeline):
     collector.fetch(url)
 
 
-def collect(endpoint_path, collection_dir, pipeline):
+def collect(endpoint_path, collection_dir, pipeline, refill_todays_logs=False):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
     collector = Collector(pipeline.name, Path(collection_dir))
-    collector.collect(endpoint_path)
+    collector.collect(endpoint_path, refill_todays_logs=refill_todays_logs)
 
 
 #
@@ -109,9 +109,9 @@ def collection_pipeline_makerules(collection_dir):
     collection.pipeline_makerules()
 
 
-def collection_save_csv(collection_dir):
+def collection_save_csv(collection_dir, refill_todays_logs=False):
     collection = Collection(name=None, directory=collection_dir)
-    collection.load()
+    collection.load(refill_todays_logs=refill_todays_logs)
     collection.update()
     collection.save_csv()
 

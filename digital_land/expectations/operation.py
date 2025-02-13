@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import urllib
 import os
+import time
 
 
 # # TODO is there a way to represent this in a generalised count or not
@@ -39,7 +40,7 @@ def count_lpa_boundary(
         lpa_geometry = data["geometry"]
     except requests.exceptions.RequestException as err:
         passed = False
-        message = f"An error occured when retrieving lpa geometry from platform {err}"
+        message = f"An error occurred when retrieving lpa geometry from platform {err}"
         details = {}
         return passed, message, details
 
@@ -142,7 +143,18 @@ def count_deleted_entities(
         }
     )
     base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
-    get_resource = pd.read_csv(base_url)
+
+    # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
+    max_retries = 60  # Retry for an hour
+    for attempt in range(max_retries):
+        try:
+            get_resource = pd.read_csv(base_url)
+            break
+        except urllib.error.HTTPError:
+            time.sleep(60)
+    else:
+        raise Exception("Failed to fetch datasette after multiple attempts")
+
     resource_list = get_resource["resource"].to_list()
 
     # use resource list to get current entities

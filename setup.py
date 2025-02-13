@@ -55,6 +55,7 @@ setup(
         "json-stream",
         "duckdb",
         "dask",
+        "dask[dataframe]",
         "pyarrow",
         "pygit2",
     ],
