@@ -42,7 +42,7 @@ def test_dirs(tmp_path_factory):
     converted_resource_dir = tmp_path_factory.mktemp(
         "column_converted-resource", numbered=False
     )
-    column_field_dir = tmp_path_factory.mktemp("column-field", numbered=False)
+    column_field_dir = tmp_path_factory.mktemp("column_field", numbered=False)
     output_log_dir = tmp_path_factory.mktemp("column_output_log", numbered=False)
 
     output_dir = tmp_path_factory.mktemp("column_output", numbered=False)
