@@ -284,28 +284,41 @@ def test_acceptance_dataset_create(
         print("Command error output:")
         print(result.exception)
 
+    # get filepath for each parquet file
+
+    entity_parquet_path = (
+        cache_path
+        / "provenance"
+        / "entity"
+        / "dataset=conservation-area"
+        / "entity.parquet"
+    )
+    fact_parquet_path = (
+        cache_path
+        / "provenance"
+        / "fact"
+        / "dataset=conservation-area"
+        / "fact.parquet"
+    )
+    fact_resource_parquet_path = (
+        cache_path
+        / "provenance"
+        / "fact-resource"
+        / "dataset=conservation-area"
+        / "fact-resource.parquet"
+    )
     files = [
-        str(f.name)
-        for f in (
-            cache_path / "conservation-area" / "dataset=conservation-area"
-        ).iterdir()
+        entity_parquet_path,
+        fact_parquet_path,
+        fact_resource_parquet_path,
     ]
-    for file in ["entity.parquet", "fact.parquet", "fact_resource.parquet"]:
-        assert file in files, f"file {file} not created. files found {', '.join(files)}"
+    for file in files:
+        assert file.exists(), f"file {file.name} not created."
     assert result.exit_code == 0, "error returned when building dataset"
 
     # check that parquet files have been created correctlly in the cache directory
     # may  want to adjust this for how we structure  a parquet package in the future
     # also we are using the cache to store this for now but in the future  we may  want to store it in a specific directory
-    files = [
-        str(f.name)
-        for f in (
-            cache_path / "conservation-area" / "dataset=conservation-area"
-        ).iterdir()
-    ]
-
-    for file in ["entity.parquet", "fact.parquet", "fact_resource.parquet"]:
-        assert file in files, f"file {file} not created. files found {', '.join(files)}"
 
     # Check the sqlite file was created
     assert os.path.exists(output_path), f"sqlite file {output_path} does not exists"
@@ -322,23 +335,18 @@ def test_acceptance_dataset_create(
         len(missing_tables) == 0
     ), f"Missing following tables in sqlite database: {missing_tables}"
 
-    for table in list(expected_tables):
+    for file in files:
 
-        pq_rows = len(
-            pd.read_parquet(
-                cache_path
-                / "conservation-area"
-                / "dataset=conservation-area"
-                / f"{table}.parquet"
-            )
-        )
+        pq_rows = len(pd.read_parquet(file))
 
-        assert pq_rows > 0, f"parquet file {table} is empty"
-        sql_rows = cursor.execute(f"SELECT COUNT(*) FROM {table};").fetchone()[0]
-        assert sql_rows > 0, f"database table {table} is empty"
+        assert pq_rows > 0, f"parquet file {file.stem} is empty"
+        sql_rows = cursor.execute(
+            f"SELECT COUNT(*) FROM {file.stem.replace('-','_')};"
+        ).fetchone()[0]
+        assert sql_rows > 0, f"database table {file.stem} is empty"
         assert (
             pq_rows == sql_rows
-        ), f"Different rows between the parquet files and database table for {table}"
+        ), f"Different rows between the parquet files and database table for {file.stem}"
 
     # entity table specific tests to check how we expect the data to be used
 

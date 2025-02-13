@@ -403,8 +403,8 @@ def dataset_create(
     # get  the transformed files from the cache directory this  is  assumed right now but we may want to be stricter in the future
     transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
 
-    # creat directory for dataset_parquet_package
-    dataset_parquet_path = cache_dir / dataset
+    # creat directory for dataset_parquet_package, will create a general provenance one for now
+    dataset_parquet_path = cache_dir / "provenance"
 
     if not output_path:
         print("missing output path", file=sys.stderr)
