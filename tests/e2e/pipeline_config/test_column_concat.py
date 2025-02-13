@@ -348,13 +348,11 @@ def test_pipeline_run(test_dirs):
         operational_issue_dir=operational_issue_dir,
         organisation_path=organisation_path,
         save_harmonised=False,
-        column_field_dir=pipeline_dir,
         dataset_resource_dir=dataset_resource_dir,
         converted_resource_dir=converted_resource_dir,
-        custom_temp_dir=None,  # TBD: rename to "tmpdir"
         endpoints=test_endpoints,
         organisations=[],
-        entry_date="",
+        entry_date="2012-02-01",
         output_log_dir=output_log_dir,
     )
 

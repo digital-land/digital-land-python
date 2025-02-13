@@ -359,7 +359,8 @@ def pipeline_run(
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     issue_log.save_parquet(os.path.join(output_log_dir, "issue/"))
     operational_issue_log.save(output_dir=operational_issue_dir)
-    column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
+    if column_field_dir:
+        column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
     # create converted parquet in the var directory
