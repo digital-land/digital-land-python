@@ -231,7 +231,7 @@ def test_check_columns_failure(dataset_path):
 
     with sqlite3.connect(dataset_path) as conn:
         result, message, details = check_columns(conn.cursor(), expected)
-        assert result
+        assert not result
         assert "1 out of 2 tables had expected columns" in message
         assert not details[0]["success"]
         assert details[0]["missing"] == ["missing", "columns"]
