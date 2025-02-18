@@ -142,10 +142,9 @@ def test_pipeline_run(test_dirs):
         operational_issue_dir=operational_issue_dir,
         organisation_path=organisation_path,
         save_harmonised=False,
-        column_field_dir=pipeline_dir,
+        column_field_dir=test_dirs["column_field_dir"],
         dataset_resource_dir=dataset_resource_dir,
         converted_resource_dir=converted_resource_dir,
-        custom_temp_dir=None,  # TBD: rename to "tmpdir"
         endpoints=test_endpoints,
         organisations=[],
         entry_date="",
@@ -153,8 +152,9 @@ def test_pipeline_run(test_dirs):
     )
 
     # -- Asert --
-    output_file = output_path
-    df = pd.read_csv(output_file, index_col=False)
+    df = pd.read_csv(
+        test_dirs["column_field_dir"] / f"{test_resource}.csv", index_col=False
+    )
 
     assert "end-date" in df["column"].values
     assert "ep-col-one" in df["column"].values
