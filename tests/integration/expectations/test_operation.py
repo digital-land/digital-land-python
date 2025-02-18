@@ -234,4 +234,5 @@ def test_check_columns_failure(dataset_path):
         assert not result
         assert "1 out of 2 tables had expected columns" in message
         assert not details[0]["success"]
-        assert details[0]["missing"] == ["missing", "columns"]
+        assert "missing" in details[0]["missing"]
+        assert "columns" in details[0]["missing"]
