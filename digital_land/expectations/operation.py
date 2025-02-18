@@ -186,3 +186,38 @@ def count_deleted_entities(
     }
 
     return result, message, details
+
+
+def check_columns(conn, expected: dict):
+    details = []
+    success_count = 0
+    failure_count = 0
+    # expected: a dictionary containing table names as keys, with their a list of their expected columns as the value
+    for k, v in expected.items():
+        table_name = k
+        expected_columns = v
+        sql = f"""
+        PRAGMA table_info({table_name})
+        """
+        rows = conn.execute(sql).fetchall()
+        actual = [row[1] for row in rows]
+        success = set(expected_columns).issubset(set(actual))
+        missing = list(set(expected_columns) - set(actual))
+        details.append(
+            {
+                "table": table_name,
+                "success": success,
+                "missing": missing,
+                "actual": actual,
+                "expected": expected_columns,
+            }
+        )
+        if success:
+            success_count += 1
+        else:
+            failure_count += 1
+
+    result = False if failure_count > 0 else True
+    message = f"{success_count} out of {success_count + failure_count} tables had expected columns"
+
+    return result, message, details
