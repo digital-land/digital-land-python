@@ -205,6 +205,10 @@ def test_check_columns(dataset_path):
         assert result
         assert "2 out of 2 tables had expected columns" in message
 
+        assert details[0]["table"] == "entity"
+        assert any(x in details[0]["actual"] for x in expected["entity"])
+        assert any(x in details[0]["expected"] for x in expected["entity"])
+
 
 def test_check_columns_failure(dataset_path):
     expected = {
