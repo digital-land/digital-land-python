@@ -1,5 +1,8 @@
 import re
 import logging
+import time
+import pandas as pd
+import urllib
 
 from .phase import Phase
 
@@ -163,6 +166,56 @@ class LookupPhase(Phase):
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]
                         )
+
+                if row[self.entity_field]:
+                    if (
+                        row.get("article-4-direction", "")
+                        or row.get("tree-preservation-order", "").strip()
+                    ):
+                        linked_dataset = (
+                            "article-4-direction"
+                            if "article-4-direction" in row
+                            else "tree-preservation-order"
+                        )
+
+                        # check applied for organisations that have provided a document dataset
+                        params = urllib.parse.urlencode(
+                            {
+                                "sql": f"""select organisation from provision_summary where active_endpoint_count > 0 and dataset == '{linked_dataset}'""",
+                                "_size": "max",
+                            }
+                        )
+                        base_url = f"https://datasette.planning.data.gov.uk/performance.csv?{params}"
+
+                        max_retries = 60  # Retry for an hour
+                        for attempt in range(max_retries):
+                            try:
+                                get_lpa = pd.read_csv(base_url)
+                                break
+                            except urllib.error.HTTPError:
+                                time.sleep(60)
+                        else:
+                            raise Exception(
+                                "Failed to fetch datasette after multiple attempts"
+                            )
+
+                        lpa_list = get_lpa["organisation"].to_list()
+
+                        if row.get("organisation", "") in lpa_list:
+                            reference = row.get(linked_dataset, "")
+
+                            find_entity = self.lookup(
+                                prefix=linked_dataset,
+                                organisation=row.get("organisation", ""),
+                                reference=row.get(linked_dataset, ""),
+                            )
+                            if not find_entity:
+                                self.issues.log_issue(
+                                    linked_dataset,
+                                    "no associated documents found for this area",
+                                    reference,
+                                    line_number=line_number,
+                                )
             yield block
 
 

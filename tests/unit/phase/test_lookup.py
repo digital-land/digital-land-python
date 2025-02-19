@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from digital_land.phase.lookup import LookupPhase, EntityLookupPhase, PrintLookupPhase
@@ -122,6 +123,68 @@ class TestLookupPhase:
         output = [block for block in phase.process(input_stream)]
 
         assert output[0]["row"]["entity"] == "10"
+
+    def test_no_associated_documents_issue(self, mocker):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "article-4-direction-area",
+                    "reference": "1",
+                    "organisation": "local-authority:ABC",
+                    "article-4-direction": "a4d2",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+
+        lookups = {
+            ",article-4-direction,a4d1,local-authorityabc": "1",
+            ",article-4-direction-area,1,local-authorityabc": "2",
+        }
+        issues = IssueLog()
+
+        phase = LookupPhase(lookups=lookups, issue_log=issues)
+        phase.entity_field = "entity"
+        mock_df = pd.DataFrame({"organisation": ["local-authority:ABC"]})
+        mocker.patch("pandas.read_csv", return_value=mock_df)
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == "2"
+        assert (
+            issues.rows[0]["issue-type"]
+            == "no associated documents found for this area"
+        )
+        assert issues.rows[0]["value"] == "a4d2"
+
+    def test_no_associated_documents_issue_for_missing_dataset(self, mocker):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "article-4-direction-area",
+                    "reference": "1",
+                    "organisation": "local-authority:ABC",
+                    "article-4-direction": "a4d2",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+
+        lookups = {
+            ",article-4-direction,a4d1,local-authorityabc": "1",
+            ",article-4-direction-area,1,local-authorityabc": "2",
+        }
+        issues = IssueLog()
+
+        phase = LookupPhase(lookups=lookups, issue_log=issues)
+        phase.entity_field = "entity"
+        mock_df = pd.DataFrame({"organisation": ["local-authority:XYZ"]})
+        mocker.patch("pandas.read_csv", return_value=mock_df)
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == "2"
+        assert len(issues.rows) == 0
 
 
 class TestPrintLookupPhase:
