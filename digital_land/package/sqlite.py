@@ -298,12 +298,15 @@ class SqlitePackage(Package):
         if os.path.exists(self.path):
             os.remove(self.path)
 
+        self.set_up_connection()
+
+        self.create_tables()
+
+    def set_up_connection(self):
         self.connect()
 
         if self._spatialite:
             self.connection.execute("select InitSpatialMetadata(1)")
-
-        self.create_tables()
 
     def create(self):
         self.create_database()
