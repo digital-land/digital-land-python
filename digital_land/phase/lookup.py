@@ -212,7 +212,16 @@ class LookupPhase(Phase):
                                 organisation=row.get("organisation", ""),
                                 reference=row.get(linked_dataset, ""),
                             )
-                            if not find_entity:
+                            # raise issue if the found entity is retired in old-entity.csv
+                            if not find_entity or (
+                                str(find_entity) in self.redirect_lookups
+                                and int(
+                                    self.redirect_lookups[str(find_entity)].get(
+                                        "status", 0
+                                    )
+                                )
+                                == 410
+                            ):
                                 self.issues.log_issue(
                                     linked_dataset,
                                     "no associated documents found for this area",
