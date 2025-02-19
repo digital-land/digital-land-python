@@ -179,29 +179,32 @@ class LookupPhase(Phase):
                         )
 
                         # check applied for organisations that have provided a document dataset
-                        params = urllib.parse.urlencode(
-                            {
-                                "sql": f"""select organisation from provision_summary where active_endpoint_count > 0 and dataset == '{linked_dataset}'""",
-                                "_size": "max",
-                            }
-                        )
-                        base_url = f"https://datasette.planning.data.gov.uk/performance.csv?{params}"
-
-                        max_retries = 60  # Retry for an hour
-                        for attempt in range(max_retries):
-                            try:
-                                get_lpa = pd.read_csv(base_url)
-                                break
-                            except urllib.error.HTTPError:
-                                time.sleep(60)
-                        else:
-                            raise Exception(
-                                "Failed to fetch datasette after multiple attempts"
+                        if not hasattr(
+                            self, "lpa_list"
+                        ):  # check if data fetched already
+                            params = urllib.parse.urlencode(
+                                {
+                                    "sql": f"""select organisation from provision_summary where active_endpoint_count > 0 and dataset == '{linked_dataset}'""",
+                                    "_size": "max",
+                                }
                             )
+                            base_url = f"https://datasette.planning.data.gov.uk/performance.csv?{params}"
 
-                        lpa_list = get_lpa["organisation"].to_list()
+                            max_retries = 60  # Retry for an hour
+                            for attempt in range(max_retries):
+                                try:
+                                    get_lpa = pd.read_csv(base_url)
+                                    self.lpa_list = get_lpa["organisation"].to_list()
+                                    break
+                                except urllib.error.HTTPError:
+                                    if attempt < max_retries - 1:
+                                        time.sleep(60)
+                            else:
+                                raise Exception(
+                                    "Failed to fetch datasette after multiple attempts"
+                                )
 
-                        if row.get("organisation", "") in lpa_list:
+                        if row.get("organisation", "") in self.lpa_list:
                             reference = row.get(linked_dataset, "")
 
                             find_entity = self.lookup(
