@@ -323,6 +323,7 @@ class SqlitePackage(Package):
 
         local_path = os.path.dirname(self.path)
         s3 = boto3.client("s3")
+
         file_key = f"{table_name}.sqlite3"
         local_file_path = os.path.join(local_path, file_key)
 
@@ -338,7 +339,6 @@ class SqlitePackage(Package):
         except botocore.exceptions.ClientError as e:
             logger.error(f"❌ AWS S3 error: {e}")
 
-        # os.system(f"aws s3 cp s3://{bucket_name}/{table_name}.sqlite3 {os.path.dirname(self.path)} --no-progress")
         self.set_up_connection()
         self.load()
         # self.create_indexes()# Do we need this?
