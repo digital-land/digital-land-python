@@ -386,7 +386,7 @@ class DatasetParquetPackage(Package):
         max_sql = f"select MAX(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
         max_entity = self.conn.execute(max_sql).fetchone()[0]
         total_entities = max_entity - min_entity
-        entity_limit = 1000000
+        entity_limit = 100000
         if total_entities > entity_limit:
             # create a temparary output path to store separate entity file in
             temp_dir = (
