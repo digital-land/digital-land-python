@@ -1,8 +1,10 @@
 import spatialite
+import sqlite3
 import pytest
 import pandas as pd
 
 from digital_land.expectations.operation import (
+    check_columns,
     count_lpa_boundary,
     count_deleted_entities,
 )
@@ -174,3 +176,67 @@ def test_count_deleted_entities(dataset_path, mocker):
     for key in detail_keys:
         assert key in details, f"{key} missing from details"
     assert "1002" in details["entities"]
+
+
+def test_check_columns(dataset_path):
+    expected = {
+        "entity": [
+            "dataset",
+            "end_date",
+            "entity",
+            "entry_date",
+            "geojson",
+            "geometry",
+            "json",
+            "name",
+            "organisation_entity",
+            "point",
+            "prefix",
+            "reference",
+            "start_date",
+            "typology",
+        ],
+        "old_entity": ["old_entity", "entity"],
+    }
+
+    with sqlite3.connect(dataset_path) as conn:
+        result, message, details = check_columns(conn.cursor(), expected)
+
+        assert result
+        assert "2 out of 2 tables had expected columns" in message
+
+        assert details[0]["table"] == "entity"
+        assert any(x in details[0]["actual"] for x in expected["entity"])
+        assert any(x in details[0]["expected"] for x in expected["entity"])
+
+
+def test_check_columns_failure(dataset_path):
+    expected = {
+        "entity": [
+            "missing",
+            "columns",
+            "dataset",
+            "end_date",
+            "entity",
+            "entry_date",
+            "geojson",
+            "geometry",
+            "json",
+            "name",
+            "organisation_entity",
+            "point",
+            "prefix",
+            "reference",
+            "start_date",
+            "typology",
+        ],
+        "old_entity": ["old_entity", "entity"],
+    }
+
+    with sqlite3.connect(dataset_path) as conn:
+        result, message, details = check_columns(conn.cursor(), expected)
+        assert not result
+        assert "1 out of 2 tables had expected columns" in message
+        assert not details[0]["success"]
+        assert "missing" in details[0]["missing"]
+        assert "columns" in details[0]["missing"]
