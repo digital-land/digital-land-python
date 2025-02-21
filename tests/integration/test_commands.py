@@ -270,7 +270,7 @@ def blank_patch_csv_new_resources(temp_dir):
 
 
 @pytest.fixture(scope="session")
-def sqlite_create_fixture(
+def test_dataset_create_fixture(
     specification_dir,
     resource_files_fixture,
     organisation_csv_new_resources,
@@ -344,8 +344,8 @@ def sqlite_create_fixture(
 
 
 @pytest.fixture
-def sqlite_update_fixture(
-    sqlite_create_fixture,
+def test_dataset_update_fixture(
+    test_dataset_create_fixture,
     specification_dir,
     resource_files_fixture,
     organisation_csv_new_resources,
@@ -353,8 +353,8 @@ def sqlite_update_fixture(
     temp_dir,
 ):
     """Creates and initializes the SQLite3 file with resources."""
-    dataset = sqlite_create_fixture["dataset"]
-    sqlite3_path = sqlite_create_fixture["sqlite3_path"]
+    dataset = test_dataset_create_fixture["dataset"]
+    sqlite3_path = test_dataset_create_fixture["sqlite3_path"]
 
     organisation = Organisation(
         organisation_path=organisation_csv_new_resources,
@@ -423,10 +423,10 @@ def get_table_row_counts(cursor):
     return row_counts
 
 
-def test_create_tables_fixture(sqlite_create_fixture):
+def test_create_tables_fixture(test_dataset_create_fixture):
     """Need to set up an initial sqlite3 file before sending it to S3 and then jupdating it."""
-    package = sqlite_create_fixture["package"]
-    sqlite3_path = sqlite_create_fixture["sqlite3_path"]
+    package = test_dataset_create_fixture["package"]
+    sqlite3_path = test_dataset_create_fixture["sqlite3_path"]
 
     assert sqlite3_path.exists(), "SQLite file should be present for the test"
 
@@ -448,14 +448,14 @@ def test_create_tables_fixture(sqlite_create_fixture):
     assert len(orig_values["fact"]) > 0, "Fact table should not be empty"
     assert len(orig_values["fact"]) == 1, "No. of facts not correct"
     assert (
-        sqlite_create_fixture["actual_result"] == orig_values["fact"]
+        test_dataset_create_fixture["actual_result"] == orig_values["fact"]
     ), "results differ across scopes"
 
 
 @pytest.fixture(scope="session")
-def test_mock_s3_bucket(sqlite_create_fixture):
-    sqlite3_path = sqlite_create_fixture["sqlite3_path"]
-    dataset = sqlite_create_fixture["dataset"]
+def test_mock_s3_bucket(test_dataset_create_fixture):
+    sqlite3_path = test_dataset_create_fixture["sqlite3_path"]
+    dataset = test_dataset_create_fixture["dataset"]
     bucket_name = "test-collection-data"
     object_key = f"test-collection/{dataset}"
 
@@ -491,22 +491,22 @@ def test_mock_s3_bucket(sqlite_create_fixture):
         yield s3
 
 
-def test_update_tables_with_new_resources(
-    sqlite_create_fixture, test_mock_s3_bucket, sqlite_update_fixture, temp_dir
+def test_dataset_update_with_new_resources(
+    test_dataset_create_fixture, test_mock_s3_bucket, test_dataset_update_fixture, temp_dir
 ):
     """
     Check that original sqlite3 file is created, then when we have new resources we create an
     updated sqlite3 file.
     """
     #  initial row counts
-    orig_sqlite3_path = sqlite_create_fixture["orig_sqlite3_path"]
+    orig_sqlite3_path = test_dataset_create_fixture["orig_sqlite3_path"]
     assert os.path.exists(orig_sqlite3_path), "Original sqlite3 file no longer exists"
     orig_conn = sqlite3.connect(orig_sqlite3_path)
     orig_cursor = orig_conn.cursor()
     initial_counts = get_table_row_counts(orig_cursor)
 
     # Updated row counts
-    sqlite3_path = sqlite_create_fixture["sqlite3_path"]
+    sqlite3_path = test_dataset_create_fixture["sqlite3_path"]
     assert os.path.exists(sqlite3_path), "Updated sqlite3 file no longer exists"
     updated_conn = sqlite3.connect(sqlite3_path)
     updated_cursor = updated_conn.cursor()
