@@ -5,11 +5,6 @@ import urllib.request
 import pandas as pd
 from pathlib import Path
 import sqlite3
-import tempfile
-import shutil
-import boto3
-from moto import mock_aws
-import loggging
 
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.package import Specification
@@ -376,6 +371,7 @@ def test_entry_date_upsert_uploads_blank_fields(
     # run upload to fact table not fact resource for testing the upsert
     package.connect()
     package.create_cursor()
+
     fact_fields = package.specification.schema["fact"]["fields"]
     fact_conflict_fields = ["fact"]
     fact_update_fields = [
@@ -413,3 +409,112 @@ def test_entry_date_upsert_uploads_blank_fields(
     assert actual_result == expected_result, "actual result does not match query"
 
 
+def test_insert_newest_date(
+    specification_dir,
+    organisation_csv,
+    blank_patch_csv,
+    transformed_fact_resources,
+    transformed_fact_resources_with_blank,
+    tmp_path,
+):
+    dataset = "conservation-area"
+    sqlite3_path = os.path.join(tmp_path, f"{dataset}.sqlite3")
+
+    organisation = Organisation(
+        organisation_path=organisation_csv,
+        pipeline_dir=Path(os.path.dirname(blank_patch_csv)),
+    )
+    package = DatasetPackage(
+        "conservation-area",
+        organisation=organisation,
+        path=sqlite3_path,
+        specification_dir=specification_dir,  # TBD: package should use this specification object
+    )
+
+    # create package
+    package.create()
+
+    # run upload to fact table not fact resource for testing the upsert
+    package.connect()
+    package.create_cursor()
+
+    fact_resource_fields = package.specification.schema["fact-resource"]["fields"]
+    for row in transformed_fact_resources:
+        package.insert("fact-resource", fact_resource_fields, row, upsert=True)
+    package.commit()
+    package.disconnect()
+
+    # retrieve results
+    package.connect()
+    package.create_cursor()
+    package.cursor.execute("SELECT * FROM fact_resource;")
+    cols = [column[0] for column in package.cursor.description]
+    actual_result = pd.DataFrame.from_records(
+        package.cursor.fetchall(), columns=cols
+    ).to_dict(orient="records")
+    expected_result = [
+        {
+            "end_date": "",
+            "fact": "1f90248fd06e49accd42b80e43d58beeac300f942f1a9f71da4b64865356b1f3",
+            "entry_date": "2021-09-06",
+            "entry_number": None,
+            "priority": None,
+            "resource": "",
+            "start_date": "",
+        },
+        {
+            "end_date": "",
+            "fact": "1f90248fd06e49accd42b80e43d58beeac300f942f1a9f71da4b64865356b1f3",
+            "entry_date": "2022-11-02",
+            "entry_number": None,
+            "priority": None,
+            "resource": "",
+            "start_date": "",
+        },
+    ]
+
+    assert actual_result == expected_result, "actual result does not match query"
+
+    # create package
+    package.create()
+
+    # run upload to fact table not fact resource for testing the upsert
+    package.connect()
+    package.create_cursor()
+
+    fact_resource_fields = package.specification.schema["fact-resource"]["fields"]
+    for row in transformed_fact_resources_with_blank:
+        package.insert("fact-resource", fact_resource_fields, row, upsert=True)
+    package.commit()
+    package.disconnect()
+
+    # retrieve results
+    package.connect()
+    package.create_cursor()
+    package.cursor.execute("SELECT * FROM fact_resource;")
+    cols = [column[0] for column in package.cursor.description]
+    actual_result = pd.DataFrame.from_records(
+        package.cursor.fetchall(), columns=cols
+    ).to_dict(orient="records")
+    expected_result = [
+        {
+            "end_date": "2021-12-31",
+            "fact": "1f90248fd06e49accd42b80e43d58beeac300f942f1a9f71da4b64865356b1f3",
+            "entry_date": "2021-09-06",
+            "entry_number": None,
+            "priority": None,
+            "resource": "",
+            "start_date": "",
+        },
+        {
+            "end_date": "",
+            "fact": "1f90248fd06e49accd42b80e43d58beeac300f942f1a9f71da4b64865356b1f3",
+            "entry_date": "2022-11-02",
+            "entry_number": None,
+            "priority": None,
+            "resource": "",
+            "start_date": "",
+        },
+    ]
+
+    assert actual_result == expected_result, "actual result does not match query"
