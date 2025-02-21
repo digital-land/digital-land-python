@@ -218,6 +218,11 @@ class DatasetParquetPackage(Package):
 
         # distinct_fields - list of fields in the field in fact
         rows = self.conn.execute(query).fetchall()
+        print(rows)
+        # if there are no entities in the entity range then we don't need to proceed
+        if len(rows) == 0:
+            return
+
         distinct_fields = [row[0] for row in rows]
 
         # json fields - list of fields which are present in the fact table which
