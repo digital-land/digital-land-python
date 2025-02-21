@@ -216,6 +216,7 @@ def pipeline_run(
     resource=None,
     output_log_dir=None,
     converted_path=None,
+    provision_summary_dir="var/cache/provision_summary",
 ):
     # set up paths
     cache_dir = Path(cache_dir)
@@ -330,6 +331,7 @@ def pipeline_run(
             issue_log=issue_log,
             operational_issue_log=operational_issue_log,
             entity_range=[entity_range_min, entity_range_max],
+            provision_summary_dir=provision_summary_dir,
         ),
         SavePhase(
             default_output_path("harmonised", input_path),
