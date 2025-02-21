@@ -1,8 +1,6 @@
 import re
 import logging
-import time
 import pandas as pd
-import urllib
 
 from .phase import Phase
 
@@ -36,6 +34,7 @@ class LookupPhase(Phase):
         issue_log=None,
         operational_issue_log=None,
         entity_range=[],
+        provision_summary_dir=None,
     ):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
@@ -43,6 +42,7 @@ class LookupPhase(Phase):
         self.operational_issues = operational_issue_log
         self.reverse_lookups = self.build_reverse_lookups()
         self.entity_range = entity_range
+        self.provision_summary_dir = provision_summary_dir
 
     def build_reverse_lookups(self):
         reverse_lookups = {}
@@ -167,67 +167,43 @@ class LookupPhase(Phase):
                             row[self.entity_field]
                         )
 
+                linked_datasets = ["article-4-direction", "tree-preservation-order"]
                 if row[self.entity_field]:
-                    if (
-                        row.get("article-4-direction", "")
-                        or row.get("tree-preservation-order", "").strip()
-                    ):
-                        linked_dataset = (
-                            "article-4-direction"
-                            if "article-4-direction" in row
-                            else "tree-preservation-order"
-                        )
-
-                        # check applied for organisations that have provided a document dataset
-                        if not hasattr(
-                            self, "lpa_list"
-                        ):  # check if data fetched already
-                            params = urllib.parse.urlencode(
-                                {
-                                    "sql": f"""select organisation from provision_summary where active_endpoint_count > 0 and dataset == '{linked_dataset}'""",
-                                    "_size": "max",
-                                }
+                    for linked_dataset in linked_datasets:
+                        if (
+                            row.get(linked_dataset, "")
+                            or row.get(linked_dataset, "").strip()
+                        ):
+                            get_organisations = pd.read_csv(
+                                self.provision_summary_dir + linked_dataset + ".csv"
                             )
-                            base_url = f"https://datasette.planning.data.gov.uk/performance.csv?{params}"
 
-                            max_retries = 60  # Retry for an hour
-                            for attempt in range(max_retries):
-                                try:
-                                    get_lpa = pd.read_csv(base_url)
-                                    self.lpa_list = get_lpa["organisation"].to_list()
-                                    break
-                                except urllib.error.HTTPError:
-                                    if attempt < max_retries - 1:
-                                        time.sleep(60)
-                            else:
-                                raise Exception(
-                                    "Failed to fetch datasette after multiple attempts"
-                                )
-
-                        if row.get("organisation", "") in self.lpa_list:
-                            reference = row.get(linked_dataset, "")
-
-                            find_entity = self.lookup(
-                                prefix=linked_dataset,
-                                organisation=row.get("organisation", ""),
-                                reference=row.get(linked_dataset, ""),
-                            )
-                            # raise issue if the found entity is retired in old-entity.csv
-                            if not find_entity or (
-                                str(find_entity) in self.redirect_lookups
-                                and int(
-                                    self.redirect_lookups[str(find_entity)].get(
-                                        "status", 0
-                                    )
-                                )
-                                == 410
+                            if (
+                                row.get("organisation", "")
+                                in get_organisations["organisation"].values
                             ):
-                                self.issues.log_issue(
-                                    linked_dataset,
-                                    "no associated documents found for this area",
-                                    reference,
-                                    line_number=line_number,
+                                reference = row.get(linked_dataset, "")
+                                find_entity = self.lookup(
+                                    prefix=linked_dataset,
+                                    organisation=row.get("organisation", ""),
+                                    reference=reference,
                                 )
+                                # raise issue if the found entity is retired in old-entity.csv
+                                if not find_entity or (
+                                    str(find_entity) in self.redirect_lookups
+                                    and int(
+                                        self.redirect_lookups[str(find_entity)].get(
+                                            "status", 0
+                                        )
+                                    )
+                                    == 410
+                                ):
+                                    self.issues.log_issue(
+                                        linked_dataset,
+                                        "no associated documents found for this area",
+                                        reference,
+                                        line_number=line_number,
+                                    )
             yield block
 
 

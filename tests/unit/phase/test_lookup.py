@@ -151,7 +151,11 @@ class TestLookupPhase:
         }
         issues = IssueLog()
 
-        phase = LookupPhase(lookups=lookups, issue_log=issues)
+        phase = LookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            provision_summary_dir="var/cache/provision-summary/",
+        )
         phase.entity_field = "entity"
         mock_df = pd.DataFrame({"organisation": ["local-authority:ABC"]})
         mocker.patch("pandas.read_csv", return_value=mock_df)
@@ -175,7 +179,11 @@ class TestLookupPhase:
         }
         issues = IssueLog()
 
-        phase = LookupPhase(lookups=lookups, issue_log=issues)
+        phase = LookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            provision_summary_dir="var/cache/provision-summary/",
+        )
         phase.entity_field = "entity"
         mock_df = pd.DataFrame({"organisation": ["local-authority:XYZ"]})
         mocker.patch("pandas.read_csv", return_value=mock_df)
@@ -197,7 +205,10 @@ class TestLookupPhase:
         redirect_lookups = {"1": {"entity": "", "status": "410"}}
 
         phase = LookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issues,
+            provision_summary_dir="var/cache/provision-summary/",
         )
         phase.entity_field = "entity"
         mock_df = pd.DataFrame({"organisation": ["local-authority:ABC"]})
