@@ -218,9 +218,11 @@ class DatasetParquetPackage(Package):
 
         # distinct_fields - list of fields in the field in fact
         rows = self.conn.execute(query).fetchall()
-        print(len(rows))
         # if there are no entities in the entity range then we don't need to proceed
         if len(rows) == 0:
+            logger.info(
+                f"skipping entity numbers {entity_range[0]} to {entity_range[1]} as there are no entities"
+            )
             return
 
         distinct_fields = [row[0] for row in rows]
