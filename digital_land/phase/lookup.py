@@ -175,7 +175,10 @@ class LookupPhase(Phase):
                             or row.get(linked_dataset, "").strip()
                         ):
                             get_organisations = pd.read_csv(
-                                self.provision_summary_dir + linked_dataset + ".csv"
+                                self.provision_summary_dir
+                                + "/"
+                                + linked_dataset
+                                + ".csv"
                             )
 
                             if (
