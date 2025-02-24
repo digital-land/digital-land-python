@@ -86,17 +86,33 @@ def resource_files_fixture(transformed_data_fixture, temp_dir):
 
     csv_filename = pipeline_dir / "old-entity.csv"
     data = [
-        ["old-entity", "status", "entity", "end-date", "notes", "entry-date", "start-date"],
-        [44011900, 301, 44011910, "", "", "", ""]
+        [
+            "old-entity",
+            "status",
+            "entity",
+            "end-date",
+            "notes",
+            "entry-date",
+            "start-date",
+        ],
+        [44011900, 301, 44011910, "", "", "", ""],
     ]
     with open(csv_filename, "w", newline="") as file:
         writer = csv.writer(file)
         writer.writerows(data)
     csv_filename = pipeline_dir / "old-entity_updated.csv"
     data = [
-        ["old-entity", "status", "entity", "end-date", "notes", "entry-date", "start-date"],
+        [
+            "old-entity",
+            "status",
+            "entity",
+            "end-date",
+            "notes",
+            "entry-date",
+            "start-date",
+        ],
         [44011900, 301, 44011910, "", "", "", ""],
-        [44011903, 301, 44011913, "", "", "", ""]
+        [44011903, 301, 44011913, "", "", "", ""],
     ]
     with open(csv_filename, "w", newline="") as file:
         writer = csv.writer(file)
@@ -164,7 +180,7 @@ def resource_files_fixture(transformed_data_fixture, temp_dir):
         csv_filename = issue_dir / f"{res}.csv"
         line_number = 2 + (res != resources[0])
         entry_number = 1 + (res != resources[0])
-        entity_no = 44011910 + 3*(res != resources[0])
+        entity_no = 44011910 + 3 * (res != resources[0])
         data = [
             [
                 "dataset",
@@ -304,7 +320,9 @@ def test_dataset_create_fixture(
     )
     package.load_entities()
 
-    old_entity_path = os.path.join(resource_files_fixture["pipeline_dir"], "old-entity.csv")
+    old_entity_path = os.path.join(
+        resource_files_fixture["pipeline_dir"], "old-entity.csv"
+    )
     if os.path.exists(old_entity_path):
         package.load_old_entities(old_entity_path)
 
@@ -385,7 +403,9 @@ def test_dataset_update_fixture(
     )
     package.load_entities()
 
-    old_entity_path = os.path.join(resource_files_fixture["pipeline_dir"], "old-entity_updated.csv")
+    old_entity_path = os.path.join(
+        resource_files_fixture["pipeline_dir"], "old-entity_updated.csv"
+    )
     if os.path.exists(old_entity_path):
         package.load_old_entities(old_entity_path)
 
@@ -492,7 +512,10 @@ def test_mock_s3_bucket(test_dataset_create_fixture):
 
 
 def test_dataset_update_with_new_resources(
-    test_dataset_create_fixture, test_mock_s3_bucket, test_dataset_update_fixture, temp_dir
+    test_dataset_create_fixture,
+    test_mock_s3_bucket,
+    test_dataset_update_fixture,
+    temp_dir,
 ):
     """
     Check that original sqlite3 file is created, then when we have new resources we create an

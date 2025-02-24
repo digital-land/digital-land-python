@@ -484,8 +484,8 @@ def dataset_update(
     pipeline,
     dataset,
     specification,
-    bucket_name=None,   # bucket name from bash script, need to put into cli.
-    object_key=None, # object-key, latter part of 'bucket'
+    bucket_name=None,  # bucket name from bash script, need to put into cli.
+    object_key=None,  # object-key, latter part of 'bucket'
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
@@ -514,8 +514,12 @@ def dataset_update(
         specification_dir=None,  # TBD: package should use this specification object
     )
     # Copy files from S3 and load into tables
-    table_name = os.path.basename(os.path.dirname(input_paths[0])) # Find way to set this in a less hacky way
-    package.load_from_s3(bucket_name=bucket_name, object_key=object_key, table_name=table_name)
+    table_name = os.path.basename(
+        os.path.dirname(input_paths[0])
+    )  # Find way to set this in a less hacky way
+    package.load_from_s3(
+        bucket_name=bucket_name, object_key=object_key, table_name=table_name
+    )
 
     for path in input_paths:
         path_obj = Path(path)
@@ -536,6 +540,7 @@ def dataset_update(
         logging.warning("No directory for this dataset in the provided issue_directory")
 
     package.add_counts()
+
 
 def dataset_dump(input_path, output_path):
     cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
