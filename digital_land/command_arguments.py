@@ -103,5 +103,5 @@ def provision_summary_dir(f):
     return click.option(
         "--provision-summary-dir",
         type=click.Path(exists=True),
-        default="var/cache/provision-summary/",
+        default="var/cache/provision-summary.csv",
     )(f)

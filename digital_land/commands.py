@@ -216,7 +216,7 @@ def pipeline_run(
     resource=None,
     output_log_dir=None,
     converted_path=None,
-    provision_summary_dir="var/cache/provision_summary",
+    provision_summary_dir="var/cache/provision_summary.csv",
 ):
     # set up paths
     cache_dir = Path(cache_dir)
