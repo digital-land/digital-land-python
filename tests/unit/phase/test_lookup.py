@@ -157,7 +157,12 @@ class TestLookupPhase:
             provision_summary_dir="var/cache/provision-summary/",
         )
         phase.entity_field = "entity"
-        mock_df = pd.DataFrame({"organisation": ["local-authority:ABC"]})
+        mock_df = pd.DataFrame(
+            {
+                "organisation": ["local-authority:ABC"],
+                "dataset": ["article-4-direction"],
+            }
+        )
         mocker.patch("pandas.read_csv", return_value=mock_df)
         output = [block for block in phase.process(input_stream)]
 
@@ -185,7 +190,12 @@ class TestLookupPhase:
             provision_summary_dir="var/cache/provision-summary/",
         )
         phase.entity_field = "entity"
-        mock_df = pd.DataFrame({"organisation": ["local-authority:XYZ"]})
+        mock_df = pd.DataFrame(
+            {
+                "organisation": ["local-authority:XYZ", "local-authority:ABC"],
+                "dataset": ["article-4-direction", "article-4-direction-area"],
+            }
+        )
         mocker.patch("pandas.read_csv", return_value=mock_df)
         output = [block for block in phase.process(input_stream)]
 
@@ -211,7 +221,12 @@ class TestLookupPhase:
             provision_summary_dir="var/cache/provision-summary/",
         )
         phase.entity_field = "entity"
-        mock_df = pd.DataFrame({"organisation": ["local-authority:ABC"]})
+        mock_df = pd.DataFrame(
+            {
+                "organisation": ["local-authority:ABC"],
+                "dataset": ["article-4-direction"],
+            }
+        )
         mocker.patch("pandas.read_csv", return_value=mock_df)
         output = [block for block in phase.process(input_stream)]
 
