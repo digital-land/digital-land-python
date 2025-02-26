@@ -97,11 +97,3 @@ def organisation_path(f):
         type=click.Path(exists=True),
         default="var/cache/organisation.csv",
     )(f)
-
-
-def provision_summary_dir(f):
-    return click.option(
-        "--provision-summary-dir",
-        type=click.Path(exists=True),
-        default="var/cache/provision-summary/",
-    )(f)

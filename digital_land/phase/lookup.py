@@ -1,6 +1,5 @@
 import re
 import logging
-import pandas as pd
 
 from .phase import Phase
 
@@ -34,7 +33,6 @@ class LookupPhase(Phase):
         issue_log=None,
         operational_issue_log=None,
         entity_range=[],
-        provision_summary_dir=None,
     ):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
@@ -42,7 +40,6 @@ class LookupPhase(Phase):
         self.operational_issues = operational_issue_log
         self.reverse_lookups = self.build_reverse_lookups()
         self.entity_range = entity_range
-        self.provision_summary_dir = provision_summary_dir
 
     def build_reverse_lookups(self):
         reverse_lookups = {}
@@ -166,47 +163,6 @@ class LookupPhase(Phase):
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]
                         )
-
-                linked_datasets = ["article-4-direction", "tree-preservation-order"]
-                if row[self.entity_field]:
-                    for linked_dataset in linked_datasets:
-                        if (
-                            row.get(linked_dataset, "")
-                            or row.get(linked_dataset, "").strip()
-                        ):
-                            get_organisations = pd.read_csv(
-                                self.provision_summary_dir
-                                + "/"
-                                + linked_dataset
-                                + ".csv"
-                            )
-
-                            if (
-                                row.get("organisation", "")
-                                in get_organisations["organisation"].values
-                            ):
-                                reference = row.get(linked_dataset, "")
-                                find_entity = self.lookup(
-                                    prefix=linked_dataset,
-                                    organisation=row.get("organisation", ""),
-                                    reference=reference,
-                                )
-                                # raise issue if the found entity is retired in old-entity.csv
-                                if not find_entity or (
-                                    str(find_entity) in self.redirect_lookups
-                                    and int(
-                                        self.redirect_lookups[str(find_entity)].get(
-                                            "status", 0
-                                        )
-                                    )
-                                    == 410
-                                ):
-                                    self.issues.log_issue(
-                                        linked_dataset,
-                                        "no associated documents found for this area",
-                                        reference,
-                                        line_number=line_number,
-                                    )
             yield block
 
 
