@@ -174,15 +174,16 @@ class LookupPhase(Phase):
                             row.get(linked_dataset, "")
                             or row.get(linked_dataset, "").strip()
                         ):
-                            get_organisations = pd.read_csv(self.provision_summary_dir)
-
-                            dataset_org = get_organisations[
-                                get_organisations["dataset"] == linked_dataset
-                            ]
+                            get_organisations = pd.read_csv(
+                                self.provision_summary_dir
+                                + "/"
+                                + linked_dataset
+                                + ".csv"
+                            )
 
                             if (
                                 row.get("organisation", "")
-                                in dataset_org["organisation"].values
+                                in get_organisations["organisation"].values
                             ):
                                 reference = row.get(linked_dataset, "")
                                 find_entity = self.lookup(
