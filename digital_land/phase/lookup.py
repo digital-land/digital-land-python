@@ -163,6 +163,37 @@ class LookupPhase(Phase):
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]
                         )
+
+                # TODO in future could get the datsets from specification
+                linked_datasets = ["article-4-direction", "tree-preservation-order"]
+                if row[self.entity_field]:
+                    for linked_dataset in linked_datasets:
+                        if (
+                            row.get(linked_dataset, "")
+                            or row.get(linked_dataset, "").strip()
+                        ):
+                            reference = row.get(linked_dataset, "")
+                            find_entity = self.lookup(
+                                prefix=linked_dataset,
+                                organisation=row.get("organisation", ""),
+                                reference=reference,
+                            )
+                            # raise issue if the found entity is retired in old-entity.csv
+                            if not find_entity or (
+                                str(find_entity) in self.redirect_lookups
+                                and int(
+                                    self.redirect_lookups[str(find_entity)].get(
+                                        "status", 0
+                                    )
+                                )
+                                == 410
+                            ):
+                                self.issues.log_issue(
+                                    linked_dataset,
+                                    "no associated documents found for this area",
+                                    reference,
+                                    line_number=line_number,
+                                )
             yield block
 
 
