@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 
 from digital_land.phase.lookup import LookupPhase, EntityLookupPhase, PrintLookupPhase
@@ -13,22 +12,6 @@ def get_input_stream():
                 "prefix": "dataset",
                 "reference": "1",
                 "organisation": "test",
-            },
-            "entry-number": 1,
-            "line-number": 2,
-        }
-    ]
-
-
-@pytest.fixture
-def get_input_stream_with_linked_field():
-    return [
-        {
-            "row": {
-                "prefix": "article-4-direction-area",
-                "reference": "1",
-                "organisation": "local-authority:ABC",
-                "article-4-direction": "a4d2",
             },
             "entry-number": 1,
             "line-number": 2,
@@ -139,103 +122,6 @@ class TestLookupPhase:
         output = [block for block in phase.process(input_stream)]
 
         assert output[0]["row"]["entity"] == "10"
-
-    def test_no_associated_documents_issue(
-        self, get_input_stream_with_linked_field, mocker
-    ):
-        input_stream = get_input_stream_with_linked_field
-
-        lookups = {
-            ",article-4-direction,a4d1,local-authorityabc": "1",
-            ",article-4-direction-area,1,local-authorityabc": "2",
-        }
-        issues = IssueLog()
-
-        phase = LookupPhase(
-            lookups=lookups,
-            issue_log=issues,
-            provision_summary_dir="var/cache/provision-summary/",
-        )
-        phase.entity_field = "entity"
-        mock_df = pd.DataFrame(
-            {
-                "organisation": ["local-authority:ABC"],
-                "dataset": ["article-4-direction"],
-            }
-        )
-        mocker.patch("pandas.read_csv", return_value=mock_df)
-        output = [block for block in phase.process(input_stream)]
-
-        assert output[0]["row"]["entity"] == "2"
-        assert (
-            issues.rows[0]["issue-type"]
-            == "no associated documents found for this area"
-        )
-        assert issues.rows[0]["value"] == "a4d2"
-
-    def test_no_associated_documents_issue_for_missing_dataset(
-        self, get_input_stream_with_linked_field, mocker
-    ):
-        input_stream = get_input_stream_with_linked_field
-
-        lookups = {
-            ",article-4-direction,a4d1,local-authorityabc": "1",
-            ",article-4-direction-area,1,local-authorityabc": "2",
-        }
-        issues = IssueLog()
-
-        phase = LookupPhase(
-            lookups=lookups,
-            issue_log=issues,
-            provision_summary_dir="var/cache/provision-summary/",
-        )
-        phase.entity_field = "entity"
-        mock_df = pd.DataFrame(
-            {
-                "organisation": ["local-authority:XYZ", "local-authority:ABC"],
-                "dataset": ["article-4-direction", "article-4-direction-area"],
-            }
-        )
-        mocker.patch("pandas.read_csv", return_value=mock_df)
-        output = [block for block in phase.process(input_stream)]
-
-        assert output[0]["row"]["entity"] == "2"
-        assert len(issues.rows) == 0
-
-    def test_no_associated_documents_issue_for_retired_entity(
-        self, get_input_stream_with_linked_field, mocker
-    ):
-        input_stream = get_input_stream_with_linked_field
-
-        lookups = {
-            ",article-4-direction,a4d2,local-authorityabc": "1",
-            ",article-4-direction-area,1,local-authorityabc": "2",
-        }
-        issues = IssueLog()
-        redirect_lookups = {"1": {"entity": "", "status": "410"}}
-
-        phase = LookupPhase(
-            lookups=lookups,
-            redirect_lookups=redirect_lookups,
-            issue_log=issues,
-            provision_summary_dir="var/cache/provision-summary/",
-        )
-        phase.entity_field = "entity"
-        mock_df = pd.DataFrame(
-            {
-                "organisation": ["local-authority:ABC"],
-                "dataset": ["article-4-direction"],
-            }
-        )
-        mocker.patch("pandas.read_csv", return_value=mock_df)
-        output = [block for block in phase.process(input_stream)]
-
-        assert output[0]["row"]["entity"] == "2"
-        assert (
-            issues.rows[0]["issue-type"]
-            == "no associated documents found for this area"
-        )
-        assert issues.rows[0]["value"] == "a4d2"
 
 
 class TestPrintLookupPhase:
