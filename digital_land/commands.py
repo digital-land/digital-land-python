@@ -433,18 +433,18 @@ def dataset_create(
         package.load_dataset_resource(
             dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
         )
-    logging.info(f"loading old entities into {output_path}")
+    logger.info(f"loading old entities into {output_path}")
     old_entity_path = Path(pipeline.path) / "old-entity.csv"
     if old_entity_path.exists():
         package.load_old_entities(old_entity_path)
 
-    logging.info(f"loading issues into {output_path}")
+    logger.info(f"loading issues into {output_path}")
     issue_paths = issue_dir / dataset
     if issue_paths.exists():
         for issue_path in os.listdir(issue_paths):
             package.load_issues(os.path.join(issue_paths, issue_path))
     else:
-        logging.warning("No directory for this dataset in the provided issue_directory")
+        logger.warning("No directory for this dataset in the provided issue_directory")
 
     # Repeat for parquet
     # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset

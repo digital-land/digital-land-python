@@ -131,7 +131,7 @@ class DatasetParquetPackage(Package):
         """
         output_path = self.fact_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        logging.info("loading facts from temp table")
+        logger.info(f"loading facts from from {str(transformed_parquet_dir)}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
@@ -155,7 +155,7 @@ class DatasetParquetPackage(Package):
         )
 
     def load_fact_resource(self, transformed_parquet_dir):
-        logging.info(f"loading fact resources from {str(transformed_parquet_dir)}")
+        logger.info(f"loading fact resources from {str(transformed_parquet_dir)}")
         output_path = self.fact_resource_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
