@@ -1405,29 +1405,54 @@ def organisation_check(**kwargs):
     package.check(lpa_path, output_path)
 
 
-def save_state(specification_dir, collection_dir, pipeline_dir, output_path):
+def save_state(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_override,
+    output_path,
+):
     state = State.build(
         specification_dir=specification_dir,
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
+        resource_dir=resource_dir,
+        incremental_override=incremental_override,
     )
+    # if we include incremental override for this state.build what do we do about the others?
     state.save(
         output_path=output_path,
     )
 
 
-def compare_state(specification_dir, collection_dir, pipeline_dir, state_path):
+def compare_state(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_override,
+    state_path,
+):
     """Compares the current state against the one in state_path.
     Returns a list of different elements, or None if they are the same."""
     current = State.build(
         specification_dir=specification_dir,
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
+        resource_dir=resource_dir,
+        incremental_override=incremental_override,
     )
+    # in here current incremental override must be false
 
     compare = State.load(state_path)
+    # we don't want to include whether the previous state was an incremental override in comparison
+    current.pop("incremental_override")
+    compare.pop("incremental_override")
 
     if current == compare:
+        # if current override = false and compare override = true we need to update state.json on s3 but we don't need to process everything
+        # removing the incremental override from the comparison should mean we don't process everything unless spec/code has changed
         return None
 
     return [i for i in current.keys() if current[i] != compare[i]]
