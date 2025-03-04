@@ -1,6 +1,11 @@
 import pytest
 
-from digital_land.phase.lookup import LookupPhase, EntityLookupPhase, PrintLookupPhase
+from digital_land.phase.lookup import (
+    LookupPhase,
+    EntityLookupPhase,
+    PrintLookupPhase,
+    FactLookupPhase,
+)
 from digital_land.log import IssueLog
 
 
@@ -24,13 +29,15 @@ def get_input_stream_with_linked_field():
     return [
         {
             "row": {
-                "prefix": "article-4-direction-area",
-                "reference": "1",
-                "organisation": "local-authority:ABC",
-                "article-4-direction": "a4d2",
-            },
-            "entry-number": 1,
-            "line-number": 2,
+                "fact": "abc",
+                "entity": "10",
+                "field": "article-4-direction",
+                "value": "a4d1",
+                "prefix": "article-4-direction",
+                "reference": "a4d1",
+                "entry-number": 1,
+                "line-number": 2,
+            }
         }
     ]
 
@@ -139,56 +146,6 @@ class TestLookupPhase:
 
         assert output[0]["row"]["entity"] == "10"
 
-    def test_no_associated_documents_issue(self, get_input_stream_with_linked_field):
-        input_stream = get_input_stream_with_linked_field
-
-        lookups = {
-            ",article-4-direction,a4d1,local-authorityabc": "1",
-            ",article-4-direction-area,1,local-authorityabc": "2",
-        }
-        issues = IssueLog()
-
-        phase = LookupPhase(
-            lookups=lookups,
-            issue_log=issues,
-        )
-        phase.entity_field = "entity"
-        output = [block for block in phase.process(input_stream)]
-
-        assert output[0]["row"]["entity"] == "2"
-        assert (
-            issues.rows[0]["issue-type"]
-            == "no associated documents found for this area"
-        )
-        assert issues.rows[0]["value"] == "a4d2"
-
-    def test_no_associated_documents_issue_for_retired_entity(
-        self, get_input_stream_with_linked_field
-    ):
-        input_stream = get_input_stream_with_linked_field
-
-        lookups = {
-            ",article-4-direction,a4d2,local-authorityabc": "1",
-            ",article-4-direction-area,1,local-authorityabc": "2",
-        }
-        issues = IssueLog()
-        redirect_lookups = {"1": {"entity": "", "status": "410"}}
-
-        phase = LookupPhase(
-            lookups=lookups,
-            redirect_lookups=redirect_lookups,
-            issue_log=issues,
-        )
-        phase.entity_field = "entity"
-        output = [block for block in phase.process(input_stream)]
-
-        assert output[0]["row"]["entity"] == "2"
-        assert (
-            issues.rows[0]["issue-type"]
-            == "no associated documents found for this area"
-        )
-        assert issues.rows[0]["value"] == "a4d2"
-
 
 class TestPrintLookupPhase:
     def test_process_does_not_produce_new_lookup(self, get_input_stream, get_lookup):
@@ -262,3 +219,76 @@ class TestEntityLookupPhase:
         output = [block for block in phase.process(input_stream)]
 
         assert len(output) == 0
+
+
+class TestFactLookupPhase:
+    def test_no_associated_documents_issue_raised(
+        self, get_input_stream_with_linked_field
+    ):
+        input_stream = get_input_stream_with_linked_field
+        lookups = {
+            ",article-4-direction,a4d2,local-authorityabc": "1",
+            ",article-4-direction-area,1,local-authorityabc": "10",
+        }
+        issues = IssueLog()
+
+        phase = FactLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+        )
+        phase.entity_field = "reference-entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert "reference-entity" not in output
+        assert (
+            issues.rows[0]["issue-type"]
+            == "no associated documents found for this area"
+        )
+        assert issues.rows[0]["value"] == "a4d1"
+
+    def test_no_associated_documents_issue_for_retired_entity(
+        self, get_input_stream_with_linked_field
+    ):
+        input_stream = get_input_stream_with_linked_field
+
+        lookups = {
+            ",article-4-direction,a4d1,local-authorityabc": "1",
+            ",article-4-direction-area,1,local-authorityabc": "10",
+        }
+        issues = IssueLog()
+        redirect_lookups = {"1": {"entity": "", "status": "410"}}
+
+        phase = FactLookupPhase(
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issues,
+        )
+        phase.entity_field = "reference-entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert "reference-entity" not in output
+        assert (
+            issues.rows[0]["issue-type"]
+            == "no associated documents found for this area"
+        )
+        assert issues.rows[0]["value"] == "a4d1"
+
+    def test_no_associated_documents_issue_not_raised(
+        self, get_input_stream_with_linked_field
+    ):
+        input_stream = get_input_stream_with_linked_field
+        lookups = {
+            ",article-4-direction,a4d1,local-authorityabc": "1",
+            ",article-4-direction-area,1,local-authorityabc": "10",
+        }
+        issues = IssueLog()
+
+        phase = FactLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+        )
+        phase.entity_field = "reference-entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["reference-entity"] == "1"
+        assert len(issues.rows) == 0
