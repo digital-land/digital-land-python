@@ -422,7 +422,7 @@ def dataset_create(
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    # don'tt use create as we don't want to create the indexes
+    # don't use create as we don't want to create the indexes
     package.create_database()
     package.disconnect()
     for path in input_paths:
@@ -471,6 +471,72 @@ def dataset_create(
     package.disconnect()
 
     logger.info(f"creating dataset package {output_path} counts")
+    package.add_counts()
+
+
+#
+#  update dataset from processed new resources
+#
+def dataset_update(
+    input_paths,
+    output_path,
+    organisation_path,
+    pipeline,
+    dataset,
+    specification,
+    bucket_name=None,  # bucket name from bash script, need to put into cli.
+    object_key=None,  # object-key, latter part of 'bucket'
+    issue_dir="issue",
+    column_field_dir="var/column-field",
+    dataset_resource_dir="var/dataset-resource",
+):
+    """
+    Updates the current state of the sqlite files being held in S3 with new resources
+    """
+    if not output_path:
+        print("missing output path", file=sys.stderr)
+        sys.exit(2)
+
+    if not bucket_name or not object_key:
+        print("Missing bucket name or object_key to get sqlite files", file=sys.stderr)
+        sys.exit(2)
+
+    # Set up initial objects
+    column_field_dir = Path(column_field_dir)
+    dataset_resource_dir = Path(dataset_resource_dir)
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
+    package = DatasetPackage(
+        dataset,
+        organisation=organisation,
+        path=output_path,
+        specification_dir=None,  # TBD: package should use this specification object
+    )
+    # Copy files from S3 and load into tables
+    table_name = dataset
+    package.load_from_s3(
+        bucket_name=bucket_name, object_key=object_key, table_name=table_name
+    )
+
+    for path in input_paths:
+        path_obj = Path(path)
+        package.load_transformed(path)
+        package.load_column_fields(column_field_dir / dataset / path_obj.name)
+        package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
+    package.load_entities()
+
+    old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
+    if os.path.exists(old_entity_path):
+        package.load_old_entities(old_entity_path)
+
+    issue_paths = os.path.join(issue_dir, dataset)
+    if os.path.exists(issue_paths):
+        for issue_path in os.listdir(issue_paths):
+            package.load_issues(os.path.join(issue_paths, issue_path))
+    else:
+        logging.warning("No directory for this dataset in the provided issue_directory")
+
     package.add_counts()
 
 
