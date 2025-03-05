@@ -179,7 +179,55 @@ class EntityLookupPhase(LookupPhase):
 
 
 class FactLookupPhase(LookupPhase):
-    entity_field = "reference-entity"
+    def __init__(self, lookups={}, redirect_lookups={}, issue_log=None):
+        super().__init__(lookups, redirect_lookups, issue_log)
+        self.entity_field = "reference-entity"
+
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
+            line_number = row.get("line-number", "")
+            prefix = row.get("prefix", "")
+            reference = row.get("reference", "")
+            entity_number = row.get("entity", "")
+
+            if prefix and reference:
+                if entity_number in self.reverse_lookups:
+                    value = self.reverse_lookups[entity_number]
+
+                    if value:
+                        organisation = value[-1].split(",")[-1]
+                        find_entity = self.lookup(
+                            prefix=prefix,
+                            organisation=organisation,
+                            reference=reference,
+                        )
+
+                        # TODO get the fields from specification
+                        if (
+                            not find_entity
+                            or (
+                                str(find_entity) in self.redirect_lookups
+                                and int(
+                                    self.redirect_lookups[str(find_entity)].get(
+                                        "status", 0
+                                    )
+                                )
+                                == 410
+                            )
+                        ) and prefix in [
+                            "article-4-direction",
+                            "tree-preservation-order",
+                        ]:
+                            self.issues.log_issue(
+                                prefix,
+                                "no associated documents found for this area",
+                                reference,
+                                line_number=line_number,
+                            )
+                        else:
+                            row[self.entity_field] = find_entity
+            yield block
 
 
 class PrintLookupPhase(LookupPhase):

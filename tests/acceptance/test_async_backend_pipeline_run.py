@@ -62,11 +62,21 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
         "reference": "ABC_0001",
         "entity": 1,
     }
+    row2 = {
+        "prefix": "article-4-direction",
+        "resource": "",
+        "entry-number": "",
+        "organisation": organisation,
+        "reference": "a4d2",
+        "entity": 10,
+    }
+
     fieldnames = row.keys()
     with open(os.path.join(pipeline_dir, "lookup.csv"), "w") as f:
         dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
         dictwriter.writeheader()
         dictwriter.writerow(row)
+        dictwriter.writerow(row2)
 
     # Create organisation.csv with data
     row = {"organisation": "test-org", "name": "Test Org"}
@@ -165,7 +175,7 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
                 field_typology_map=specification.get_field_typology_map(),
                 field_prefix_map=specification.get_field_prefix_map(),
             ),
-            FactLookupPhase(lookups),
+            FactLookupPhase(lookups, issue_log=issue_log),
             FactPrunePhase(),
             SavePhase(
                 output_path,
@@ -188,6 +198,7 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
     return {
         "output_path": output_path,
         "issue_log": issue_log_path,
+        "save_issue_log": issue_log,
         "column_field_log": column_field_log_path,
         "dataset_resource_log": dataset_resource_log_path,
     }
@@ -408,3 +419,98 @@ def test_column_field_log_creation(test_dirs):
     assert (
         "field" in column_field_log_df.columns
     ), "Column field log is missing 'field' column."
+
+
+def test_pipeline_lookup_phase(test_dirs):
+    dataset = "article-4-direction-area"
+    resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
+    request_id = "test_request_id"
+
+    rows = [
+        {
+            "reference": "ABC_0001",
+            "entry-date": "2025-01-01",
+            "organisation": "test-org",
+            "article-4-direction": "a4d1",
+        }
+    ]
+
+    input_path = os.path.join(test_dirs["collection_dir"], resource)
+
+    with open(input_path, "w", newline="") as f:
+        fieldnames = ["reference", "entry-date", "organisation", "article-4-direction"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    # Run the pipeline
+    run_pipeline = run_pipeline_for_test(
+        test_dirs=test_dirs,
+        dataset=dataset,
+        resource=resource,
+        request_id=request_id,
+        input_path=input_path,
+    )
+    # issue_log
+    issue_log = run_pipeline.get("save_issue_log")
+    issue_log_path = run_pipeline.get("issue_log")
+    issue_dict = next(
+        (
+            issue
+            for issue in issue_log.rows
+            if issue.get("field") == "article-4-direction"
+        ),
+        None,
+    )
+
+    assert os.path.exists(issue_log_path)
+    assert "no associated documents found for this area" == issue_dict["issue-type"]
+    assert "a4d1" == issue_dict["value"]
+
+
+def test_pipeline_lookup_phase_assign_reference_entity(test_dirs):
+    dataset = "article-4-direction-area"
+    resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
+    request_id = "test_request_id"
+
+    rows = [
+        {
+            "reference": "ABC_0001",
+            "entry-date": "2025-01-01",
+            "organisation": "test-org",
+            "article-4-direction": "a4d2",
+        }
+    ]
+
+    input_path = os.path.join(test_dirs["collection_dir"], resource)
+
+    with open(input_path, "w", newline="") as f:
+        fieldnames = ["reference", "entry-date", "organisation", "article-4-direction"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    # Run the pipeline
+    run_pipeline = run_pipeline_for_test(
+        test_dirs=test_dirs,
+        dataset=dataset,
+        resource=resource,
+        request_id=request_id,
+        input_path=input_path,
+    )
+    # issue_log
+    issue_log = run_pipeline.get("save_issue_log")
+
+    # assert given error does not exist in issue_log
+    assert all(
+        issue.get("issue-type") != "no associated documents found for this area"
+        for issue in issue_log.rows
+    )
+
+    output_path = run_pipeline.get("output_path")
+    output_df = pd.read_csv(output_path)
+
+    assert os.path.exists(output_path)
+    assert 10.0 in output_df["reference-entity"].values
