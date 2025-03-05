@@ -1405,29 +1405,51 @@ def organisation_check(**kwargs):
     package.check(lpa_path, output_path)
 
 
-def save_state(specification_dir, collection_dir, pipeline_dir, output_path):
+def save_state(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_override,
+    output_path,
+):
     state = State.build(
         specification_dir=specification_dir,
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
+        resource_dir=resource_dir,
+        incremental_override=incremental_override,
     )
     state.save(
         output_path=output_path,
     )
 
 
-def compare_state(specification_dir, collection_dir, pipeline_dir, state_path):
+def compare_state(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_override,
+    state_path,
+):
     """Compares the current state against the one in state_path.
     Returns a list of different elements, or None if they are the same."""
     current = State.build(
         specification_dir=specification_dir,
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
+        resource_dir=resource_dir,
+        incremental_override=incremental_override,
     )
+    # in here current incremental override must be false
 
     compare = State.load(state_path)
+    # we don't want to include whether the previous state was an incremental override in comparison
+    current.pop("incremental_override", None)
+    compare.pop("incremental_override", None)
 
     if current == compare:
         return None
 
-    return [i for i in current.keys() if current[i] != compare[i]]
+    return [i for i in current.keys() if current[i] != compare.get(i, "")]

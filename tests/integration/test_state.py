@@ -65,6 +65,8 @@ def test_state_build_persist(tmp_path):
         os.path.join(test_dir, "specification"),
         os.path.join(test_dir, "collection"),
         os.path.join(test_dir, "pipeline"),
+        os.path.join(test_dir, "resource"),
+        True,
     )
     state_1.save(tmp_json)
 
@@ -77,6 +79,8 @@ def test_state_build_persist(tmp_path):
         os.path.join(test_dir, "specification"),
         os.path.join(test_dir, "collection_blank"),
         os.path.join(test_dir, "pipeline"),
+        os.path.join(test_dir, "resource"),
+        True,
     )
 
     # Check that's different from the first one
