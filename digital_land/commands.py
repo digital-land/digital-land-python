@@ -1455,4 +1455,4 @@ def compare_state(
         # removing the incremental override from the comparison should mean we don't process everything unless spec/code has changed
         return None
 
-    return [i for i in current.keys() if current[i] != compare[i]]
+    return [i for i in current.keys() if current[i] != compare.get(i, "")]
