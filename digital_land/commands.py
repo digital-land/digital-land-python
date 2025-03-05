@@ -1420,7 +1420,6 @@ def save_state(
         resource_dir=resource_dir,
         incremental_override=incremental_override,
     )
-    # if we include incremental override for this state.build what do we do about the others?
     state.save(
         output_path=output_path,
     )
@@ -1451,8 +1450,6 @@ def compare_state(
     compare.pop("incremental_override", None)
 
     if current == compare:
-        # if current override = false and compare override = true we need to update state.json on s3 but we don't need to process everything
-        # removing the incremental override from the comparison should mean we don't process everything unless spec/code has changed
         return None
 
     return [i for i in current.keys() if current[i] != compare.get(i, "")]
