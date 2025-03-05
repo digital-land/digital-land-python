@@ -1447,8 +1447,8 @@ def compare_state(
 
     compare = State.load(state_path)
     # we don't want to include whether the previous state was an incremental override in comparison
-    current.pop("incremental_override")
-    compare.pop("incremental_override")
+    current.pop("incremental_override", None)
+    compare.pop("incremental_override", None)
 
     if current == compare:
         # if current override = false and compare override = true we need to update state.json on s3 but we don't need to process everything
