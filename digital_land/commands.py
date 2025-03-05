@@ -514,9 +514,7 @@ def dataset_update(
         specification_dir=None,  # TBD: package should use this specification object
     )
     # Copy files from S3 and load into tables
-    table_name = os.path.basename(
-        os.path.dirname(input_paths[0])
-    )  # Find way to set this in a less hacky way
+    table_name = dataset
     package.load_from_s3(
         bucket_name=bucket_name, object_key=object_key, table_name=table_name
     )
