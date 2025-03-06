@@ -12,7 +12,7 @@ def count_lpa_boundary(
     expected: int,
     organisation_entity: int = None,
     comparison_rule: str = "equals_to",
-    geometric_relation: str = "within",
+    geometric_relation: str = None,
 ):
     """
     Specific version of a count which given a local authority
@@ -73,12 +73,6 @@ def count_lpa_boundary(
             """,
     }
 
-    if geometric_relation not in spatial_options:
-        raise ValueError(
-            f"Invalid geometric_relation: '{geometric_relation}'. Must be one of {list(spatial_options.keys())}."
-        )
-
-    spatial_condition = spatial_options[geometric_relation]
 
     # set up initial query
     query = """
@@ -90,7 +84,16 @@ def count_lpa_boundary(
     if organisation_entity:
         query = query + f"AND organisation_entity = '{organisation_entity}'"
 
-    query = query + f"AND ({spatial_condition});"
+    if geometric_relation:    
+        if geometric_relation not in spatial_options:
+            raise ValueError(
+                f"Invalid geometric_relation: '{geometric_relation}'. Must be one of {list(spatial_options.keys())}."
+            )
+        else:
+            spatial_condition = spatial_options[geometric_relation]
+            query = query + f"AND ({spatial_condition});"
+
+
     rows = conn.execute(query).fetchall()
     entities = [row[0] for row in rows]
     actual = len(entities)
