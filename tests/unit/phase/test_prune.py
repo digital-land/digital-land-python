@@ -53,13 +53,13 @@ def test_prune_phase():
         "entity": 12345678,
         "organisation": "local-org:ABC",
         "start-date": "2022-02-02",
-    }, f"First row not outputted correctly"
+    }, "First row not outputted correctly"
     assert output[1]["row"] == {
         "entity": 34567812,
         "start-date": "2022-03-02",
-    }, f"Second row not outputted correctly"
+    }, "Second row not outputted correctly"
     assert output[2]["row"] == {
         "entity": 56781234,
         "organisation": "local-org:MNO",
         "start-date": "2022-06-02",
-    }, f"Third row not outputted correctly"
+    }, "Third row not outputted correctly"
