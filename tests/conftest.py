@@ -29,6 +29,7 @@ def specification_dir(tmp_path_factory):
         # deprecated .. THESE ARE NOT DEPRECCIATED YET STILL USED BY PACKAGES
         "pipeline.csv",
         "dataset-schema.csv",
+        "provision-rule.csv",
         "schema.csv",
         "schema-field.csv",
     ]

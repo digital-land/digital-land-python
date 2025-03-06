@@ -145,6 +145,7 @@ def copy_latest_specification_files_to(specification_dir: Path):
         "project-status.csv",
         "project.csv",
         "provision-reason.csv",
+        "provision-rule.csv",
         "schema-field.csv",
         "schema.csv",
         "severity.csv",

@@ -179,9 +179,12 @@ class EntityLookupPhase(LookupPhase):
 
 
 class FactLookupPhase(LookupPhase):
-    def __init__(self, lookups={}, redirect_lookups={}, issue_log=None):
+    def __init__(
+        self, lookups={}, redirect_lookups={}, issue_log=None, get_linked_field=None
+    ):
         super().__init__(lookups, redirect_lookups, issue_log)
         self.entity_field = "reference-entity"
+        self.get_linked_field = get_linked_field
 
     def process(self, stream):
         for block in stream:
@@ -203,28 +206,23 @@ class FactLookupPhase(LookupPhase):
                             reference=reference,
                         )
 
-                        # TODO get the fields from specification
-                        if (
-                            not find_entity
-                            or (
-                                str(find_entity) in self.redirect_lookups
-                                and int(
-                                    self.redirect_lookups[str(find_entity)].get(
-                                        "status", 0
-                                    )
+                        if not find_entity or (
+                            str(find_entity) in self.redirect_lookups
+                            and int(
+                                self.redirect_lookups[str(find_entity)].get("status", 0)
+                            )
+                            == 410
+                        ):
+                            if (
+                                self.get_linked_field
+                                and prefix in self.get_linked_field
+                            ):
+                                self.issues.log_issue(
+                                    prefix,
+                                    "no associated documents found for this area",
+                                    reference,
+                                    line_number=line_number,
                                 )
-                                == 410
-                            )
-                        ) and prefix in [
-                            "article-4-direction",
-                            "tree-preservation-order",
-                        ]:
-                            self.issues.log_issue(
-                                prefix,
-                                "no associated documents found for this area",
-                                reference,
-                                line_number=line_number,
-                            )
                         else:
                             row[self.entity_field] = find_entity
             yield block

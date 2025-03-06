@@ -346,7 +346,10 @@ def pipeline_run(
             field_prefix_map=specification.get_field_prefix_map(),
         ),
         FactLookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issue_log
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issue_log,
+            get_linked_field=specification.get_linked_fields(dataset),
         ),
         FactPrunePhase(),
         SavePhase(

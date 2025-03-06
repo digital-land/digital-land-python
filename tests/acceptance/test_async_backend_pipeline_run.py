@@ -175,7 +175,11 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
                 field_typology_map=specification.get_field_typology_map(),
                 field_prefix_map=specification.get_field_prefix_map(),
             ),
-            FactLookupPhase(lookups, issue_log=issue_log),
+            FactLookupPhase(
+                lookups,
+                issue_log=issue_log,
+                get_linked_field=specification.get_linked_fields(dataset),
+            ),
             FactPrunePhase(),
             SavePhase(
                 output_path,
