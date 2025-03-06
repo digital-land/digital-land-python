@@ -3,6 +3,8 @@ import sys
 import csv
 import sqlite3
 import logging
+import boto3
+import botocore.exceptions
 from .package import Package
 from decimal import Decimal
 
@@ -298,15 +300,46 @@ class SqlitePackage(Package):
         if os.path.exists(self.path):
             os.remove(self.path)
 
+        self.set_up_connection()
+
+        self.create_tables()
+
+    def set_up_connection(self):
         self.connect()
 
         if self._spatialite:
             self.connection.execute("select InitSpatialMetadata(1)")
 
-        self.create_tables()
-
     def create(self):
         self.create_database()
         self.load()
         self.create_indexes()
+        self.disconnect()
+
+    def load_from_s3(self, bucket_name, object_key, table_name):
+        # Ensure parameters are valid
+        if not isinstance(bucket_name, str) or not isinstance(object_key, str):
+            raise ValueError("Bucket name and object key must be strings.")
+
+        local_path = os.path.dirname(self.path)
+        s3 = boto3.client("s3")
+
+        file_key = f"{table_name}.sqlite3"
+        local_file_path = os.path.join(local_path, file_key)
+
+        try:
+            os.makedirs(local_path, exist_ok=True)  # Ensure local directory exists
+            s3.download_file(bucket_name, object_key + "/" + file_key, local_file_path)
+        except botocore.exceptions.NoCredentialsError:
+            logger.error(
+                "❌ AWS credentials not found. Run `aws configure` to set them."
+            )
+        except botocore.exceptions.ParamValidationError as e:
+            logger.error(f"❌ Parameter validation error: {e}")
+        except botocore.exceptions.ClientError as e:
+            logger.error(f"❌ AWS S3 error: {e}")
+
+        self.set_up_connection()
+        self.load()
+        # self.create_indexes()# Do we need this?
         self.disconnect()

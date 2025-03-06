@@ -12,7 +12,13 @@ class State(dict):
         for k, v in data.items():
             self.__setitem__(k, v)
 
-    def build(specification_dir, collection_dir, pipeline_dir):
+    def build(
+        specification_dir,
+        collection_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_override,
+    ):
         """Build a state object from the current configuration and code"""
         return State(
             {
@@ -21,7 +27,9 @@ class State(dict):
                 "collection": State.get_dir_hash(
                     collection_dir, ["log/", "log.csv", "pipeline.mk", "resource/"]
                 ),
+                "resource": State.get_dir_hash(resource_dir),
                 "pipeline": State.get_dir_hash(pipeline_dir),
+                "incremental_override": incremental_override,
             }
         )
 

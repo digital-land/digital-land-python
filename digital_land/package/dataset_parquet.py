@@ -131,7 +131,7 @@ class DatasetParquetPackage(Package):
         """
         output_path = self.fact_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        logging.info("loading facts from temp table")
+        logger.info(f"loading facts from from {str(transformed_parquet_dir)}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
@@ -155,7 +155,7 @@ class DatasetParquetPackage(Package):
         )
 
     def load_fact_resource(self, transformed_parquet_dir):
-        logging.info(f"loading fact resources from {str(transformed_parquet_dir)}")
+        logger.info(f"loading fact resources from {str(transformed_parquet_dir)}")
         output_path = self.fact_resource_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
@@ -218,6 +218,13 @@ class DatasetParquetPackage(Package):
 
         # distinct_fields - list of fields in the field in fact
         rows = self.conn.execute(query).fetchall()
+        # if there are no entities in the entity range then we don't need to proceed
+        if len(rows) == 0:
+            logger.info(
+                f"skipping entity numbers {entity_range[0]} to {entity_range[1]} as there are no entities"
+            )
+            return
+
         distinct_fields = [row[0] for row in rows]
 
         # json fields - list of fields which are present in the fact table which
@@ -386,7 +393,7 @@ class DatasetParquetPackage(Package):
         max_sql = f"select MAX(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
         max_entity = self.conn.execute(max_sql).fetchone()[0]
         total_entities = max_entity - min_entity
-        entity_limit = 1000000
+        entity_limit = 100000
         if total_entities > entity_limit:
             # create a temparary output path to store separate entity file in
             temp_dir = (
