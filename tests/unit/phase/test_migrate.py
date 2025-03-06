@@ -62,7 +62,7 @@ def test_migrate_phase():
         "organisation": "local-organisation:MNO",
         "start-date": "2022-06-02",
     }, "Third row not outputted correctly"
-    assert output[3]["row"] == {}, f"Final row should not have elements"
+    assert output[3]["row"] == {}, "Final row should not have elements"
 
     for i in range(len(output)):
         assert "EndDate" not in output[i]["row"]
