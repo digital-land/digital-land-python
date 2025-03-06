@@ -185,7 +185,7 @@ def test_cli_add_data(
         "organisation": "local-authority:SST",
         "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
         "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
-        "start-date": "2022-02-02",
+        "start-date": "",
         "pipelines": "conservation-area",
         "plugin": "",
         "licence": "ogl3",
