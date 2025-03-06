@@ -62,7 +62,7 @@ def test_pipeline_run(test_dirs):
         converted_resource_dir=converted_resource_dir,
         endpoints=test_endpoints,
         organisations=[],
-        entry_date="",
+        entry_date="2022-02-02",
         output_log_dir=output_log_dir,
     )
 
