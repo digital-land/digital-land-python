@@ -1476,7 +1476,7 @@ def save_state(
     collection_dir,
     pipeline_dir,
     resource_dir,
-    incremental_override,
+    incremental_loading_override,
     output_path,
 ):
     state = State.build(
@@ -1484,7 +1484,7 @@ def save_state(
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
         resource_dir=resource_dir,
-        incremental_override=incremental_override,
+        incremental_loading_override=incremental_loading_override,
     )
     state.save(
         output_path=output_path,
@@ -1496,7 +1496,7 @@ def compare_state(
     collection_dir,
     pipeline_dir,
     resource_dir,
-    incremental_override,
+    incremental_loading_override,
     state_path,
 ):
     """Compares the current state against the one in state_path.
@@ -1506,14 +1506,14 @@ def compare_state(
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
         resource_dir=resource_dir,
-        incremental_override=incremental_override,
+        incremental_loading_override=incremental_loading_override,
     )
     # in here current incremental override must be false
 
     compare = State.load(state_path)
     # we don't want to include whether the previous state was an incremental override in comparison
-    current.pop("incremental_override", None)
-    compare.pop("incremental_override", None)
+    current.pop("incremental_loading_override", None)
+    compare.pop("incremental_loading_override", None)
 
     if current == compare:
         return None

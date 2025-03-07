@@ -648,7 +648,7 @@ def config_load_cmd(ctx, config_path):
     default="collection/resource",
     help="directory containing resources",
 )
-@click.option("--incremental-override", type=click.BOOL, default=False)
+@click.option("--incremental-loading-override", type=click.BOOL, default=False)
 @click.option(
     "--output-path",
     "-o",
@@ -661,7 +661,7 @@ def save_state_cmd(
     collection_dir,
     pipeline_dir,
     resource_dir,
-    incremental_override,
+    incremental_loading_override,
     output_path,
 ):
     save_state(
@@ -669,7 +669,7 @@ def save_state_cmd(
         collection_dir,
         pipeline_dir,
         resource_dir,
-        incremental_override,
+        incremental_loading_override,
         output_path,
     )
 
@@ -702,7 +702,7 @@ def save_state_cmd(
     default="collection/resource",
     help="directory containing resources",
 )
-@click.option("--incremental-override", type=click.BOOL, default=False)
+@click.option("--incremental-loading-override", type=click.BOOL, default=False)
 @click.option(
     "--state-path",
     type=click.Path(),
@@ -714,14 +714,14 @@ def check_state_cmd(
     collection_dir,
     pipeline_dir,
     resource_dir,
-    incremental_override,
+    incremental_loading_override,
     state_path,
 ):
     # If the state isn't the same, use a non-zero return code so scripts can
     # detect this, and print a message. If it is the same, exit silenty wirh a
     # 0 retun code.
 
-    if incremental_override:
+    if incremental_loading_override:
         print("State comparison skipped as incremental override enabled")
         sys.exit(1)
 
@@ -730,9 +730,13 @@ def check_state_cmd(
         collection_dir,
         pipeline_dir,
         resource_dir,
-        incremental_override,
+        incremental_loading_override,
         state_path,
     )
+    with open("state_difference.json") as f:
+        f.write({"differences": diffs if diffs else []})
+        f.write({"incremental_loading_override": incremental_loading_override})
+
     if diffs:
         print(f"State differs from {state_path} - {', '.join(diffs)}")
         sys.exit(1)
