@@ -287,15 +287,5 @@ class Specification:
             ]
         ]
 
-    def get_linked_fields(self, dataset):
-        return [
-            field
-            for field in self.dataset_field.get(dataset, [])
-            if dataset in self.dataset_field
-            and field
-            in [
-                field
-                for field, data in self.field.items()
-                if field in self.odp_collections
-            ]
-        ]
+    def get_odp_collections(self):
+        return list(set(self.odp_collections))

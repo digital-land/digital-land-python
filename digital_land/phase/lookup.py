@@ -180,7 +180,7 @@ class EntityLookupPhase(LookupPhase):
 
 class FactLookupPhase(LookupPhase):
     def __init__(
-        self, lookups={}, redirect_lookups={}, issue_log=None, get_linked_field=None
+        self, lookups={}, redirect_lookups={}, issue_log=None, get_linked_field=[]
     ):
         super().__init__(lookups, redirect_lookups, issue_log)
         self.entity_field = "reference-entity"
