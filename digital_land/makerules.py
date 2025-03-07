@@ -50,6 +50,7 @@ def pipeline_makerules(collection, state_difference_path):
             datetime.utcnow().isoformat()[:10]
         )
         dataset_resource = filter_dataset_resource_map(dataset_resource, new_resources)
+        print("dataset_resource: ", dataset_resource)
 
     # if the code/spec has changed we need to reprocess everything:
 
