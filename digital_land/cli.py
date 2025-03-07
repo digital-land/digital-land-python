@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 from pathlib import Path
@@ -740,8 +741,13 @@ def check_state_cmd(
         state_path,
     )
     with open("state_difference.json", "w") as f:
-        f.write({"differences": diffs if diffs else []})
-        f.write({"incremental_loading_override": incremental_loading_override})
+        json.dump(
+            {
+                "differences": diffs if diffs else [],
+                "incremental_loading_override": incremental_loading_override,
+            },
+            f,
+        )
 
     if diffs:
         print(f"State differs from {state_path} - {', '.join(diffs)}")
