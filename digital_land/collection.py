@@ -412,8 +412,8 @@ class Collection:
     def resource_path(self, resource):
         return resource_path(resource, self.dir)
 
-    def pipeline_makerules(self):
-        pipeline_makerules(self)
+    def pipeline_makerules(self, state_difference_path):
+        pipeline_makerules(self, state_difference_path)
 
     def dataset_resource_map(self):
         "a map of resources needed by each dataset in a collection"
@@ -636,3 +636,11 @@ class Collection:
             print(f"Error: {e}. Please check the file paths and try again.")
         except Exception as e:
             print(f"An unexpected error occurred: {e}.")
+
+    def resources_started_on(self, date):
+        "returns a list of resources that were first collected on the specified date"
+        resources = []
+        for resource in self.resource.entries:
+            if resource["start-date"] == date:
+                resources.append(resource)
+        return resources

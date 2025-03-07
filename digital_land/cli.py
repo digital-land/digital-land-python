@@ -111,8 +111,14 @@ def collection_list_resources_cmd(collection_dir):
     short_help="generate makerules for processing a collection",
 )
 @collection_dir
-def collection_pipeline_makerules_cmd(collection_dir):
-    return collection_pipeline_makerules(collection_dir)
+@click.option(
+    "--state-difference-path",
+    type=click.Path(),
+    default="state-difference.json",
+    help="path of the state difference file",
+)
+def collection_pipeline_makerules_cmd(collection_dir, state_difference_path):
+    return collection_pipeline_makerules(collection_dir, state_difference_path)
 
 
 @cli.command("collection-save-csv", short_help="save collection as CSV package")

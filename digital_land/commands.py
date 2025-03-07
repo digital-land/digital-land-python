@@ -103,10 +103,10 @@ def collection_list_resources(collection_dir):
         print(resource_path(resource, directory=collection_dir))
 
 
-def collection_pipeline_makerules(collection_dir):
+def collection_pipeline_makerules(collection_dir, state_difference_path):
     collection = Collection(name=None, directory=collection_dir)
     collection.load()
-    collection.pipeline_makerules()
+    collection.pipeline_makerules(state_difference_path)
 
 
 def collection_save_csv(collection_dir, refill_todays_logs=False):
