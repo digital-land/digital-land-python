@@ -739,7 +739,7 @@ def check_state_cmd(
         incremental_loading_override,
         state_path,
     )
-    with open("state_difference.json") as f:
+    with open("state_difference.json", "w") as f:
         f.write({"differences": diffs if diffs else []})
         f.write({"incremental_loading_override": incremental_loading_override})
 
