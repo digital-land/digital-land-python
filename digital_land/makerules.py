@@ -50,6 +50,12 @@ def pipeline_makerules(collection, state_difference_path):
             datetime.utcnow().isoformat()[:10]
         )
         dataset_resource = filter_dataset_resource_map(dataset_resource, new_resources)
+        # need to handle what to do if this is empty
+        dataset_resource = {
+            "central-activities-zone": {
+                "49d00c9ea82a5a345caa61a873967764d38ac7d8b34514586e164c1426838c38"
+            }
+        }
         print("dataset_resource: ", dataset_resource)
 
     # if the code/spec has changed we need to reprocess everything:
