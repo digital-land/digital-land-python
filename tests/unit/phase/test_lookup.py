@@ -233,7 +233,9 @@ class TestFactLookupPhase:
         issues = IssueLog()
 
         phase = FactLookupPhase(
-            lookups=lookups, issue_log=issues, get_linked_field=["article-4-direction"]
+            lookups=lookups,
+            issue_log=issues,
+            get_odp_collections=["article-4-direction"],
         )
         phase.entity_field = "reference-entity"
         output = [block for block in phase.process(input_stream)]
@@ -261,7 +263,7 @@ class TestFactLookupPhase:
             lookups=lookups,
             redirect_lookups=redirect_lookups,
             issue_log=issues,
-            get_linked_field=["article-4-direction"],
+            get_odp_collections=["article-4-direction"],
         )
         phase.entity_field = "reference-entity"
         output = [block for block in phase.process(input_stream)]
@@ -284,7 +286,9 @@ class TestFactLookupPhase:
         issues = IssueLog()
 
         phase = FactLookupPhase(
-            lookups=lookups, issue_log=issues, get_linked_field=["article-4-direction"]
+            lookups=lookups,
+            issue_log=issues,
+            get_odp_collections=["article-4-direction"],
         )
         phase.entity_field = "reference-entity"
         output = [block for block in phase.process(input_stream)]

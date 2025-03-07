@@ -180,11 +180,11 @@ class EntityLookupPhase(LookupPhase):
 
 class FactLookupPhase(LookupPhase):
     def __init__(
-        self, lookups={}, redirect_lookups={}, issue_log=None, get_linked_field=[]
+        self, lookups={}, redirect_lookups={}, issue_log=None, get_odp_collections=[]
     ):
         super().__init__(lookups, redirect_lookups, issue_log)
         self.entity_field = "reference-entity"
-        self.get_linked_field = get_linked_field
+        self.get_odp_collections = get_odp_collections
 
     def process(self, stream):
         for block in stream:
@@ -214,8 +214,8 @@ class FactLookupPhase(LookupPhase):
                             == 410
                         ):
                             if (
-                                self.get_linked_field
-                                and prefix in self.get_linked_field
+                                self.get_odp_collections
+                                and prefix in self.get_odp_collections
                             ):
                                 self.issues.log_issue(
                                     prefix,
