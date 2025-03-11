@@ -118,7 +118,7 @@ def collection_pipeline_makerules(
         pipeline_dir,
         resource_dir,
         incremental_loading_override,
-        state_path=None,
+        state_path=state_path,
     )
 
 

@@ -144,14 +144,13 @@ def collection_pipeline_makerules_cmd(
     incremental_loading_override,
     state_path,
 ):
-    print("state path", state_path)
     return collection_pipeline_makerules(
         collection_dir,
         specification_dir,
         pipeline_dir,
         resource_dir,
         incremental_loading_override,
-        state_path,
+        state_path=state_path,
     )
 
 

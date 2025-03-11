@@ -426,7 +426,7 @@ class Collection:
             pipeline_dir,
             resource_dir,
             incremental_loading_override,
-            state_path=None,
+            state_path=state_path,
         )
 
     def dataset_resource_map(self):
