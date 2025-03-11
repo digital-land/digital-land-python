@@ -109,7 +109,7 @@ def collection_pipeline_makerules(
     pipeline_dir,
     resource_dir,
     incremental_loading_override,
-    state_path,
+    state_path=None,
 ):
     collection = Collection(name=None, directory=collection_dir)
     collection.load()
@@ -118,7 +118,7 @@ def collection_pipeline_makerules(
         pipeline_dir,
         resource_dir,
         incremental_loading_override,
-        state_path,
+        state_path=None,
     )
 
 

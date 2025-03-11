@@ -418,7 +418,7 @@ class Collection:
         pipeline_dir,
         resource_dir,
         incremental_loading_override,
-        state_path,
+        state_path=None,
     ):
         pipeline_makerules(
             self,
@@ -426,7 +426,7 @@ class Collection:
             pipeline_dir,
             resource_dir,
             incremental_loading_override,
-            state_path,
+            state_path=None,
         )
 
     def dataset_resource_map(self):
