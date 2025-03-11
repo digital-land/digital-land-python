@@ -47,6 +47,8 @@ def get_processing_option(
         state_path,
     )
 
+    print("diffs:", diffs)
+
     # If incremental loading is overridden or critical configs changed, process everything
     critical_changes = {"code", "pipeline", "collection", "specification"}
     if incremental_loading_override or critical_changes & set(diffs):
