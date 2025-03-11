@@ -1,4 +1,4 @@
-from digital_land.makerules import pipeline_makerules
+from digital_land.makerules import filter_dataset_resource_map, pipeline_makerules
 
 
 def test_makerules_removes_old_entities_410_removed(mocker, capsys):
@@ -52,3 +52,23 @@ def test_makerules_removes_old_entities_310_both_resources_referenced(mocker, ca
     printed_output = capsys.readouterr()
     assert "test1" in printed_output.out, "old resource is not in the output"
     assert "test3" in printed_output.out, "replacement resource is not in the output"
+
+
+def test_filter_dataset_resource_map():
+    dataset_resource_map = {
+        "central-activities-zone": {
+            "49d00c9ea82a5a345caa61a873967764d38ac7d8b34514586e164c1426838c38",
+            "b7cd7941c1c8aee51465cbab3a72a81f42ba9393ee7c43ed142b5a278810c4e4",
+            "db5238c35bf94337fea6437627c66813009e86c44a569c6e7a95df31efd34db5",
+        }
+    }
+
+    filtered_dataset_resource_map = filter_dataset_resource_map(
+        dataset_resource_map,
+        ["49d00c9ea82a5a345caa61a873967764d38ac7d8b34514586e164c1426838c38"],
+    )
+    assert filtered_dataset_resource_map == {
+        "central-activities-zone": {
+            "49d00c9ea82a5a345caa61a873967764d38ac7d8b34514586e164c1426838c38"
+        }
+    }

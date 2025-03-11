@@ -638,6 +638,8 @@ class Collection:
             print(f"An unexpected error occurred: {e}.")
 
     def resources_started_on(self, date):
+        # change this to generic 'filtered_dataset_resource_map' that accepts a dict with filters to apply.
+        # what if run has failed for multiple days and date is out of date
         "returns a list of resources that were first collected on the specified date"
         resources = []
         for resource in self.resource.entries:

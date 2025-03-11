@@ -549,3 +549,8 @@ def test_collection_retire_endpoints_and_sources(tmp_path):
 
     assert updated_endpoint_df.to_dict() == expected_endpoint_data
     assert updated_source_df.to_dict() == expected_source_data
+
+
+def test_collection_resources_started_on():
+    # test here
+    assert True
