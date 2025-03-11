@@ -79,3 +79,33 @@ class State(dict):
         repo = pygit2.Repository(__file__)
         commit = repo.revparse_single("HEAD")
         return str(commit.id)
+
+
+def compare_state(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    state_path,
+):
+    """Compares the current state against the one in state_path.
+    Returns a list of different elements, or None if they are the same."""
+    current = State.build(
+        specification_dir=specification_dir,
+        collection_dir=collection_dir,
+        pipeline_dir=pipeline_dir,
+        resource_dir=resource_dir,
+        incremental_loading_override=incremental_loading_override,
+    )
+    # in here current incremental override must be false
+
+    compare = State.load(state_path)
+    # we don't want to include whether the previous state was an incremental override in comparison
+    current.pop("incremental_loading_override", None)
+    compare.pop("incremental_loading_override", None)
+
+    if current == compare:
+        return None
+
+    return [i for i in current.keys() if current[i] != compare.get(i, "")]

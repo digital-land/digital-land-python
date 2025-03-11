@@ -6,8 +6,9 @@
 #
 
 
-from digital_land.commands import compare_state
 from enum import Enum
+
+from digital_land.state import compare_state
 
 
 class ProcessingOption(Enum):

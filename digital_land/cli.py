@@ -29,7 +29,6 @@ from digital_land.commands import (
     organisation_create,
     organisation_check,
     save_state,
-    compare_state,
     add_data,
 )
 
@@ -45,6 +44,7 @@ from digital_land.command_arguments import (
     converted_resource_dir,
     output_log_dir,
 )
+from digital_land.state import compare_state
 
 
 @click.group()
