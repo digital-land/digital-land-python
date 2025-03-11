@@ -74,6 +74,14 @@ def pipeline_makerules(
     state_path=None,
 ):
     dataset_resource = collection.dataset_resource_map()
+    print(
+        "inputs:",
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path,
+    )
     process = get_processing_option(
         collection,
         specification_dir,
