@@ -17,7 +17,7 @@ class State(dict):
         collection_dir,
         pipeline_dir,
         resource_dir,
-        incremental_override,
+        incremental_loading_override,
     ):
         """Build a state object from the current configuration and code"""
         return State(
@@ -29,7 +29,7 @@ class State(dict):
                 ),
                 "resource": State.get_dir_hash(resource_dir),
                 "pipeline": State.get_dir_hash(pipeline_dir),
-                "incremental_override": incremental_override,
+                "incremental_loading_override": incremental_loading_override,
             }
         )
 

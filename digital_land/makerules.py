@@ -6,6 +6,16 @@
 #
 
 
+from digital_land.commands import compare_state
+from enum import Enum
+
+
+class ProcessingOption(Enum):
+    PROCESS_ALL = "all"
+    PROCESS_PARTIAL = "partial"
+    PROCESS_NONE = "none"
+
+
 def transformed_path(resource, dataset):
     return "$(TRANSFORMED_DIR)" + dataset + "/" + resource + ".csv"
 
@@ -14,8 +24,62 @@ def dataset_path(dataset):
     return "$(DATASET_DIR)" + dataset + ".csv"
 
 
-def pipeline_makerules(collection):
+def get_processing_option(
+    collection,
+    specification_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    state_path,
+):
+    # If there's no previous state, process everything
+    if not state_path:
+        return ProcessingOption.PROCESS_ALL
+
+    # Compare current state with the previous state
+    diffs = compare_state(
+        specification_dir,
+        collection.dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path,
+    )
+
+    # If incremental loading is overridden or critical configs changed, process everything
+    critical_changes = {"code", "pipeline", "collection", "specification"}
+    if incremental_loading_override or critical_changes & set(diffs):
+        return ProcessingOption.PROCESS_ALL
+
+    # New resources downloaded
+    if "resource" in diffs:
+        return ProcessingOption.PROCESS_ALL  # To be changed to partial in the future
+
+    if not diffs:
+        return ProcessingOption.PROCESS_NONE
+
+    # If there are diffs we don't recognise then play safe and reprocess everything
+    return ProcessingOption.PROCESS_ALL
+
+
+def pipeline_makerules(
+    collection,
+    specification_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    state_path,
+):
     dataset_resource = collection.dataset_resource_map()
+    process = get_processing_option(
+        collection,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path,
+    )
+
     redirect = {}
     for entry in collection.old_resource.entries:
         redirect[entry["old-resource"]] = entry["resource"]
@@ -34,6 +98,15 @@ def pipeline_makerules(collection):
             if redirect.get(resource, resource):
                 print("\\\n    %s" % (transformed_path(resource, dataset)), end="")
         print()
+
+        if process == ProcessingOption.PROCESS_NONE:
+            print("\n$(%s)::" % dataset_var)
+            print("\techo skipping dataset")
+            print("\ntransformed::")
+            print("\techo skipping transformed")
+            print("\ndataset::")
+            print("\techo skipping dataset")
+            continue  # Skip the rest of the loop for this dataset
 
         for resource in sorted(dataset_resource[dataset]):
             old_resource = resource
@@ -55,20 +128,22 @@ def pipeline_makerules(collection):
                         resource_path,
                     )
                 )
-                call_pipeline = (
-                    "\t$(call run-pipeline,"
-                    + f" --endpoints '{endpoints}'"
-                    + f" --organisations '{organisations}'"
-                    + f" --entry-date '{entry_date}'"
-                )
-                # we will include the resource arguement if the old resource
-                # is  different so it's processed as the old_resource
-                if resource != old_resource:
-                    call_pipeline = call_pipeline + f" --resource '{old_resource}'"
 
-                call_pipeline = call_pipeline + " )"
+                if process == ProcessingOption.PROCESS_ALL:
+                    call_pipeline = (
+                        "\t$(call run-pipeline,"
+                        + " --endpoints '%s'" % endpoints
+                        + " --organisations '%s'" % organisations
+                        + " --entry-date '%s'" % entry_date
+                    )
+                    # we will include the resource arguement if the old resource
+                    # is  different so it's processed as the old_resource
+                    if resource != old_resource:
+                        call_pipeline = call_pipeline + f" --resource '{old_resource}'"
 
-                print(call_pipeline)
+                    call_pipeline = call_pipeline + " )"
+
+                    print(call_pipeline)
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
         print("\t$(build-dataset)")

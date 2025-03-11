@@ -111,8 +111,47 @@ def collection_list_resources_cmd(collection_dir):
     short_help="generate makerules for processing a collection",
 )
 @collection_dir
-def collection_pipeline_makerules_cmd(collection_dir):
-    return collection_pipeline_makerules(collection_dir)
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    default="specification",
+    help="directory containing the specification",
+)
+@click.option(
+    "--pipeline-dir",
+    type=click.Path(),
+    default="pipeline",
+    help="directory containing the pipeline",
+)
+@click.option(
+    "--resource-dir",
+    type=click.Path(),
+    default="collection/resource",
+    help="directory containing resources",
+)
+@click.option("--incremental-loading-override", type=click.BOOL, default=False)
+@click.option(
+    "--state-path",
+    type=click.Path(),
+    default=None,
+    help="path of the output state file",
+)
+def collection_pipeline_makerules_cmd(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    state_path,
+):
+    return collection_pipeline_makerules(
+        collection_dir,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path,
+    )
 
 
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
@@ -661,7 +700,7 @@ def save_state_cmd(
     collection_dir,
     pipeline_dir,
     resource_dir,
-    incremental_override,
+    incremental_loading_override,
     output_path,
 ):
     save_state(
@@ -669,7 +708,7 @@ def save_state_cmd(
         collection_dir,
         pipeline_dir,
         resource_dir,
-        incremental_override,
+        incremental_loading_override,
         output_path,
     )
 
@@ -714,14 +753,14 @@ def check_state_cmd(
     collection_dir,
     pipeline_dir,
     resource_dir,
-    incremental_override,
+    incremental_loading_override,
     state_path,
 ):
     # If the state isn't the same, use a non-zero return code so scripts can
     # detect this, and print a message. If it is the same, exit silenty wirh a
     # 0 retun code.
 
-    if incremental_override:
+    if incremental_loading_override:
         print("State comparison skipped as incremental override enabled")
         sys.exit(1)
 
@@ -730,7 +769,7 @@ def check_state_cmd(
         collection_dir,
         pipeline_dir,
         resource_dir,
-        incremental_override,
+        incremental_loading_override,
         state_path,
     )
     if diffs:
