@@ -47,9 +47,11 @@ def get_processing_option(
         state_path,
     )
 
+    diffs = diffs or []  # handle if diffs is None
+
     # If incremental loading is overridden or critical configs changed, process everything
     critical_changes = {"code", "pipeline", "collection", "specification"}
-    if incremental_loading_override or critical_changes & set(diffs or []):
+    if incremental_loading_override or critical_changes & set(diffs):
         return ProcessingOption.PROCESS_ALL
 
     # New resources downloaded
