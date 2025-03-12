@@ -95,11 +95,6 @@ def pipeline_makerules(
         dataset_var = name_var + "_DATASET"
         dataset_files_var = name_var + "_TRANSFORMED_FILES"
 
-        print("DEBUG: %s=" % dataset_files_var)
-        for resource in sorted(dataset_resource[dataset]):
-            debug_path = transformed_path(resource, dataset)
-            print("DEBUG:", debug_path)
-
         print("%s=%s" % (dataset_var, dataset_path(dataset)))
         print("%s=" % (dataset_files_var), end="")
         for resource in sorted(dataset_resource[dataset]):
