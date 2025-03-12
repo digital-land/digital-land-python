@@ -2,7 +2,8 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from digital_land.commands import save_state, compare_state
+from digital_land.commands import save_state
+from digital_land.state import compare_state
 
 specification_hash = "ebe620f5228d01170b1857bad3e738aa432f5fd6"
 collection_hash = "ed4c5979268ad880f7edbdc2047cfcfa6b9ee3b4"

@@ -98,6 +98,7 @@ def compare_state(
         resource_dir=resource_dir,
         incremental_loading_override=incremental_loading_override,
     )
+    print("current:", current)
     # in here current incremental override must be false
 
     compare = State.load(state_path)
