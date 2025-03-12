@@ -687,7 +687,7 @@ def config_load_cmd(ctx, config_path):
     default="collection/resource",
     help="directory containing resources",
 )
-@click.option("--incremental-override", type=click.BOOL, default=False)
+@click.option("--incremental-loading-override", type=click.BOOL, default=False)
 @click.option(
     "--output-path",
     "-o",
