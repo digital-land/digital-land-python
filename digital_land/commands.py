@@ -349,7 +349,7 @@ def pipeline_run(
             lookups=lookups,
             redirect_lookups=redirect_lookups,
             issue_log=issue_log,
-            get_odp_collections=specification.get_odp_collections(),
+            odp_collections=specification.get_odp_collections(),
         ),
         FactPrunePhase(),
         SavePhase(

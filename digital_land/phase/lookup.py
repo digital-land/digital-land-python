@@ -180,11 +180,11 @@ class EntityLookupPhase(LookupPhase):
 
 class FactLookupPhase(LookupPhase):
     def __init__(
-        self, lookups={}, redirect_lookups={}, issue_log=None, get_odp_collections=[]
+        self, lookups={}, redirect_lookups={}, issue_log=None, odp_collections=[]
     ):
         super().__init__(lookups, redirect_lookups, issue_log)
         self.entity_field = "reference-entity"
-        self.get_odp_collections = get_odp_collections
+        self.odp_collections = odp_collections
 
     def process(self, stream):
         for block in stream:
@@ -212,7 +212,7 @@ class FactLookupPhase(LookupPhase):
                     and int(self.redirect_lookups[str(find_entity)].get("status", 0))
                     == 410
                 ):
-                    if self.get_odp_collections and prefix in self.get_odp_collections:
+                    if self.odp_collections and prefix in self.odp_collections:
                         self.issues.log_issue(
                             prefix,
                             "no associated documents found for this area",

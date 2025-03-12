@@ -178,7 +178,7 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
             FactLookupPhase(
                 lookups,
                 issue_log=issue_log,
-                get_odp_collections=specification.get_odp_collections(),
+                odp_collections=specification.get_odp_collections(),
             ),
             FactPrunePhase(),
             SavePhase(
