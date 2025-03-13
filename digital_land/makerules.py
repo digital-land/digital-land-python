@@ -104,12 +104,12 @@ def pipeline_makerules(
 
         if process == ProcessingOption.PROCESS_NONE:
             print("\n$(%s)::" % dataset_var)
-            print("\techo skipping dataset")
+            print("\techo No state change so resources aren't transformed")
             print("\ntransformed::")
-            print("\techo skipping transformed")
+            print("\techo No state change so resources aren't transformed")
             print("\ndataset::")
-            print("\techo skipping dataset")
-            continue  # Skip the rest of the loop for this dataset
+            print("\techo No state change so no resources have been transformed")
+            continue
 
         for resource in sorted(dataset_resource[dataset]):
             old_resource = resource
