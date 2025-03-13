@@ -12,6 +12,7 @@ class PivotPhase(Phase):
             for field, value in sorted(row.items()):
                 if field in ["entity"]:
                     continue
+
                 block["row"] = {
                     # fact
                     "fact": "",
@@ -23,7 +24,7 @@ class PivotPhase(Phase):
                     "resource": block["resource"],
                     "line-number": block["line-number"],
                     "entry-number": block["entry-number"],
-                    "entry-date": row.get("entry-date", ""),
+                    "entry-date": row["entry-date"],
                 }
 
                 yield block

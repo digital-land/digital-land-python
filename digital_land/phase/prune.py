@@ -20,8 +20,7 @@ class FieldPrunePhase(Phase):
 
             o = {}
             for field in self.fields:
-                if row.get(field, None) is not None:
-                    o[field] = row.get(field, "")
+                o[field] = row.get(field, "")
 
             block["row"] = o
             yield block

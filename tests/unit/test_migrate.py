@@ -40,4 +40,8 @@ def test_migrate_point():
 
     assert output[0]["row"] == {
         "point": "POINT(-2.218153 50.747808)",
+        "entity": "",
+        "prefix": "",
+        "reference": "",
+        "organisation": "",
     }

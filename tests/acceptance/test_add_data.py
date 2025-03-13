@@ -214,13 +214,6 @@ def test_cli_add_data(
             str(cache_dir),
         ],
     )
-    if result.exit_code != 0:
-        # Print the command output if the test fails, gives more detail on what's gone wrong
-        print("Command failed with exit code:", result.exit_code)
-        print("Command output:")
-        print(result.output)
-        print("Command error output:")
-        print(result.exception)
 
     assert result.exit_code == 0
 

@@ -18,11 +18,7 @@ class MigratePhase(Phase):
             o = {}
 
             for field in self.fields:
-                # Changed so that if value does not exist then set to None and don't add to o
-                # Having a blank string was causing issues in brownfield-land
-                value = row.get(self.migrations.get(field, None), row.get(field, None))
-                if value is not None:
-                    o[field] = value
+                o[field] = row.get(self.migrations.get(field, ""), row.get(field, ""))
 
             # TBD: move to separate point phase
             if set(["GeoX", "GeoY"]).issubset(row.keys()) and "point" in self.fields:
