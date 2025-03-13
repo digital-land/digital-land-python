@@ -58,6 +58,8 @@ setup(
         "dask[dataframe]",
         "pyarrow",
         "pygit2",
+        "boto3",
+        "moto",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],

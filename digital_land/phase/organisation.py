@@ -18,9 +18,9 @@ class OrganisationPhase(Phase):
                 self.issues.line_number = block["line-number"]
                 self.issues.entry_number = block["entry-number"]
 
-            organisation_value = row["organisation"]
-            row["organisation"] = self.organisation.lookup(row["organisation"])
-            if not row["organisation"] and self.issues:
+            organisation_value = row.get("organisation", "")
+            row["organisation"] = self.organisation.lookup(row.get("organisation", ""))
+            if not row.get("organisation", "") and self.issues:
                 self.issues.log_issue(
                     "organisation", "invalid organisation", organisation_value
                 )

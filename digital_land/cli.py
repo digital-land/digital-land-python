@@ -643,14 +643,35 @@ def config_load_cmd(ctx, config_path):
     help="directory containing the pipeline",
 )
 @click.option(
+    "--resource-dir",
+    type=click.Path(),
+    default="collection/resource",
+    help="directory containing resources",
+)
+@click.option("--incremental-override", type=click.BOOL, default=False)
+@click.option(
     "--output-path",
     "-o",
     type=click.Path(),
     default="state.json",
     help="path of the output state file",
 )
-def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path):
-    save_state(specification_dir, collection_dir, pipeline_dir, output_path)
+def save_state_cmd(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_override,
+    output_path,
+):
+    save_state(
+        specification_dir,
+        collection_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_override,
+        output_path,
+    )
 
 
 @cli.command(
@@ -676,16 +697,42 @@ def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path)
     help="directory containing the pipeline",
 )
 @click.option(
+    "--resource-dir",
+    type=click.Path(),
+    default="collection/resource",
+    help="directory containing resources",
+)
+@click.option("--incremental-override", type=click.BOOL, default=False)
+@click.option(
     "--state-path",
     type=click.Path(),
     default="state.json",
     help="path of the output state file",
 )
-def check_state_cmd(specification_dir, collection_dir, pipeline_dir, state_path):
+def check_state_cmd(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_override,
+    state_path,
+):
     # If the state isn't the same, use a non-zero return code so scripts can
     # detect this, and print a message. If it is the same, exit silenty wirh a
     # 0 retun code.
-    diffs = compare_state(specification_dir, collection_dir, pipeline_dir, state_path)
+
+    if incremental_override:
+        print("State comparison skipped as incremental override enabled")
+        sys.exit(1)
+
+    diffs = compare_state(
+        specification_dir,
+        collection_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_override,
+        state_path,
+    )
     if diffs:
         print(f"State differs from {state_path} - {', '.join(diffs)}")
         sys.exit(1)
