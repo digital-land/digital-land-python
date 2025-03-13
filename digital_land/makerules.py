@@ -104,11 +104,11 @@ def pipeline_makerules(
 
         if process == ProcessingOption.PROCESS_NONE:
             print("\n$(%s)::" % dataset_var)
-            print("\techo No state change so resources aren't transformed")
+            print('\techo "No state change and no new resources to transform"')
             print("\ntransformed::")
-            print("\techo No state change so resources aren't transformed")
+            print('\techo "No state change and no new resources to transform"')
             print("\ndataset::")
-            print("\techo No state change so no resources have been transformed")
+            print('\techo "No state change so no resources have been transformed"')
             continue
 
         for resource in sorted(dataset_resource[dataset]):
