@@ -2,7 +2,8 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from digital_land.commands import save_state, compare_state
+from digital_land.commands import save_state
+from digital_land.state import compare_state
 
 specification_hash = "ebe620f5228d01170b1857bad3e738aa432f5fd6"
 collection_hash = "ed4c5979268ad880f7edbdc2047cfcfa6b9ee3b4"
@@ -28,7 +29,7 @@ def test_state(tmp_path):
         collection_dir=os.path.join(test_data_dir, "collection"),
         pipeline_dir=os.path.join(test_data_dir, "pipeline"),
         resource_dir=os.path.join(test_data_dir, "resource"),
-        incremental_override=True,
+        incremental_loading_override=True,
         output_path=state_path,
     )
 
@@ -41,14 +42,14 @@ def test_state(tmp_path):
             "collection",
             "resource",
             "pipeline",
-            "incremental_override",
+            "incremental_loading_override",
         ]
         assert state_data["code"] == get_code_hash()
         assert state_data["specification"] == specification_hash
         assert state_data["collection"] == collection_hash
         assert state_data["pipeline"] == pipeline_hash
         assert state_data["resource"] == resource_hash
-        assert state_data["incremental_override"]
+        assert state_data["incremental_loading_override"]
 
     assert (
         compare_state(
@@ -56,7 +57,7 @@ def test_state(tmp_path):
             collection_dir=os.path.join(test_data_dir, "collection"),
             pipeline_dir=os.path.join(test_data_dir, "pipeline"),
             resource_dir=os.path.join(test_data_dir, "resource"),
-            incremental_override=True,
+            incremental_loading_override=True,
             state_path=state_path,
         )
         is None
@@ -68,7 +69,7 @@ def test_state(tmp_path):
             collection_dir=os.path.join(test_data_dir, "collection_exclude"),
             pipeline_dir=os.path.join(test_data_dir, "pipeline"),
             resource_dir=os.path.join(test_data_dir, "resource"),
-            incremental_override=True,
+            incremental_loading_override=True,
             state_path=state_path,
         )
         is None
@@ -79,7 +80,7 @@ def test_state(tmp_path):
         collection_dir=os.path.join(test_data_dir, "collection_blank"),
         pipeline_dir=os.path.join(test_data_dir, "pipeline"),
         resource_dir=os.path.join(test_data_dir, "resource"),
-        incremental_override=True,
+        incremental_loading_override=True,
         state_path=state_path,
     ) == ["collection"]
 
@@ -88,7 +89,7 @@ def test_state(tmp_path):
         collection_dir=os.path.join(test_data_dir, "collection"),
         pipeline_dir=os.path.join(test_data_dir, "pipeline"),
         resource_dir=os.path.join(test_data_dir, "resource_diff"),
-        incremental_override=True,
+        incremental_loading_override=True,
         state_path=state_path,
     ) == ["resource"]
 
@@ -100,7 +101,7 @@ def test_state(tmp_path):
             collection_dir=os.path.join(test_data_dir, "collection"),
             pipeline_dir=os.path.join(test_data_dir, "pipeline"),
             resource_dir=os.path.join(test_data_dir, "resource"),
-            incremental_override=False,
+            incremental_loading_override=False,
             state_path=state_path,
         )
         is None

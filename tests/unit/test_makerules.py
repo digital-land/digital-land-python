@@ -1,4 +1,8 @@
-from digital_land.makerules import pipeline_makerules
+from digital_land.makerules import (
+    ProcessingOption,
+    get_processing_option,
+    pipeline_makerules,
+)
 
 
 def test_makerules_removes_old_entities_410_removed(mocker, capsys):
@@ -20,7 +24,18 @@ def test_makerules_removes_old_entities_410_removed(mocker, capsys):
     # Mock old resources
     fake_collection.old_resource.entries = old_entities
 
-    pipeline_makerules(fake_collection)
+    specification_dir = "specification/"
+    pipeline_dir = "pipeline/"
+    resource_dir = "resource/"
+    incremental_loading_override = False
+
+    pipeline_makerules(
+        fake_collection,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+    )
 
     printed_output = capsys.readouterr()
     assert "test1" not in printed_output.out
@@ -47,8 +62,104 @@ def test_makerules_removes_old_entities_310_both_resources_referenced(mocker, ca
     # mock old rresoures
     fake_collection.old_resource.entries = old_entities
 
-    pipeline_makerules(fake_collection)
+    specification_dir = "specification/"
+    pipeline_dir = "pipeline/"
+    resource_dir = "resource/"
+    incremental_loading_override = False
+
+    pipeline_makerules(
+        fake_collection,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+    )
 
     printed_output = capsys.readouterr()
     assert "test1" in printed_output.out, "old resource is not in the output"
     assert "test3" in printed_output.out, "replacement resource is not in the output"
+
+
+# def test_collection_pipeline_makerules()
+
+
+def test_get_processing_option_no_state_change(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=None)
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert option == ProcessingOption.PROCESS_NONE
+
+
+def test_get_processing_option_code_change(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["code"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert option == ProcessingOption.PROCESS_ALL
+
+
+def test_get_processing_option_specification_change(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["specification"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert option == ProcessingOption.PROCESS_ALL
+
+
+def test_get_processing_option_pipeline_change(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["pipeline"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert option == ProcessingOption.PROCESS_ALL
+
+
+def test_get_processing_option_collection_change(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["collection"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert option == ProcessingOption.PROCESS_ALL
+
+
+def test_get_processing_option_resource_change(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["resource"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert (
+        option == ProcessingOption.PROCESS_ALL
+    )  # will change this to partial in the future
+
+
+def test_get_processing_option_unknown_change(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["unknown"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert option == ProcessingOption.PROCESS_ALL
+
+
+def test_get_processing_option_no_state(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["unknown"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, None)
+
+    assert option == ProcessingOption.PROCESS_ALL
