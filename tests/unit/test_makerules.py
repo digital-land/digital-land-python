@@ -20,7 +20,18 @@ def test_makerules_removes_old_entities_410_removed(mocker, capsys):
     # Mock old resources
     fake_collection.old_resource.entries = old_entities
 
-    pipeline_makerules(fake_collection)
+    specification_dir = "specification/"
+    pipeline_dir = "pipeline/"
+    resource_dir = "resource/"
+    incremental_loading_override = False
+
+    pipeline_makerules(
+        fake_collection,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+    )
 
     printed_output = capsys.readouterr()
     assert "test1" not in printed_output.out
@@ -47,7 +58,18 @@ def test_makerules_removes_old_entities_310_both_resources_referenced(mocker, ca
     # mock old rresoures
     fake_collection.old_resource.entries = old_entities
 
-    pipeline_makerules(fake_collection)
+    specification_dir = "specification/"
+    pipeline_dir = "pipeline/"
+    resource_dir = "resource/"
+    incremental_loading_override = False
+
+    pipeline_makerules(
+        fake_collection,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+    )
 
     printed_output = capsys.readouterr()
     assert "test1" in printed_output.out, "old resource is not in the output"
