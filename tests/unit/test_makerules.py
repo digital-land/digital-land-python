@@ -80,12 +80,15 @@ def test_makerules_removes_old_entities_310_both_resources_referenced(mocker, ca
     assert "test3" in printed_output.out, "replacement resource is not in the output"
 
 
+# def test_collection_pipeline_makerules()
+
+
 def test_get_processing_option_no_state_change(mocker):
     mocker.patch("digital_land.makerules.compare_state", return_value=None)
 
     fake_collection = mocker.Mock()
 
-    option = get_processing_option(fake_collection, "", "", "", False, "")
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
     assert option == ProcessingOption.PROCESS_NONE
 
@@ -95,7 +98,7 @@ def test_get_processing_option_code_change(mocker):
 
     fake_collection = mocker.Mock()
 
-    option = get_processing_option(fake_collection, "", "", "", False, "")
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
     assert option == ProcessingOption.PROCESS_ALL
 
@@ -105,7 +108,7 @@ def test_get_processing_option_specification_change(mocker):
 
     fake_collection = mocker.Mock()
 
-    option = get_processing_option(fake_collection, "", "", "", False, "")
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
     assert option == ProcessingOption.PROCESS_ALL
 
@@ -115,7 +118,7 @@ def test_get_processing_option_pipeline_change(mocker):
 
     fake_collection = mocker.Mock()
 
-    option = get_processing_option(fake_collection, "", "", "", False, "")
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
     assert option == ProcessingOption.PROCESS_ALL
 
@@ -125,7 +128,7 @@ def test_get_processing_option_collection_change(mocker):
 
     fake_collection = mocker.Mock()
 
-    option = get_processing_option(fake_collection, "", "", "", False, "")
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
     assert option == ProcessingOption.PROCESS_ALL
 
@@ -135,7 +138,7 @@ def test_get_processing_option_resource_change(mocker):
 
     fake_collection = mocker.Mock()
 
-    option = get_processing_option(fake_collection, "", "", "", False, "")
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
     assert (
         option == ProcessingOption.PROCESS_ALL
@@ -147,6 +150,16 @@ def test_get_processing_option_unknown_change(mocker):
 
     fake_collection = mocker.Mock()
 
-    option = get_processing_option(fake_collection, "", "", "", False, "")
+    option = get_processing_option(fake_collection, "", "", "", False, "state.json")
+
+    assert option == ProcessingOption.PROCESS_ALL
+
+
+def test_get_processing_option_no_state(mocker):
+    mocker.patch("digital_land.makerules.compare_state", return_value=["unknown"])
+
+    fake_collection = mocker.Mock()
+
+    option = get_processing_option(fake_collection, "", "", "", False, None)
 
     assert option == ProcessingOption.PROCESS_ALL
