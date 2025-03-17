@@ -412,8 +412,22 @@ class Collection:
     def resource_path(self, resource):
         return resource_path(resource, self.dir)
 
-    def pipeline_makerules(self):
-        pipeline_makerules(self)
+    def pipeline_makerules(
+        self,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path=None,
+    ):
+        pipeline_makerules(
+            self,
+            specification_dir,
+            pipeline_dir,
+            resource_dir,
+            incremental_loading_override,
+            state_path=state_path,
+        )
 
     def dataset_resource_map(self):
         "a map of resources needed by each dataset in a collection"
