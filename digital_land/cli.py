@@ -22,6 +22,7 @@ from digital_land.commands import (
     operational_issue_save_csv,
     convert,
     dataset_create,
+    dataset_update,
     pipeline_run,
     collection_add_source,
     add_endpoints_and_lookups,
@@ -223,6 +224,55 @@ def dataset_create_cmd(
         issue_dir=issue_dir,
         cache_dir=cache_dir,
         resource_path=resource_path,
+    )
+
+
+@cli.command("dataset-update", short_help="create a dataset from processed resources")
+@click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
+@organisation_path
+@column_field_dir
+@dataset_resource_dir
+@issue_dir
+@click.option(
+    "--cache-dir",
+    type=click.Path(),
+    default="var/cache",
+    help="link to a cache directory to store temporary data that can be deleted once process is finished",
+)
+@click.option(
+    "--resource-path",
+    type=click.Path(exists=True),
+    default="collection/resource.csv",
+    help="link to where the resource list is stored",
+)
+@click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
+@click.argument("bucket-name", nargs=-1, type=click.Path(exists=True))
+@click.pass_context
+def dataset_update_cmd(
+    ctx,
+    input_paths,
+    output_path,
+    organisation_path,
+    column_field_dir,
+    dataset_resource_dir,
+    issue_dir,
+    cache_dir,
+    resource_path,
+    bucket_name,
+):
+    return dataset_update(
+        input_paths=input_paths,
+        output_path=output_path,
+        organisation_path=organisation_path,
+        pipeline=ctx.obj["PIPELINE"],
+        dataset=ctx.obj["DATASET"],
+        specification=ctx.obj["SPECIFICATION"],
+        column_field_dir=column_field_dir,
+        dataset_resource_dir=dataset_resource_dir,
+        issue_dir=issue_dir,
+        cache_dir=cache_dir,
+        resource_path=resource_path,
+        bucket_name=bucket_name,
     )
 
 

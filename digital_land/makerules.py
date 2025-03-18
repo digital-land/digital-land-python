@@ -56,7 +56,9 @@ def get_processing_option(
 
     # New resources downloaded
     if "resource" in diffs:
-        return ProcessingOption.PROCESS_ALL  # To be changed to partial in the future
+        return (
+            ProcessingOption.PROCESS_PARTIAL
+        )  # To be changed to partial in the future
 
     if not diffs:
         return ProcessingOption.PROCESS_NONE
@@ -149,7 +151,12 @@ def pipeline_makerules(
                     print(call_pipeline)
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
+        # When ProcessingOption.PROCESS_PARTIAL comes onboard use the below commented out code and delete this line
         print("\t$(build-dataset)")
+        # if process == ProcessingOption.PROCESS_PARTIAL:
+        #     print("\t$(update-dataset)")
+        # else:
+        #     print("\t$(build-dataset)")
         print("\ntransformed:: $(%s)" % (dataset_files_var))
         print("\ndataset:: $(%s)" % (dataset_var))
 
