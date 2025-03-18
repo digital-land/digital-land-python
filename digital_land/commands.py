@@ -14,6 +14,7 @@ from distutils.dir_util import copy_tree
 import geojson
 from requests import HTTPError
 import shapely
+import chardet
 
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.check import duplicate_reference_check
@@ -826,7 +827,8 @@ def validate_and_add_data_input(
         print(f"Log Status for {endpoint['endpoint']}: The status is {status}")
 
         # Decode bytes to string
-        resource_content = resource_content.decode("utf-8")
+        encoding = chardet.detect(resource_content)["encoding"]
+        resource_content = resource_content.decode(encoding)
         if "error" in resource_content:
             os.remove(log_path)
             raise HTTPError(f"Failed to collect from resource: {resource['error']}")
