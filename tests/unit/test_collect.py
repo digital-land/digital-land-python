@@ -41,9 +41,9 @@ def sha_digest(string):
 @responses.activate
 def test_fetch(collector, prepared_response, tmp_path):
     url = "http://some.url"
-    status = collector.fetch(url)
+    fetch_status = collector.fetch(url)
 
-    assert status == FetchStatus.OK
+    assert fetch_status[0] == FetchStatus.OK
     output_path = tmp_path / f"resource/{sha_digest('some data')}"
     assert os.path.isfile(output_path)
     assert open(output_path).read() == "some data"
@@ -52,8 +52,8 @@ def test_fetch(collector, prepared_response, tmp_path):
 
 @responses.activate
 def test_already_fetched(collector, prepared_response):
-    status = collector.fetch("http://some.url")
-    assert status == FetchStatus.OK
+    fetch_status = collector.fetch("http://some.url")
+    assert fetch_status[0] == FetchStatus.OK
 
     new_status = collector.fetch("http://some.url")
     assert new_status == FetchStatus.ALREADY_FETCHED
@@ -61,11 +61,11 @@ def test_already_fetched(collector, prepared_response):
 
 @responses.activate
 def test_refill_todays_logs(collector, prepared_response):
-    status = collector.fetch("http://some.url")
-    assert status == FetchStatus.OK
+    fetch_status = collector.fetch("http://some.url")
+    assert fetch_status[0] == FetchStatus.OK
 
-    new_status = collector.fetch("http://some.url", refill_todays_logs=True)
-    assert new_status == FetchStatus.OK
+    fetch_status = collector.fetch("http://some.url", refill_todays_logs=True)
+    assert fetch_status[0] == FetchStatus.OK
 
 
 @responses.activate
@@ -80,9 +80,9 @@ def test_expired(collector):
 @responses.activate
 def test_hash_check(collector, prepared_response):
     url = "http://some.url"
-    status = collector.fetch(url, endpoint=sha_digest(url))
+    fetch_status = collector.fetch(url, endpoint=sha_digest(url))
 
-    assert status == FetchStatus.OK
+    assert fetch_status[0] == FetchStatus.OK
 
 
 @responses.activate
@@ -135,9 +135,9 @@ def test_strip_timestamp(collector, tmp_path):
         content_type="application/json",
     )
 
-    status = collector.fetch(url)
+    fetch_status = collector.fetch(url)
 
-    assert status == FetchStatus.OK
+    assert fetch_status[0] == FetchStatus.OK
     # Check that the timestamp is removed
     expected_content = '{"data": "some data"}'
     expected_hash = sha_digest(expected_content)
@@ -165,9 +165,9 @@ def test_strip_timestamp_xml(collector, tmp_path):
         content_type="application/xml;charset=UTF-8",
     )
 
-    status = collector.fetch(url)
+    fetch_status = collector.fetch(url)
 
-    assert status == FetchStatus.OK
+    assert fetch_status[0] == FetchStatus.OK
     # Check that the timestamp is removed
     expected_content = '<root numberMatched="unknown" />'
     expected_hash = sha_digest(expected_content)
