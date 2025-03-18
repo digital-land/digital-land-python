@@ -140,9 +140,7 @@ def test_get_processing_option_resource_change(mocker):
 
     option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
-    assert (
-        option == ProcessingOption.PROCESS_PARTIAL
-    )
+    assert option == ProcessingOption.PROCESS_PARTIAL
 
 
 def test_get_processing_option_unknown_change(mocker):
