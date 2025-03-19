@@ -1,6 +1,7 @@
 import csv
 import os
 import duckdb
+import chardet
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -95,7 +96,12 @@ def get_column_field_summary(
             reader = csv.DictReader(f)
             converted_resource_columns = reader.fieldnames
     except FileNotFoundError:
-        with open(endpoint_resource_info["resource_path"], "r") as f:
+        with open(endpoint_resource_info["resource_path"], "rb") as f:
+            raw_data = f.read()
+            detected_encoding = chardet.detect(raw_data)["encoding"]
+        with open(
+            endpoint_resource_info["resource_path"], "r", encoding=detected_encoding
+        ) as f:
             reader = csv.DictReader(f)
             converted_resource_columns = reader.fieldnames
 
@@ -130,7 +136,7 @@ def get_column_field_summary(
     else:
         column_field_summary += "\nNo unmapped fields!"
 
-    if "reference" not in mapped_fields:
+    if "reference" not in mapped_fields and "SiteReference" not in mapped_fields:
         raise ValueError(
             "Reference not found in the mapped fields - does this need mapping?"
         )
@@ -210,7 +216,7 @@ def get_entity_summary(
     lookup_path = pipeline_dir / "lookup.csv"
     conn = duckdb.connect()
     provision_entity_df = conn.execute(
-        f"SELECT entity FROM '{lookup_path}' WHERE prefix='{pipeline}' AND organisation='{endpoint_resource_info['organisation']}'"
+        f"SELECT entity FROM read_csv('{lookup_path}', quote ='\"') WHERE prefix='{pipeline}' AND organisation='{endpoint_resource_info['organisation']}'"
     ).df()
     if len(provision_entity_df) > 0:
         provision_entities = provision_entity_df["entity"].values

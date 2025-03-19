@@ -388,3 +388,54 @@ def test_column_field_summary_no_reference(tmp_path_factory):
         )
 
     assert "Reference not found in the mapped fields" in str(error)
+
+
+def test_get_column_field_summary_detect_encoding(tmp_path_factory):
+    column_field_dir = tmp_path_factory.mktemp("column_field")
+    converted_dir = tmp_path_factory.mktemp("converted")
+    collection_dir = tmp_path_factory.mktemp("collection")
+
+    resource = "resource"
+    pipeline = "address"
+
+    resource_dir = collection_dir / pipeline / "resource"
+    resource_dir.mkdir(parents=True, exist_ok=True)
+    endpoint_resource_info = {
+        "resource": resource,
+        "resource_path": resource_dir / resource,
+    }
+
+    specification_dir = "tests/data/specification"
+
+    column_field_headers = ["column", "field"]
+    column_field_rows = [
+        {"column": "column1", "field": "address"},
+        {"column": "column2", "field": "address-text"},
+        {"column": "column3", "field": "end-date"},
+        {"column": "column4", "field": "reference"},
+    ]
+    with open(os.path.join(column_field_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=column_field_headers)
+        writer.writeheader()
+        writer.writerows(column_field_rows)
+
+    converted_headers = "column1,column2,column3,column4,column5,column6\n"
+
+    with open(
+        endpoint_resource_info["resource_path"], "w", encoding="windows-1252"
+    ) as f:
+        f.write(converted_headers)
+
+    column_field_summary = get_column_field_summary(
+        pipeline,
+        endpoint_resource_info,
+        column_field_dir,
+        converted_dir,
+        specification_dir,
+    )
+
+    assert "Unmapped Columns:\ncolumn5, column6" in column_field_summary
+    assert (
+        "Unmapped Fields:\nentry-date, latitude, longitude, name, notes, start-date"
+        in column_field_summary
+    )
