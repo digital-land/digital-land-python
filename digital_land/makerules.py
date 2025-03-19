@@ -56,7 +56,9 @@ def get_processing_option(
 
     # New resources downloaded
     if "resource" in diffs:
-        return ProcessingOption.PROCESS_ALL  # To be changed to partial in the future
+        return (
+            ProcessingOption.PROCESS_PARTIAL
+        )  # To be changed to partial in the future
 
     if not diffs:
         return ProcessingOption.PROCESS_NONE
@@ -132,24 +134,28 @@ def pipeline_makerules(
                     )
                 )
 
-                if process == ProcessingOption.PROCESS_ALL:
-                    call_pipeline = (
-                        "\t$(call run-pipeline,"
-                        + " --endpoints '%s'" % endpoints
-                        + " --organisations '%s'" % organisations
-                        + " --entry-date '%s'" % entry_date
-                    )
-                    # we will include the resource arguement if the old resource
-                    # is  different so it's processed as the old_resource
-                    if resource != old_resource:
-                        call_pipeline = call_pipeline + f" --resource '{old_resource}'"
+                call_pipeline = (
+                    "\t$(call run-pipeline,"
+                    + " --endpoints '%s'" % endpoints
+                    + " --organisations '%s'" % organisations
+                    + " --entry-date '%s'" % entry_date
+                )
+                # we will include the resource argument if the old resource
+                # is  different so it's processed as the old_resource
+                if resource != old_resource:
+                    call_pipeline = call_pipeline + f" --resource '{old_resource}'"
 
-                    call_pipeline = call_pipeline + " )"
+                call_pipeline = call_pipeline + " )"
 
-                    print(call_pipeline)
+                print(call_pipeline)
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
+        # When ProcessingOption.PROCESS_PARTIAL comes onboard use the below commented out code and delete this line
         print("\t$(build-dataset)")
+        # if process == ProcessingOption.PROCESS_PARTIAL:
+        #     print("\t$(update-dataset)")
+        # else:
+        #     print("\t$(build-dataset)")
         print("\ntransformed:: $(%s)" % (dataset_files_var))
         print("\ndataset:: $(%s)" % (dataset_var))
 

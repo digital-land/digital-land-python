@@ -1,6 +1,7 @@
 import os
 import subprocess
 import pytest
+from datetime import date
 
 from digital_land.state import State
 
@@ -85,3 +86,18 @@ def test_state_build_persist(tmp_path):
 
     # Check that's different from the first one
     assert state_2 != state_3
+
+
+def test_state_build_has_last_updated_date(tmp_path):
+    test_dir = "tests/data/state"
+
+    # Generate and save a state
+    test_state = State.build(
+        os.path.join(test_dir, "specification"),
+        os.path.join(test_dir, "collection"),
+        os.path.join(test_dir, "pipeline"),
+        os.path.join(test_dir, "resource"),
+        True,
+    )
+    assert "last_updated_date" in test_state.keys()
+    assert test_state["last_updated_date"] == date.today().isoformat()

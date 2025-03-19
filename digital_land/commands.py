@@ -76,7 +76,6 @@ from digital_land.utils.add_data_utils import (
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -421,7 +420,7 @@ def dataset_create(
     # get  the transformed files from the cache directory this  is  assumed right now but we may want to be stricter in the future
     transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
 
-    # creat directory for dataset_parquet_package, will create a general provenance one for now
+    # create directory for dataset_parquet_package, will create a general provenance one for now
     dataset_parquet_path = cache_dir / "provenance"
 
     if not output_path:
@@ -502,11 +501,10 @@ def dataset_update(
     pipeline,
     dataset,
     specification,
-    bucket_name=None,  # bucket name from bash script, need to put into cli.
-    object_key=None,  # object-key, latter part of 'bucket'
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
+    bucket_name=None,
 ):
     """
     Updates the current state of the sqlite files being held in S3 with new resources
@@ -515,8 +513,8 @@ def dataset_update(
         print("missing output path", file=sys.stderr)
         sys.exit(2)
 
-    if not bucket_name or not object_key:
-        print("Missing bucket name or object_key to get sqlite files", file=sys.stderr)
+    if not bucket_name:
+        print("Missing bucket name to get sqlite files", file=sys.stderr)
         sys.exit(2)
 
     # Set up initial objects
@@ -533,6 +531,7 @@ def dataset_update(
     )
     # Copy files from S3 and load into tables
     table_name = dataset
+    object_key = output_path
     package.load_from_s3(
         bucket_name=bucket_name, object_key=object_key, table_name=table_name
     )

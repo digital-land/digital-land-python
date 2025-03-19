@@ -140,9 +140,7 @@ def test_get_processing_option_resource_change(mocker):
 
     option = get_processing_option(fake_collection, "", "", "", False, "state.json")
 
-    assert (
-        option == ProcessingOption.PROCESS_ALL
-    )  # will change this to partial in the future
+    assert option == ProcessingOption.PROCESS_PARTIAL
 
 
 def test_get_processing_option_unknown_change(mocker):
@@ -213,6 +211,46 @@ def test_pipeline_makerules_process_all(mocker, capsys):
     mocker.patch(
         "digital_land.makerules.get_processing_option",
         return_value=ProcessingOption.PROCESS_ALL,
+    )
+
+    # Create a fake class
+    fake_collection = mocker.Mock()
+
+    dataset_resource_map = {"test_dataset": ["test1", "test2"]}
+    # Mock required methods
+    fake_collection.dataset_resource_map = mocker.Mock(
+        return_value=dataset_resource_map
+    )
+    fake_collection.resource_endpoints = mocker.Mock(return_value=["endpoint"])
+    fake_collection.resource_organisations = mocker.Mock(return_value=["org"])
+    fake_collection.old_resource.entries = []
+
+    specification_dir = "specification/"
+    pipeline_dir = "pipeline/"
+    resource_dir = "resource/"
+    incremental_loading_override = False
+
+    pipeline_makerules(
+        fake_collection,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+    )
+
+    printed_output = capsys.readouterr()
+
+    assert "test1" in printed_output.out
+    assert "test2" in printed_output.out
+    assert "transformed:: $(TEST_DATASET_TRANSFORMED_FILES)" in printed_output.out
+    assert "dataset:: $(TEST_DATASET_DATASET)" in printed_output.out
+
+
+def test_pipeline_makerules_process_partial(mocker, capsys):
+    # Inital test, but will update to check for 'update-dataset' later on rather than 'build-dataset'
+    mocker.patch(
+        "digital_land.makerules.get_processing_option",
+        return_value=ProcessingOption.PROCESS_PARTIAL,
     )
 
     # Create a fake class
