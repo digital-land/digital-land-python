@@ -31,7 +31,7 @@ class State(dict):
                 "resource": State.get_dir_hash(resource_dir),
                 "pipeline": State.get_dir_hash(pipeline_dir),
                 "incremental_loading_override": incremental_loading_override,
-                "last_updated_date": date.today().isoformat()  # date in YYYY-MM-DD format
+                "last_updated_date": date.today().isoformat(),  # date in YYYY-MM-DD format
             }
         )
 

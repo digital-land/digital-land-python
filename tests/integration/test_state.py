@@ -101,4 +101,3 @@ def test_state_build_has_last_updated_date(tmp_path):
     )
     assert "last_updated_date" in test_state.keys()
     assert test_state["last_updated_date"] == date.today().isoformat()
-
