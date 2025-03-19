@@ -247,6 +247,7 @@ def test_pipeline_makerules_process_all(mocker, capsys):
 
 
 def test_pipeline_makerules_process_partial(mocker, capsys):
+    # Inital test, but will update to check for 'update-dataset' later on rather than 'build-dataset'
     mocker.patch(
         "digital_land.makerules.get_processing_option",
         return_value=ProcessingOption.PROCESS_PARTIAL,
