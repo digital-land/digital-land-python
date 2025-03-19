@@ -43,7 +43,7 @@ def test_state(tmp_path):
             "resource",
             "pipeline",
             "incremental_loading_override",
-            "last_updated_date"
+            "last_updated_date",
         ]
         assert state_data["code"] == get_code_hash()
         assert state_data["specification"] == specification_hash
