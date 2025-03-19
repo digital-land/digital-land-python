@@ -2,6 +2,7 @@ import os
 import pygit2
 import json
 import hashlib
+from datetime import date
 
 # Read the file in 32MB chunks
 _chunk_size = 32 * 1024 * 1024
@@ -30,6 +31,7 @@ class State(dict):
                 "resource": State.get_dir_hash(resource_dir),
                 "pipeline": State.get_dir_hash(pipeline_dir),
                 "incremental_loading_override": incremental_loading_override,
+                "last_updated_date": date.today().isoformat()  # date in YYYY-MM-DD format
             }
         )
 
@@ -104,6 +106,9 @@ def compare_state(
     # we don't want to include whether the previous state was an incremental override in comparison
     current.pop("incremental_loading_override", None)
     compare.pop("incremental_loading_override", None)
+    # Also do not want to compare the last_updated_date as it will change every day
+    current.pop("last_updated_date", None)
+    compare.pop("last_updated_date", None)
 
     if current == compare:
         return None
