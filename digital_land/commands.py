@@ -423,11 +423,6 @@ def dataset_create(
     # create directory for dataset_parquet_package, will create a general provenance one for now
     dataset_parquet_path = cache_dir / "provenance"
 
-    print("\n\n")
-    print("❌❌❌output_path❌❌❌")
-    print(output_path)
-    print("\n\n")
-
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
