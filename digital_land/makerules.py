@@ -86,7 +86,7 @@ def pipeline_makerules(
         incremental_loading_override,
         state_path,
     )
-    logging.info(f"process is: {process}")
+    logger.info(f"process is: {process}")
     redirect = {}
     for entry in collection.old_resource.entries:
         redirect[entry["old-resource"]] = entry["resource"]
