@@ -9,6 +9,7 @@
 from enum import Enum
 
 from digital_land.state import compare_state
+from .state import State
 
 
 class ProcessingOption(Enum):
@@ -56,9 +57,7 @@ def get_processing_option(
 
     # New resources downloaded
     if "resource" in diffs:
-        return (
-            ProcessingOption.PROCESS_PARTIAL
-        )  # To be changed to partial in the future
+        return ProcessingOption.PROCESS_PARTIAL
 
     if not diffs:
         return ProcessingOption.PROCESS_NONE
@@ -113,6 +112,13 @@ def pipeline_makerules(
             print('\techo "No state change so no resources have been transformed"')
             continue
 
+        if state_path is not None:
+            latest_state = State.load(state_path)
+            last_updated_date = latest_state["last_updated_date"]
+        else:
+            last_updated_date = None
+        process = ProcessingOption.PROCESS_PARTIAL
+        last_updated_date = "2025-03-18"
         for resource in sorted(dataset_resource[dataset]):
             old_resource = resource
             resource = redirect.get(resource, resource)
@@ -126,36 +132,38 @@ def pipeline_makerules(
                 )
                 entry_date = collection.resource_start_date(old_resource)
 
-                print(
-                    "\n%s: %s"
-                    % (
-                        transformed_path(old_resource, dataset),
-                        resource_path,
+                if process == ProcessingOption.PROCESS_ALL or (
+                    process == ProcessingOption.PROCESS_PARTIAL
+                    and entry_date > last_updated_date
+                ):
+                    print(
+                        "\n%s: %s"
+                        % (
+                            transformed_path(old_resource, dataset),
+                            resource_path,
+                        )
                     )
-                )
 
-                call_pipeline = (
-                    "\t$(call run-pipeline,"
-                    + " --endpoints '%s'" % endpoints
-                    + " --organisations '%s'" % organisations
-                    + " --entry-date '%s'" % entry_date
-                )
-                # we will include the resource argument if the old resource
-                # is  different so it's processed as the old_resource
-                if resource != old_resource:
-                    call_pipeline = call_pipeline + f" --resource '{old_resource}'"
+                    call_pipeline = (
+                        "\t$(call run-pipeline,"
+                        + " --endpoints '%s'" % endpoints
+                        + " --organisations '%s'" % organisations
+                        + " --entry-date '%s'" % entry_date
+                    )
+                    # we will include the resource argument if the old resource
+                    # is different so it's processed as the old_resource
+                    if resource != old_resource:
+                        call_pipeline = call_pipeline + f" --resource '{old_resource}'"
 
-                call_pipeline = call_pipeline + " )"
+                    call_pipeline = call_pipeline + " )"
 
-                print(call_pipeline)
+                    print(call_pipeline)
 
         print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
-        # When ProcessingOption.PROCESS_PARTIAL comes onboard use the below commented out code and delete this line
-        print("\t$(build-dataset)")
-        # if process == ProcessingOption.PROCESS_PARTIAL:
-        #     print("\t$(update-dataset)")
-        # else:
-        #     print("\t$(build-dataset)")
+        if process == ProcessingOption.PROCESS_PARTIAL:
+            print("\t$(update-dataset)")
+        else:
+            print("\t$(build-dataset)")
         print("\ntransformed:: $(%s)" % (dataset_files_var))
         print("\ndataset:: $(%s)" % (dataset_var))
 
