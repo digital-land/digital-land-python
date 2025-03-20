@@ -7,10 +7,11 @@
 
 
 from enum import Enum
-
+import logging
 from digital_land.state import compare_state
 from .state import State
 
+logger = logging.getLogger(__name__)
 
 class ProcessingOption(Enum):
     PROCESS_ALL = "all"
@@ -74,6 +75,7 @@ def pipeline_makerules(
     incremental_loading_override,
     state_path=None,
 ):
+    logger.setLevel(logging.INFO)
     dataset_resource = collection.dataset_resource_map()
     process = get_processing_option(
         collection,
@@ -83,7 +85,7 @@ def pipeline_makerules(
         incremental_loading_override,
         state_path,
     )
-
+    logging.info(f"process is: {process}")
     redirect = {}
     for entry in collection.old_resource.entries:
         redirect[entry["old-resource"]] = entry["resource"]
@@ -135,8 +137,6 @@ def pipeline_makerules(
                 )
                 entry_date = collection.resource_start_date(old_resource)
 
-                print("process")
-                print(process)
                 if (
                     process == ProcessingOption.PROCESS_ALL
                     or last_updated_date is None
