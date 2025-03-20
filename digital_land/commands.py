@@ -280,7 +280,7 @@ def pipeline_run(
         entry_date = collection.resource_start_date(resource)
 
     # Load valid category values
-    valid_category_values = api.get_valid_category_values(dataset)
+    valid_category_values = api.get_valid_category_values(dataset, pipeline)
 
     # resource specific default values
     if len(organisations) == 1:

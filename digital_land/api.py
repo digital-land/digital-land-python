@@ -4,6 +4,8 @@ import requests
 import logging
 import typing
 
+from digital_land.pipeline.main import Pipeline
+
 DEFAULT_URL = "https://files.planning.data.gov.uk"
 
 
@@ -48,7 +50,7 @@ class API:
         logging.info(f"Downloaded dataset {dataset} from {url} to {csv_path}")
 
     def get_valid_category_values(
-        self, dataset: str
+        self, dataset: str, pipeline: Pipeline
     ) -> typing.Mapping[str, typing.Iterable[str]]:
         """gets the valid caregory values.
         category_fields: Iterable category fields to get valid values for
@@ -83,10 +85,16 @@ class API:
             # Don't bother trying to load empty files
             if os.stat(csv_path).st_size > 0:
                 with open(csv_path, mode="r") as file:
-                    valid_category_values[category_field] = [
+                    values = [
                         row["reference"].lower()
                         for row in csv.DictReader(file)
                         if row.get("reference")
                     ]
+                    valid_category_values[category_field] = values
+
+                    # Check for replacement field
+                    replacement_field = pipeline.migrate.get(category_field, None)
+                    if replacement_field:
+                        valid_category_values[replacement_field] = values
 
         return valid_category_values
