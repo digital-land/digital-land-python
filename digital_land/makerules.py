@@ -13,6 +13,7 @@ from .state import State
 
 logger = logging.getLogger(__name__)
 
+
 class ProcessingOption(Enum):
     PROCESS_ALL = "all"
     PROCESS_PARTIAL = "partial"
