@@ -135,6 +135,8 @@ def pipeline_makerules(
                 )
                 entry_date = collection.resource_start_date(old_resource)
 
+                print("process")
+                print(process)
                 if (
                     process == ProcessingOption.PROCESS_ALL
                     or last_updated_date is None
