@@ -3,6 +3,7 @@ from digital_land.makerules import (
     get_processing_option,
     pipeline_makerules,
 )
+from datetime import date
 
 
 def test_makerules_removes_old_entities_410_removed(mocker, capsys):
@@ -264,6 +265,7 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
     fake_collection.resource_endpoints = mocker.Mock(return_value=["endpoint"])
     fake_collection.resource_organisations = mocker.Mock(return_value=["org"])
     fake_collection.old_resource.entries = []
+    fake_collection.resource_start_date = mocker.Mock(return_value=date(2025, 3, 19))
 
     specification_dir = "specification/"
     pipeline_dir = "pipeline/"

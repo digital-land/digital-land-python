@@ -120,8 +120,8 @@ def pipeline_makerules(
                 last_updated_date = None
         else:
             last_updated_date = None
-        process = ProcessingOption.PROCESS_PARTIAL
-        last_updated_date = "2025-03-18"
+        # process = ProcessingOption.PROCESS_PARTIAL
+        # last_updated_date = "2025-03-18"
         for resource in sorted(dataset_resource[dataset]):
             old_resource = resource
             resource = redirect.get(resource, resource)
@@ -135,9 +135,13 @@ def pipeline_makerules(
                 )
                 entry_date = collection.resource_start_date(old_resource)
 
-                if process == ProcessingOption.PROCESS_ALL or (
-                    process == ProcessingOption.PROCESS_PARTIAL
-                    and entry_date > last_updated_date
+                if (
+                    process == ProcessingOption.PROCESS_ALL
+                    or last_updated_date is None
+                    or (
+                        process == ProcessingOption.PROCESS_PARTIAL
+                        and entry_date > last_updated_date
+                    )
                 ):
                     print(
                         "\n%s: %s"
