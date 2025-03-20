@@ -114,7 +114,10 @@ def pipeline_makerules(
 
         if state_path is not None:
             latest_state = State.load(state_path)
-            last_updated_date = latest_state["last_updated_date"]
+            if "last_updated_date" in latest_state.keys():
+                last_updated_date = latest_state["last_updated_date"]
+            else:
+                last_updated_date = None
         else:
             last_updated_date = None
         process = ProcessingOption.PROCESS_PARTIAL
