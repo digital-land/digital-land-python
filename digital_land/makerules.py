@@ -55,7 +55,8 @@ def get_processing_option(
     # If incremental loading is overridden or critical configs changed, process everything
     logger.info(f"incremental_loading_override: {incremental_loading_override}")
     logger.info(f"diffs: {diffs}")
-    critical_changes = {"code", "pipeline", "collection", "specification"}
+    critical_changes = {"pipeline", "collection", "specification"}
+    # {"code", "pipeline", "collection", "specification"}
     if incremental_loading_override or critical_changes & set(diffs):
         return ProcessingOption.PROCESS_ALL
 
