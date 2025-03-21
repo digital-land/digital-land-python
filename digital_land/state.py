@@ -26,7 +26,8 @@ class State(dict):
                 "code": State.get_code_hash(),
                 "specification": State.get_dir_hash(specification_dir),
                 "collection": State.get_dir_hash(
-                    collection_dir, ["log/", "log.csv", "pipeline.mk", "resource/"]
+                    collection_dir,
+                    ["log/", "log.csv", "pipeline.mk", "resource/", "resource.csv"],
                 ),
                 "resource": State.get_dir_hash(resource_dir),
                 "pipeline": State.get_dir_hash(pipeline_dir),
