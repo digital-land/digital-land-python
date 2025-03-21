@@ -55,8 +55,8 @@ def get_processing_option(
     # If incremental loading is overridden or critical configs changed, process everything
     logger.info(f"incremental_loading_override: {incremental_loading_override}")
     logger.info(f"diffs: {diffs}")
-    critical_changes = {"pipeline", "collection", "specification"}
-    # {"code", "pipeline", "collection", "specification"}
+    critical_changes = {"code", "pipeline", "collection", "specification"}
+    # {"pipeline", "collection", "specification"}
     if incremental_loading_override or critical_changes & set(diffs):
         return ProcessingOption.PROCESS_ALL
 
@@ -128,6 +128,7 @@ def pipeline_makerules(
             last_updated_date = None
         # process = ProcessingOption.PROCESS_PARTIAL
         # last_updated_date = "2025-03-18"
+        # logger.info(f"Latest process is: {process}")
         for resource in sorted(dataset_resource[dataset]):
             old_resource = resource
             resource = redirect.get(resource, resource)
