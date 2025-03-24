@@ -14,6 +14,7 @@ from distutils.dir_util import copy_tree
 import geojson
 from requests import HTTPError
 import shapely
+import chardet
 
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.check import duplicate_reference_check
@@ -767,10 +768,11 @@ def validate_and_add_data_input(
                 collection_in_specification = specification.dataset.get(
                     pipeline, None
                 ).get("collection")
-                if collection_name != collection_in_specification:
-                    raise ValueError(
-                        f"'{pipeline}' does not belong to provided collection {collection_name}"
-                    )
+                if collection_in_specification != "":
+                    if collection_name != collection_in_specification:
+                        raise ValueError(
+                            f"'{pipeline}' does not belong to provided collection {collection_name}"
+                        )
 
     # VALIDATION DONE, NOW ADD TO COLLECTION
     print("======================================================================")
@@ -802,7 +804,7 @@ def validate_and_add_data_input(
     collector = Collector(collection_dir=collection_dir)
     endpoint_resource_info = {}
     for endpoint in endpoints:
-        status = collector.fetch(
+        status, resource_content = collector.fetch(
             url=endpoint["endpoint-url"],
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
@@ -840,6 +842,14 @@ def validate_and_add_data_input(
             )
 
         print(f"Log Status for {endpoint['endpoint']}: The status is {status}")
+
+        # Decode bytes to string
+        encoding = chardet.detect(resource_content)["encoding"]
+        resource_content = resource_content.decode(encoding)
+        if "error" in resource_content:
+            os.remove(log_path)
+            raise HTTPError(f"Failed to collect from resource: {resource['error']}")
+
         endpoint_resource_info.update(
             {
                 "endpoint": endpoint["endpoint"],

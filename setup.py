@@ -36,6 +36,7 @@ setup(
         "datasette",
         "canonicaljson",
         "click",
+        "chardet",
         "cchardet",
         "esridump",
         "pandas",

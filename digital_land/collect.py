@@ -175,7 +175,7 @@ class Collector:
 
         status = self.save_resource(content, log_path, log)
         self.save_log(log_path, log, refill_todays_logs=refill_todays_logs)
-        return status
+        return status, content
 
     def save_resource(self, content, url, log):
         if content:
