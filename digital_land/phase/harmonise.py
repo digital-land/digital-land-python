@@ -93,7 +93,7 @@ class HarmonisePhase(Phase):
                     value = row[field]
                     valid_category_values = [
                         category_value.replace("-", " ").lower()
-                        for category_value in self.valid_category_values
+                        for category_value in self.valid_category_values[field]
                     ]
                     if (
                         value
