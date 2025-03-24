@@ -15,6 +15,7 @@ from .load import Stream
 from .phase import Phase
 from ..utils.gdal_utils import get_gdal_version
 from digital_land.log import ConvertedResourceLog
+from requests import HTTPError
 
 
 class ConversionError(Exception):
@@ -250,6 +251,19 @@ class ConvertPhase(Phase):
 
     # should  this  be  a method and not a function? I think we  re-factor it  into a function let's remove references to self
     def _read_text_file(self, input_path, encoding):
+        if encoding.lower() == "windows-1252":
+            temp_path = input_path + ".temp"
+            try:
+                with open(input_path, "r", encoding=encoding) as input_file:
+                    with open(temp_path, "w", encoding="UTF-8") as output_file:
+                        output_file.write(input_file.read())
+                        os.replace(temp_path, input_path)
+                        encoding = "UTF-8"
+            except Exception as e:
+                raise HTTPError(
+                    f"Failed to convert {input_path} from Windows-1252 to UTF-8 - {e}"
+                )
+
         f = read_csv(input_path, encoding)
         self.dataset_resource_log.mime_type = "text/csv" + self.charset
         content = f.read(10)

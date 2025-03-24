@@ -186,3 +186,32 @@ class TestConvertPhase:
             assert len(rows) == 1
             assert rows[0]["status"] == "failed"
             assert rows[0]["exception"].startswith("ogr2ogr failed (1)")
+
+    def test_process_file_encoded_to_utf8(self, tmp_path):
+        path = os.path.join(
+            os.getcwd(), "tests/data/resource_examples/windows_encoded.resource"
+        )
+
+        with open(path, "w", encoding="windows-1252") as f:
+            f.write(
+                """reference,name,point,notes,start_date,entry_date\nref,"name – Tree",POINT (),notes,01/01/2025,01/01/2025"""
+            )
+
+        output_path = os.path.join(tmp_path, "converted/windows-encoded.resource.csv")
+
+        dataset_resource_log = DatasetResourceLog()
+        converted_resource_log = ConvertedResourceLog()
+        reader = ConvertPhase(
+            path,
+            dataset_resource_log=dataset_resource_log,
+            converted_resource_log=converted_resource_log,
+            output_path=output_path,
+        ).process()
+
+        headers = next(reader)
+        assert headers["line"][0] == "reference"
+        assert headers["line"][1] == "name"
+
+        block = next(reader)
+        assert block["line"][0] == "ref"
+        assert block["line"][1] == "name – Tree"
