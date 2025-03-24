@@ -130,7 +130,9 @@ def get_column_field_summary(
     else:
         column_field_summary += "\nNo unmapped fields!"
 
-    if "reference" not in mapped_fields:
+    if ("reference" in dataset_fields and "reference" not in mapped_fields) or (
+        "SiteReference" in dataset_fields and "SiteReference" not in mapped_fields
+    ):
         raise ValueError(
             "Reference not found in the mapped fields - does this need mapping?"
         )

@@ -388,3 +388,44 @@ def test_column_field_summary_no_reference(tmp_path_factory):
         )
 
     assert "Reference not found in the mapped fields" in str(error)
+
+
+def test_get_column_field_summary_reference(tmp_path_factory):
+    column_field_dir = tmp_path_factory.mktemp("column_field")
+    converted_dir = tmp_path_factory.mktemp("converted")
+    collection_dir = tmp_path_factory.mktemp("collection")
+
+    resource = "resource"
+    pipeline = "brownfield-land"
+
+    resource_dir = collection_dir / pipeline / "resource"
+    resource_dir.mkdir(parents=True, exist_ok=True)
+    endpoint_resource_info = {
+        "resource": resource,
+        "resource_path": resource_dir / resource,
+    }
+    specification_dir = "tests/data/specification"
+
+    column_field_headers = ["column", "field"]
+    column_field_rows = [
+        {"column": "SiteReference", "field": "SiteReference"},
+        {"column": "SiteNameAddress", "field": "SiteNameAddress"},
+    ]
+    with open(os.path.join(column_field_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=column_field_headers)
+        writer.writeheader()
+        writer.writerows(column_field_rows)
+
+    with open(endpoint_resource_info["resource_path"], "w") as f:
+        f.write("""SiteReference,SiteNameAddress\nref,"name – BFL""")
+
+    column_field_summary = get_column_field_summary(
+        pipeline,
+        endpoint_resource_info,
+        column_field_dir,
+        converted_dir,
+        specification_dir,
+    )
+
+    assert "Unmapped Columns:\nNo unmapped columns!" in column_field_summary
+    assert "Unmapped Fields:\nNo unmapped fields!" in column_field_summary
