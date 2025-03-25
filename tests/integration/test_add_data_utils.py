@@ -408,7 +408,7 @@ def test_column_field_summary_no_reference(tmp_path_factory):
     assert "Reference not found in the mapped fields" in str(error)
 
 
-def test_get_column_field_summary_reference(tmp_path_factory):
+def test_get_column_field_summary_get_reference_and_encoding(tmp_path_factory):
     column_field_dir = tmp_path_factory.mktemp("column_field")
     converted_dir = tmp_path_factory.mktemp("converted")
     collection_dir = tmp_path_factory.mktemp("collection")
@@ -435,7 +435,9 @@ def test_get_column_field_summary_reference(tmp_path_factory):
         writer.writeheader()
         writer.writerows(column_field_rows)
 
-    with open(endpoint_resource_info["resource_path"], "w") as f:
+    with open(
+        endpoint_resource_info["resource_path"], "w", encoding="windows-1252"
+    ) as f:
         f.write("""SiteReference,SiteNameAddress\nref,"name – BFL""")
 
     transform_file = pipeline_dir / "transform.csv"

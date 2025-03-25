@@ -8,6 +8,7 @@ import pandas as pd
 
 from digital_land.collect import Collector
 from digital_land.specification import Specification
+from digital_land.phase.convert import detect_file_encoding
 
 
 def is_url_valid(url, url_type):
@@ -100,7 +101,9 @@ def get_column_field_summary(
             reader = csv.DictReader(f)
             converted_resource_columns = reader.fieldnames
     except FileNotFoundError:
-        with open(endpoint_resource_info["resource_path"], "r") as f:
+        encoding = detect_file_encoding(endpoint_resource_info["resource_path"])
+
+        with open(endpoint_resource_info["resource_path"], "r", encoding=encoding) as f:
             reader = csv.DictReader(f)
             converted_resource_columns = reader.fieldnames
 
