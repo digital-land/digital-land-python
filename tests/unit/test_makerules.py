@@ -60,7 +60,7 @@ def test_makerules_removes_old_entities_310_both_resources_referenced(mocker, ca
     fake_collection.resource_path = mocker.Mock(side_effect=lambda x: x)
     old_entities = [{"old-resource": "test1", "status": "301", "resource": "test3"}]
 
-    # mock old rresoures
+    # mock old resoures
     fake_collection.old_resource.entries = old_entities
 
     specification_dir = "specification/"
@@ -265,7 +265,17 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
     fake_collection.resource_endpoints = mocker.Mock(return_value=["endpoint"])
     fake_collection.resource_organisations = mocker.Mock(return_value=["org"])
     fake_collection.old_resource.entries = []
-    fake_collection.resource_start_date = mocker.Mock(return_value=date(2025, 3, 19))
+    fake_collection.resource_start_date = mocker.Mock(
+        side_effect=lambda resource: {
+            "test1": date(2025, 3, 19),  # Later date (should be processed)
+            "test2": date(2025, 3, 17),  # Earlier date (should not be processed)
+        }[resource]
+    )
+    state_path = "tmp/"
+    last_updated_date_mock = {"last_updated_date": date(2025, 3, 18)}
+    mocker.patch(
+        "digital_land.makerules.State.load", return_value=last_updated_date_mock
+    )
 
     specification_dir = "specification/"
     pipeline_dir = "pipeline/"
@@ -278,11 +288,17 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
         pipeline_dir,
         resource_dir,
         incremental_loading_override,
+        state_path=state_path,
     )
 
     printed_output = capsys.readouterr()
 
+    print("printed_output.out")
+    print(printed_output.out)
+
     assert "test1" in printed_output.out
     assert "test2" in printed_output.out
+    assert "$(TRANSFORMED_DIR)test_dataset/test1.csv:" in printed_output.out
+    assert "$(TRANSFORMED_DIR)test_dataset/test2.csv:" not in printed_output.out
     assert "transformed:: $(TEST_DATASET_TRANSFORMED_FILES)" in printed_output.out
     assert "dataset:: $(TEST_DATASET_DATASET)" in printed_output.out
