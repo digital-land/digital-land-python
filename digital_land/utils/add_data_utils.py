@@ -140,7 +140,7 @@ def get_column_field_summary(
         column_field_summary += "\nNo unmapped fields!"
 
     pipeline = Pipeline(pipeline_dir, dataset)
-    transformed_fields = pipeline.load_migrate()
+    transformed_fields = pipeline.migrate
 
     if "reference" not in mapped_fields and (
         not transformed_fields
