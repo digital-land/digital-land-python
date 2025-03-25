@@ -6,12 +6,14 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 
-from .makerules import pipeline_makerules
+from .makerules import pipeline_makerules, ProcessingOption
 from .register import hash_value, Item
 from .schema import Schema
 from .store.csv import CSVStore
 from .store.item import ItemStore
+from .state import State
 
+logger = logging.getLogger(__name__)
 
 # rename and change variable
 DEFAULT_COLLECTION_DIR = "./collection"
@@ -429,12 +431,30 @@ class Collection:
             state_path=state_path,
         )
 
-    def dataset_resource_map(self):
+    def dataset_resource_map(self, process, state_path=None):
         "a map of resources needed by each dataset in a collection"
+        """
+        If we are not processing anything then we can skip this, if we are incremental loading (partial processing)
+        then want to only process the new resources.
+        `process` - are we processing all, none or partial
+        'state_path' - path for the state.json file
+        """
+        logger.setLevel(logging.INFO)
         today = datetime.utcnow().isoformat()
         endpoint_dataset = {}
         dataset_resource = {}
         redirect = {}
+
+        # Check if we are doing incremental loading
+        last_updated_date = None
+        if process == ProcessingOption.PROCESS_PARTIAL:
+            if state_path is not None:
+                latest_state = State.load(state_path)
+                if "last_updated_date" in latest_state.keys():
+                    last_updated_date = latest_state["last_updated_date"]
+
+        # # Hard coding for testing purposes
+        # last_updated_date = "2025-03-18"
 
         for entry in self.old_resource.entries:
             redirect[entry["old-resource"]] = entry["resource"]
@@ -460,7 +480,17 @@ class Collection:
                     # resource = redirect.get(resource, resource)
                     if resource:
                         dataset_resource.setdefault(dataset, set())
-                        dataset_resource[dataset].add(resource)
+                        if (
+                            process == ProcessingOption.PROCESS_ALL
+                            or last_updated_date is None
+                            or (
+                                process == ProcessingOption.PROCESS_PARTIAL
+                                and entry["start-date"] > last_updated_date
+                            )
+                        ):
+                            dataset_resource[dataset].add(resource)
+                        else:
+                            continue
         return dataset_resource
 
     @staticmethod
