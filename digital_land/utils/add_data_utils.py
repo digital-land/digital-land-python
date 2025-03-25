@@ -66,7 +66,12 @@ def clear_log(collection_dir, endpoint):
 
 
 def get_column_field_summary(
-    pipeline, endpoint_resource_info, column_field_dir, converted_dir, specification_dir
+    pipeline,
+    endpoint_resource_info,
+    column_field_dir,
+    converted_dir,
+    specification_dir,
+    pipeline_dir,
 ):
     column_field_summary = ""
     column_field_summary += (
@@ -130,8 +135,22 @@ def get_column_field_summary(
     else:
         column_field_summary += "\nNo unmapped fields!"
 
-    if ("reference" in dataset_fields and "reference" not in mapped_fields) or (
-        "SiteReference" in dataset_fields and "SiteReference" not in mapped_fields
+    reference_field_list = []
+    try:
+        with open(
+            os.path.join(pipeline_dir, "transform.csv"),
+            "r",
+        ) as f:
+            df = pd.read_csv(f)
+            reference_field_list = df.loc[
+                df["replacement-field"] == "reference", "field"
+            ].tolist()
+
+    except FileNotFoundError as e:
+        print("The file 'transform.csv' was not found", e)
+
+    if "reference" not in mapped_fields and not any(
+        reference in mapped_fields for reference in reference_field_list
     ):
         raise ValueError(
             "Reference not found in the mapped fields - does this need mapping?"

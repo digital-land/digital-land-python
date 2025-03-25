@@ -284,6 +284,7 @@ def test_get_entity_summary_missing_all_entity(tmp_path_factory):
 def test_get_column_field_summary(tmp_path_factory):
     column_field_dir = tmp_path_factory.mktemp("column_field")
     converted_dir = tmp_path_factory.mktemp("converted")
+    pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     resource = "resource"
     pipeline = "address"
@@ -325,12 +326,20 @@ def test_get_column_field_summary(tmp_path_factory):
         writer = csv.DictWriter(f, fieldnames=converted_headers)
         writer.writeheader()
 
+    transform_file = pipeline_dir / "transform.csv"
+    transform_headers = ["dataset", "field", "replacement-field"]
+
+    with open(os.path.join(transform_file), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=transform_headers)
+        writer.writeheader()
+
     column_field_summary = get_column_field_summary(
         pipeline,
         endpoint_resource_info,
         column_field_dir,
         converted_dir,
         specification_dir,
+        pipeline_dir,
     )
 
     assert "Unmapped Columns:\nnew_column" in column_field_summary
@@ -340,6 +349,7 @@ def test_get_column_field_summary(tmp_path_factory):
 def test_column_field_summary_no_reference(tmp_path_factory):
     column_field_dir = tmp_path_factory.mktemp("column_field")
     converted_dir = tmp_path_factory.mktemp("converted")
+    pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     resource = "resource"
     pipeline = "address"
@@ -378,6 +388,13 @@ def test_column_field_summary_no_reference(tmp_path_factory):
         writer = csv.DictWriter(f, fieldnames=converted_headers)
         writer.writeheader()
 
+    transform_file = pipeline_dir / "transform.csv"
+    transform_headers = ["dataset", "field", "replacement-field"]
+
+    with open(os.path.join(transform_file), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=transform_headers)
+        writer.writeheader()
+
     with pytest.raises(ValueError) as error:
         get_column_field_summary(
             pipeline,
@@ -385,6 +402,7 @@ def test_column_field_summary_no_reference(tmp_path_factory):
             column_field_dir,
             converted_dir,
             specification_dir,
+            pipeline_dir,
         )
 
     assert "Reference not found in the mapped fields" in str(error)
@@ -394,6 +412,7 @@ def test_get_column_field_summary_reference(tmp_path_factory):
     column_field_dir = tmp_path_factory.mktemp("column_field")
     converted_dir = tmp_path_factory.mktemp("converted")
     collection_dir = tmp_path_factory.mktemp("collection")
+    pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     resource = "resource"
     pipeline = "brownfield-land"
@@ -419,12 +438,28 @@ def test_get_column_field_summary_reference(tmp_path_factory):
     with open(endpoint_resource_info["resource_path"], "w") as f:
         f.write("""SiteReference,SiteNameAddress\nref,"name – BFL""")
 
+    transform_file = pipeline_dir / "transform.csv"
+    transform_headers = ["dataset", "field", "replacement-field"]
+    transform_rows = [
+        {
+            "dataset": "brownfield-land",
+            "field": "SiteReference",
+            "replacement-field": "reference",
+        },
+    ]
+
+    with open(os.path.join(transform_file), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=transform_headers)
+        writer.writeheader()
+        writer.writerows(transform_rows)
+
     column_field_summary = get_column_field_summary(
         pipeline,
         endpoint_resource_info,
         column_field_dir,
         converted_dir,
         specification_dir,
+        pipeline_dir,
     )
 
     assert "Unmapped Columns:\nNo unmapped columns!" in column_field_summary

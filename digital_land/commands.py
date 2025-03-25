@@ -964,6 +964,7 @@ def add_data(
             column_field_dir,
             converted_dir,
             specification_dir,
+            pipeline_dir,
         )
         print(column_field_summary)
 
