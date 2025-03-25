@@ -184,6 +184,7 @@ class Pipeline:
 
     # TBD: remove this table, should come from specification replacement-field
     def load_migrate(self):
+        self.migrate = {}
         for row in self.reader("transform.csv"):
             if row["replacement-field"] == "":
                 continue
@@ -195,6 +196,7 @@ class Pipeline:
                 )
 
             self.migrate[row["replacement-field"]] = row["field"]
+        return self.migrate
 
     def load_lookup(self):
         for row in self.file_reader("lookup.csv"):

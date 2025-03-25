@@ -287,7 +287,7 @@ def test_get_column_field_summary(tmp_path_factory):
     pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     resource = "resource"
-    pipeline = "address"
+    dataset = "address"
     endpoint_resource_info = {"resource": resource}
 
     specification_dir = "tests/data/specification"
@@ -334,7 +334,7 @@ def test_get_column_field_summary(tmp_path_factory):
         writer.writeheader()
 
     column_field_summary = get_column_field_summary(
-        pipeline,
+        dataset,
         endpoint_resource_info,
         column_field_dir,
         converted_dir,
@@ -352,7 +352,7 @@ def test_column_field_summary_no_reference(tmp_path_factory):
     pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     resource = "resource"
-    pipeline = "address"
+    dataset = "address"
     endpoint_resource_info = {"resource": resource}
 
     specification_dir = "tests/data/specification"
@@ -397,7 +397,7 @@ def test_column_field_summary_no_reference(tmp_path_factory):
 
     with pytest.raises(ValueError) as error:
         get_column_field_summary(
-            pipeline,
+            dataset,
             endpoint_resource_info,
             column_field_dir,
             converted_dir,
@@ -415,9 +415,9 @@ def test_get_column_field_summary_get_reference_and_encoding(tmp_path_factory):
     pipeline_dir = tmp_path_factory.mktemp("pipeline")
 
     resource = "resource"
-    pipeline = "brownfield-land"
+    dataset = "brownfield-land"
 
-    resource_dir = collection_dir / pipeline / "resource"
+    resource_dir = collection_dir / dataset / "resource"
     resource_dir.mkdir(parents=True, exist_ok=True)
     endpoint_resource_info = {
         "resource": resource,
@@ -456,7 +456,7 @@ def test_get_column_field_summary_get_reference_and_encoding(tmp_path_factory):
         writer.writerows(transform_rows)
 
     column_field_summary = get_column_field_summary(
-        pipeline,
+        dataset,
         endpoint_resource_info,
         column_field_dir,
         converted_dir,
