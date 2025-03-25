@@ -10,6 +10,7 @@ from enum import Enum
 import logging
 from digital_land.state import compare_state
 from .state import State
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +54,8 @@ def get_processing_option(
     diffs = diffs or []  # handle if diffs is None
 
     # If incremental loading is overridden or critical configs changed, process everything
-    logger.info(f"incremental_loading_override: {incremental_loading_override}")
-    logger.info(f"diffs: {diffs}")
     critical_changes = {"code", "pipeline", "collection", "specification"}
+    # When testing on dev will want to use the following critical_changes as code is likely to always change
     # {"pipeline", "collection", "specification"}
     if incremental_loading_override or critical_changes & set(diffs):
         return ProcessingOption.PROCESS_ALL
@@ -80,7 +80,6 @@ def pipeline_makerules(
     state_path=None,
 ):
     logger.setLevel(logging.INFO)
-    dataset_resource = collection.dataset_resource_map()
     process = get_processing_option(
         collection,
         specification_dir,
@@ -89,67 +88,51 @@ def pipeline_makerules(
         incremental_loading_override,
         state_path,
     )
+    # Depending on process filter dataset resources
+    # Hard coded as need to ensure continuity with current code
+    process = ProcessingOption.PROCESS_ALL
+    # # Hard coded for testing purposes
+    # process = ProcessingOption.PROCESS_PARTIAL
+    dataset_resource = collection.dataset_resource_map(process, state_path)
     logger.info(f"process is: {process}")
     redirect = {}
     for entry in collection.old_resource.entries:
         redirect[entry["old-resource"]] = entry["resource"]
     sep = ""
     for dataset in sorted(dataset_resource):
-        print(sep, end="")
-        sep = "\n\n"
+        # Only write pipeline commands if there are new resources (for ProcessingOption.PROCESS_PARTIAL)
+        # or ProcessingOption.PROCESS_ALL
+        if len(dataset_resource[dataset]) > 0:
+            print(sep, end="")
+            sep = "\n\n"
 
-        name_var = dataset.upper().replace("-", "_")
-        dataset_var = name_var + "_DATASET"
-        dataset_files_var = name_var + "_TRANSFORMED_FILES"
+            name_var = dataset.upper().replace("-", "_")
+            dataset_var = name_var + "_DATASET"
+            dataset_files_var = name_var + "_TRANSFORMED_FILES"
 
-        print("%s=%s" % (dataset_var, dataset_path(dataset)))
-        print("%s=" % (dataset_files_var), end="")
-        for resource in sorted(dataset_resource[dataset]):
-            if redirect.get(resource, resource):
-                print("\\\n    %s" % (transformed_path(resource, dataset)), end="")
-        print()
+            print("%s=%s" % (dataset_var, dataset_path(dataset)))
+            print("%s=" % (dataset_files_var), end="")
+            for resource in sorted(dataset_resource[dataset]):
+                if redirect.get(resource, resource):
+                    print("\\\n    %s" % (transformed_path(resource, dataset)), end="")
+            print()
 
-        if process == ProcessingOption.PROCESS_NONE:
-            print("\n$(%s)::" % dataset_var)
-            print('\techo "No state change and no new resources to transform"')
-            print("\ntransformed::")
-            print('\techo "No state change and no new resources to transform"')
-            print("\ndataset::")
-            print('\techo "No state change so no resources have been transformed"')
-            continue
-
-        if state_path is not None:
-            latest_state = State.load(state_path)
-            if "last_updated_date" in latest_state.keys():
-                last_updated_date = latest_state["last_updated_date"]
-            else:
-                last_updated_date = None
-        else:
-            last_updated_date = None
-        # process = ProcessingOption.PROCESS_PARTIAL
-        # last_updated_date = "2025-03-18"
-        # logger.info(f"Latest process is: {process}")
-        for resource in sorted(dataset_resource[dataset]):
-            old_resource = resource
-            resource = redirect.get(resource, resource)
-            # stops resources that have been removed
-            if resource:
-                # this should be the path to the resource being processed
-                resource_path = collection.resource_path(resource)
-                endpoints = " ".join(collection.resource_endpoints(old_resource))
-                organisations = " ".join(
-                    collection.resource_organisations(old_resource)
-                )
-                entry_date = collection.resource_start_date(old_resource)
-
-                if (
-                    process == ProcessingOption.PROCESS_ALL
-                    or last_updated_date is None
-                    or (
-                        process == ProcessingOption.PROCESS_PARTIAL
-                        and entry_date > last_updated_date
+            # # Hard coding for testing purposes
+            # process = ProcessingOption.PROCESS_PARTIAL
+            # last_updated_date = "2025-03-18"
+            # logger.info(f"process is: {process}")
+            for resource in sorted(dataset_resource[dataset]):
+                old_resource = resource
+                resource = redirect.get(resource, resource)
+                # stops resources that have been removed
+                if resource:
+                    # this should be the path to the resource being processed
+                    resource_path = collection.resource_path(resource)
+                    endpoints = " ".join(collection.resource_endpoints(old_resource))
+                    organisations = " ".join(
+                        collection.resource_organisations(old_resource)
                     )
-                ):
+                    entry_date = collection.resource_start_date(old_resource)
                     print(
                         "\n%s: %s"
                         % (
@@ -173,14 +156,19 @@ def pipeline_makerules(
 
                     print(call_pipeline)
 
-        print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
-        if process == ProcessingOption.PROCESS_PARTIAL:
-            print("\t$(update-dataset)")
-        else:
-            print("\t$(build-dataset)")
-        print("\ntransformed:: $(%s)" % (dataset_files_var))
-        print("\ndataset:: $(%s)" % (dataset_var))
+            print("\n$(%s): $(%s)" % (dataset_var, dataset_files_var))
+            if process == ProcessingOption.PROCESS_PARTIAL:
+                print("\t$(update-dataset)")
+            else:
+                print("\t$(build-dataset)")
+            print("\ntransformed:: $(%s)" % (dataset_files_var))
+            print("\ndataset:: $(%s)" % (dataset_var))
 
-    print("\n\nDATASETS=", end="")
-    for dataset in sorted(dataset_resource):
-        print("\\\n\t$(DATASET_DIR)%s.sqlite3" % (dataset), end="")
+    # Check if anything needs to be processed
+    if any(dataset_resource.values()):
+        print("\n\nDATASETS=", end="")
+
+        for dataset, value in sorted(dataset_resource.items()):
+            # Only process datasets with values in them
+            if value:
+                print("\\\n\t$(DATASET_DIR)%s.sqlite3" % (dataset), end="")
