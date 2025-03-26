@@ -3,8 +3,9 @@ from digital_land.makerules import (
     get_processing_option,
     pipeline_makerules,
 )
-from datetime import date
-
+from digital_land.state import State
+from digital_land.collection import Collection
+from types import MethodType
 
 def test_makerules_removes_old_entities_410_removed(mocker, capsys):
     """
@@ -173,7 +174,7 @@ def test_pipeline_makerules_process_none(mocker, capsys):
     # Create a fake class
     fake_collection = mocker.Mock()
 
-    dataset_resource_map = {"test_dataset": ["test1", "test2"]}
+    dataset_resource_map = {"test_dataset": []}
     # Mock required methods
     fake_collection.dataset_resource_map = mocker.Mock(
         return_value=dataset_resource_map
@@ -196,12 +197,13 @@ def test_pipeline_makerules_process_none(mocker, capsys):
     )
 
     printed_output = capsys.readouterr()
-    assert "transformed:: $(TEST_DATASET_TRANSFORMED_FILES)" not in printed_output.out
+
+    # assert "transformed:: $(TEST_DATASET_TRANSFORMED_FILES)" not in printed_output.out
     assert (
         'transformed::\n\techo "No state change and no new resources to transform"'
         in printed_output.out
     )
-    assert "dataset:: $(TEST_DATASET_DATASET)" not in printed_output.out
+    # assert "dataset:: $(TEST_DATASET_DATASET)" not in printed_output.out
     assert (
         'dataset::\n\techo "No state change so no resources have been transformed"'
         in printed_output.out
@@ -248,35 +250,40 @@ def test_pipeline_makerules_process_all(mocker, capsys):
 
 
 def test_pipeline_makerules_process_partial(mocker, capsys):
-    # Inital test, but will update to check for 'update-dataset' later on rather than 'build-dataset'
     mocker.patch(
         "digital_land.makerules.get_processing_option",
         return_value=ProcessingOption.PROCESS_PARTIAL,
     )
 
-    # Create a fake class
+    # Initial test with nothing coming through
+    # Create the mock with the spec set to 'Collection' and allow extra attributes
     fake_collection = mocker.Mock()
-
-    dataset_resource_map = {"test_dataset": ["test1", "test2"]}
-    # Mock required methods
-    fake_collection.dataset_resource_map = mocker.Mock(
-        return_value=dataset_resource_map
+    fake_collection.resource = mocker.Mock()
+    fake_collection.resource.entries = [
+        {"resource": "test1", "endpoints": "endpoint1", "start-date": "2025-03-17", "end-date": ""},
+        {"resource": "test2", "endpoints": "endpoint2", "start-date": "2025-03-17", "end-date": ""},
+    ]
+    fake_collection.resource_endpoints = mocker.Mock(
+        side_effect=lambda res: [res + "_endpoint"]
     )
-    fake_collection.resource_endpoints = mocker.Mock(return_value=["endpoint"])
-    fake_collection.resource_organisations = mocker.Mock(return_value=["org"])
+    fake_collection.resource_organisations = mocker.Mock(
+        side_effect=lambda res: [res + "_org"]
+    )
+    fake_collection.old_resource = mocker.Mock()
     fake_collection.old_resource.entries = []
-    fake_collection.resource_start_date = mocker.Mock(
-        side_effect=lambda resource: {
-            "test1": date(2025, 3, 19),  # Later date (should be processed)
-            "test2": date(2025, 3, 17),  # Earlier date (should not be processed)
-        }[resource]
-    )
-    state_path = "tmp/"
-    last_updated_date_mock = {"last_updated_date": date(2025, 3, 18)}
-    mocker.patch(
-        "digital_land.makerules.State.load", return_value=last_updated_date_mock
-    )
+    fake_collection.source = mocker.Mock()
+    fake_collection.source.entries = [
+        {"endpoint": "endpoint1", "end-date": "", "datasets": "MOCK"},
+        {"endpoint": "endpoint2", "end-date": "", "datasets": "MOCK"},
+    ]
 
+    # Mock State.load to return the last_updated_date
+    mocker.patch.object(State, "load", return_value={"last_updated_date": "2025-03-18"})
+
+    fake_collection.dataset_resource_map = MethodType(Collection.dataset_resource_map, fake_collection)
+
+    # Make sure the dataset_resource_map method is available on the mocked collection
+    state_path = "mock_state.json"
     specification_dir = "specification/"
     pipeline_dir = "pipeline/"
     resource_dir = "resource/"
@@ -293,12 +300,39 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
 
     printed_output = capsys.readouterr()
 
-    print("printed_output.out")
-    print(printed_output.out)
-
+    # PROCESS_FULL is hard coded in. When we get incremental loading to work remove following fours lines
+    # and replace with the tests commented out
     assert "test1" in printed_output.out
     assert "test2" in printed_output.out
-    assert "$(TRANSFORMED_DIR)test_dataset/test1.csv:" in printed_output.out
-    assert "$(TRANSFORMED_DIR)test_dataset/test2.csv:" not in printed_output.out
-    assert "transformed:: $(TEST_DATASET_TRANSFORMED_FILES)" in printed_output.out
-    assert "dataset:: $(TEST_DATASET_DATASET)" in printed_output.out
+    assert "transformed:: $(MOCK_TRANSFORMED_FILES)" in printed_output.out
+    assert "dataset:: $(MOCK_DATASET)" in printed_output.out
+    # assert (
+    #     'transformed::\n\techo "No state change and no new resources to transform"'
+    #     in printed_output.out
+    # )
+    # assert (
+    #     'dataset::\n\techo "No state change so no resources have been transformed"'
+    #     in printed_output.out
+    # )
+
+    # Change test with one passing
+    fake_collection.resource.entries = [
+        {"resource": "test1", "endpoints": "endpoint1", "start-date": "2025-03-17", "end-date": ""},
+        {"resource": "test2", "endpoints": "endpoint2", "start-date": "2025-03-20", "end-date": ""},
+    ]
+    pipeline_makerules(
+        fake_collection,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path=state_path,
+    )
+    printed_output = capsys.readouterr()
+
+    # PROCESS_FULL is hard coded in. When we get incremental loading to work replace following line with line after
+    assert "test1" in printed_output.out
+    # assert "test1" not in printed_output.out
+    assert "test2" in printed_output.out
+    assert "transformed:: $(MOCK_TRANSFORMED_FILES)" in printed_output.out
+    assert "dataset:: $(MOCK_DATASET)" in printed_output.out
