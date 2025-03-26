@@ -330,6 +330,28 @@ class Collection:
         self.source = SourceStore()
         self.endpoint = EndpointStore()
 
+        # TODO. Add last_updated_date to Collection class
+        # Add state_path=None to __init__
+        # If this is done then if last_updated_date is set then this can be used as proxy so instead of calling
+        # collection.dataset_resource_map(process, state_path) we call collection.dataset_resource_map() and
+        # if last_updated_date is set then we only process resources after that date
+        # if it is None then we process everything.
+        # For the below code we need a way of setting self.last_updated_date to be none if
+        # incremental_loading_override = True
+        # Once this is done then we can remove this from makerules.py and remove any test for PROCESS_NONE
+        # class ProcessingOption(Enum):
+        #     PROCESS_ALL = "all"
+        #     PROCESS_PARTIAL = "partial"
+        #     PROCESS_NONE = "none"
+        # Possible code, though will need to add incremental_loading_override = True option
+        # if state_path is None:
+        #     self.last_updated_date = None
+        # else:
+        #     if "last_updated_date" in latest_state.keys():
+        #         self.last_updated_date = latest_state["last_updated_date"]
+        #     else:
+        #         self.last_updated_date = None
+
     def load_log_items(self, directory=None, log_directory=None, after=None):
         """
         Method to load the log store and resource store from log items instead of csvs. used when csvs don't exist
@@ -441,6 +463,7 @@ class Collection:
         """
         logger.setLevel(logging.INFO)
         today = datetime.utcnow().isoformat()
+
         endpoint_dataset = {}
         dataset_resource = {}
         redirect = {}
@@ -453,8 +476,11 @@ class Collection:
                 if "last_updated_date" in latest_state.keys():
                     last_updated_date = latest_state["last_updated_date"]
 
-        # # Hard coding for testing purposes
+        # # # Hard coding for testing purposes. REMOVE LATER
         # last_updated_date = "2025-03-18"
+
+        if process == ProcessingOption.PROCESS_NONE:
+            return {}
 
         for entry in self.old_resource.entries:
             redirect[entry["old-resource"]] = entry["resource"]
