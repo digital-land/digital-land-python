@@ -9,8 +9,6 @@
 from enum import Enum
 import logging
 from digital_land.state import compare_state
-from .state import State
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
