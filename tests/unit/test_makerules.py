@@ -7,6 +7,7 @@ from digital_land.state import State
 from digital_land.collection import Collection
 from types import MethodType
 
+
 def test_makerules_removes_old_entities_410_removed(mocker, capsys):
     """
     if redirects are provided and the status is 410 then they shouldn't
@@ -260,8 +261,18 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
     fake_collection = mocker.Mock()
     fake_collection.resource = mocker.Mock()
     fake_collection.resource.entries = [
-        {"resource": "test1", "endpoints": "endpoint1", "start-date": "2025-03-17", "end-date": ""},
-        {"resource": "test2", "endpoints": "endpoint2", "start-date": "2025-03-17", "end-date": ""},
+        {
+            "resource": "test1",
+            "endpoints": "endpoint1",
+            "start-date": "2025-03-17",
+            "end-date": "",
+        },
+        {
+            "resource": "test2",
+            "endpoints": "endpoint2",
+            "start-date": "2025-03-17",
+            "end-date": "",
+        },
     ]
     fake_collection.resource_endpoints = mocker.Mock(
         side_effect=lambda res: [res + "_endpoint"]
@@ -280,7 +291,9 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
     # Mock State.load to return the last_updated_date
     mocker.patch.object(State, "load", return_value={"last_updated_date": "2025-03-18"})
 
-    fake_collection.dataset_resource_map = MethodType(Collection.dataset_resource_map, fake_collection)
+    fake_collection.dataset_resource_map = MethodType(
+        Collection.dataset_resource_map, fake_collection
+    )
 
     # Make sure the dataset_resource_map method is available on the mocked collection
     state_path = "mock_state.json"
@@ -317,8 +330,18 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
 
     # Change test with one passing
     fake_collection.resource.entries = [
-        {"resource": "test1", "endpoints": "endpoint1", "start-date": "2025-03-17", "end-date": ""},
-        {"resource": "test2", "endpoints": "endpoint2", "start-date": "2025-03-20", "end-date": ""},
+        {
+            "resource": "test1",
+            "endpoints": "endpoint1",
+            "start-date": "2025-03-17",
+            "end-date": "",
+        },
+        {
+            "resource": "test2",
+            "endpoints": "endpoint2",
+            "start-date": "2025-03-20",
+            "end-date": "",
+        },
     ]
     pipeline_makerules(
         fake_collection,
