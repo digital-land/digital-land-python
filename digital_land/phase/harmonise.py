@@ -91,9 +91,16 @@ class HarmonisePhase(Phase):
             for field in row:
                 if field in self.valid_category_values.keys():
                     value = row[field]
-                    if value and value.lower() not in self.valid_category_values[field]:
+                    if (
+                        value
+                        and value.replace(" ", "-") in self.valid_category_values[field]
+                    ):
+                        # TODO: log a warning where we've replaced spaces to match categorical value
+                        row[field] = value.replace(" ", "-")
+                    elif (
+                        value and value.lower() not in self.valid_category_values[field]
+                    ):
                         self.issues.log_issue(field, "invalid category value", value)
-
                 o[field] = self.harmonise_field(field, row[field])
 
             # remove future entry dates
