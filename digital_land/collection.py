@@ -453,7 +453,9 @@ class Collection:
             state_path=state_path,
         )
 
-    def dataset_resource_map(self, process, state_path=None):
+    def dataset_resource_map(
+        self, process=ProcessingOption.PROCESS_ALL, state_path=None
+    ):
         "a map of resources needed by each dataset in a collection"
         """
         If we are not processing anything then we can skip this, if we are incremental loading (partial processing)
