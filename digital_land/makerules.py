@@ -88,21 +88,27 @@ def pipeline_makerules(
         incremental_loading_override,
         state_path,
     )
-    # Depending on process filter dataset resources
-    # Hard coded as need to ensure continuity with current code
-    process = ProcessingOption.PROCESS_ALL
-    # # Hard coded for testing purposes
-    # process = ProcessingOption.PROCESS_PARTIAL
+    # Hard coded for testing purposes  REMOVE LATER
+    if process == ProcessingOption.PROCESS_PARTIAL:
+        process = ProcessingOption.PROCESS_ALL
+
     dataset_resource = collection.dataset_resource_map(process, state_path)
-    logger.info(f"process is: {process}")
     redirect = {}
     for entry in collection.old_resource.entries:
         redirect[entry["old-resource"]] = entry["resource"]
     sep = ""
-    for dataset in sorted(dataset_resource):
-        # Only write pipeline commands if there are new resources (for ProcessingOption.PROCESS_PARTIAL)
+    if not any(dataset_resource.values()):
+        # If nothing to process then print messages
+        print("\n::")
+        print('\techo "No state change and no new resources to transform"')
+        print("\ntransformed::")
+        print('\techo "No state change and no new resources to transform"')
+        print("\ndataset::")
+        print('\techo "No state change so no resources have been transformed"')
+    else:
+        # pipeline commands for new resources (for ProcessingOption.PROCESS_PARTIAL)
         # or ProcessingOption.PROCESS_ALL
-        if len(dataset_resource[dataset]) > 0:
+        for dataset in sorted(dataset_resource):
             print(sep, end="")
             sep = "\n\n"
 
@@ -164,8 +170,6 @@ def pipeline_makerules(
             print("\ntransformed:: $(%s)" % (dataset_files_var))
             print("\ndataset:: $(%s)" % (dataset_var))
 
-    # Check if anything needs to be processed
-    if any(dataset_resource.values()):
         print("\n\nDATASETS=", end="")
 
         for dataset, value in sorted(dataset_resource.items()):
