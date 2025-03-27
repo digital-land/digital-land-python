@@ -538,18 +538,16 @@ def dataset_update(
         specification_dir=None,  # TBD: package should use this specification object
     )
     # Copy files from S3 and load into tables
-    table_name = dataset
-    object_key = output_path
+    # table_name = dataset
+    # object_key = output_path
     logger.info(f"bucket_name: {bucket_name}")
-    logger.info(f"object_key: {object_key}")
-    logger.info(f"table_name: {table_name}")
-    logger.info(f"repository: {repository}")
+    logger.info(f"output_path: {output_path}")
     logger.info(f"repository: {repository}")
     package.load_from_s3(
         bucket_name=bucket_name,
-        object_key=object_key,
-        table_name=table_name,
         repository=repository,
+        output_path=output_path,
+        # table_name=table_name,
     )
 
     for path in input_paths:
