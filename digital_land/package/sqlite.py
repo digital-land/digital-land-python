@@ -317,6 +317,7 @@ class SqlitePackage(Package):
         self.disconnect()
 
     def load_from_s3(self, bucket_name, object_key, table_name):
+        logger.setLevel(logging.INFO)
         # Ensure parameters are valid
         if not isinstance(bucket_name, str) or not isinstance(object_key, str):
             raise ValueError("Bucket name and object key must be strings.")
