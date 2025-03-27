@@ -313,20 +313,20 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
 
     printed_output = capsys.readouterr()
 
-    # PROCESS_FULL is hard coded in. When we get incremental loading to work remove following fours lines
-    # and replace with the tests commented out
-    assert "test1" in printed_output.out
-    assert "test2" in printed_output.out
-    assert "transformed:: $(MOCK_TRANSFORMED_FILES)" in printed_output.out
-    assert "dataset:: $(MOCK_DATASET)" in printed_output.out
-    # assert (
-    #     'transformed::\n\techo "No state change and no new resources to transform"'
-    #     in printed_output.out
-    # )
-    # assert (
-    #     'dataset::\n\techo "No state change so no resources have been transformed"'
-    #     in printed_output.out
-    # )
+    # # PROCESS_FULL is hard coded in. When we get incremental loading to work remove following fours lines
+    # # and replace with the tests commented out
+    # assert "test1" in printed_output.out
+    # assert "test2" in printed_output.out
+    # assert "transformed:: $(MOCK_TRANSFORMED_FILES)" in printed_output.out
+    # assert "dataset:: $(MOCK_DATASET)" in printed_output.out
+    assert (
+        'transformed::\n\techo "No state change and no new resources to transform"'
+        in printed_output.out
+    )
+    assert (
+        'dataset::\n\techo "No state change so no resources have been transformed"'
+        in printed_output.out
+    )
 
     # Change test with one passing
     fake_collection.resource.entries = [
@@ -354,8 +354,8 @@ def test_pipeline_makerules_process_partial(mocker, capsys):
     printed_output = capsys.readouterr()
 
     # PROCESS_FULL is hard coded in. When we get incremental loading to work replace following line with line after
-    assert "test1" in printed_output.out
-    # assert "test1" not in printed_output.out
+    # assert "test1" in printed_output.out
+    assert "test1" not in printed_output.out
     assert "test2" in printed_output.out
     assert "transformed:: $(MOCK_TRANSFORMED_FILES)" in printed_output.out
     assert "dataset:: $(MOCK_DATASET)" in printed_output.out

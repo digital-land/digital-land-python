@@ -52,7 +52,8 @@ def get_processing_option(
     diffs = diffs or []  # handle if diffs is None
 
     # If incremental loading is overridden or critical configs changed, process everything
-    critical_changes = {"code", "pipeline", "collection", "specification"}
+    critical_changes = {"pipeline", "collection", "specification"}
+    # {"code", "pipeline", "collection", "specification"}
     # When testing on dev will want to use the following critical_changes as code is likely to always change
     # {"pipeline", "collection", "specification"}
     if incremental_loading_override or critical_changes & set(diffs):
@@ -86,10 +87,12 @@ def pipeline_makerules(
         incremental_loading_override,
         state_path,
     )
-    # Hard coded for testing purposes  REMOVE LATER
-    if process == ProcessingOption.PROCESS_PARTIAL:
-        process = ProcessingOption.PROCESS_ALL
-
+    # # Hard coded for testing purposes  REMOVE LATER
+    # if process == ProcessingOption.PROCESS_PARTIAL:
+    #     process = ProcessingOption.PROCESS_ALL
+    # Hard code process value, REMOVE LATER
+    process = ProcessingOption.PROCESS_PARTIAL
+    logger.info(f"Process is: {process}")
     dataset_resource = collection.dataset_resource_map(process, state_path)
     redirect = {}
     for entry in collection.old_resource.entries:
