@@ -331,6 +331,7 @@ class SqlitePackage(Package):
         file_key = f"{table_name}.sqlite3"
         local_file_path = os.path.join(local_path, file_key)
 
+        logger.info(f"To download: s3://{bucket_name + '/' + repository + '/' + object_key + '/' + file_key}")
         try:
             os.makedirs(local_path, exist_ok=True)  # Ensure local directory exists
             s3.download_file(
