@@ -127,7 +127,6 @@ def pipeline_makerules(
 
             # # Hard coding for testing purposes
             process = ProcessingOption.PROCESS_PARTIAL
-            last_updated_date = "2025-03-18"
             logger.info(f"process is: {process}")
             for resource in sorted(dataset_resource[dataset]):
                 old_resource = resource
