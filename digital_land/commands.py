@@ -534,6 +534,9 @@ def dataset_update(
     # Copy files from S3 and load into tables
     table_name = dataset
     object_key = output_path
+    logger.info(f"bucket_name: {bucket_name}")
+    logger.info(f"object_key: {object_key}")
+    logger.info(f"table_name: {table_name}")
     package.load_from_s3(
         bucket_name=bucket_name, object_key=object_key, table_name=table_name
     )
