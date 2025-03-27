@@ -98,6 +98,7 @@ def pipeline_makerules(
     for entry in collection.old_resource.entries:
         redirect[entry["old-resource"]] = entry["resource"]
     sep = ""
+    logger.info(f"Length of dataset_resource: {len(dataset_resource)}")
     if not any(dataset_resource.values()):
         # If nothing to process then print messages
         print("\n::")

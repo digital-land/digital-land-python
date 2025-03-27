@@ -479,8 +479,9 @@ class Collection:
                     last_updated_date = latest_state["last_updated_date"]
 
         # # # Hard coding for testing purposes. REMOVE LATER
-        # last_updated_date = "2025-03-18"
-
+        last_updated_date = "2025-03-18"
+        logger.info(f"In dataset_resource_map process is: {process}")
+        logger.info(f"In dataset_resource_map last_updated_date is: {last_updated_date}")
         if process == ProcessingOption.PROCESS_NONE:
             return {}
 
