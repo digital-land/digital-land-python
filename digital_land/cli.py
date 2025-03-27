@@ -245,8 +245,11 @@ def dataset_create_cmd(
     default="collection/resource.csv",
     help="link to where the resource list is stored",
 )
+@click.option(
+    "--bucket-name",
+    help="S3 bucket to where the resources are stored",
+)
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
-@click.argument("bucket-name", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_update_cmd(
     ctx,
