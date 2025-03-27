@@ -511,6 +511,9 @@ def dataset_update(
     """
     Updates the current state of the sqlite files being held in S3 with new resources
     """
+    logger.info(f"bucket_name: {bucket_name}")
+    logger.info(f"output_path: {output_path}")
+    logger.info(f"dataset: {dataset}")
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
