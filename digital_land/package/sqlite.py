@@ -316,27 +316,29 @@ class SqlitePackage(Package):
         self.create_indexes()
         self.disconnect()
 
-    def load_from_s3(self, bucket_name, object_key, table_name, repository):
+    def load_from_s3(
+        self, bucket_name, repository, output_path
+    ):
         logger.setLevel(logging.INFO)
         # Ensure parameters are valid
-        if not isinstance(bucket_name, str) or not isinstance(object_key, str):
-            raise ValueError("Bucket name and object key must be strings.")
+        if (
+            not isinstance(bucket_name, str)
+            or not isinstance(repository, str)
+            or not isinstance(output_path, str)
+        ):
+            raise ValueError("Bucket name, repository and output_path must be strings.")
 
         local_path = os.path.dirname(self.path)
-        logger.info(f"local_path: {local_path}")
-        logger.info(f"self.specification: {self.specification.specification_dir}")
-        logger.info(f"repository: {repository}")
         s3 = boto3.client("s3")
 
-        file_key = f"{table_name}.sqlite3"
-        local_file_path = os.path.join(local_path, file_key)
+        # file_key = f"{table_name}.sqlite3"
+        local_file_path = os.path.join(local_path, output_path)
 
-        logger.info(f"To download: s3://{bucket_name + '/' + repository + '/' + object_key + '/' + file_key}")
         try:
             os.makedirs(local_path, exist_ok=True)  # Ensure local directory exists
             s3.download_file(
                 bucket_name,
-                repository + "/" + object_key + "/" + file_key,
+                repository + "/" + output_path,
                 local_file_path,
             )
         except botocore.exceptions.NoCredentialsError:
