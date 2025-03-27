@@ -507,6 +507,7 @@ def dataset_update(
     cache_dir="var/cache",
     resource_path="collection/resource.csv",
     bucket_name=None,
+    repository=None,
 ):
     """
     Updates the current state of the sqlite files being held in S3 with new resources
@@ -541,8 +542,12 @@ def dataset_update(
     logger.info(f"bucket_name: {bucket_name}")
     logger.info(f"object_key: {object_key}")
     logger.info(f"table_name: {table_name}")
+    logger.info(f"repository: {repository}")
     package.load_from_s3(
-        bucket_name=bucket_name, object_key=object_key, table_name=table_name
+        bucket_name=bucket_name,
+        object_key=object_key,
+        table_name=table_name,
+        repository=repository,
     )
 
     for path in input_paths:

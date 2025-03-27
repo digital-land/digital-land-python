@@ -249,6 +249,10 @@ def dataset_create_cmd(
     "--bucket-name",
     help="S3 bucket to where the resources are stored",
 )
+@click.option(
+    "--repository",
+    help="S3 bucket to where the resources are stored",
+)
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_update_cmd(
@@ -262,6 +266,7 @@ def dataset_update_cmd(
     cache_dir,
     resource_path,
     bucket_name,
+    repository,
 ):
     return dataset_update(
         input_paths=input_paths,
@@ -276,6 +281,7 @@ def dataset_update_cmd(
         cache_dir=cache_dir,
         resource_path=resource_path,
         bucket_name=bucket_name,
+        repository=repository,
     )
 
 

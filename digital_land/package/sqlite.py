@@ -316,7 +316,7 @@ class SqlitePackage(Package):
         self.create_indexes()
         self.disconnect()
 
-    def load_from_s3(self, bucket_name, object_key, table_name):
+    def load_from_s3(self, bucket_name, object_key, table_name, repository):
         logger.setLevel(logging.INFO)
         # Ensure parameters are valid
         if not isinstance(bucket_name, str) or not isinstance(object_key, str):
@@ -332,7 +332,11 @@ class SqlitePackage(Package):
 
         try:
             os.makedirs(local_path, exist_ok=True)  # Ensure local directory exists
-            s3.download_file(bucket_name, object_key + "/" + file_key, local_file_path)
+            s3.download_file(
+                bucket_name,
+                repository + "/" + object_key + "/" + file_key,
+                local_file_path,
+            )
         except botocore.exceptions.NoCredentialsError:
             logger.error(
                 "❌ AWS credentials not found. Run `aws configure` to set them."
