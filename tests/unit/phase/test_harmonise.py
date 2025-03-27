@@ -254,17 +254,22 @@ def test_validate_categorical_field_dataset():
                 "reference": "4",
                 "document-type": "area-appraisal",
             },
+            {
+                "reference": "5",
+                "document-type": "Area Appraisal",
+            },
         ],
     )
 
     output = list(h.process(reader))
 
-    assert len(output) == 4
+    assert len(output) == 5
     # check the fields are set in the output
     assert output[0]["row"]["document-type"] == "notice"
     assert output[1]["row"]["document-type"] == "other"
     assert output[2]["row"]["document-type"] == "area-appraisal"
     assert output[3]["row"]["document-type"] == "area-appraisal"
+    assert output[4]["row"]["document-type"] == "area-appraisal"
 
     assert len(issues.rows) == 1
     # but we get an issue generated
