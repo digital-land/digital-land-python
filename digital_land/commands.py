@@ -516,6 +516,7 @@ def dataset_update(
     logger.info(f"bucket_name: {bucket_name}")
     logger.info(f"output_path: {output_path}")
     logger.info(f"dataset: {dataset}")
+    logger.info(f"repository: {repository}")
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
@@ -542,6 +543,7 @@ def dataset_update(
     logger.info(f"bucket_name: {bucket_name}")
     logger.info(f"object_key: {object_key}")
     logger.info(f"table_name: {table_name}")
+    logger.info(f"repository: {repository}")
     logger.info(f"repository: {repository}")
     package.load_from_s3(
         bucket_name=bucket_name,
