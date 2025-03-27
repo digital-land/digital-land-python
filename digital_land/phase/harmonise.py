@@ -93,10 +93,11 @@ class HarmonisePhase(Phase):
                     value = row[field]
                     if (
                         value
-                        and value.replace(" ", "-") in self.valid_category_values[field]
+                        and value.lower().replace(" ", "-")
+                        in self.valid_category_values[field]
                     ):
                         # TODO: log a warning where we've replaced spaces to match categorical value
-                        row[field] = value.replace(" ", "-")
+                        row[field] = value.lower().replace(" ", "-")
                     elif (
                         value and value.lower() not in self.valid_category_values[field]
                     ):
