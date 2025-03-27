@@ -386,11 +386,12 @@ def test_dataset_update_fixture(
     )
 
     bucket_name = "test-collection-data"
-    object_key = f"test-collection/{dataset}"
+    object_key = dataset
     table_name = dataset
+    repository = "test-collection"
 
     # Set up initial SQLite3 file with tables
-    package.load_from_s3(bucket_name, object_key, table_name)
+    package.load_from_s3(bucket_name, object_key, table_name, repository)
     package.connect()
     package.create_cursor()
     path = resource_files_fixture["all_input_paths"][1]
