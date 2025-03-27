@@ -504,6 +504,8 @@ def dataset_update(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
+    cache_dir="var/cache",
+    resource_path="collection/resource.csv",
     bucket_name=None,
 ):
     """
