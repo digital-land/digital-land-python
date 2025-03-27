@@ -324,6 +324,7 @@ class SqlitePackage(Package):
 
         local_path = os.path.dirname(self.path)
         logger.info(f"local_path: {local_path}")
+        logger.info(f"self.specification: {self.specification}")
         s3 = boto3.client("s3")
 
         file_key = f"{table_name}.sqlite3"
