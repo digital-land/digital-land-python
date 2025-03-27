@@ -322,6 +322,7 @@ class SqlitePackage(Package):
             raise ValueError("Bucket name and object key must be strings.")
 
         local_path = os.path.dirname(self.path)
+        logger.info(f"local_path: {local_path}")
         s3 = boto3.client("s3")
 
         file_key = f"{table_name}.sqlite3"
