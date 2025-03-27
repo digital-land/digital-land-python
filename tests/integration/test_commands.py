@@ -386,12 +386,12 @@ def test_dataset_update_fixture(
     )
 
     bucket_name = "test-collection-data"
-    object_key = dataset
-    table_name = dataset
-    repository = "test-collection"
+    output_path = f"{dataset}.sqlite3"
+    # table_name = dataset
+    repository = dataset #"test-collection"
 
     # Set up initial SQLite3 file with tables
-    package.load_from_s3(bucket_name, object_key, table_name, repository)
+    package.load_from_s3(bucket_name, repository, output_path)
     package.connect()
     package.create_cursor()
     path = resource_files_fixture["all_input_paths"][1]
@@ -478,7 +478,7 @@ def test_mock_s3_bucket(test_dataset_create_fixture):
     sqlite3_path = test_dataset_create_fixture["sqlite3_path"]
     dataset = test_dataset_create_fixture["dataset"]
     bucket_name = "test-collection-data"
-    object_key = f"test-collection/{dataset}"
+    object_key = dataset # f"test-collection/{dataset}"
 
     """Sets up a mock S3 bucket using moto."""
     with mock_aws():
@@ -502,7 +502,7 @@ def test_mock_s3_bucket(test_dataset_create_fixture):
             for obj in response["Contents"]
         )
 
-        # Delete to ensure that we download the file from mock s3 (have keopt a copy earlier)
+        # Delete to ensure that we download the file from mock s3 (have kept a copy earlier)
         os.remove(str(sqlite3_path))
         assert not os.path.exists(
             str(sqlite3_path)
