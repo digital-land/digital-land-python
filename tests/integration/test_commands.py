@@ -388,7 +388,7 @@ def test_dataset_update_fixture(
     bucket_name = "test-collection-data"
     output_path = f"{dataset}.sqlite3"
     # table_name = dataset
-    repository = dataset #"test-collection"
+    repository = dataset  # "test-collection"
 
     # Set up initial SQLite3 file with tables
     package.load_from_s3(bucket_name, repository, output_path)
@@ -478,7 +478,7 @@ def test_mock_s3_bucket(test_dataset_create_fixture):
     sqlite3_path = test_dataset_create_fixture["sqlite3_path"]
     dataset = test_dataset_create_fixture["dataset"]
     bucket_name = "test-collection-data"
-    object_key = dataset # f"test-collection/{dataset}"
+    object_key = dataset  # f"test-collection/{dataset}"
 
     """Sets up a mock S3 bucket using moto."""
     with mock_aws():

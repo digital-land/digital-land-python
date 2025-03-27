@@ -316,9 +316,7 @@ class SqlitePackage(Package):
         self.create_indexes()
         self.disconnect()
 
-    def load_from_s3(
-        self, bucket_name, repository, output_path
-    ):
+    def load_from_s3(self, bucket_name, repository, output_path):
         logger.setLevel(logging.INFO)
         # Ensure parameters are valid
         if (
