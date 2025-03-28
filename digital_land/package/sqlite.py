@@ -329,8 +329,12 @@ class SqlitePackage(Package):
         local_path = os.path.dirname(self.path)
         s3 = boto3.client("s3")
 
-        # file_key = f"{table_name}.sqlite3"
-        local_file_path = os.path.join(local_path, output_path)
+        # # file_key = f"{table_name}.sqlite3"
+        # Need to ensure that 'dataset' is at the start of the output path
+        if "dataset" not in output_path:
+            local_file_path = os.path.join(local_path, output_path)
+        else:
+            local_file_path = output_path
 
         logger.info(f"local_file_path: {local_file_path}")
         logger.info(f"local_path: {local_path}")
