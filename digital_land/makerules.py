@@ -91,7 +91,8 @@ def pipeline_makerules(
     # if process == ProcessingOption.PROCESS_PARTIAL:
     #     process = ProcessingOption.PROCESS_ALL
     # Hard code process value, REMOVE LATER
-    process = ProcessingOption.PROCESS_PARTIAL
+    # process = ProcessingOption.PROCESS_PARTIAL
+    process = ProcessingOption.PROCESS_FULL
     logger.info(f"Process is: {process}")
     dataset_resource = collection.dataset_resource_map(process, state_path)
     redirect = {}
