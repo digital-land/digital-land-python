@@ -227,6 +227,7 @@ class DatasetPackage(SqlitePackage):
         )
 
     def load_facts(self, path):
+        logger.setLevel(logging.INFO)
         logging.info(f"loading facts from {path}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
