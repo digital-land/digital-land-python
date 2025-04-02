@@ -86,7 +86,7 @@ class API:
             if os.stat(csv_path).st_size > 0:
                 with open(csv_path, mode="r") as file:
                     values = [
-                        row["reference"].lower()
+                        row["reference"]
                         for row in csv.DictReader(file)
                         if row.get("reference")
                     ]

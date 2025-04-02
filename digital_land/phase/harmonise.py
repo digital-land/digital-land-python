@@ -88,20 +88,28 @@ class HarmonisePhase(Phase):
 
             o = {}
 
+            # Categorical field check
             for field in row:
                 if field in self.valid_category_values.keys():
                     value = row[field]
-                    if (
-                        value
-                        and value.lower().replace(" ", "-")
-                        in self.valid_category_values[field]
-                    ):
-                        # TODO: log a warning where we've replaced spaces to match categorical value
-                        row[field] = value.lower().replace(" ", "-")
-                    elif (
-                        value and value.lower() not in self.valid_category_values[field]
-                    ):
-                        self.issues.log_issue(field, "invalid category value", value)
+                    if value:
+                        normalised_value = value.replace(" ", "-")
+                        matching_value = next(
+                            (
+                                v
+                                for v in self.valid_category_values[field]
+                                if v.lower() == normalised_value.lower()
+                            ),
+                            None,
+                        )
+                        if matching_value:
+                            # use exact value from self.valid_category_values
+                            # TODO: log a warning where we've replaced spaces to match categorical value
+                            row[field] = matching_value
+                        else:
+                            self.issues.log_issue(
+                                field, "invalid category value", value
+                            )
                 o[field] = self.harmonise_field(field, row[field])
 
             # remove future entry dates
