@@ -97,7 +97,6 @@ def test_get_categorical_field_read_csv(pipeline_dir, tmp_path_factory):
 
     values = api.get_valid_category_values(dataset, pipeline)
 
-    print("values", values)
     # check that the valid value is the exact same as in the dataset (no capitalisation difference)
     assert values["document-type"] == ["NEW TYPE"]
 
