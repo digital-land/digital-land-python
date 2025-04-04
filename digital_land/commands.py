@@ -286,8 +286,12 @@ def pipeline_run(
     if len(organisations) == 1:
         default_values["organisation"] = organisations[0]
 
+    # need an entry-date for all entries and for facts
+    # if a default entry-date isn't set through config then use the entry-date passed
+    # to this function
     if entry_date:
-        default_values["entry-date"] = entry_date
+        if "entry-date" not in default_values:
+            default_values["entry-date"] = entry_date
 
     # TODO Migrate all of this into a function in the Pipeline function
     run_pipeline(
