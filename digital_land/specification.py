@@ -40,6 +40,7 @@ class Specification:
         self.typology = {}
         self.pipeline = {}
         self.licence = {}
+        self.odp_collections = []
         self.load_dataset(path)
         self.load_schema(path)
         self.load_dataset_schema(path)
@@ -50,6 +51,7 @@ class Specification:
         self.load_pipeline(path)
         self.load_dataset_field(path)
         self.load_licence(path)
+        self.load_odp_collections(path)
 
         self.index_field()
         self.index_schema()
@@ -117,6 +119,12 @@ class Specification:
         reader = csv.DictReader(open(os.path.join(path, "licence.csv")))
         for row in reader:
             self.licence[row["licence"]] = row
+
+    def load_odp_collections(self, path):
+        reader = csv.DictReader(open(os.path.join(path, "provision-rule.csv")))
+        for row in reader:
+            if row["project"] == "open-digital-planning":
+                self.odp_collections.append(row["specification"])
 
     def index_schema(self):
         self.schema_dataset = {}
@@ -278,3 +286,6 @@ class Specification:
                 if data["typology"] == "category"
             ]
         ]
+
+    def get_odp_collections(self):
+        return list(set(self.odp_collections))

@@ -1,8 +1,13 @@
 import spatialite
+import sqlite3
 import pytest
 import pandas as pd
 
-from digital_land.expectations.operation import count_lpa_boundary
+from digital_land.expectations.operation import (
+    check_columns,
+    count_lpa_boundary,
+    count_deleted_entities,
+)
 
 
 @pytest.fixture
@@ -109,3 +114,129 @@ def test_count_lpa_boundary_passes(
     detail_keys = ["actual", "expected"]
     for key in detail_keys:
         assert key in details, f"{key} missing from details"
+
+
+def test_count_deleted_entities(dataset_path, mocker):
+    # define constant parameters
+    organisation_entity = 109
+    expected = 0
+
+    # load data into sqlite for entity, fact_resource and fact table
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002"],
+            "name": ["test1", "test2"],
+            "organisation_entity": [109, 109],
+            "reference": ["ref1", "ref2"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
+            "entry_number": ["1", "1"],
+        },
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "entity": ["1001", "1001"],
+            "field": ["name", "reference"],
+            "value": ["abc", "ref1"],
+        }
+    )
+
+    # mock `pandas.read_csv` to return the mock DataFrame
+    mock_df = pd.DataFrame({"resource": ["2f7d900dd48fd02"]})
+    mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    with spatialite.connect(dataset_path) as conn:
+        # load data into required tables
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        # run expectation
+        passed, message, details = count_deleted_entities(
+            conn,
+            expected=expected,
+            organisation_entity=organisation_entity,
+        )
+
+    assert (
+        not passed
+    ), f"test failed : expected {details['expected']} but got {details['actual']} entities"
+    assert message, "test requires a message"
+
+    detail_keys = ["actual", "expected", "entities"]
+    for key in detail_keys:
+        assert key in details, f"{key} missing from details"
+    assert "1002" in details["entities"]
+
+
+def test_check_columns(dataset_path):
+    expected = {
+        "entity": [
+            "dataset",
+            "end_date",
+            "entity",
+            "entry_date",
+            "geojson",
+            "geometry",
+            "json",
+            "name",
+            "organisation_entity",
+            "point",
+            "prefix",
+            "reference",
+            "start_date",
+            "typology",
+        ],
+        "old_entity": ["old_entity", "entity"],
+    }
+
+    with sqlite3.connect(dataset_path) as conn:
+        result, message, details = check_columns(conn.cursor(), expected)
+
+        assert result
+        assert "2 out of 2 tables had expected columns" in message
+
+        assert details[0]["table"] == "entity"
+        assert any(x in details[0]["actual"] for x in expected["entity"])
+        assert any(x in details[0]["expected"] for x in expected["entity"])
+
+
+def test_check_columns_failure(dataset_path):
+    expected = {
+        "entity": [
+            "missing",
+            "columns",
+            "dataset",
+            "end_date",
+            "entity",
+            "entry_date",
+            "geojson",
+            "geometry",
+            "json",
+            "name",
+            "organisation_entity",
+            "point",
+            "prefix",
+            "reference",
+            "start_date",
+            "typology",
+        ],
+        "old_entity": ["old_entity", "entity"],
+    }
+
+    with sqlite3.connect(dataset_path) as conn:
+        result, message, details = check_columns(conn.cursor(), expected)
+        assert not result
+        assert "1 out of 2 tables had expected columns" in message
+        assert not details[0]["success"]
+        assert "missing" in details[0]["missing"]
+        assert "columns" in details[0]["missing"]

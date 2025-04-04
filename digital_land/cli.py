@@ -22,6 +22,7 @@ from digital_land.commands import (
     operational_issue_save_csv,
     convert,
     dataset_create,
+    dataset_update,
     pipeline_run,
     collection_add_source,
     add_endpoints_and_lookups,
@@ -29,7 +30,6 @@ from digital_land.commands import (
     organisation_create,
     organisation_check,
     save_state,
-    compare_state,
     add_data,
 )
 
@@ -45,6 +45,7 @@ from digital_land.command_arguments import (
     converted_resource_dir,
     output_log_dir,
 )
+from digital_land.state import compare_state
 
 
 @click.group()
@@ -84,11 +85,17 @@ def fetch_cmd(ctx, url):
     type=click.Path(exists=True),
     default="collection/endpoint.csv",
 )
+@click.option("--refill-todays-logs", default=False)
 @collection_dir
 @click.pass_context
-def collect_cmd(ctx, endpoint_path, collection_dir):
+def collect_cmd(ctx, endpoint_path, collection_dir, refill_todays_logs):
     """fetch resources from collection endpoints"""
-    return collect(endpoint_path, collection_dir, ctx.obj["PIPELINE"])
+    return collect(
+        endpoint_path,
+        collection_dir,
+        ctx.obj["PIPELINE"],
+        refill_todays_logs=refill_todays_logs,
+    )
 
 
 #
@@ -105,14 +112,54 @@ def collection_list_resources_cmd(collection_dir):
     short_help="generate makerules for processing a collection",
 )
 @collection_dir
-def collection_pipeline_makerules_cmd(collection_dir):
-    return collection_pipeline_makerules(collection_dir)
+@click.option(
+    "--specification-dir",
+    type=click.Path(),
+    default="specification",
+    help="directory containing the specification",
+)
+@click.option(
+    "--pipeline-dir",
+    type=click.Path(),
+    default="pipeline",
+    help="directory containing the pipeline",
+)
+@click.option(
+    "--resource-dir",
+    type=click.Path(),
+    default="collection/resource",
+    help="directory containing resources",
+)
+@click.option("--incremental-loading-override", type=click.BOOL, default=False)
+@click.option(
+    "--state-path",
+    type=click.Path(),
+    default=None,
+    help="path of the output state file",
+)
+def collection_pipeline_makerules_cmd(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    state_path,
+):
+    return collection_pipeline_makerules(
+        collection_dir,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path=state_path,
+    )
 
 
 @cli.command("collection-save-csv", short_help="save collection as CSV package")
+@click.option("--refill-todays-logs", default=False)
 @collection_dir
-def collection_save_csv_cmd(collection_dir):
-    return collection_save_csv(collection_dir)
+def collection_save_csv_cmd(collection_dir, refill_todays_logs):
+    return collection_save_csv(collection_dir, refill_todays_logs)
 
 
 @cli.command(
@@ -140,6 +187,18 @@ def convert_cmd(input_path, output_path):
 @column_field_dir
 @dataset_resource_dir
 @issue_dir
+@click.option(
+    "--cache-dir",
+    type=click.Path(),
+    default="var/cache",
+    help="link to a cache directory to store temporary data that can be deleted once process is finished",
+)
+@click.option(
+    "--resource-path",
+    type=click.Path(exists=True),
+    default="collection/resource.csv",
+    help="link to where the resource list is stored",
+)
 @click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_create_cmd(
@@ -150,6 +209,8 @@ def dataset_create_cmd(
     column_field_dir,
     dataset_resource_dir,
     issue_dir,
+    cache_dir,
+    resource_path,
 ):
     return dataset_create(
         input_paths=input_paths,
@@ -161,6 +222,57 @@ def dataset_create_cmd(
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
         issue_dir=issue_dir,
+        cache_dir=cache_dir,
+        resource_path=resource_path,
+    )
+
+
+@cli.command("dataset-update", short_help="create a dataset from processed resources")
+@click.option("--output-path", type=click.Path(), default=None, help="sqlite3 path")
+@organisation_path
+@column_field_dir
+@dataset_resource_dir
+@issue_dir
+@click.option(
+    "--cache-dir",
+    type=click.Path(),
+    default="var/cache",
+    help="link to a cache directory to store temporary data that can be deleted once process is finished",
+)
+@click.option(
+    "--resource-path",
+    type=click.Path(exists=True),
+    default="collection/resource.csv",
+    help="link to where the resource list is stored",
+)
+@click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
+@click.argument("bucket-name", nargs=-1, type=click.Path(exists=True))
+@click.pass_context
+def dataset_update_cmd(
+    ctx,
+    input_paths,
+    output_path,
+    organisation_path,
+    column_field_dir,
+    dataset_resource_dir,
+    issue_dir,
+    cache_dir,
+    resource_path,
+    bucket_name,
+):
+    return dataset_update(
+        input_paths=input_paths,
+        output_path=output_path,
+        organisation_path=organisation_path,
+        pipeline=ctx.obj["PIPELINE"],
+        dataset=ctx.obj["DATASET"],
+        specification=ctx.obj["SPECIFICATION"],
+        column_field_dir=column_field_dir,
+        dataset_resource_dir=dataset_resource_dir,
+        issue_dir=issue_dir,
+        cache_dir=cache_dir,
+        resource_path=resource_path,
+        bucket_name=bucket_name,
     )
 
 
@@ -187,7 +299,11 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @click.option("--endpoints", help="list of endpoint hashes", default="")
 @click.option("--organisations", help="list of organisations", default="")
 @click.option("--entry-date", help="default entry-date value", default="")
-@click.option("--custom-temp-dir", help="default temporary directory", default=None)
+@click.option(
+    "--cache-dir",
+    help="cache directory to store conveted files etc. in",
+    default="var/cache",
+)
 @click.option("--config-path", help="Path  to a configuration sqlite", default=None)
 @click.option(
     "--resource",
@@ -217,7 +333,7 @@ def pipeline_command(
     endpoints,
     organisations,
     entry_date,
-    custom_temp_dir,
+    cache_dir,
     collection_dir,
     operational_issue_dir,
     config_path,
@@ -248,7 +364,7 @@ def pipeline_command(
         endpoints=endpoints,
         organisations=organisations,
         entry_date=entry_date,
-        custom_temp_dir=custom_temp_dir,
+        cache_dir=cache_dir,
         config_path=config_path,
         resource=resource,
         output_log_dir=output_log_dir,
@@ -616,14 +732,35 @@ def config_load_cmd(ctx, config_path):
     help="directory containing the pipeline",
 )
 @click.option(
+    "--resource-dir",
+    type=click.Path(),
+    default="collection/resource",
+    help="directory containing resources",
+)
+@click.option("--incremental-loading-override", type=click.BOOL, default=False)
+@click.option(
     "--output-path",
     "-o",
     type=click.Path(),
     default="state.json",
     help="path of the output state file",
 )
-def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path):
-    save_state(specification_dir, collection_dir, pipeline_dir, output_path)
+def save_state_cmd(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    output_path,
+):
+    save_state(
+        specification_dir,
+        collection_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        output_path,
+    )
 
 
 @cli.command(
@@ -649,16 +786,42 @@ def save_state_cmd(specification_dir, collection_dir, pipeline_dir, output_path)
     help="directory containing the pipeline",
 )
 @click.option(
+    "--resource-dir",
+    type=click.Path(),
+    default="collection/resource",
+    help="directory containing resources",
+)
+@click.option("--incremental-override", type=click.BOOL, default=False)
+@click.option(
     "--state-path",
     type=click.Path(),
     default="state.json",
     help="path of the output state file",
 )
-def check_state_cmd(specification_dir, collection_dir, pipeline_dir, state_path):
+def check_state_cmd(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    state_path,
+):
     # If the state isn't the same, use a non-zero return code so scripts can
     # detect this, and print a message. If it is the same, exit silenty wirh a
     # 0 retun code.
-    diffs = compare_state(specification_dir, collection_dir, pipeline_dir, state_path)
+
+    if incremental_loading_override:
+        print("State comparison skipped as incremental override enabled")
+        sys.exit(1)
+
+    diffs = compare_state(
+        specification_dir,
+        collection_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path,
+    )
     if diffs:
         print(f"State differs from {state_path} - {', '.join(diffs)}")
         sys.exit(1)

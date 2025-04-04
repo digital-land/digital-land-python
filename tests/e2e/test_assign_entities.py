@@ -153,6 +153,7 @@ def specification_dir(tmp_path_factory):
         "field.csv",
         "datatype.csv",
         "prefix.csv",
+        "provision-rule.csv",
         # deprecated ..
         "pipeline.csv",
         "dataset-schema.csv",

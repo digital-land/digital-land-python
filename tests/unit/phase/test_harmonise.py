@@ -231,7 +231,13 @@ def test_validate_categorical_field_dataset():
         issues=issues,
         dataset="conservation-area-document",
         valid_category_values={
-            "document-type": ["area-appraisal", "notice", "designa", "area-map"]
+            "document-type": [
+                "area-appraisal",
+                "notice",
+                "designa",
+                "area-map",
+                "MAP-TO-VALID-VALUE",
+            ]
         },
     )
 
@@ -245,15 +251,40 @@ def test_validate_categorical_field_dataset():
                 "reference": "2",
                 "document-type": "other",
             },
+            {
+                "reference": "3",
+                "document-type": "area appraisal",
+            },
+            {
+                "reference": "4",
+                "document-type": "area-appraisal",
+            },
+            {
+                "reference": "5",
+                "document-type": "Area Appraisal",
+            },
+            {
+                "reference": "6",
+                "document-type": "map to valid value",
+            },
+            {
+                "reference": "7",
+                "document-type": "MAP-TO-VALID-VALUE",
+            },
         ],
     )
 
     output = list(h.process(reader))
 
-    assert len(output) == 2
+    assert len(output) == 7
     # check the fields are set in the output
     assert output[0]["row"]["document-type"] == "notice"
     assert output[1]["row"]["document-type"] == "other"
+    assert output[2]["row"]["document-type"] == "area-appraisal"
+    assert output[3]["row"]["document-type"] == "area-appraisal"
+    assert output[4]["row"]["document-type"] == "area-appraisal"
+    assert output[5]["row"]["document-type"] == "MAP-TO-VALID-VALUE"
+    assert output[6]["row"]["document-type"] == "MAP-TO-VALID-VALUE"
 
     assert len(issues.rows) == 1
     # but we get an issue generated

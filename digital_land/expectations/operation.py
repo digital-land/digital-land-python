@@ -1,4 +1,8 @@
 import requests
+import pandas as pd
+import urllib
+import os
+import time
 
 
 # # TODO is there a way to represent this in a generalised count or not
@@ -36,7 +40,7 @@ def count_lpa_boundary(
         lpa_geometry = data["geometry"]
     except requests.exceptions.RequestException as err:
         passed = False
-        message = f"An error occured when retrieving lpa geometry from platform {err}"
+        message = f"An error occurred when retrieving lpa geometry from platform {err}"
         details = {}
         return passed, message, details
 
@@ -117,5 +121,106 @@ def count_lpa_boundary(
         "expected": expected,
         "entities": entities,
     }
+
+    return result, message, details
+
+
+def count_deleted_entities(
+    conn,
+    expected: int,
+    organisation_entity: int = None,
+):
+    # get database name to identify dataset
+    db_path = conn.execute("PRAGMA database_list").fetchall()[0][2]
+    db_name = os.path.splitext(os.path.basename(db_path))[0]
+
+    # get dataset specific active resource list
+    params = urllib.parse.urlencode(
+        {
+            "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
+                        where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
+            "_size": "max",
+        }
+    )
+    base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
+
+    # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
+    max_retries = 60  # Retry for an hour
+    for attempt in range(max_retries):
+        try:
+            get_resource = pd.read_csv(base_url)
+            break
+        except urllib.error.HTTPError:
+            time.sleep(60)
+    else:
+        raise Exception("Failed to fetch datasette after multiple attempts")
+
+    resource_list = get_resource["resource"].to_list()
+
+    # use resource list to get current entities
+    query = f"""select f.entity
+                from fact_resource fe join fact f on fe.fact=f.fact join entity e on f.entity=e.entity
+                where resource in ({','.join(f"'{x}'" for x in resource_list)})
+                group by reference
+    """
+    rows = conn.execute(query).fetchall()
+    get_active_entities = [row[0] for row in rows]
+
+    # get entities from entity table to compare against resource entities
+    query = f"""
+    select entity from entity where organisation_entity = '{organisation_entity}';
+    """
+    rows = conn.execute(query).fetchall()
+    get_entities = [row[0] for row in rows]
+
+    # identify entities present in the entity table but missing from the resource
+    entities = [item for item in get_entities if item not in get_active_entities]
+    actual = len(entities)
+
+    result = bool(actual == expected)
+    message = f"there were {actual} entities found"
+    details = {
+        "actual": actual,
+        "expected": expected,
+        "entities": entities,
+    }
+
+    return result, message, details
+
+
+def check_columns(conn, expected: dict):
+    # This operation checks that the db connection provided contains the tables with the expected columns provided
+
+    # expected: a dictionary containing table names as keys, with a list of their expected columns as the value
+
+    details = []
+    success_count = 0
+    failure_count = 0
+    for k, v in expected.items():
+        table_name = k
+        expected_columns = v
+        sql = f"""
+        PRAGMA table_info({table_name})
+        """
+        rows = conn.execute(sql).fetchall()
+        actual = [row[1] for row in rows]
+        success = set(expected_columns).issubset(set(actual))
+        missing = list(set(expected_columns) - set(actual))
+        details.append(
+            {
+                "table": table_name,
+                "success": success,
+                "missing": missing,
+                "actual": actual,
+                "expected": expected_columns,
+            }
+        )
+        if success:
+            success_count += 1
+        else:
+            failure_count += 1
+
+    result = False if failure_count > 0 else True
+    message = f"{success_count} out of {success_count + failure_count} tables had expected columns"
 
     return result, message, details

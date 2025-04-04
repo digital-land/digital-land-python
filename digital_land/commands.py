@@ -28,7 +28,9 @@ from digital_land.log import (
     ConvertedResourceLog,
 )
 from digital_land.organisation import Organisation
+
 from digital_land.package.dataset import DatasetPackage
+from digital_land.package.dataset_parquet import DatasetParquetPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
@@ -55,6 +57,7 @@ from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrun
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
+from digital_land.pipeline.process import convert_tranformed_csv_to_pq
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
@@ -73,7 +76,6 @@ from digital_land.utils.add_data_utils import (
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -83,10 +85,10 @@ def fetch(url, pipeline):
     collector.fetch(url)
 
 
-def collect(endpoint_path, collection_dir, pipeline):
+def collect(endpoint_path, collection_dir, pipeline, refill_todays_logs=False):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
     collector = Collector(pipeline.name, Path(collection_dir))
-    collector.collect(endpoint_path)
+    collector.collect(endpoint_path, refill_todays_logs=refill_todays_logs)
 
 
 #
@@ -100,15 +102,28 @@ def collection_list_resources(collection_dir):
         print(resource_path(resource, directory=collection_dir))
 
 
-def collection_pipeline_makerules(collection_dir):
+def collection_pipeline_makerules(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    state_path=None,
+):
     collection = Collection(name=None, directory=collection_dir)
     collection.load()
-    collection.pipeline_makerules()
+    collection.pipeline_makerules(
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path=state_path,
+    )
 
 
-def collection_save_csv(collection_dir):
+def collection_save_csv(collection_dir, refill_todays_logs=False):
     collection = Collection(name=None, directory=collection_dir)
-    collection.load()
+    collection.load(refill_todays_logs=refill_todays_logs)
     collection.update()
     collection.save_csv()
 
@@ -172,17 +187,17 @@ def collection_retire_endpoints_and_sources(
 #
 #  pipeline commands
 #
-def convert(input_path, output_path, custom_temp_dir=None):
+def convert(input_path, output_path):
     if not output_path:
         output_path = default_output_path("converted", input_path)
     dataset_resource_log = DatasetResourceLog()
     converted_resource_log = ConvertedResourceLog()
+    # TBD this actualy duplictaes the data and does nothing else, should just convert it?
     run_pipeline(
         ConvertPhase(
             input_path,
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
-            custom_temp_dir=custom_temp_dir,
         ),
         DumpPhase(output_path),
     )
@@ -201,10 +216,11 @@ def pipeline_run(
     operational_issue_dir="performance/operational_issue/",
     organisation_path=None,
     save_harmonised=False,
+    #  TBD save all logs in  a log directory, this will mean only one path passed in.
     column_field_dir=None,
     dataset_resource_dir=None,
     converted_resource_dir=None,
-    custom_temp_dir=None,  # TBD: rename to "tmpdir"
+    cache_dir="var/cache",
     endpoints=[],
     organisations=[],
     entry_date="",
@@ -213,6 +229,9 @@ def pipeline_run(
     output_log_dir=None,
     converted_path=None,
 ):
+    # set up paths
+    cache_dir = Path(cache_dir)
+
     if resource is None:
         resource = resource_from_path(input_path)
     dataset = dataset
@@ -261,7 +280,7 @@ def pipeline_run(
         entry_date = collection.resource_start_date(resource)
 
     # Load valid category values
-    valid_category_values = api.get_valid_category_values(dataset)
+    valid_category_values = api.get_valid_category_values(dataset, pipeline)
 
     # resource specific default values
     if len(organisations) == 1:
@@ -276,7 +295,6 @@ def pipeline_run(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
             converted_resource_log=converted_resource_log,
-            custom_temp_dir=custom_temp_dir,
             output_path=converted_path,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
@@ -339,7 +357,12 @@ def pipeline_run(
             field_typology_map=specification.get_field_typology_map(),
             field_prefix_map=specification.get_field_prefix_map(),
         ),
-        FactLookupPhase(lookups=lookups, redirect_lookups=redirect_lookups),
+        FactLookupPhase(
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issue_log,
+            odp_collections=specification.get_odp_collections(),
+        ),
         FactPrunePhase(),
         SavePhase(
             output_path,
@@ -353,9 +376,18 @@ def pipeline_run(
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
     issue_log.save_parquet(os.path.join(output_log_dir, "issue/"))
     operational_issue_log.save(output_dir=operational_issue_dir)
-    column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
+    if column_field_dir:
+        column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
+    # create converted parquet in the var directory
+    cache_dir = Path(organisation_path).parent
+    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+    transformed_parquet_dir.mkdir(exist_ok=True, parents=True)
+    convert_tranformed_csv_to_pq(
+        input_path=output_path,
+        output_path=transformed_parquet_dir / f"{resource}.parquet",
+    )
 
 
 #
@@ -371,9 +403,118 @@ def dataset_create(
     issue_dir="issue",
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
+    cache_dir="var/cache",
+    resource_path="collection/resource.csv",
 ):
+    # set level for logging to see what's going on
+    logger.setLevel(logging.INFO)
+    logging.getLogger("digital_land.package.dataset_parquet").setLevel(logging.INFO)
+
+    # chek all paths are paths
+    issue_dir = Path(issue_dir)
+    column_field_dir = Path(column_field_dir)
+    dataset_resource_dir = Path(dataset_resource_dir)
+    cache_dir = Path(cache_dir)
+    resource_path = Path(resource_path)
+
+    # get  the transformed files from the cache directory this  is  assumed right now but we may want to be stricter in the future
+    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+
+    # create directory for dataset_parquet_package, will create a general provenance one for now
+    dataset_parquet_path = cache_dir / "provenance"
+
     if not output_path:
         print("missing output path", file=sys.stderr)
+        sys.exit(2)
+
+    # Set up initial objects
+    organisation = Organisation(
+        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
+    )
+
+    # create sqlite dataset packageas before and load inn data that isn't in the parquetpackage yet
+    package = DatasetPackage(
+        dataset,
+        organisation=organisation,
+        path=output_path,
+        specification_dir=None,  # TBD: package should use this specification object
+    )
+    # don't use create as we don't want to create the indexes
+    package.create_database()
+    package.disconnect()
+    for path in input_paths:
+        path_obj = Path(path)
+        logging.info(f"loading column field log into {output_path}")
+        package.load_column_fields(column_field_dir / dataset / f"{path_obj.stem}.csv")
+        logging.info(f"loading dataset resource log into {output_path}")
+        package.load_dataset_resource(
+            dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
+        )
+    logger.info(f"loading old entities into {output_path}")
+    old_entity_path = Path(pipeline.path) / "old-entity.csv"
+    if old_entity_path.exists():
+        package.load_old_entities(old_entity_path)
+
+    logger.info(f"loading issues into {output_path}")
+    issue_paths = issue_dir / dataset
+    if issue_paths.exists():
+        for issue_path in os.listdir(issue_paths):
+            package.load_issues(os.path.join(issue_paths, issue_path))
+    else:
+        logger.warning("No directory for this dataset in the provided issue_directory")
+
+    # Repeat for parquet
+    # Set up cache directory to store parquet files. The sqlite files created from this will be saved in the dataset
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+
+    pqpackage = DatasetParquetPackage(
+        dataset,
+        path=dataset_parquet_path,
+        specification_dir=None,  # TBD: package should use this specification object
+        duckdb_path=cache_dir / "overflow.duckdb",
+    )
+    pqpackage.load_facts(transformed_parquet_dir)
+    pqpackage.load_fact_resource(transformed_parquet_dir)
+    pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
+
+    logger.info("loading fact,fact_resource and entity into {output_path}")
+    pqpackage.load_to_sqlite(output_path)
+
+    logger.info(f"add indexes to {output_path}")
+    package.connect()
+    package.create_cursor()
+    package.create_indexes()
+    package.disconnect()
+
+    logger.info(f"creating dataset package {output_path} counts")
+    package.add_counts()
+
+
+#
+#  update dataset from processed new resources
+#
+def dataset_update(
+    input_paths,
+    output_path,
+    organisation_path,
+    pipeline,
+    dataset,
+    specification,
+    issue_dir="issue",
+    column_field_dir="var/column-field",
+    dataset_resource_dir="var/dataset-resource",
+    bucket_name=None,
+):
+    """
+    Updates the current state of the sqlite files being held in S3 with new resources
+    """
+    if not output_path:
+        print("missing output path", file=sys.stderr)
+        sys.exit(2)
+
+    if not bucket_name:
+        print("Missing bucket name to get sqlite files", file=sys.stderr)
         sys.exit(2)
 
     # Set up initial objects
@@ -388,7 +529,13 @@ def dataset_create(
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
-    package.create()
+    # Copy files from S3 and load into tables
+    table_name = dataset
+    object_key = output_path
+    package.load_from_s3(
+        bucket_name=bucket_name, object_key=object_key, table_name=table_name
+    )
+
     for path in input_paths:
         path_obj = Path(path)
         package.load_transformed(path)
@@ -817,6 +964,7 @@ def add_data(
             column_field_dir,
             converted_dir,
             specification_dir,
+            pipeline_dir,
         )
         print(column_field_summary)
 
@@ -1148,7 +1296,6 @@ def get_resource_unidentified_lookups(
     # could alter resource_from_path to file from path and promote to a utils folder
     resource = resource_from_path(input_path)
     dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
-    custom_temp_dir = tmp_dir  # './var'
 
     print("")
     print("----------------------------------------------------------------------")
@@ -1202,7 +1349,6 @@ def get_resource_unidentified_lookups(
         ConvertPhase(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
-            custom_temp_dir=custom_temp_dir,
         ),
         NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
         ParsePhase(),
@@ -1343,29 +1489,21 @@ def organisation_check(**kwargs):
     package.check(lpa_path, output_path)
 
 
-def save_state(specification_dir, collection_dir, pipeline_dir, output_path):
+def save_state(
+    specification_dir,
+    collection_dir,
+    pipeline_dir,
+    resource_dir,
+    incremental_loading_override,
+    output_path,
+):
     state = State.build(
         specification_dir=specification_dir,
         collection_dir=collection_dir,
         pipeline_dir=pipeline_dir,
+        resource_dir=resource_dir,
+        incremental_loading_override=incremental_loading_override,
     )
     state.save(
         output_path=output_path,
     )
-
-
-def compare_state(specification_dir, collection_dir, pipeline_dir, state_path):
-    """Compares the current state against the one in state_path.
-    Returns a list of different elements, or None if they are the same."""
-    current = State.build(
-        specification_dir=specification_dir,
-        collection_dir=collection_dir,
-        pipeline_dir=pipeline_dir,
-    )
-
-    compare = State.load(state_path)
-
-    if current == compare:
-        return None
-
-    return [i for i in current.keys() if current[i] != compare[i]]

@@ -42,6 +42,7 @@ def test_dirs(tmp_path_factory):
     converted_resource_dir = tmp_path_factory.mktemp(
         "column_converted-resource", numbered=False
     )
+    column_field_dir = tmp_path_factory.mktemp("column_field", numbered=False)
     output_log_dir = tmp_path_factory.mktemp("column_output_log", numbered=False)
 
     output_dir = tmp_path_factory.mktemp("column_output", numbered=False)
@@ -86,6 +87,7 @@ def test_dirs(tmp_path_factory):
         "dataset_resource_dir": dataset_resource_dir,
         "converted_resource_dir": converted_resource_dir,
         "output_log_dir": output_log_dir,
+        "column_field_dir": column_field_dir,
     }
 
 
@@ -143,6 +145,7 @@ def copy_latest_specification_files_to(specification_dir: Path):
         "project-status.csv",
         "project.csv",
         "provision-reason.csv",
+        "provision-rule.csv",
         "schema-field.csv",
         "schema.csv",
         "severity.csv",

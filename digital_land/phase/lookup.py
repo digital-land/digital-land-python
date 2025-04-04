@@ -179,7 +179,49 @@ class EntityLookupPhase(LookupPhase):
 
 
 class FactLookupPhase(LookupPhase):
-    entity_field = "reference-entity"
+    def __init__(
+        self, lookups={}, redirect_lookups={}, issue_log=None, odp_collections=[]
+    ):
+        super().__init__(lookups, redirect_lookups, issue_log)
+        self.entity_field = "reference-entity"
+        self.odp_collections = odp_collections
+
+    def process(self, stream):
+        for block in stream:
+            row = block["row"]
+            line_number = row.get("line-number", "")
+            prefix = row.get("prefix", "")
+            reference = row.get("reference", "")
+            entity_number = row.get("entity", "")
+
+            if not (prefix and reference and entity_number in self.reverse_lookups):
+                yield block
+                continue
+            value = self.reverse_lookups[entity_number]
+
+            if value:
+                organisation = value[-1].split(",")[-1]
+                find_entity = self.lookup(
+                    prefix=prefix,
+                    organisation=organisation,
+                    reference=reference,
+                )
+
+                if not find_entity or (
+                    str(find_entity) in self.redirect_lookups
+                    and int(self.redirect_lookups[str(find_entity)].get("status", 0))
+                    == 410
+                ):
+                    if self.odp_collections and prefix in self.odp_collections:
+                        self.issues.log_issue(
+                            prefix,
+                            "no associated documents found for this area",
+                            reference,
+                            line_number=line_number,
+                        )
+                else:
+                    row[self.entity_field] = find_entity
+            yield block
 
 
 class PrintLookupPhase(LookupPhase):

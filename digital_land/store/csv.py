@@ -4,6 +4,7 @@ import os
 import csv
 import logging
 from pathlib import Path
+from datetime import datetime
 from .memory import MemoryStore
 
 
@@ -11,12 +12,21 @@ class CSVStore(MemoryStore):
     def csv_path(store, directory=""):
         return Path(directory) / (store.schema.name + ".csv")
 
-    def load_csv(self, path=None, directory=""):
+    def load_csv(self, path=None, directory="", refill_todays_logs=False):
         path = path or self.csv_path(directory)
-        logging.debug("loading %s" % (path))
+        today = datetime.now().date()
+        logging.debug("loading %s" % path)
         reader = csv.DictReader(open(path, newline=""))
         for row in reader:
-            self.add_entry(row)
+            if not refill_todays_logs:
+                self.add_entry(row)
+            else:
+                # Don't load in values of today's log so it can be overwritten
+                if (
+                    "entry-date" in row
+                    and datetime.fromisoformat(row["entry-date"]).date() < today
+                ):
+                    self.add_entry(row)
 
     def load(self, *args, **kwargs):
         self.load_csv(*args, **kwargs)
@@ -28,7 +38,7 @@ class CSVStore(MemoryStore):
             entries = self.entries
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        logging.debug("saving %s" % (path))
+        logging.debug("saving %s" % path)
         f = open(path, "w", newline="")
         writer = csv.DictWriter(
             f, fieldnames=self.schema.fieldnames, extrasaction="ignore"

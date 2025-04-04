@@ -7,7 +7,7 @@ from digital_land.organisation import Organisation
 
 from .base import BaseCheckpoint
 from ..log import ExpectationLog
-from ..operation import count_lpa_boundary
+from ..operation import count_lpa_boundary, count_deleted_entities
 
 
 class DatasetCheckpoint(BaseCheckpoint):
@@ -26,7 +26,10 @@ class DatasetCheckpoint(BaseCheckpoint):
         Args
             operation: a string representing an operation
         """
-        operation_map = {"count_lpa_boundary": count_lpa_boundary}
+        operation_map = {
+            "count_lpa_boundary": count_lpa_boundary,
+            "count_deleted_entities": count_deleted_entities,
+        }
         operation = operation_map[operation_string]
         return operation
 

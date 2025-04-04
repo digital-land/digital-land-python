@@ -354,7 +354,7 @@ class Collection:
         self.log.save_csv(directory=directory)
         self.resource.save_csv(directory=directory)
 
-    def load(self, directory=None):
+    def load(self, directory=None, refill_todays_logs=False):
         directory = directory or self.dir
         self.source.load(directory=directory)
         self.endpoint.load(directory=directory)
@@ -363,7 +363,9 @@ class Collection:
 
         # Try to load log store from csv first
         try:
-            self.log.load_csv(directory=directory)
+            self.log.load_csv(
+                directory=directory, refill_todays_logs=refill_todays_logs
+            )
             logging.info(f"Log loaded from CSV - {len(self.log.entries)} entries")
         except FileNotFoundError:
             logging.info("No log.csv - building from log items")
@@ -410,8 +412,22 @@ class Collection:
     def resource_path(self, resource):
         return resource_path(resource, self.dir)
 
-    def pipeline_makerules(self):
-        pipeline_makerules(self)
+    def pipeline_makerules(
+        self,
+        specification_dir,
+        pipeline_dir,
+        resource_dir,
+        incremental_loading_override,
+        state_path=None,
+    ):
+        pipeline_makerules(
+            self,
+            specification_dir,
+            pipeline_dir,
+            resource_dir,
+            incremental_loading_override,
+            state_path=state_path,
+        )
 
     def dataset_resource_map(self):
         "a map of resources needed by each dataset in a collection"
