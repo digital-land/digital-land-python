@@ -12,7 +12,6 @@ MANDATORY_FIELDS_DICT = {
     "article-4-direction": [
         "reference",
         "name",
-        "description",
         "document-url",
         "documentation-url",
     ],
@@ -33,7 +32,6 @@ MANDATORY_FIELDS_DICT = {
     ],
     "tree-preservation-order": [
         "reference",
-        "name",
         "document-url",
         "documentation-url",
     ],

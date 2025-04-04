@@ -144,13 +144,12 @@ def test_harmonise_missing_mandatory_values():
     output = list(h.process(reader))
 
     assert len(output) == 1
-    assert len(issues.rows) == 4
+    assert len(issues.rows) == 3
 
     # It should have an issue logged for the empty mandatory fields except name for article-4-direction
     for issue in issues.rows:
         assert issue["field"] in [
             "reference",
-            "description",
             "document-url",
             "documentation-url",
         ]
