@@ -205,41 +205,43 @@ def test_pipeline_run_with_default_values(test_dirs):
             ],
         )
         writer.writeheader()
-        writer.writerows([
-            {
-                "dataset": "national-park",
-                "end-date": "",
-                "endpoint": dummy_endpoint,
-                "entry-date": "",
-                "entry-number": "",
-                "field": "name",
-                "resource": "",
-                "start-date": "",
-                "value": "default1",
-            },
-            {
-                "dataset": "national-park",
-                "end-date": "",
-                "endpoint": dummy_endpoint,
-                "entry-date": "",
-                "entry-number": "",
-                "field": "entry-date",
-                "resource": "",
-                "start-date": "",
-                "value": "2021-01-01",
-            },
-            {
-                "dataset": "national-park",
-                "end-date": "",
-                "endpoint": dummy_endpoint,
-                "entry-date": "",
-                "entry-number": "",
-                "field": "ep-col-one",
-                "resource": "",
-                "start-date": "",
-                "value": "ep_field_new",
-            },
-        ])
+        writer.writerows(
+            [
+                {
+                    "dataset": "national-park",
+                    "end-date": "",
+                    "endpoint": dummy_endpoint,
+                    "entry-date": "",
+                    "entry-number": "",
+                    "field": "name",
+                    "resource": "",
+                    "start-date": "",
+                    "value": "default1",
+                },
+                {
+                    "dataset": "national-park",
+                    "end-date": "",
+                    "endpoint": dummy_endpoint,
+                    "entry-date": "",
+                    "entry-number": "",
+                    "field": "entry-date",
+                    "resource": "",
+                    "start-date": "",
+                    "value": "2021-01-01",
+                },
+                {
+                    "dataset": "national-park",
+                    "end-date": "",
+                    "endpoint": dummy_endpoint,
+                    "entry-date": "",
+                    "entry-number": "",
+                    "field": "ep-col-one",
+                    "resource": "",
+                    "start-date": "",
+                    "value": "ep_field_new",
+                },
+            ]
+        )
 
     pipeline = Pipeline(pipeline_dir, test_pipeline)
     specification = Specification(specification_dir)
@@ -286,7 +288,7 @@ def test_pipeline_run_with_default_values(test_dirs):
 
     assert "name" in df["field"].values
     assert "ep-col-one" in df["field"].values
-    assert "entry-date" not in df["field"].values # not saved, at present, in issues
+    assert "entry-date" not in df["field"].values  # not saved, at present, in issues
     assert "organisation" in df["field"].values
     assert "entity" in df["field"].values
 
