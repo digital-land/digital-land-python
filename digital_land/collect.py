@@ -59,7 +59,7 @@ class Collector:
         self.session.mount("file:", FileAdapter())
         self.endpoint = {}
 
-    def log_file_hashes(self, collection_dir=None):
+    def collection_dir_file_hashes(self, collection_dir=None):
         if collection_dir:
             for csv_file in collection_dir.glob("*.csv"):
                 if csv_file.is_file():
