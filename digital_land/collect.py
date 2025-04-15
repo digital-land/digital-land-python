@@ -4,7 +4,6 @@
 #  collect resource
 #
 import csv
-import hashlib
 import logging
 import os
 import re
