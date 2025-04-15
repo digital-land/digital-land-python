@@ -167,9 +167,12 @@ class ResourceLogStore(CSVStore):
         new_entries = {}
 
         # What is the current hash of the source.records
-        record_string = json.dumps(source.records)
-        record_hash = hashlib.sha256(record_string.encode("utf-8")).hexdigest()
-        logger.info(f"Hash of source.records on {today} is: {record_hash}")
+        try:
+            record_string = json.dumps(source.records)
+            record_hash = hashlib.sha256(record_string.encode("utf-8")).hexdigest()
+            logger.info(f"Hash of source.records on {today} is: {record_hash}")
+        except TypeError:
+            logger.info("Cannot hash source.records")
 
         for key, resource in sorted(resources.items()):
             organisations = set()

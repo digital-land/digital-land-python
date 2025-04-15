@@ -572,14 +572,14 @@ def test_collection_dir_file_hashes(temp_dir, caplog):
     """
     Test that log_file_hashes returns the correct hashes
     """
-    csv1 = temp_dir / "file1.csv"
-    csv2 = temp_dir / "file2.csv"
-    csv1.write_text("id,value\n1,100\n")
-    csv2.write_text("id,value\n2,200\n")
+    source = temp_dir / "source.csv"
+    endpoint = temp_dir / "endpoint.csv"
+    source.write_text("id,value\n1,100\n")
+    endpoint.write_text("id,value\n2,200\n")
 
     expected_logs = [
-        "CSV file: file1.csv | hash: 2bab99eb38f4003b26453326912159db879c451a",
-        "CSV file: file2.csv | hash: 53fccae46018c7d10759987090b904e41a1d9092",
+        "CSV file: source.csv | hash: 2bab99eb38f4003b26453326912159db879c451a",
+        "CSV file: endpoint.csv | hash: 53fccae46018c7d10759987090b904e41a1d9092",
     ]
     caplog.set_level(logging.INFO)
     # Create and run Collector
