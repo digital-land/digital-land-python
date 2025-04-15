@@ -568,7 +568,7 @@ def test_dataset_update_with_new_resources(
     updated_cursor.close()
 
 
-def test_log_file_hashes(temp_dir, caplog):
+def test_collection_dir_file_hashes(temp_dir, caplog):
     """
     Test that log_file_hashes returns the correct hashes
     """
