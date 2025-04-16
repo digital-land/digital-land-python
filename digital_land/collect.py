@@ -21,6 +21,19 @@ from .plugins.sparql import get as sparql_get
 from .plugins.wfs import get as wfs_get
 from .plugins.arcgis import get as arcgis_get
 
+logger = logging.getLogger(__name__)
+
+
+def hash_file(path):
+    """Returns the hash of a file as a hex digest."""
+    # Read the file in 32MB chunks
+    _chunk_size = 32 * 1024 * 1024
+    hasher = hashlib.sha1()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(_chunk_size), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
 
 class FetchStatus(Enum):
     OK = 1
@@ -36,6 +49,7 @@ class Collector:
     log_dir = "collection/log/"
 
     def __init__(self, dataset="", collection_dir=None):
+
         self.dataset = dataset
         if collection_dir:
             self.resource_dir = Path(collection_dir) / "resource/"
@@ -43,6 +57,16 @@ class Collector:
         self.session = requests.Session()
         self.session.mount("file:", FileAdapter())
         self.endpoint = {}
+
+    def collection_dir_file_hashes(self, collection_dir=None):
+        logger.setLevel(logging.INFO)
+        if collection_dir:
+            for csv_file in collection_dir.glob("*.csv"):
+                if csv_file.is_file():
+                    file_hash = hash_file(csv_file)
+                    logger.info(f"CSV file: {csv_file.name} | hash: {file_hash}")
+                else:
+                    logger.info(f"Skipped non-file: {csv_file}")
 
     def url_endpoint(self, url):
         return hashlib.sha256(url.encode("utf-8")).hexdigest()

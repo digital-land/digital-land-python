@@ -88,6 +88,7 @@ def fetch(url, pipeline):
 def collect(endpoint_path, collection_dir, pipeline, refill_todays_logs=False):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
     collector = Collector(pipeline.name, Path(collection_dir))
+    collector.collection_dir_file_hashes(Path(collection_dir))
     collector.collect(endpoint_path, refill_todays_logs=refill_todays_logs)
 
 

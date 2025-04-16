@@ -5,6 +5,7 @@ import pandas as pd
 
 from datetime import datetime
 from pathlib import Path
+import json
 
 from .makerules import pipeline_makerules
 from .register import hash_value, Item
@@ -13,6 +14,7 @@ from .store.csv import CSVStore
 from .store.item import ItemStore
 
 
+logger = logging.getLogger(__name__)
 # rename and change variable
 DEFAULT_COLLECTION_DIR = "./collection"
 
@@ -136,6 +138,7 @@ class ResourceLogStore(CSVStore):
         """
         resources = {}
         today = datetime.utcnow().isoformat()[:10]
+        logger.setLevel(logging.INFO)
 
         # Process the log entries
         for entry in log.entries:
@@ -163,6 +166,14 @@ class ResourceLogStore(CSVStore):
 
         # Convert these into resource entries to be added
         new_entries = {}
+
+        # What is the current hash of the source.records
+        try:
+            record_string = json.dumps(source.records)
+            record_hash = hashlib.sha256(record_string.encode("utf-8")).hexdigest()
+            logger.info(f"Hash of source.records on {today} is: {record_hash}")
+        except TypeError:
+            logger.info("Cannot hash source.records")
 
         for key, resource in sorted(resources.items()):
             organisations = set()

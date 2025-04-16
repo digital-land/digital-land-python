@@ -14,6 +14,7 @@ import logging
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.package import Specification
 from digital_land.organisation import Organisation
+from digital_land.collect import Collector
 
 """ dataset_create & dataset_update """
 
@@ -565,3 +566,27 @@ def test_dataset_update_with_new_resources(
 
     orig_cursor.close()
     updated_cursor.close()
+
+
+def test_collection_dir_file_hashes(temp_dir, caplog):
+    """
+    Test that log_file_hashes returns the correct hashes
+    """
+    source = temp_dir / "source.csv"
+    endpoint = temp_dir / "endpoint.csv"
+    source.write_text("id,value\n1,100\n")
+    endpoint.write_text("id,value\n2,200\n")
+
+    expected_logs = [
+        "CSV file: source.csv | hash: 2bab99eb38f4003b26453326912159db879c451a",
+        "CSV file: endpoint.csv | hash: 53fccae46018c7d10759987090b904e41a1d9092",
+    ]
+    caplog.set_level(logging.INFO)
+    # Create and run Collector
+    collector = Collector(collection_dir=temp_dir)
+    collector.collection_dir_file_hashes(temp_dir)
+
+    for expected in expected_logs:
+        assert any(
+            expected in record.message for record in caplog.records
+        ), f"Missing log: {expected}"
