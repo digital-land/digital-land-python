@@ -138,6 +138,7 @@ class ResourceLogStore(CSVStore):
         """
         resources = {}
         today = datetime.utcnow().isoformat()[:10]
+        logger.setLevel(logging.INFO)
 
         # Process the log entries
         for entry in log.entries:
