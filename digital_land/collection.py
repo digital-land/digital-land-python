@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import pandas as pd
@@ -5,7 +6,6 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 import json
-import hashlib
 
 from .makerules import pipeline_makerules
 from .register import hash_value, Item

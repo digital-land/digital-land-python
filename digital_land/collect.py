@@ -5,6 +5,7 @@
 #
 import csv
 import logging
+import hashlib
 import os
 import re
 from datetime import datetime
@@ -19,7 +20,6 @@ from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
 from .plugins.wfs import get as wfs_get
 from .plugins.arcgis import get as arcgis_get
-import hashlib
 
 logger = logging.getLogger(__name__)
 
