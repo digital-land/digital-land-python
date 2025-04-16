@@ -63,9 +63,9 @@ class Collector:
             for csv_file in collection_dir.glob("*.csv"):
                 if csv_file.is_file():
                     file_hash = hash_file(csv_file)
-                    logger.info(f"CSV file: {csv_file.name} | hash: {file_hash}")
+                    logger.warning(f"CSV file: {csv_file.name} | hash: {file_hash}")
                 else:
-                    logger.info(f"Skipped non-file: {csv_file}")
+                    logger.warning(f"Skipped non-file: {csv_file}")
 
     def url_endpoint(self, url):
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
