@@ -4,8 +4,8 @@
 #  collect resource
 #
 import csv
-import logging
 import hashlib
+import logging
 import os
 import re
 from datetime import datetime
