@@ -1078,17 +1078,17 @@ def add_data(
 
         # Now check for existing endpoints for this provision/organisation
         existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-            endpoint_resource_info, collection, "test"
+            endpoint_resource_info, collection, dataset
         )
         if existing_endpoints_summary:
             print(existing_endpoints_summary)
             if get_user_response(
-                "Do you want to retire any of these existing endpoints?"
+                "Do you want to retire any of these existing endpoints? (yes/no): "
             ):
                 # iterate over existing sources and ask if they should be retired
                 sources_to_retire = []
                 for source in existing_sources:
-                    if get_user_response(f"{source['endpoint-url']}?"):
+                    if get_user_response(f"{source['endpoint-url']}? (yes/no): "):
                         sources_to_retire.append(source)
 
                 print(sources_to_retire)

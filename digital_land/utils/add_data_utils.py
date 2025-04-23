@@ -248,11 +248,14 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
     existing_sources = collection.filtered_sources(
         {"organisation": endpoint_resource_info["organisation"], "pipelines": dataset}
     )
-    # filter the source in endpoint_resource_info as this has just been added
+    # filter out the endpoint in endpoint_resource_info as this has just been added
+    # also filter out endpoints that have ended
+    print(existing_sources)
     existing_sources = [
         source
         for source in existing_sources
-        if source["source"] != endpoint_resource_info["source"]
+        if (source["endpoint"] != endpoint_resource_info["endpoint"])
+        and (source["end-date"] == "")
     ]
 
     existing_endpoints_summary = ""

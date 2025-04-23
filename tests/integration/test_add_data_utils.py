@@ -511,6 +511,7 @@ def test_get_existing_endpoints_summary(tmp_path):
     sources = [
         {
             "source": "test1",
+            "endpoint": "test",
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
@@ -524,6 +525,7 @@ def test_get_existing_endpoints_summary(tmp_path):
         },
         {
             "source": "test2",
+            "endpoint": "test2",
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
@@ -537,6 +539,7 @@ def test_get_existing_endpoints_summary(tmp_path):
         },
         {
             "source": "test3",
+            "endpoint": "test3",
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
@@ -557,6 +560,7 @@ def test_get_existing_endpoints_summary(tmp_path):
 
     endpoint_resource_info = {
         "source": "test3",
+        "endpoint": "test3",
         "organisation": "test-org1",
         "pipelines": "test",
     }
@@ -601,6 +605,7 @@ def test_get_existing_endpoints_summary_no_dataset_match(tmp_path):
     sources = [
         {
             "source": "test1",
+            "endpoint": "test",
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
@@ -659,6 +664,7 @@ def test_get_existing_endpoints_summary_no_organisation_match(tmp_path):
     sources = [
         {
             "source": "test1",
+            "endpoint": "test",
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
@@ -692,3 +698,88 @@ def test_get_existing_endpoints_summary_no_organisation_match(tmp_path):
 
     assert not existing_endpoints_summary
     assert not existing_sources
+
+
+def test_get_existing_endpoints_summary_ended_endpoints(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "test",
+            "endpoint-url": "test1.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "ended!",
+        },
+        {
+            "endpoint": "test2",
+            "endpoint-url": "test2.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "endpoint": "test",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test2",
+            "endpoint": "test2",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test2",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2020-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test",
+        "endpoint": "test",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "test"
+    )
+
+    assert "test1.com" not in existing_endpoints_summary
+    assert "2020-01-01, test2.com" in existing_endpoints_summary
+
+    assert existing_sources[0]["source"] == "test2"
