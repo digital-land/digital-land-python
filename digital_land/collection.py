@@ -412,6 +412,20 @@ class Collection:
     def resource_path(self, resource):
         return resource_path(resource, self.dir)
 
+    def filtered_sources(self, filter: dict):
+        return [
+            entry
+            for entry in self.source.entries
+            if all(
+                (
+                    v in entry.get(k, "").split(";")
+                    if k == "pipelines" and ";" in str(entry.get(k, ""))
+                    else entry.get(k) == v
+                )
+                for k, v in filter.items()
+            )
+        ]
+
     def pipeline_makerules(
         self,
         specification_dir,

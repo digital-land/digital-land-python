@@ -549,3 +549,268 @@ def test_collection_retire_endpoints_and_sources(tmp_path):
 
     assert updated_endpoint_df.to_dict() == expected_endpoint_data
     assert updated_source_df.to_dict() == expected_source_data
+
+
+def test_filter_sources(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "test",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "endpoint": "test2",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test2",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org2",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    filtered_sources = collection.filtered_sources({"organisation": "test-org1"})
+
+    assert len(filtered_sources) == 1
+    assert all(source["organisation"] == "test-org1" for source in filtered_sources)
+
+
+def test_filter_sources_multiple_filters(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "test",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "endpoint": "test2",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "endpoint": "test3",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test2",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org2",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test3",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org3",
+            "pipelines": "test3",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    filtered_sources = collection.filtered_sources(
+        {"organisation": "test-org3", "pipelines": "test3"}
+    )
+
+    assert len(filtered_sources) == 1
+    assert all(
+        source["organisation"] == "test-org3" and source["pipelines"] == "test3"
+        for source in filtered_sources
+    )
+
+
+def test_filter_sources_pipeline_filter(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "test",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "endpoint": "test2",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "endpoint": "test3",
+            "endpoint-url": "test.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test2",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org2",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test3",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org3",
+            "pipelines": "test3;test4",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    filtered_sources = collection.filtered_sources({"pipelines": "test4"})
+
+    assert len(filtered_sources) == 1
+    assert all("test4" in source["pipelines"] for source in filtered_sources)

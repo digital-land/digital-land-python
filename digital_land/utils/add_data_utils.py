@@ -242,3 +242,38 @@ def get_entity_summary(
         entity_summary += f"\nWARNING: There are {missing_entity_count} entities on the platform for this provision that aren't present in this resource"
 
     return entity_summary
+
+
+def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
+    existing_sources = collection.filtered_sources(
+        {"organisation": endpoint_resource_info["organisation"], "pipelines": dataset}
+    )
+    # filter the source in endpoint_resource_info as this has just been added
+    existing_sources = [
+        source
+        for source in existing_sources
+        if source["source"] != endpoint_resource_info["source"]
+    ]
+
+    existing_endpoints_summary = ""
+    if existing_sources:
+        # need to fetch endpoint urls separately as they aren't in source, so create a lookup
+        endpoint_lookup = {
+            entry["endpoint"]: entry["endpoint-url"]
+            for entry in collection.endpoint.entries
+        }
+
+        existing_endpoints_summary += "Existing endpoints found for this provision:\n"
+        existing_endpoints_summary += "\nentry-date, endpoint-url"
+        for source in existing_sources:
+
+            endpoint_hash = source["endpoint"]
+            if endpoint_hash in endpoint_lookup:
+                source["endpoint-url"] = endpoint_lookup[endpoint_hash]
+
+                existing_endpoints_summary += (
+                    f"\n{source['entry-date']}, {source['endpoint-url']}"
+                )
+        return existing_endpoints_summary, existing_sources
+    else:
+        return "", []

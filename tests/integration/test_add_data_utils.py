@@ -3,10 +3,12 @@ from datetime import datetime
 import os
 import pytest
 
+from digital_land.collection import Collection
 from digital_land.utils.add_data_utils import (
     clear_log,
     get_column_field_summary,
     get_entity_summary,
+    get_existing_endpoints_summary,
     get_issue_summary,
 )
 
@@ -466,3 +468,227 @@ def test_get_column_field_summary_get_reference_and_encoding(tmp_path_factory):
 
     assert "Unmapped Columns:\nNo unmapped columns!" in column_field_summary
     assert "Unmapped Fields:\nNo unmapped fields!" in column_field_summary
+
+
+def test_get_existing_endpoints_summary(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "test",
+            "endpoint-url": "test1.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "endpoint": "test2",
+            "endpoint-url": "test2.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "endpoint": "test3",
+            "endpoint-url": "test3.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test2",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test2",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2020-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+        {
+            "source": "test3",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test3",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2020-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test3",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "test"
+    )
+
+    assert "entry-date, endpoint-url" in existing_endpoints_summary
+    assert "2019-01-01, test1.com" in existing_endpoints_summary
+    assert "2020-01-01, test2.com" in existing_endpoints_summary
+
+    assert "2020-01-01, test3.com" not in existing_endpoints_summary
+
+    assert existing_sources[0]["source"] == "test1"
+    assert existing_sources[1]["source"] == "test2"
+
+
+def test_get_existing_endpoints_summary_no_dataset_match(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "test",
+            "endpoint-url": "test1.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        }
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        }
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test3",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "wrong_dataset"
+    )
+
+    assert not existing_endpoints_summary
+    assert not existing_sources
+
+
+def test_get_existing_endpoints_summary_no_organisation_match(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "test",
+            "endpoint-url": "test1.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        }
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "endpoint": "test",
+            "licence": "test",
+            "organisation": "wrong-organisation",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        }
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test3",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "test"
+    )
+
+    assert not existing_endpoints_summary
+    assert not existing_sources
