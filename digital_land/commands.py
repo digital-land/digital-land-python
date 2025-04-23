@@ -1512,3 +1512,88 @@ def save_state(
     state.save(
         output_path=output_path,
     )
+
+
+def check_and_assign_entities(
+    resource_file_paths,
+    endpoints,
+    collection_name,
+    dataset,
+    organisation,
+    collection_dir,
+    organisation_path,
+    specification_dir,
+    pipeline_dir,
+):
+    # Assigns entities for the given resources in the given collection and run pipeline to get the transformed resource.
+
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    cache_dir = Path("var/cache/")
+    assign_entities_cache_dir = cache_dir / "assign_entities"
+
+    resource_path = resource_file_paths[0]
+    resource = Path(resource_path).name
+
+    output_path = assign_entities_cache_dir / "transformed/" / f"{resource}.csv"
+
+    issue_dir = assign_entities_cache_dir / "issue/"
+    column_field_dir = assign_entities_cache_dir / "column_field/"
+    dataset_resource_dir = assign_entities_cache_dir / "dataset_resource/"
+    converted_resource_dir = assign_entities_cache_dir / "converted_resource/"
+    converted_dir = assign_entities_cache_dir / "converted/"
+    output_log_dir = assign_entities_cache_dir / "log/"
+    operational_issue_dir = (
+        assign_entities_cache_dir / "performance " / "operational_issue/"
+    )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    issue_dir.mkdir(parents=True, exist_ok=True)
+    column_field_dir.mkdir(parents=True, exist_ok=True)
+    dataset_resource_dir.mkdir(parents=True, exist_ok=True)
+    converted_resource_dir.mkdir(parents=True, exist_ok=True)
+    converted_dir.mkdir(parents=True, exist_ok=True)
+    output_log_dir.mkdir(parents=True, exist_ok=True)
+    operational_issue_dir.mkdir(parents=True, exist_ok=True)
+
+    cache_pipeline_dir = assign_entities_cache_dir / collection.name / "pipeline"
+    copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
+
+    assign_entities(
+        resource_file_paths,
+        collection,
+        dataset,
+        organisation,
+        cache_pipeline_dir,
+        specification_dir,
+        organisation_path,
+        endpoints,
+        cache_dir,
+    )
+
+    pipeline = Pipeline(cache_pipeline_dir, dataset)
+    try:
+        pipeline_run(
+            dataset,
+            pipeline,
+            Specification(specification_dir),
+            resource_path,
+            output_path=output_path,
+            collection_dir=collection_dir,
+            issue_dir=issue_dir,
+            operational_issue_dir=operational_issue_dir,
+            column_field_dir=column_field_dir,
+            dataset_resource_dir=dataset_resource_dir,
+            converted_resource_dir=converted_resource_dir,
+            organisation_path=organisation_path,
+            endpoints=endpoints,
+            organisations=organisation,
+            resource=resource,
+            output_log_dir=output_log_dir,
+            converted_path=os.path.join(converted_dir, resource + ".csv"),
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Pipeline failed to process resource with the following error: {e}"
+        )
