@@ -16,7 +16,9 @@ def test_split_curie():
 
 def test_entity_reference():
     phase = EntityReferencePhase(
-        dataset="tree", prefix="tree", valid_prefixes={"tree": {}, "wikidata": {}}
+        dataset="tree",
+        prefix="tree",
+        valid_reference_prefixes={"tree": {}, "wikidata": {}},
     )
 
     assert ("tree", "31") == phase.process_row({"reference": "31"})
