@@ -1,9 +1,11 @@
 import csv
+from datetime import datetime
 import os
 import tempfile
 from unittest import mock
 from unittest.mock import Mock
 from click.testing import CliRunner
+import pandas as pd
 import pytest
 
 from digital_land.cli import cli
@@ -223,6 +225,16 @@ def test_cli_add_data(
         print(result.exception)
 
     assert result.exit_code == 0
+    # Check summaries are in stdout
+    assert "Endpoint and source details" in result.stdout
+    assert "Run pipeline" in result.stdout
+    assert "Column Field Summary" in result.stdout
+    assert "Issue Summary" in result.stdout
+    assert "Entity Summary" in result.stdout
+
+    # Check entity assigning has worked
+    assert "Total number of new entities: 1" in result.stdout
+    assert "No new entities in resource" in result.stdout
 
 
 def test_cli_add_data_incorrect_input_data(
@@ -443,3 +455,100 @@ def test_cli_add_data_remaining_unassigned_entities(
 
     assert result.exit_code == 1
     assert "Unknown entities remain in resource" in str(result.exception)
+
+
+def test_cli_add_data_old_endpoints_retired(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    cache_dir,
+    organisation_csv,
+    mock_request_get,
+    monkeypatch,
+):
+    no_error_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+    csv_path = create_input_csv(no_error_input_data)
+
+    # Now add old endpoints/source to be retired
+    source = {
+        "attribution": "",
+        "collection": "conservation-area",
+        "documentation-url": "",
+        "endpoint": "endpoint",
+        "licence": "",
+        "organisation": "local-authority:SST",
+        "pipelines": "conservation-area",
+        "entry-date": "now!",
+        "start-date": "",
+        "end-date": "",
+    }
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=source.keys())
+        writer.writeheader()
+        writer.writerow(source)
+
+    endpoint = {
+        "endpoint": "endpoint",
+        "endpoint-url": "endpoint-url",
+        "parameters": "",
+        "plugin": "",
+        "entry-date": "now!",
+        "start-date": "",
+        "end-date": "",
+    }
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=endpoint.keys())
+        writer.writeheader()
+        writer.writerow(endpoint)
+
+    # Mock in user input
+    monkeypatch.setattr("builtins.input", lambda _: "yes")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "add-data",
+            csv_path,
+            "conservation-area",
+            "--collection-dir",
+            str(collection_dir),
+            "--specification-dir",
+            str(specification_dir),
+            "--pipeline-dir",
+            str(pipeline_dir),
+            "--organisation-path",
+            str(organisation_csv),
+            "--cache-dir",
+            str(cache_dir),
+        ],
+    )
+    if result.exit_code != 0:
+        # Print the command output if the test fails, gives more detail on what's gone wrong
+        print("Command failed with exit code:", result.exit_code)
+        print("Command output:")
+        print(result.output)
+        print("Command error output:")
+        print(result.exception)
+
+    assert result.exit_code == 0
+    # Check old endpoint summary in stdout
+    print(result.stdout)
+    assert "Existing endpoints found for this provision:" in result.stdout
+    assert "now!, endpoint-url" in result.stdout
+
+    # check that the endpoint and source have been retired
+    endpoint_df = pd.read_csv(os.path.join(collection_dir, "endpoint.csv"))
+    endpoint_df["end-date"].values[0] == datetime.utcnow().isoformat()[:10]
+
+    source_df = pd.read_csv(os.path.join(collection_dir, "source.csv"))
+    source_df["end-date"].values[0] == datetime.utcnow().isoformat()[:10]
