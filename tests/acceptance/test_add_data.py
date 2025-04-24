@@ -548,7 +548,7 @@ def test_cli_add_data_old_endpoints_retired(
 
     # check that the endpoint and source have been retired
     endpoint_df = pd.read_csv(os.path.join(collection_dir, "endpoint.csv"))
-    endpoint_df["end-date"].values[0] == datetime.utcnow().isoformat()[:10]
+    assert endpoint_df["end-date"].values[0] == datetime.utcnow().isoformat()[:10]
 
     source_df = pd.read_csv(os.path.join(collection_dir, "source.csv"))
-    source_df["end-date"].values[0] == datetime.utcnow().isoformat()[:10]
+    assert source_df["end-date"].values[0] == datetime.utcnow().isoformat()[:10]
