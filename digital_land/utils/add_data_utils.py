@@ -264,15 +264,12 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
     if existing_sources:
         existing_endpoints_summary += "Existing endpoints found for this provision:\n"
         existing_endpoints_summary += "\nentry-date, endpoint-url"
-
         for source in existing_sources:
             source["endpoint-url"] = collection.endpoint.records[source["endpoint"]][0][
                 "endpoint-url"
             ]
-
             existing_endpoints_summary += (
                 f"\n{source['entry-date']}, {source['endpoint-url']}"
             )
-        return existing_endpoints_summary, existing_sources
-    else:
-        return "", []
+
+    return existing_endpoints_summary, existing_sources
