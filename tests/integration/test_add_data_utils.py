@@ -515,7 +515,6 @@ def test_get_existing_endpoints_summary(tmp_path):
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
-            "endpoint": "test",
             "licence": "test",
             "organisation": "test-org1",
             "pipelines": "test",
@@ -529,7 +528,6 @@ def test_get_existing_endpoints_summary(tmp_path):
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
-            "endpoint": "test2",
             "licence": "test",
             "organisation": "test-org1",
             "pipelines": "test",
@@ -543,7 +541,6 @@ def test_get_existing_endpoints_summary(tmp_path):
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
-            "endpoint": "test3",
             "licence": "test",
             "organisation": "test-org1",
             "pipelines": "test",
@@ -609,7 +606,6 @@ def test_get_existing_endpoints_summary_no_dataset_match(tmp_path):
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
-            "endpoint": "test",
             "licence": "test",
             "organisation": "test-org1",
             "pipelines": "test",
@@ -668,7 +664,6 @@ def test_get_existing_endpoints_summary_no_organisation_match(tmp_path):
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
-            "endpoint": "test",
             "licence": "test",
             "organisation": "wrong-organisation",
             "pipelines": "test",
@@ -700,9 +695,105 @@ def test_get_existing_endpoints_summary_no_organisation_match(tmp_path):
     assert not existing_sources
 
 
-def test_get_existing_endpoints_summary_ended_endpoints(tmp_path):
+@pytest.mark.parametrize(
+    "endpoints,sources",
+    [
+        (
+            [
+                {
+                    "endpoint": "test",
+                    "endpoint-url": "test1.com",
+                    "parameters": "",
+                    "plugin": "",
+                    "entry-date": "2019-01-01",
+                    "start-date": "2019-01-01",
+                    "end-date": "",
+                }
+            ],
+            [
+                {
+                    "source": "test1",
+                    "endpoint": "test",
+                    "attribution": "",
+                    "collection": "test",
+                    "documentation-url": "testing.com",
+                    "licence": "test",
+                    "organisation": "test-org1",
+                    "pipelines": "test",
+                    "entry-date": "2019-01-01",
+                    "start-date": "2019-01-01",
+                    "end-date": "ended!",
+                }
+            ],
+        ),
+        (
+            [
+                {
+                    "endpoint": "test",
+                    "endpoint-url": "test1.com",
+                    "parameters": "",
+                    "plugin": "",
+                    "entry-date": "2019-01-01",
+                    "start-date": "2019-01-01",
+                    "end-date": "ended!",
+                }
+            ],
+            [
+                {
+                    "source": "test1",
+                    "endpoint": "test",
+                    "attribution": "",
+                    "collection": "test",
+                    "documentation-url": "testing.com",
+                    "licence": "test",
+                    "organisation": "test-org1",
+                    "pipelines": "test",
+                    "entry-date": "2019-01-01",
+                    "start-date": "2019-01-01",
+                    "end-date": "",
+                }
+            ],
+        ),
+    ],
+)
+def test_get_existing_endpoints_summary_ended_endpoint_or_source(
+    endpoints, sources, tmp_path
+):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test3",
+        "endpoint": "test3",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "test"
+    )
+    assert "test1.com" in existing_endpoints_summary
+
+    assert existing_sources[0]["source"] == "test1"
+
+
+def test_get_existing_endpoints_summary_ended_endpoint_and_source(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+
     endpoints = [
         {
             "endpoint": "test",
@@ -712,18 +803,8 @@ def test_get_existing_endpoints_summary_ended_endpoints(tmp_path):
             "entry-date": "2019-01-01",
             "start-date": "2019-01-01",
             "end-date": "ended!",
-        },
-        {
-            "endpoint": "test2",
-            "endpoint-url": "test2.com",
-            "parameters": "",
-            "plugin": "",
-            "entry-date": "2019-01-01",
-            "start-date": "2019-01-01",
-            "end-date": "",
-        },
+        }
     ]
-
     with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
         dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
         dictwriter.writeheader()
@@ -736,28 +817,13 @@ def test_get_existing_endpoints_summary_ended_endpoints(tmp_path):
             "attribution": "",
             "collection": "test",
             "documentation-url": "testing.com",
-            "endpoint": "test",
             "licence": "test",
             "organisation": "test-org1",
             "pipelines": "test",
             "entry-date": "2019-01-01",
             "start-date": "2019-01-01",
-            "end-date": "",
-        },
-        {
-            "source": "test2",
-            "endpoint": "test2",
-            "attribution": "",
-            "collection": "test",
-            "documentation-url": "testing.com",
-            "endpoint": "test2",
-            "licence": "test",
-            "organisation": "test-org1",
-            "pipelines": "test",
-            "entry-date": "2020-01-01",
-            "start-date": "2019-01-01",
-            "end-date": "",
-        },
+            "end-date": "ended!",
+        }
     ]
 
     with open(os.path.join(collection_dir, "source.csv"), "w") as f:
@@ -766,8 +832,8 @@ def test_get_existing_endpoints_summary_ended_endpoints(tmp_path):
         dictwriter.writerows(sources)
 
     endpoint_resource_info = {
-        "source": "test",
-        "endpoint": "test",
+        "source": "test3",
+        "endpoint": "test3",
         "organisation": "test-org1",
         "pipelines": "test",
     }
@@ -778,8 +844,6 @@ def test_get_existing_endpoints_summary_ended_endpoints(tmp_path):
     existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
         endpoint_resource_info, collection, "test"
     )
+    assert not existing_endpoints_summary
 
-    assert "test1.com" not in existing_endpoints_summary
-    assert "2020-01-01, test2.com" in existing_endpoints_summary
-
-    assert existing_sources[0]["source"] == "test2"
+    assert not existing_sources

@@ -1091,7 +1091,6 @@ def add_data(
                     if get_user_response(f"{source['endpoint-url']}? (yes/no): "):
                         sources_to_retire.append(source)
 
-                print(sources_to_retire)
                 if sources_to_retire:
                     collection.retire_endpoints_and_sources(
                         pd.DataFrame.from_records(sources_to_retire)

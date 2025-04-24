@@ -249,34 +249,30 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
         {"organisation": endpoint_resource_info["organisation"], "pipelines": dataset}
     )
     # filter out the endpoint in endpoint_resource_info as this has just been added
-    # also filter out endpoints that have ended
-    print(existing_sources)
+    # filter out endpoints and sources that have ended
     existing_sources = [
         source
         for source in existing_sources
         if (source["endpoint"] != endpoint_resource_info["endpoint"])
-        and (source["end-date"] == "")
+        and (
+            source["end-date"] == ""
+            or collection.endpoint.records[source["endpoint"]][0]["end-date"] == ""
+        )
     ]
 
     existing_endpoints_summary = ""
     if existing_sources:
-        # need to fetch endpoint urls separately as they aren't in source, so create a lookup
-        endpoint_lookup = {
-            entry["endpoint"]: entry["endpoint-url"]
-            for entry in collection.endpoint.entries
-        }
-
         existing_endpoints_summary += "Existing endpoints found for this provision:\n"
         existing_endpoints_summary += "\nentry-date, endpoint-url"
+
         for source in existing_sources:
+            source["endpoint-url"] = collection.endpoint.records[source["endpoint"]][0][
+                "endpoint-url"
+            ]
 
-            endpoint_hash = source["endpoint"]
-            if endpoint_hash in endpoint_lookup:
-                source["endpoint-url"] = endpoint_lookup[endpoint_hash]
-
-                existing_endpoints_summary += (
-                    f"\n{source['entry-date']}, {source['endpoint-url']}"
-                )
+            existing_endpoints_summary += (
+                f"\n{source['entry-date']}, {source['endpoint-url']}"
+            )
         return existing_endpoints_summary, existing_sources
     else:
         return "", []
