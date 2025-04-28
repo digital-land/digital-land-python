@@ -1524,6 +1524,7 @@ def check_and_assign_entities(
     organisation_path,
     specification_dir,
     pipeline_dir,
+    input_path=None,
 ):
     # Assigns entities for the given resources in the given collection and run pipeline to get the transformed resource.
 
@@ -1535,8 +1536,10 @@ def check_and_assign_entities(
 
     resource_path = resource_file_paths[0]
     resource = Path(resource_path).name
-
-    output_path = assign_entities_cache_dir / "transformed/" / f"{resource}.csv"
+    if input_path:
+        output_path = input_path
+    else:
+        output_path = assign_entities_cache_dir / "transformed/" / f"{resource}.csv"
 
     issue_dir = assign_entities_cache_dir / "issue/"
     column_field_dir = assign_entities_cache_dir / "column_field/"

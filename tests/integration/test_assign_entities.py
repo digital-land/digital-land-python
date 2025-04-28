@@ -31,7 +31,7 @@ def mock_resource():
         "filter_type": "B",
     }
 
-    mock_csv_path = Path("mock_csv.csv")
+    mock_csv_path = Path("mock_csv")
     with open(mock_csv_path, "w", encoding="utf-8") as f:
         dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
         dictwriter.writeheader()
@@ -262,7 +262,7 @@ def test_command_assign_entities(
     dataset_resource_map = collection.dataset_resource_map()
     for dataset in dataset_resource_map:
         assign_entities(
-            resource_file_paths=["mock_csv.csv"],
+            resource_file_paths=["mock_csv"],
             collection=collection,
             organisation=["government-organisation:D1342"],
             specification_dir=specification_dir,
@@ -302,6 +302,9 @@ def test_check_and_assign_entities(
     collection_name = "tree-preservation-order"
     test_endpoint = "endpoint"
 
+    resource = os.path.basename(mock_resource)
+    input_path = Path("var/cache/assign_entities/transformed") / f"{resource}.csv"
+
     check_and_assign_entities(
         resource_file_paths=[mock_resource],
         endpoints=[test_endpoint],
@@ -312,16 +315,14 @@ def test_check_and_assign_entities(
         organisation_path=organisation_path,
         specification_dir=specification_dir,
         pipeline_dir=pipeline_dir,
+        input_path=input_path,
     )
     out, err = capfd.readouterr()
     assert "Total number of new entities: 3" in out
 
-    resource = os.path.basename(mock_resource)
-    output_path = Path("var/cache/assign_entities/transformed") / f"{resource}.csv"
+    assert input_path.exists(), "Expected transformed file not found."
 
-    assert output_path.exists(), "Expected transformed file not found."
-
-    with open(output_path, "r", encoding="utf-8") as f:
+    with open(input_path, "r", encoding="utf-8") as f:
         content = f.read()
 
     assert "reference,2,,mock_csv,,Ref1" in content
