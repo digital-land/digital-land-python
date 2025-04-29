@@ -225,7 +225,7 @@ def get_entity_summary(
     lookup_path = pipeline_dir / "lookup.csv"
     conn = duckdb.connect()
     provision_entity_df = conn.execute(
-        f"SELECT entity FROM '{lookup_path}' WHERE prefix='{pipeline}' AND organisation='{endpoint_resource_info['organisation']}'"
+        f"SELECT entity FROM read_csv('{lookup_path}',quote='\"') WHERE prefix='{pipeline}' AND organisation='{endpoint_resource_info['organisation']}'"
     ).df()
     if len(provision_entity_df) > 0:
         provision_entities = provision_entity_df["entity"].values
