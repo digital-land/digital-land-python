@@ -922,3 +922,4 @@ def test_get_existing_endpoints_source_with_no_endpoint(tmp_path):
     )
 
     assert "WARNING: No endpoint found for source test1" in existing_endpoints_summary
+    assert len(existing_sources) == 0
