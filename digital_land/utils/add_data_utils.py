@@ -267,12 +267,12 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
     if existing_sources:
         existing_endpoints_summary += "\nExisting endpoints found for this provision:\n"
         existing_endpoints_summary += "\nentry-date, endpoint-url"
+        retirable_sources = []
         for source in existing_sources:
             endpoint_hash = source.get("endpoint", "")
+            # Some legacy sources don't have endpoints
             if not endpoint_hash:
-                existing_endpoints_summary += (
-                    f"\nWARNING: No endpoint found for source {source['source']}"
-                )
+                existing_endpoints_summary += f"\nWARNING: No endpoint found for source {source['source']}. Add end date manually if necessary."
                 continue
             source["endpoint-url"] = collection.endpoint.records[endpoint_hash][0][
                 "endpoint-url"
@@ -280,5 +280,6 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
             existing_endpoints_summary += (
                 f"\n{source['entry-date']}, {source['endpoint-url']}"
             )
+            retirable_sources.append(source)
 
-    return existing_endpoints_summary, existing_sources
+    return existing_endpoints_summary, retirable_sources
