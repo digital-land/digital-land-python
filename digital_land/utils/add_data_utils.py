@@ -168,7 +168,10 @@ def get_issue_summary(endpoint_resource_info, issue_dir):
     )
 
     issue_summary += "\n"
-    issue_summary += issue_df.groupby(["issue-type", "field"]).size().to_string()
+    if len(issue_df) > 0:
+        issue_summary += issue_df.groupby(["issue-type", "field"]).size().to_string()
+    else:
+        issue_summary += "No issues"
 
     return issue_summary
 
@@ -262,10 +265,16 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
 
     existing_endpoints_summary = ""
     if existing_sources:
-        existing_endpoints_summary += "Existing endpoints found for this provision:\n"
+        existing_endpoints_summary += "\nExisting endpoints found for this provision:\n"
         existing_endpoints_summary += "\nentry-date, endpoint-url"
         for source in existing_sources:
-            source["endpoint-url"] = collection.endpoint.records[source["endpoint"]][0][
+            endpoint_hash = source.get("endpoint", "")
+            if not endpoint_hash:
+                existing_endpoints_summary += (
+                    f"\nWARNING: No endpoint found for source {source['source']}"
+                )
+                continue
+            source["endpoint-url"] = collection.endpoint.records[endpoint_hash][0][
                 "endpoint-url"
             ]
             existing_endpoints_summary += (
