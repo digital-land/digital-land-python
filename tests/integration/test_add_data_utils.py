@@ -923,3 +923,62 @@ def test_get_existing_endpoints_source_with_no_endpoint(tmp_path):
 
     assert "WARNING: No endpoint found for source test1" in existing_endpoints_summary
     assert len(existing_sources) == 0
+
+
+def test_get_existing_endpoints_ended_source_with_no_endpoint(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "differentendpoint",
+            "endpoint-url": "test1.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "endpoint": "",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "end-date",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test3",
+        "endpoint": "test3",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "test"
+    )
+
+    assert not existing_endpoints_summary
+    assert len(existing_sources) == 0

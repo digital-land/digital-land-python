@@ -251,12 +251,22 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
     existing_sources = collection.filtered_sources(
         {"organisation": endpoint_resource_info["organisation"], "pipelines": dataset}
     )
+
+    # keep sources without endpoint in separate list to warn the user
+    existing_sources_without_endpoint = [
+        source
+        for source in existing_sources
+        if (not source.get("endpoint") and source["end-date"] == "")
+    ]
+
+    # filter out (legacy) sources that don't have endpoints, but keep them in a separate list
     # filter out the endpoint in endpoint_resource_info as this has just been added
     # filter out endpoints and sources that have ended
     existing_sources = [
         source
         for source in existing_sources
-        if (source["endpoint"] != endpoint_resource_info["endpoint"])
+        if (source.get("endpoint", ""))
+        and (source["endpoint"] != endpoint_resource_info["endpoint"])
         and (
             source["end-date"] == ""
             or collection.endpoint.records[source["endpoint"]][0]["end-date"] == ""
@@ -264,17 +274,15 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
     ]
 
     existing_endpoints_summary = ""
+    for source in existing_sources_without_endpoint:
+        existing_endpoints_summary += f"\nWARNING: No endpoint found for source {source['source']}. Add end date manually if necessary."
+
     retirable_sources = []
     if existing_sources:
         existing_endpoints_summary += "\nExisting endpoints found for this provision:\n"
         existing_endpoints_summary += "\nentry-date, endpoint-url"
         for source in existing_sources:
-            endpoint_hash = source.get("endpoint", "")
-            # Some legacy sources don't have endpoints
-            if not endpoint_hash:
-                existing_endpoints_summary += f"\nWARNING: No endpoint found for source {source['source']}. Add end date manually if necessary."
-                continue
-            source["endpoint-url"] = collection.endpoint.records[endpoint_hash][0][
+            source["endpoint-url"] = collection.endpoint.records[source["endpoint"]][0][
                 "endpoint-url"
             ]
             existing_endpoints_summary += (
