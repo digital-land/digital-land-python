@@ -60,6 +60,8 @@ setup(
         "pygit2",
         "boto3",
         "moto",
+        "psutil",
+        "time"
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
