@@ -4,6 +4,8 @@ import duckdb
 import shutil
 from pathlib import Path
 from .package import Package
+import time
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +138,11 @@ class DatasetParquetPackage(Package):
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
 
+        start_time = time.time()
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024 ** 2  # Memory in MB
+        logger.info(f"[Memory usage] At start: {mem:.2f} MB")
+
         # query to extract data from the temp table (containing raw data), group by a fact, and get the highest
         # priority or latest record
 
@@ -153,6 +160,12 @@ class DatasetParquetPackage(Package):
             ) TO '{str(output_path)}' (FORMAT PARQUET);
         """
         )
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(f"Time for fact query {elapsed_time:.2f}")
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024 ** 2  # Memory in MB
+        logger.info(f"[Memory usage] After fact query: {mem:.2f} MB")
 
     def load_fact_resource(self, transformed_parquet_dir):
         logger.info(f"loading fact resources from {str(transformed_parquet_dir)}")
@@ -162,6 +175,11 @@ class DatasetParquetPackage(Package):
         fields_str = ", ".join(
             [field.replace("-", "_") for field in fact_resource_fields]
         )
+
+        start_time = time.time()
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024 ** 2  # Memory in MB
+        logger.info(f"[Memory usage] At start: {mem:.2f} MB")
 
         # All CSV files have been loaded into a temporary table. Extract several columns and export
         query = f"""
@@ -176,6 +194,12 @@ class DatasetParquetPackage(Package):
             ) TO '{str(output_path)}' (FORMAT PARQUET);
         """
         )
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(f"Time for fact-resource query {elapsed_time:.2f}")
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024 ** 2  # Memory in MB
+        logger.info(f"[Memory usage] After fact-resource query: {mem:.2f} MB")
 
     def load_entities_range(
         self,
@@ -466,6 +490,7 @@ class DatasetParquetPackage(Package):
         )
 
         logger.info("loading fact data")
+        logger.info(self.fact_path)
         # insert fact data
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
