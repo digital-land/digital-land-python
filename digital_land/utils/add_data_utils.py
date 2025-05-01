@@ -264,10 +264,10 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
     ]
 
     existing_endpoints_summary = ""
+    retirable_sources = []
     if existing_sources:
         existing_endpoints_summary += "\nExisting endpoints found for this provision:\n"
         existing_endpoints_summary += "\nentry-date, endpoint-url"
-        retirable_sources = []
         for source in existing_sources:
             endpoint_hash = source.get("endpoint", "")
             # Some legacy sources don't have endpoints
