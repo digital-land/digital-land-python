@@ -478,8 +478,14 @@ def dataset_create(
         specification_dir=None,  # TBD: package should use this specification object
         duckdb_path=cache_dir / "overflow.duckdb",
     )
-    pqpackage.load_facts(transformed_parquet_dir)
-    pqpackage.load_fact_resource(transformed_parquet_dir)
+    # pqpackage.load_facts(transformed_parquet_dir)
+    # pqpackage.load_fact_resource(transformed_parquet_dir)
+    temp_parquet = pqpackage.load_details_into_temp_parquet(transformed_parquet_dir)
+    # pqpackage.load_facts_from_partitions(transformed_parquet_dir, temp_parquet)
+    pqpackage.load_facts_from_temp_parquet(transformed_parquet_dir, temp_parquet)
+    pqpackage.load_fact_resource_from_temp_parquet(
+        transformed_parquet_dir, temp_parquet
+    )
     pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
 
     logger.info("loading fact,fact_resource and entity into {output_path}")
