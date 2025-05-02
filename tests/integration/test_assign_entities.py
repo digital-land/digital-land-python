@@ -4,6 +4,7 @@ import csv
 import urllib
 
 from pathlib import Path
+from unittest.mock import patch
 from digital_land.collection import Collection
 
 from digital_land.commands import assign_entities, check_and_assign_entities
@@ -17,18 +18,21 @@ def mock_resource():
         "organisation": "government-organisation:D1342",
         "value": "test",
         "filter_type": "A",
+        "start-date": "error",
     }
     row2 = {
         "reference": "Ref2",
         "organisation": "government-organisation:D1342",
         "value": "test",
         "filter_type": "A",
+        "start-date": "2025-01-01",
     }
     row3 = {
         "reference": "Ref3",
         "organisation": "government-organisation:D1342",
         "value": "test",
         "filter_type": "B",
+        "start-date": "2025-01-01",
     }
 
     mock_csv_path = Path("mock_csv")
@@ -288,7 +292,9 @@ def test_command_assign_entities(
     assert "tree , government-organisation:D1342 , Ref3 , 7002000000" in out
 
 
+@patch("digital_land.commands.get_user_response", return_value=False)
 def test_check_and_assign_entities(
+    mock_user_response,
     capfd,
     collection_dir,
     pipeline_dir,
@@ -317,9 +323,6 @@ def test_check_and_assign_entities(
         pipeline_dir=pipeline_dir,
         input_path=input_path,
     )
-    out, err = capfd.readouterr()
-    assert "Total number of new entities: 3" in out
-
     assert input_path.exists(), "Expected transformed file not found."
 
     with open(input_path, "r", encoding="utf-8") as f:
@@ -328,3 +331,7 @@ def test_check_and_assign_entities(
     assert "reference,2,,mock_csv,,Ref1" in content
     assert "reference,2,,mock_csv,,Ref2" in content
     assert "reference,2,,mock_csv,,Ref3" in content
+
+    out, err = capfd.readouterr()
+    assert "Total number of new entities: 3" in out
+    assert "invalid date  start-date    1" in out
