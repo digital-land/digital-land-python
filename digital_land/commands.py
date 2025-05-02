@@ -478,10 +478,12 @@ def dataset_create(
         specification_dir=None,  # TBD: package should use this specification object
         duckdb_path=cache_dir / "overflow.duckdb",
     )
+    # Original methods of getting fact and fact_resource tables. Keeping in case we need to revert, but currently
+    # there is an issue with transport_access_node_collection and the amount of memory required
     # pqpackage.load_facts(transformed_parquet_dir)
     # pqpackage.load_fact_resource(transformed_parquet_dir)
+    # Newer methods which reduce the memory usage
     temp_parquet = pqpackage.load_details_into_temp_parquet(transformed_parquet_dir)
-    # pqpackage.load_facts_from_partitions(transformed_parquet_dir, temp_parquet)
     pqpackage.load_facts_from_temp_parquet(transformed_parquet_dir, temp_parquet)
     pqpackage.load_fact_resource_from_temp_parquet(
         transformed_parquet_dir, temp_parquet
