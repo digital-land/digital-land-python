@@ -252,42 +252,44 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
         {"organisation": endpoint_resource_info["organisation"], "pipelines": dataset}
     )
 
-    # keep sources without endpoint in separate list to warn the user
-    existing_sources_without_endpoint = [
-        source
-        for source in existing_sources
-        if (not source.get("endpoint") and source["end-date"] == "")
-    ]
-
-    # filter out (legacy) sources that don't have endpoints, but keep them in a separate list
-    # filter out the endpoint in endpoint_resource_info as this has just been added
-    # filter out endpoints and sources that have ended
-    existing_sources = [
-        source
-        for source in existing_sources
-        if (source.get("endpoint", ""))
-        and (source["endpoint"] != endpoint_resource_info["endpoint"])
-        and (
-            source["end-date"] == ""
-            or collection.endpoint.records[source["endpoint"]][0]["end-date"] == ""
+    existing_sources_without_endpoint = []
+    retirable_sources = []
+    # filter existing sources to sources that can be retired
+    for source in existing_sources:
+        endpoint = source.get("endpoint", "")
+        is_source_ended = source["end-date"] != ""
+        is_endpoint_ended = (
+            endpoint
+            and collection.endpoint.records.get(endpoint, [{}])[0].get("end-date", "")
+            != ""
         )
-    ]
+
+        # edge cases where source has no endpoint hash
+        if not endpoint and not is_source_ended:
+            existing_sources_without_endpoint.append(source)
+        # if either endpoint or source hasn't been ended it can be retired
+        elif (
+            endpoint
+            and endpoint != endpoint_resource_info["endpoint"]
+            and (not is_source_ended or not is_endpoint_ended)
+        ):
+            retirable_sources.append(source)
 
     existing_endpoints_summary = ""
     for source in existing_sources_without_endpoint:
         existing_endpoints_summary += f"\nWARNING: No endpoint found for source {source['source']}. Add end date manually if necessary."
 
-    retirable_sources = []
-    if existing_sources:
+    if retirable_sources:
         existing_endpoints_summary += "\nExisting endpoints found for this provision:\n"
         existing_endpoints_summary += "\nentry-date, endpoint-url"
-        for source in existing_sources:
-            source["endpoint-url"] = collection.endpoint.records[source["endpoint"]][0][
-                "endpoint-url"
-            ]
+        for source in retirable_sources:
+            endpoint_hash = source.get("endpoint", "")
+            endpoint_url = collection.endpoint.records.get(endpoint_hash, [{}])[0].get(
+                "endpoint-url", ""
+            )
+            source["endpoint-url"] = endpoint_url
             existing_endpoints_summary += (
                 f"\n{source['entry-date']}, {source['endpoint-url']}"
             )
-            retirable_sources.append(source)
 
     return existing_endpoints_summary, retirable_sources
