@@ -1081,8 +1081,8 @@ def add_data(
         existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
             endpoint_resource_info, collection, dataset
         )
-        if existing_endpoints_summary:
-            print(existing_endpoints_summary)
+        print(existing_endpoints_summary)
+        if existing_sources:
             if get_user_response(
                 "Do you want to retire any of these existing endpoints? (yes/no): "
             ):
