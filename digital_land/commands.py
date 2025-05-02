@@ -1285,6 +1285,7 @@ def assign_entities(
             ",",
             entity["entity"],
         )
+    return new_lookups
 
 
 def get_resource_unidentified_lookups(
@@ -1563,7 +1564,7 @@ def check_and_assign_entities(
     cache_pipeline_dir = assign_entities_cache_dir / collection.name / "pipeline"
     copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
 
-    assign_entities(
+    new_lookups = assign_entities(
         resource_file_paths,
         collection,
         dataset,
@@ -1600,3 +1601,18 @@ def check_and_assign_entities(
         raise RuntimeError(
             f"Pipeline failed to process resource with the following error: {e}"
         )
+
+    endpoint_resource_info = {
+        "resource": resource,
+        "organisation": organisation[0],
+    }
+    new_entities = [entry["entity"] for entry in new_lookups]
+    issue_summary = get_issue_summary(endpoint_resource_info, issue_dir, new_entities)
+    print(issue_summary)
+
+    if "No issues found" not in issue_summary:
+        if not get_user_response(
+            "Do you want to continue processing this resource? (yes/no): "
+        ):
+            return False
+    return True
