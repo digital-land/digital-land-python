@@ -250,6 +250,7 @@ class DatasetParquetPackage(Package):
         # Check if a garbage collect helps
         time.sleep(10)
         import gc
+
         gc.collect()
 
         process = psutil.Process(os.getpid())
@@ -385,13 +386,15 @@ class DatasetParquetPackage(Package):
         mem = process.memory_info().rss / 1024**2  # Memory in MB
         logger.info(f"[Memory usage] At end of query: {mem:.2f} MB")
 
-        files_str = ', '.join([f"'{str(f)}'" for f in bucket_outputs])
+        files_str = ", ".join([f"'{str(f)}'" for f in bucket_outputs])
 
-        self.conn.execute(f"""
+        self.conn.execute(
+            f"""
             COPY (
                 SELECT * FROM read_parquet([{files_str}])
             ) TO '{output_path}' (FORMAT PARQUET);
-        """)
+        """
+        )
 
         end_time = time.time()
         elapsed_time = end_time - start_time
