@@ -228,7 +228,7 @@ class DatasetParquetPackage(Package):
         """
         output_path = self.fact_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f"loading facts")
+        logger.info("loading facts")
 
         fact_fields = self.specification.schema["fact"]["fields"]
         fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
@@ -286,7 +286,7 @@ class DatasetParquetPackage(Package):
         """
         output_path = self.fact_resource_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f"loading fact resources")
+        logger.info("loading fact resources")
 
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         fields_str = ", ".join(
