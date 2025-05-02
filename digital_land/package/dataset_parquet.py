@@ -6,6 +6,7 @@ from pathlib import Path
 from .package import Package
 import time
 import psutil
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +208,8 @@ class DatasetParquetPackage(Package):
         """
         logger.info(f"loading all details from {str(transformed_parquet_dir)}")
         output_path = self.fact_path
-        temp_dir = output_path.parent.parent.parent
+        temp_dir = Path(tempfile.mkdtemp())
+        # temp_dir = output_path.parent.parent.parent
         logger.info(f"output_path {str(output_path)}")
         logger.info(f"temp_dir {str(temp_dir)}")
         temp_dir.mkdir(parents=True, exist_ok=True)
@@ -244,6 +246,15 @@ class DatasetParquetPackage(Package):
         process = psutil.Process(os.getpid())
         mem = process.memory_info().rss / 1024**2  # Memory in MB
         logger.info(f"[Memory usage] At end of temp_parquet query: {mem:.2f} MB")
+
+        # Check if a garbage collect helps
+        time.sleep(10)
+        import gc
+        gc.collect()
+
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024**2  # Memory in MB
+        logger.info(f"[Memory usage] After garbage collect: {mem:.2f} MB")
 
         return output_path
 
@@ -324,6 +335,76 @@ class DatasetParquetPackage(Package):
     #     logger.info(f"fact parquet file exists: {os.path.exists(output_path)}")
 
     def load_facts_from_temp_parquet(self, transformed_parquet_dir, temp_parquet):
+        """
+        This method loads facts into a fact table from a directory containing all transformed files as parquet files
+        """
+        logger.info(f"self.fact_path: {self.fact_path}")
+        logger.info(f"temp_parquet exists: {os.path.exists(temp_parquet)}")
+
+        output_path = self.fact_path
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"loading facts from {str(transformed_parquet_dir)}")
+        logger.info(f"loading facts into {str(output_path)}")
+
+        fact_fields = self.specification.schema["fact"]["fields"]
+        fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
+
+        # query to extract data from the temp table (containing raw data), group by a fact, and get the highest
+        # priority or latest record
+        start_time = time.time()
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024**2  # Memory in MB
+        logger.info(f"[Memory usage] At start: {mem:.2f} MB")
+
+        n_buckets = 50  # Try 100 or 200 depending on memory
+        temp_dir = Path(tempfile.mkdtemp(prefix="duckdb_buckets_"))
+        bucket_outputs = []
+
+        for bucket in range(n_buckets):
+            output_file = temp_dir / f"bucket_{bucket}.parquet"
+
+            # Bucketed window query
+            query = f"""
+                COPY (
+                    SELECT {fields_str}
+                    FROM read_parquet('{temp_parquet}')
+                    WHERE MOD(HASH(fact), {n_buckets}) = {bucket}
+                    QUALIFY ROW_NUMBER() OVER (
+                        PARTITION BY fact ORDER BY priority, entry_date DESC, entry_number DESC
+                    ) = 1
+                ) TO '{output_file}' (FORMAT PARQUET);
+            """
+            self.conn.execute(query)
+            bucket_outputs.append(output_file)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(f"Time for new query {elapsed_time:.2f}")
+
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024**2  # Memory in MB
+        logger.info(f"[Memory usage] At end of query: {mem:.2f} MB")
+
+        files_str = ', '.join([f"'{str(f)}'" for f in bucket_outputs])
+
+        self.conn.execute(f"""
+            COPY (
+                SELECT * FROM read_parquet([{files_str}])
+            ) TO '{output_path}' (FORMAT PARQUET);
+        """)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(f"Time for concatenation {elapsed_time:.2f}")
+
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss / 1024**2  # Memory in MB
+        logger.info(f"[Memory usage] For concatenation: {mem:.2f} MB")
+
+        logger.info(f"fact parquet file: {output_path}")
+        logger.info(f"fact parquet file exists: {os.path.exists(output_path)}")
+
+    def load_facts_from_temp_parquet_orig(self, transformed_parquet_dir, temp_parquet):
         """
         This method loads facts into a fact table from a directory containing all transformed files as parquet files
         """
