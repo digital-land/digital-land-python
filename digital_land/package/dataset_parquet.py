@@ -243,7 +243,7 @@ class DatasetParquetPackage(Package):
 
         process = psutil.Process(os.getpid())
         mem = process.memory_info().rss / 1024**2  # Memory in MB
-        logger.info(f"[Memory usage] At end of query: {mem:.2f} MB")
+        logger.info(f"[Memory usage] At end of temp_parquet query: {mem:.2f} MB")
 
         return output_path
 
