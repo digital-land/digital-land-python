@@ -374,9 +374,9 @@ def test_load_facts_single_file(data: dict, expected: int, tmp_path):
         specification_dir=None,
     )
 
-    # this method is explicitely designed to load facts from the temp table
-    # however it shouldn't need this, it's dupllicating all of the same data in a emporary space
-    # we  should try leveraging the power of duckdb and parquet.
+    # this method is explicitly designed to load facts from the temp table
+    # however it shouldn't need this, it's duplicating all of the same data in a temporary space
+    # we should try leveraging the power of duckdb and parquet.
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
     output_file = (
@@ -495,6 +495,109 @@ def test_load_facts_one_file_with_empty_file(data, expected, tmp_path):
         len(df) == expected
     ), "No. of facts does not match expected"  # No of unique facts
     assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+
+
+@pytest.mark.parametrize(
+    "data1,data2,expected", [(transformed_1_data, transformed_2_data, 35)]
+)
+def test_load_facts_from_temp_parquet(data1, data2, expected, tmp_path):
+    """
+    tests loading from a directory when there are multiple files, loads them
+    into a single parquet file and gets facts from that file
+    """
+    # convert data to df's and save to a single parquet file
+    df1 = pd.DataFrame.from_dict(data1)
+    df2 = pd.DataFrame.from_dict(data2)
+    transformed_parquet_dir = tmp_path / "transformed"
+    transformed_parquet_dir.mkdir(parents=True, exist_ok=True)
+    df1.to_parquet(
+        transformed_parquet_dir / "transformed_resource_1.parquet", index=False
+    )
+    df2.to_parquet(
+        transformed_parquet_dir / "transformed_resource_2.parquet", index=False
+    )
+
+    package = DatasetParquetPackage(
+        dataset="conservation-area",
+        path=tmp_path / "conservation-area",
+        specification_dir=None,
+    )
+    temp_parquet = package.load_details_into_temp_parquet(
+        transformed_parquet_dir=transformed_parquet_dir
+    )
+    assert os.path.exists(temp_parquet), "temp parquet file not created"
+    package.load_facts_from_temp_parquet(
+        transformed_parquet_dir=transformed_parquet_dir, temp_parquet=temp_parquet
+    )
+
+    output_file = (
+        tmp_path
+        / "conservation-area"
+        / "fact"
+        / "dataset=conservation-area"
+        / "fact.parquet"
+    )
+    assert os.path.exists(output_file), "fact.parquet file does not exist"
+
+    df = pd.read_parquet(output_file)
+
+    assert len(df) > 0, "No data in fact.parquet file"
+    assert (
+        len(df) == expected
+    ), "No. of facts does not match expected"  # No of unique facts
+    assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+
+
+@pytest.mark.parametrize(
+    "data_1,data_2,expected", [(transformed_1_data, transformed_2_data, 35)]
+)
+def test_load_fact_resource_from_temp_parquet(data_1, data_2, expected, tmp_path):
+    """
+    tests loading from a directory when there are multiple files, loads them
+    into a single parquet file and gets fact_resources from that file
+    """
+    # convert data to df's and save to a single parquet file
+    df_1 = pd.DataFrame.from_dict(data_1)
+    df_2 = pd.DataFrame.from_dict(data_2)
+    transformed_parquet_dir = tmp_path / "transformed"
+    transformed_parquet_dir.mkdir(parents=True, exist_ok=True)
+    df_1.to_parquet(
+        transformed_parquet_dir / "transformed_resource_1.parquet", index=False
+    )
+    df_2.to_parquet(
+        transformed_parquet_dir / "transformed_resource_2.parquet", index=False
+    )
+
+    package = DatasetParquetPackage(
+        dataset="conservation-area",
+        path=tmp_path / "conservation-area",
+        specification_dir=None,
+    )
+    temp_parquet = package.load_details_into_temp_parquet(
+        transformed_parquet_dir=transformed_parquet_dir
+    )
+    assert os.path.exists(temp_parquet), "temp parquet file not created"
+    package.load_fact_resource_from_temp_parquet(
+        transformed_parquet_dir=transformed_parquet_dir, temp_parquet=temp_parquet
+    )
+
+    # Check if the output parquet file exists and verify contents
+    output_file = (
+        tmp_path
+        / "conservation-area"
+        / "fact-resource"
+        / "dataset=conservation-area"
+        / "fact-resource.parquet"
+    )
+    assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
+
+    # Load Parquet into a DataFrame to verify data correctness
+    df = pd.read_parquet(output_file)
+
+    assert len(df) > 0, "No data in fact-resource,parquet file"
+    assert len(df) == expected, "Not all data saved in fact-resource.parquet file"
+
+    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
 
 
 @pytest.mark.parametrize("data,expected", [(transformed_1_data, 16)])
