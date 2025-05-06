@@ -240,43 +240,46 @@ class DatasetParquetPackage(Package):
         # query to extract data from the temp table (containing raw data), group by a fact, and get the highest
         # priority or latest record
         n_buckets = 50
-        temp_dir = Path(tempfile.mkdtemp(prefix="duckdb_buckets_"))
         bucket_outputs = []
 
-        # Split this query into buckets to avoid using too much memory at the same time.
-        for bucket in range(n_buckets):
-            output_file = temp_dir / f"bucket_{bucket}.parquet"
+        # Using 'with' to ensure temp_dir is cleaned up if there are any issues
+        with tempfile.TemporaryDirectory(prefix="duckdb_buckets_") as temp_dir_str:
+            temp_dir = Path(temp_dir_str)
 
-            query = f"""
+            # Split this query into buckets to avoid using too much memory at the same time.
+            for bucket in range(n_buckets):
+                output_file = temp_dir / f"bucket_{bucket}.parquet"
+
+                query = f"""
+                    COPY (
+                        SELECT {fields_str}
+                        FROM read_parquet('{temp_parquet}')
+                        WHERE MOD(HASH(fact), {n_buckets}) = {bucket}
+                        QUALIFY ROW_NUMBER() OVER (
+                            PARTITION BY fact ORDER BY priority, entry_date DESC, entry_number DESC
+                        ) = 1
+                    ) TO '{output_file}' (FORMAT PARQUET);
+                """
+                self.conn.execute(query)
+                bucket_outputs.append(output_file)
+
+            process = psutil.Process(os.getpid())
+            mem = process.memory_info().rss / 1024**2  # Memory in MB
+            logger.info(f"[Memory usage] At end of query: {mem:.2f} MB")
+
+            files_str = ", ".join([f"'{str(f)}'" for f in bucket_outputs])
+
+            self.conn.execute(
+                f"""
                 COPY (
-                    SELECT {fields_str}
-                    FROM read_parquet('{temp_parquet}')
-                    WHERE MOD(HASH(fact), {n_buckets}) = {bucket}
-                    QUALIFY ROW_NUMBER() OVER (
-                        PARTITION BY fact ORDER BY priority, entry_date DESC, entry_number DESC
-                    ) = 1
-                ) TO '{output_file}' (FORMAT PARQUET);
+                    SELECT * FROM read_parquet([{files_str}])
+                ) TO '{output_path}' (FORMAT PARQUET);
             """
-            self.conn.execute(query)
-            bucket_outputs.append(output_file)
+            )
 
-        process = psutil.Process(os.getpid())
-        mem = process.memory_info().rss / 1024**2  # Memory in MB
-        logger.info(f"[Memory usage] At end of query: {mem:.2f} MB")
-
-        files_str = ", ".join([f"'{str(f)}'" for f in bucket_outputs])
-
-        self.conn.execute(
-            f"""
-            COPY (
-                SELECT * FROM read_parquet([{files_str}])
-            ) TO '{output_path}' (FORMAT PARQUET);
-        """
-        )
-
-        process = psutil.Process(os.getpid())
-        mem = process.memory_info().rss / 1024**2  # Memory in MB
-        logger.info(f"[Memory usage] For concatenation: {mem:.2f} MB")
+            process = psutil.Process(os.getpid())
+            mem = process.memory_info().rss / 1024**2  # Memory in MB
+            logger.info(f"[Memory usage] For concatenation: {mem:.2f} MB")
 
     def load_fact_resource_from_temp_parquet(
         self, transformed_parquet_dir, temp_parquet
