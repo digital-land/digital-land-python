@@ -4,6 +4,7 @@ import duckdb
 import shutil
 from pathlib import Path
 from .package import Package
+import dask.dataframe as dd
 
 logger = logging.getLogger(__name__)
 
@@ -134,24 +135,38 @@ class DatasetParquetPackage(Package):
         logger.info(f"loading facts from from {str(transformed_parquet_dir)}")
 
         fact_fields = self.specification.schema["fact"]["fields"]
-        fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
+        # fields_str = ", ".join([field.replace("-", "_") for field in fact_fields])
 
-        # query to extract data from the temp table (containing raw data), group by a fact, and get the highest
-        # priority or latest record
+        # # query to extract data from the temp table (containing raw data), group by a fact, and get the highest
+        # # priority or latest record
 
-        query = f"""
-            SELECT {fields_str}
-            FROM '{str(transformed_parquet_dir)}/*.parquet'
-            QUALIFY ROW_NUMBER() OVER (
-                PARTITION BY fact ORDER BY priority, entry_date DESC, entry_number DESC
-            ) = 1
-        """
-        self.conn.execute(
-            f"""
-            COPY (
-                {query}
-            ) TO '{str(output_path)}' (FORMAT PARQUET);
-        """
+        # query = f"""
+        #     SELECT {fields_str}
+        #     FROM '{str(transformed_parquet_dir)}/*.parquet'
+        #     QUALIFY ROW_NUMBER() OVER (
+        #         PARTITION BY fact ORDER BY priority, entry_date DESC, entry_number DESC
+        #     ) = 1
+        # """
+        # self.conn.execute(
+        #     f"""
+        #     COPY (
+        #         {query}
+        #     ) TO '{str(output_path)}' (FORMAT PARQUET);
+        # """
+        # )
+        # try  dask
+
+        # Load a large CSV
+        df = dd.read_parquet(transformed_parquet_dir, columns=fact_fields)
+
+        # Sort by the fields in order
+        df_sorted = df.sort_values(["fact", "entry_date", "priority", "entry_number"])
+
+        # Drop duplicates to keep the first row per record_id
+        first_rows = df_sorted.drop_duplicates(subset="fact", keep="first")
+
+        first_rows.compute().to_parquet(
+            self.fact_path.parent.parent, partition_on=["dataset"], write_index=False
         )
 
     def load_fact_resource(self, transformed_parquet_dir):
