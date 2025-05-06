@@ -46,6 +46,37 @@ def mock_resource():
 
 
 @pytest.fixture
+def mock_resource_with_colon():
+    row1 = {
+        "reference": "DA:20/21=S106:001:20/0284/FUL",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row2 = {
+        "reference": "DA:20/21=S106:001:21/0284/FUL",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+    row3 = {
+        "reference": "",
+        "organisation": "government-organisation:D1342",
+        "value": "test",
+    }
+
+    mock_csv_path = Path("mock_csv.csv")
+    with open(mock_csv_path, "w", encoding="utf-8") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row1.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row1)
+        dictwriter.writerow(row2)
+        dictwriter.writerow(row3)
+
+    yield mock_csv_path
+
+    os.remove(mock_csv_path)
+
+
+@pytest.fixture
 def collection_dir(tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
@@ -447,3 +478,46 @@ def test_assign_entities_unique_assignment(
     assert len(set(combined_entities)) == len(set(initial_entities)) + len(
         set(updated_entities) - set(initial_entities)
     ), "No duplicates introduced."
+
+
+def test_command_assign_entities_colon_in_reference(
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource_with_colon,
+):
+    """
+    This tests a function that, given a specific resource hash for an endpoint already added to the system,
+    should identify any missing lookups and add them to lookup.csv
+    """
+    collection_name = "ancient-woodland"
+    dataset_name = "ancient-woodland"
+    test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
+
+    collection = Collection(name=collection_name, directory=collection_dir)
+
+    assign_entities(
+        resource_file_paths=["mock_csv.csv"],
+        collection=collection,
+        dataset=dataset_name,
+        organisation=["government-organisation:D1342"],
+        pipeline_dir=pipeline_dir,
+        specification_dir=specification_dir,
+        organisation_path=organisation_path,
+        endpoints=[test_endpoint],
+    )
+
+    lookups = Lookups(pipeline_dir)
+    lookups.load_csv()
+
+    specification = Specification(specification_dir)
+    entity_range_min = specification.get_dataset_entity_min(dataset_name)
+
+    assert len(lookups.entries) > 0
+    assert lookups.entries[0]["entity"] == entity_range_min
+    assert lookups.entries[0]["reference"] == "20/21=S106:001:20/0284/FUL"
+    assert lookups.entries[0]["prefix"] == dataset_name
+    assert lookups.entries[1]["entity"] == str(int(entity_range_min) + 1)
+    assert lookups.entries[1]["reference"] == "20/21=S106:001:21/0284/FUL"
+    assert lookups.entries[1]["prefix"] == dataset_name

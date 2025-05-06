@@ -340,6 +340,7 @@ def pipeline_run(
         EntityReferencePhase(
             dataset=dataset,
             prefix=specification.dataset_prefix(dataset),
+            valid_reference_prefixes=specification.dataset,
         ),
         EntityPrefixPhase(dataset=dataset),
         EntityLookupPhase(
@@ -1409,6 +1410,7 @@ def get_resource_unidentified_lookups(
         EntityReferencePhase(
             dataset=dataset,
             prefix=specification.dataset_prefix(dataset),
+            valid_reference_prefixes=specification.dataset,
         ),
         EntityPrefixPhase(dataset=dataset),
         print_lookup_phase,
