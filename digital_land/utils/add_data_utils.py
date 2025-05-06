@@ -153,7 +153,7 @@ def get_column_field_summary(
     return column_field_summary
 
 
-def get_issue_summary(endpoint_resource_info, issue_dir):
+def get_issue_summary(endpoint_resource_info, issue_dir, new_entities=None):
     issue_summary = ""
     issue_summary += (
         "\n======================================================================"
@@ -169,6 +169,8 @@ def get_issue_summary(endpoint_resource_info, issue_dir):
 
     issue_summary += "\n"
     if len(issue_df) > 0:
+        if new_entities is not None:
+            issue_df = issue_df[issue_df["entity"].isin(new_entities)]
         issue_summary += issue_df.groupby(["issue-type", "field"]).size().to_string()
     else:
         issue_summary += "No issues"

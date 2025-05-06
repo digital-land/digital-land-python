@@ -69,6 +69,61 @@ def test_get_issue_summary_no_issues(tmp_path_factory):
     assert "No issues" in issue_summary
 
 
+def test_get_issue_summary_new_entities(tmp_path_factory):
+    issue_dir = tmp_path_factory.mktemp("issue")
+
+    resource = "resource"
+    endpoint_resource_info = {"resource": resource}
+
+    headers = ["entity", "issue-type", "field", "value"]
+    rows = [
+        {
+            "entity": 1,
+            "issue-type": "issue-type1",
+            "field": "field1",
+            "value": "issue1",
+        },
+        {
+            "entity": 1,
+            "issue-type": "issue-type1",
+            "field": "field2",
+            "value": "issue2",
+        },
+        {
+            "entity": 2,
+            "issue-type": "issue-type2",
+            "field": "field1",
+            "value": "issue3",
+        },
+        {
+            "entity": 2,
+            "issue-type": "issue-type2",
+            "field": "field1",
+            "value": "issue4",
+        },
+        {
+            "entity": 3,
+            "issue-type": "issue-type3",
+            "field": "field3",
+            "value": "issue5",
+        },
+    ]
+    with open(os.path.join(issue_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    filtered_issue_summary = get_issue_summary(
+        endpoint_resource_info, issue_dir, new_entities=[1, 3]
+    )
+
+    assert (
+        "issue-type1  field1    1\n             field2    1" in filtered_issue_summary
+    )
+    assert "issue-type3  field3    1" in filtered_issue_summary
+    assert "issue-type2" not in filtered_issue_summary
+
+
 def test_get_entity_summary(tmp_path_factory):
     issue_dir = tmp_path_factory.mktemp("issue")
     transformed_dir = tmp_path_factory.mktemp("tranformed")
