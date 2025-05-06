@@ -166,14 +166,14 @@ def get_issue_summary(endpoint_resource_info, issue_dir, new_entities=None):
     issue_df = pd.read_csv(
         os.path.join(issue_dir, endpoint_resource_info["resource"] + ".csv")
     )
-    if issue_df.empty:
-        issue_summary += "\nNo issues found"
-    else:
+
+    issue_summary += "\n"
+    if len(issue_df) > 0:
         if new_entities is not None:
             issue_df = issue_df[issue_df["entity"].isin(new_entities)]
-
-        issue_summary += "\n"
         issue_summary += issue_df.groupby(["issue-type", "field"]).size().to_string()
+    else:
+        issue_summary += "No issues"
 
     return issue_summary
 
@@ -247,3 +247,51 @@ def get_entity_summary(
         entity_summary += f"\nWARNING: There are {missing_entity_count} entities on the platform for this provision that aren't present in this resource"
 
     return entity_summary
+
+
+def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
+    existing_sources = collection.filtered_sources(
+        {"organisation": endpoint_resource_info["organisation"], "pipelines": dataset}
+    )
+
+    existing_sources_without_endpoint = []
+    retirable_sources = []
+    # filter existing sources to sources that can be retired
+    for source in existing_sources:
+        endpoint = source.get("endpoint", "")
+        is_source_ended = source["end-date"] != ""
+        is_endpoint_ended = (
+            endpoint
+            and collection.endpoint.records.get(endpoint, [{}])[0].get("end-date", "")
+            != ""
+        )
+
+        # edge cases where source has no endpoint hash
+        if not endpoint and not is_source_ended:
+            existing_sources_without_endpoint.append(source)
+        # if either endpoint or source hasn't been ended it can be retired
+        elif (
+            endpoint
+            and endpoint != endpoint_resource_info["endpoint"]
+            and (not is_source_ended or not is_endpoint_ended)
+        ):
+            retirable_sources.append(source)
+
+    existing_endpoints_summary = ""
+    for source in existing_sources_without_endpoint:
+        existing_endpoints_summary += f"\nWARNING: No endpoint found for source {source['source']}. Add end date manually if necessary."
+
+    if retirable_sources:
+        existing_endpoints_summary += "\nExisting endpoints found for this provision:\n"
+        existing_endpoints_summary += "\nentry-date, endpoint-url"
+        for source in retirable_sources:
+            endpoint_hash = source.get("endpoint", "")
+            endpoint_url = collection.endpoint.records.get(endpoint_hash, [{}])[0].get(
+                "endpoint-url", ""
+            )
+            source["endpoint-url"] = endpoint_url
+            existing_endpoints_summary += (
+                f"\n{source['entry-date']}, {source['endpoint-url']}"
+            )
+
+    return existing_endpoints_summary, retirable_sources

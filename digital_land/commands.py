@@ -67,6 +67,7 @@ from digital_land.utils.add_data_utils import (
     clear_log,
     get_column_field_summary,
     get_entity_summary,
+    get_existing_endpoints_summary,
     get_issue_summary,
     is_date_valid,
     is_url_valid,
@@ -981,6 +982,7 @@ def add_data(
         )
         print(entity_summary)
 
+        entities_assigned = False
         # Check for unknown entities and assign them
         if (
             "unknown entity" in issue_summary
@@ -1061,23 +1063,39 @@ def add_data(
                     f"Unknown entities remain in resource {endpoint_resource_info['resource']} after assigning entities"
                 )
 
-            # Ask if user wants to proceed
-            if not get_user_response(
-                "Do you want to save changes made in this session? (yes/no): "
-            ):
-                return
+            entities_assigned = True
 
-            # Save changes to lookup.csv
-            shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
-        else:
-            # Ask if user wants to proceed
-            if not get_user_response(
-                "Do you want to save changes made in this session? (yes/no): "
-            ):
-                return
+        # Ask if user wants to proceed
+        if not get_user_response(
+            "Do you want to save changes made in this session? (yes/no): "
+        ):
+            return
 
         # Save changes to collection
         collection.save_csv()
+        if entities_assigned:
+            # Save changes to lookup.csv
+            shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
+
+        # Now check for existing endpoints for this provision/organisation
+        existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+            endpoint_resource_info, collection, dataset
+        )
+        print(existing_endpoints_summary)
+        if existing_sources:
+            if get_user_response(
+                "Do you want to retire any of these existing endpoints? (yes/no): "
+            ):
+                # iterate over existing sources and ask if they should be retired
+                sources_to_retire = []
+                for source in existing_sources:
+                    if get_user_response(f"{source['endpoint-url']}? (yes/no): "):
+                        sources_to_retire.append(source)
+
+                if sources_to_retire:
+                    collection.retire_endpoints_and_sources(
+                        pd.DataFrame.from_records(sources_to_retire)
+                    )
 
 
 def add_endpoints_and_lookups(
