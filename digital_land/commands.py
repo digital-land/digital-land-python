@@ -487,7 +487,7 @@ def dataset_create(
     # 2) Grouping the parquet files into 256MB batches. Then running SQL either on all of these batches at once, or
     # bucketing the data so that we run the window SQL function on a subset of facts (then concatenate them)
 
-    # Group parquet files into approx 256MB batches. If this is unnecessary we exit immediately
+    # Group parquet files into approx 256MB batches. If this is unnecessary we exit the function immediately
     pqpackage.group_parquet_files(transformed_parquet_dir, target_mb=256)
     pqpackage.load_facts(transformed_parquet_dir)
     pqpackage.load_fact_resource(transformed_parquet_dir)
