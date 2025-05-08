@@ -67,10 +67,13 @@ class DatasetParquetPackage(Package):
         self.entity_path = (
             self.path / "entity" / f"dataset={self.dataset}" / "entity.parquet"
         )
-        self.parquet_dir_details = self.analyze_parquet_dir(
-            transformed_parquet_dir=transformed_parquet_dir
-        )
-        self.strategy = self.choose_strategy(self.parquet_dir_details)
+        if transformed_parquet_dir is None:
+            self.strategy = "direct"
+        else:
+            self.parquet_dir_details = self.analyze_parquet_dir(
+                transformed_parquet_dir=transformed_parquet_dir
+            )
+            self.strategy = self.choose_strategy(self.parquet_dir_details)
 
     def get_schema(self):
         schema = {}
