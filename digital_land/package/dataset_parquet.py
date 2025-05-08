@@ -1,9 +1,11 @@
 import os
 import logging
 import duckdb
-import shutil
+import json
+import pandas as pd
 from pathlib import Path
 from .package import Package
+from shapely import wkt
 import dask.dataframe as dd
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,18 @@ indexes = {
     "issue": ["resource", "dataset", "field"],
     "dataset-resource": ["resource"],
 }
+
+
+def combine_to_json_string(row):
+    obj = {k: v for k, v in row.items() if pd.notnull(v)}
+    return json.dumps(obj) if obj else None
+
+
+def compute_point(row):
+    if pd.isna(row["point"]) and pd.notna(row["geometry"]):
+        return wkt.dumps(wkt.loads(row["geometry"]).centroid)
+    else:
+        return row["point"]
 
 
 class DatasetParquetPackage(Package):
@@ -81,51 +95,6 @@ class DatasetParquetPackage(Package):
 
         return schema
 
-    # will be removed as we will remove the temp table from this logic
-    # def create_temp_table(self, input_paths):
-    #     # Create a temp table of the data from input_paths as we need the information stored there at various times
-    #     logging.info(
-    #         f"loading data into temp table from {os.path.dirname(input_paths[0])}"
-    #     )
-
-    #     input_paths_str = ", ".join([f"'{path}'" for path in input_paths])
-
-    #     # Initial max_line_size and increment step
-    #     max_size = 40000000
-    #     # increment_step = 20000000
-    #     # max_limit = 200000000  # Maximum allowable line size to attempt
-
-    #     # increment = False
-    #     while True:
-    #         try:
-    #             self.conn.execute("DROP TABLE IF EXISTS temp_table")
-    #             query = f"""
-    #                 CREATE TEMPORARY TABLE temp_table AS
-    #                 SELECT *
-    #                 FROM read_csv(
-    #                     [{input_paths_str}],
-    #                     columns = {self.schema},
-    #                     header = true,
-    #                     force_not_null = {[field for field in self.schema.keys()]},
-    #                     max_line_size={max_size}
-    #                 )
-    #             """
-    #     self.conn.execute(query)
-    #     break
-    # except duckdb.Error as e:  # Catch specific DuckDB error
-    #     if "Value with unterminated quote" in str(e):
-    #         hard_limit = int(resource.getrlimit(resource.RLIMIT_AS)[1])
-    #         if max_size < hard_limit / 3:
-    #             logging.info(
-    #                 f"Initial max_size did not work, setting it to {hard_limit / 2}"
-    #             )
-    #             max_size = hard_limit / 2
-    #         else:
-    #             raise
-    #     else:
-    #         logging.info(f"Failed to read in when max_size = {max_size}")
-    #         raise
-
     def load_facts(self, transformed_parquet_dir):
         """
         This method loads facts into a fact table from a directory containing all transformed files as parquet files
@@ -157,15 +126,21 @@ class DatasetParquetPackage(Package):
         # try  dask
 
         # Load a large CSV
-        df = dd.read_parquet(transformed_parquet_dir, columns=fact_fields)
+        cols = [field.replace("-", "_") for field in fact_fields]
+        cols.append("entry_number")
+        df = dd.read_parquet(transformed_parquet_dir, columns=cols)
+
+        df["dataset"] = self.dataset
 
         # Sort by the fields in order
         df_sorted = df.sort_values(["fact", "entry_date", "priority", "entry_number"])
 
         # Drop duplicates to keep the first row per record_id
         first_rows = df_sorted.drop_duplicates(subset="fact", keep="first")
+        # Drop the entry_number column
+        first_rows = first_rows.drop(columns=["entry_number"])
 
-        first_rows.compute().to_parquet(
+        first_rows.to_parquet(
             self.fact_path.parent.parent, partition_on=["dataset"], write_index=False
         )
 
@@ -174,22 +149,35 @@ class DatasetParquetPackage(Package):
         output_path = self.fact_resource_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
-        fields_str = ", ".join(
-            [field.replace("-", "_") for field in fact_resource_fields]
-        )
+        # fields_str = ", ".join(
+        #     [field.replace("-", "_") for field in fact_resource_fields]
+        # )
 
         # All CSV files have been loaded into a temporary table. Extract several columns and export
-        query = f"""
-            SELECT {fields_str}
-            FROM '{str(transformed_parquet_dir)}/*.parquet'
-        """
+        # query = f"""
+        #     SELECT {fields_str}
+        #     FROM '{str(transformed_parquet_dir)}/*.parquet'
+        # """
 
-        self.conn.execute(
-            f"""
-            COPY (
-                {query}
-            ) TO '{str(output_path)}' (FORMAT PARQUET);
-        """
+        # self.conn.execute(
+        #     f"""
+        #     COPY (
+        #         {query}
+        #     ) TO '{str(output_path)}' (FORMAT PARQUET);
+        # """
+        # )
+
+        # Load a large CSV
+        cols = [field.replace("-", "_") for field in fact_resource_fields]
+        df = dd.read_parquet(transformed_parquet_dir, columns=cols)
+
+        df["dataset"] = self.dataset
+        # Sort by the fields in order
+
+        df.to_parquet(
+            self.fact_resource_path.parent.parent,
+            partition_on=["dataset"],
+            write_index=False,
         )
 
     def load_entities_range(
@@ -200,17 +188,6 @@ class DatasetParquetPackage(Package):
         output_path,
         entity_range=None,
     ):
-        # figure  out which resources we actually need to do  expensive queries on, store  in parquet
-        # sql = f"""
-        # COPY(
-        #     SELECT DISTINCT resource
-        #     FROM parquet_scan('{transformed_parquet_dir}/*.parquet')
-        #     QUALIFY ROW_NUMBER() OVER (
-        #         PARTITION BY enttity,field
-        #         ORDER BY prioity, enttry_date DESC, entry_number DESC, resource, fact
-        #         ) = 1
-        #     ) TO '{self.cache_path / 'duckdb_temp_files' / 'distinct_resource.parquet'}' (FORMAT PARQUET);
-        # """
 
         logger.info(f"loading entities from {transformed_parquet_dir}")
 
@@ -218,6 +195,7 @@ class DatasetParquetPackage(Package):
         # Do this to match with later field names.
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         # input_paths_str = f"{self.cache_dir}/fact{self.suffix}"
+
         if entity_range is not None:
             entity_where_clause = (
                 f"WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}"
@@ -279,113 +257,133 @@ class DatasetParquetPackage(Package):
             "typology",
             "organisation",
         ]
-        select_fields = [
-            field for field in entity_fields if field not in null_fields + extra_fields
-        ]
+        # select_fields = [
+        #     field for field in entity_fields if field not in null_fields + extra_fields
+        # ]
 
         # set fields
-        fields_to_include = ["entity", "field", "value"]
-        fields_str = ", ".join(fields_to_include)
+        # fields_to_include = ["entity", "field", "value"]
 
-        # create this statement to add a nul org  column, this is needed when no entities have an associated organisation
-        if "organisation" not in distinct_fields:
-            optional_org_str = ",''::VARCHAR AS \"organisation\""
+        df = dd.read_parquet(transformed_parquet_dir)
+        df["field"] = df["field"].str.replace("-", "_")
+
+        resource_df = dd.read_csv(resource_path, usecols=["resource", "end-date"])
+        resource_df = resource_df.rename(columns={"end-date": "resource_end_date"})
+        # if resource_end_date is null then set to 2999-12-31
+        resource_df["resource_end_date"] = resource_df["resource_end_date"].fillna(
+            "2999-12-31"
+        )
+
+        # join  resource on
+        df = df.merge(resource_df, on="resource", how="left")
+
+        # sort
+        df = df.sort_values(
+            [
+                "entity",
+                "field",
+                "entry_date",
+                "priority",
+                "entry_number",
+                "resource_end_date",
+            ]
+        )
+        df = df.drop_duplicates(subset=["entity", "field"], keep="first")
+        # drop the resource_end_date column
+        df = df.drop(
+            columns=[
+                "resource_end_date",
+                "end_date",
+                "entry_date",
+                "fact",
+                "priority",
+                "reference_entity",
+                "resource",
+                "start_date",
+                "entry_number",
+            ]
+        )
+
+        # nnow we have the data we need to pivot
+        # pivot the data
+        df["field"] = df["field"].astype("category").cat.set_categories(distinct_fields)
+        df = df.pivot_table(
+            index="entity", columns="field", values="value", aggfunc="first"
+        )
+        df = df.reset_index()
+
+        # get org df
+        org_df = dd.read_csv(organisation_path, usecols=["organisation", "entity"])
+        org_df = org_df.rename(columns={"entity": "organisation_entity"})
+
+        # join org or create org
+        if "organisation" not in df.columns:
+            df["organisation_entity"] = None
         else:
-            optional_org_str = ""
+            df = df.merge(org_df, on="organisation", how="left")
+            df = df.drop(columns=["organisation"])
 
-        # Take original data, group by entity & field, and order by highest priority then latest record.
-        # If there are still matches then pick the first resource (and fact, just to make sure)
-        # changes to make
-        # not sure why this is bringing a raw resourcce AND the temp_table this data is essentially the same
-        # need the resource hash and entry number of the file, this is important for ordering
-        # between these two, the onlly other metric that isn't in the factt resource table is the start date of the resource
-        # query to get this info
-        # query to use this info to get the most recent facts
-        # query to turn the most recent facts into a pivot
-        # query to sort the final table
-        # query  to create the file
+        # create geometry if doesn't exist
+        if "geometry" not in df.columns:
+            df["geometry"] = None
 
-        # craft a where clause to limit entities in quetion, this chunking helps solve memory issues
+        # create point if doesn't exist
+        if "point" not in df.columns:
+            df["point"] = None
 
-        query = f"""
-            SELECT {fields_str}{optional_org_str} FROM (
-                SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
-                FROM parquet_scan('{transformed_parquet_dir}/*.parquet') tf
-                LEFT JOIN read_csv_auto('{resource_path}', max_line_size=40000000) resource_csv
-                ON tf.resource = resource_csv.resource
-                {entity_where_clause}
-                QUALIFY ROW_NUMBER() OVER (
-                    PARTITION BY entity, field
-                    ORDER BY priority, entry_date DESC, entry_number DESC, resource_end_date DESC, tf.resource, fact
-                ) = 1
-            )
-        """
+        if "end_date" not in df.columns:
+            df["end_date"] = ""
 
-        pivot_query = f"""
-            PIVOT (
-                {query}
-            ) ON REPLACE(field,'-','_')
-            USING MAX(value)
-        """
+        if "entry_date" not in df.columns:
+            df["entry_date"] = ""
 
-        # now use the field lists produced above to create specific statements to:
-        # add null columns which are missing
-        # include columns in the json statement
-        # Collate list of fields which don't exist but need to be in the final table
-        select_statement = ", ".join([f"t1.{field}" for field in select_fields])
-        # Don't want to include anything that ends with "_geom"
-        null_fields_statement = ", ".join(
-            [
-                f"''::VARCHAR AS \"{field}\""
-                for field in null_fields
-                if not field.endswith("_geom")
-            ]
-        )
-        json_statement = ", ".join(
-            [
-                f"CASE WHEN t1.{field} IS NOT NULL THEN REPLACE('{field}', '_', '-') ELSE NULL END, t1.{field}"
-                for field in json_fields
-            ]
+        if "start_date" not in df.columns:
+            df["start_date"] = ""
+
+        if "name" not in df.columns:
+            df["name"] = ""
+
+        if "prefix" not in df.columns:
+            df["prefix"] = ""
+
+        if "reference" not in df.columns:
+            df["reference"] = ""
+
+        df["dataset"] = self.dataset
+        df["typology"] = self.typology
+
+        df["point"] = df.map_partitions(
+            lambda partition: partition.apply(compute_point, axis=1),
+            meta=("point", "object"),
         )
 
-        # define organisation query
-        org_csv = organisation_path
-        org_query = f"""
-             SELECT * FROM read_csv_auto('{org_csv}', max_line_size=40000000)
-         """
+        # make json column
+        df["json"] = df.map_partitions(
+            lambda partition: partition[json_fields].apply(
+                combine_to_json_string, axis=1
+            ),
+            meta=("json", "object"),
+        )
 
-        # should installinng spatial be done here
-        sql = f"""
-            INSTALL spatial; LOAD spatial;
-            COPY(
-                WITH computed_centroid AS (
-                    SELECT
-                        * EXCLUDE (point), -- Calculate centroid point if not given
-                        CASE
-                            WHEN (geometry IS NOT NULL and geometry <> '') AND (point IS NULL OR point = '')
-                            THEN ST_AsText(ST_ReducePrecision(ST_Centroid(ST_GeomFromText(geometry)),0.000001))
-                            ELSE point
-                        END AS point
-                    FROM (
-                        SELECT '{self.dataset}' as dataset,
-                        '{self.typology}' as typology,
-                        t2.entity as organisation_entity,
-                        {select_statement},
-                        {null_fields_statement},
-                        json_object({json_statement}) as json,
-                        FROM ({pivot_query}) as t1
-                        LEFT JOIN ({org_query}) as t2
-                        on t1.organisation = t2.organisation
-                        )
-                    )
-                SELECT
-                    * EXCLUDE (json),
-                    CASE WHEN json = '{{}}' THEN NULL ELSE json END AS json
-                FROM computed_centroid
-            ) TO '{str(output_path)}' (FORMAT PARQUET);
-         """
-        #  might  need  to un some fetch all toget result back
-        self.conn.execute(sql)
+        df = df.astype(
+            {
+                "entity": "int64",
+                "entry_date": "string",
+                "organisation_entity": "Int64",
+                "geometry": "string",
+                "point": "string",
+                "end_date": "string",
+                "start_date": "string",
+                "name": "string",
+                "prefix": "string",
+                "reference": "string",
+                "dataset": "string",
+                "typology": "string",
+                "json": "string",
+            }
+        )
+
+        df.to_parquet(output_path, partition_on=["dataset"], write_index=False)
 
     def combine_parquet_files(self, input_path, output_path):
         """
@@ -399,52 +397,12 @@ class DatasetParquetPackage(Package):
         self.conn.execute(sql)
 
     def load_entities(self, transformed_parquet_dir, resource_path, organisation_path):
-        output_path = self.entity_path
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # retrieve entity counnts including and minimum
-        min_sql = f"select MIN(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
-        min_entity = self.conn.execute(min_sql).fetchone()[0]
-        max_sql = f"select MAX(entity) FROM parquet_scan('{transformed_parquet_dir}/*.parquet');"
-        max_entity = self.conn.execute(max_sql).fetchone()[0]
-        total_entities = max_entity - min_entity
-        entity_limit = 100000
-        if total_entities > entity_limit:
-            # create a temparary output path to store separate entity file in
-            temp_dir = (
-                output_path.parent
-                / "temp_parquet_files"
-                / "title-boundaries"
-                / "entity_files"
-            )
-            temp_dir.mkdir(parents=True, exist_ok=True)
-            logger.info(f"total entities {total_entities} exceeds limit {entity_limit}")
-            _ = min_entity
-            file_count = 1
-            while _ < max_entity:
-                temp_output_path = temp_dir / f"entity_{file_count}.parquet"
-                entity_range = [_, _ + entity_limit]
-                logger.info(
-                    f"loading entities from {entity_range[0]} to {entity_range[1]}"
-                )
-                self.load_entities_range(
-                    transformed_parquet_dir,
-                    resource_path,
-                    organisation_path,
-                    temp_output_path,
-                    entity_range,
-                )
-                _ += entity_limit
-                file_count += 1
-            # combine all the parquet files into a single parquet file
-            self.combine_parquet_files(temp_dir, output_path)
-
-            # remove temporary files
-            shutil.rmtree(temp_dir)
-        else:
-            self.load_entities_range(
-                transformed_parquet_dir, resource_path, organisation_path, output_path
-            )
+        self.load_entities_range(
+            transformed_parquet_dir,
+            resource_path,
+            organisation_path,
+            self.entity_path.parent.parent,
+        )
 
     def load_to_sqlite(self, sqlite_path):
         """
@@ -476,7 +434,8 @@ class DatasetParquetPackage(Package):
         self.conn.execute(
             f"""
                 INSERT INTO sqlite_db.fact_resource
-                SELECT {fields_str} FROM parquet_scan('{self.fact_resource_path}')
+                SELECT {fields_str} FROM parquet_scan('{self.path / "fact-resource"}/*/*.parquet')
+                WHERE dataset = '{self.dataset}'
             """
         )
 
@@ -488,7 +447,8 @@ class DatasetParquetPackage(Package):
         self.conn.execute(
             f"""
                 INSERT INTO sqlite_db.fact
-                SELECT {fields_str} FROM parquet_scan('{self.fact_path}')
+                SELECT {fields_str} FROM parquet_scan('{self.path /'fact'}/*/*.parquet')
+                WHERE dataset = '{self.dataset}'
             """
         )
 
@@ -505,7 +465,8 @@ class DatasetParquetPackage(Package):
         self.conn.execute(
             f"""
                 INSERT INTO sqlite_db.entity
-                SELECT {fields_str} FROM parquet_scan('{self.entity_path}')
+                SELECT {fields_str} FROM parquet_scan('{self.path / "entity"}/*/*.parquet')
+                WHERE dataset = '{self.dataset}'
             """
         )
 
