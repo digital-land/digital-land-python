@@ -477,17 +477,20 @@ def dataset_create(
         path=dataset_parquet_path,
         specification_dir=None,  # TBD: package should use this specification object
         duckdb_path=cache_dir / "overflow.duckdb",
+        transformed_parquet_dir=transformed_parquet_dir,
     )
-    # Original methods of getting fact and fact_resource tables. Keeping in case we need to revert, but currently
-    # there is an issue with transport_access_node_collection and the amount of memory required
-    # pqpackage.load_facts(transformed_parquet_dir)
-    # pqpackage.load_fact_resource(transformed_parquet_dir)
-    # Newer methods which reduce the memory usage
-    temp_parquet = pqpackage.load_details_into_temp_parquet(transformed_parquet_dir)
-    pqpackage.load_facts_from_temp_parquet(transformed_parquet_dir, temp_parquet)
-    pqpackage.load_fact_resource_from_temp_parquet(
-        transformed_parquet_dir, temp_parquet
-    )
+    # To find facts we have a complex SQL window function that can cause memory issues. To aid the allocation of memory
+    # we decide on a parquet strategy, based on how many parquet files we have, the overall size of these
+    # files and the available memory. We will look at the following strategies:
+    # 1) if we have a small number of files or the total size of the files is small then we can run the SQL over all of
+    # these files.
+    # 2) Grouping the parquet files into 256MB batches. Then running SQL either on all of these batches at once, or
+    # bucketing the data so that we run the window SQL function on a subset of facts (then concatenate them)
+
+    # Group parquet files into approx 256MB batches. If this is unnecessary we exit immediately
+    pqpackage.group_parquet_files(transformed_parquet_dir, target_mb=256)
+    pqpackage.load_facts(transformed_parquet_dir)
+    pqpackage.load_fact_resource(transformed_parquet_dir)
     pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
 
     logger.info("loading fact,fact_resource and entity into {output_path}")
