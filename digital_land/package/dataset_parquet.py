@@ -5,7 +5,6 @@ import shutil
 from pathlib import Path
 from .package import Package
 import psutil
-import tempfile
 
 logger = logging.getLogger(__name__)
 
