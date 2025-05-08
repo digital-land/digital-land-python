@@ -1,5 +1,7 @@
 import os
 import logging
+import sys
+
 import duckdb
 import shutil
 from pathlib import Path
@@ -296,7 +298,7 @@ class DatasetParquetPackage(Package):
                 )
                 n_buckets = int(min(n_buckets, no_of_batched_files))
                 if n_buckets == 0:
-                    exit(
+                    sys.exit(
                         "Have got a value of zero for n_buckets in `load_facts`. Cannot continue."
                     )
                 if n_buckets == 1:
