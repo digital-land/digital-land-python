@@ -511,15 +511,17 @@ def dataset_update(
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
     bucket_name=None,
+    dataset_path=None,
 ):
     """
-    Updates the current state of the sqlite files being held in S3 with new resources
+    Updates the current state of the sqlite files being held in S3 with new resources.
+    `dataset_path` can be passed in to update a local sqlite file instead of downloading from S3.
     """
     if not output_path:
         print("missing output path", file=sys.stderr)
         sys.exit(2)
 
-    if not bucket_name:
+    if not bucket_name and not dataset_path:
         print("Missing bucket name to get sqlite files", file=sys.stderr)
         sys.exit(2)
 
@@ -529,18 +531,31 @@ def dataset_update(
     organisation = Organisation(
         organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
     )
-    package = DatasetPackage(
-        dataset,
-        organisation=organisation,
-        path=output_path,
-        specification_dir=None,  # TBD: package should use this specification object
-    )
-    # Copy files from S3 and load into tables
-    table_name = dataset
-    object_key = output_path
-    package.load_from_s3(
-        bucket_name=bucket_name, object_key=object_key, table_name=table_name
-    )
+
+    if not dataset_path:
+        package = DatasetPackage(
+            dataset,
+            organisation=organisation,
+            path=output_path,
+            specification_dir=None,  # TBD: package should use this specification object
+        )
+        # Copy files from S3 and load into tables
+        table_name = dataset
+        object_key = output_path
+        package.load_from_s3(
+            bucket_name=bucket_name, object_key=object_key, table_name=table_name
+        )
+    else:
+        print(dataset_path)
+        package = DatasetPackage(
+            dataset,
+            organisation=organisation,
+            path=dataset_path,
+            specification_dir=None,  # TBD: package should use this specification object
+        )
+        package.set_up_connection()
+        package.load()
+        package.disconnect()
 
     for path in input_paths:
         path_obj = Path(path)
@@ -921,15 +936,109 @@ def add_data(
     operational_issue_dir.mkdir(parents=True, exist_ok=True)
 
     collection.load_log_items()
-    for dataset in endpoint_resource_info["pipelines"]:
-        print("======================================================================")
-        print("Run pipeline")
-        print("======================================================================")
+    dataset = endpoint_resource_info["pipelines"][0]
+    pipeline = Pipeline(pipeline_dir, dataset)
+    specification = Specification(specification_dir)
+    # for dataset in endpoint_resource_info["pipelines"]:
+    print("======================================================================")
+    print("Run pipeline")
+    print("======================================================================")
+    try:
+        pipeline_run(
+            dataset,
+            pipeline,
+            specification,
+            endpoint_resource_info["resource_path"],
+            output_path=output_path,
+            collection_dir=collection_dir,
+            issue_dir=issue_dir,
+            operational_issue_dir=operational_issue_dir,
+            column_field_dir=column_field_dir,
+            dataset_resource_dir=dataset_resource_dir,
+            converted_resource_dir=converted_resource_dir,
+            organisation_path=organisation_path,
+            endpoints=[endpoint_resource_info["endpoint"]],
+            organisations=[endpoint_resource_info["organisation"]],
+            resource=endpoint_resource_info["resource"],
+            output_log_dir=output_log_dir,
+            converted_path=os.path.join(
+                converted_dir, endpoint_resource_info["resource"] + ".csv"
+            ),
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Pipeline failed to process resource with the following error: {e}"
+        )
+    print("======================================================================")
+    print("Pipeline successful!")
+    print("======================================================================")
+
+    converted_path = os.path.join(
+        converted_dir, endpoint_resource_info["resource"] + ".csv"
+    )
+    if not os.path.isfile(converted_path):
+        # The pipeline doesn't convert .csv resources so direct user to original resource
+        converted_path = endpoint_resource_info["resource_path"]
+    print(f"Converted .csv resource path: {converted_path}")
+    print(f"Transformed resource path: {output_path}")
+
+    column_field_summary = get_column_field_summary(
+        dataset,
+        endpoint_resource_info,
+        column_field_dir,
+        converted_dir,
+        specification_dir,
+        pipeline_dir,
+    )
+    print(column_field_summary)
+
+    issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
+    print(issue_summary)
+
+    entity_summary = get_entity_summary(
+        endpoint_resource_info, output_path, dataset, issue_dir, pipeline_dir
+    )
+    print(entity_summary)
+
+    entities_assigned = False
+    # Check for unknown entities and assign them
+    if (
+        "unknown entity" in issue_summary
+        or "unknown entity - missing reference" in issue_summary
+    ):
+        # Ask if user wants to proceed
+        print("\nThere are unknown entities")
+        if not get_user_response(
+            "Do you want to assign entities for this resource? (yes/no): "
+        ):
+            return
+
+        # Resource has been processed, run assign entities and reprocess
+
+        # Copy pipeline dir to cache dir so we can modify it
+        cache_pipeline_dir = add_data_cache_dir / "pipeline"
+        copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
+
+        assign_entities(
+            resource_file_paths=[endpoint_resource_info["resource_path"]],
+            collection=collection,
+            dataset=dataset,
+            organisation=[endpoint_resource_info["organisation"]],
+            pipeline_dir=cache_pipeline_dir,
+            specification_dir=specification_dir,
+            organisation_path=organisation_path,
+            endpoints=[endpoint_resource_info["endpoint"]],
+            tmp_dir=add_data_cache_dir,
+        )
+
+        pipeline = Pipeline(cache_pipeline_dir, dataset)
+
+        # Now rerun pipeline with new assigned entities
         try:
             pipeline_run(
                 dataset,
-                Pipeline(pipeline_dir, dataset),
-                Specification(specification_dir),
+                pipeline,
+                specification,
                 endpoint_resource_info["resource_path"],
                 output_path=output_path,
                 collection_dir=collection_dir,
@@ -951,151 +1060,89 @@ def add_data(
             raise RuntimeError(
                 f"Pipeline failed to process resource with the following error: {e}"
             )
-        print("======================================================================")
-        print("Pipeline successful!")
-        print("======================================================================")
-
-        converted_path = os.path.join(
-            converted_dir, endpoint_resource_info["resource"] + ".csv"
-        )
-        if not os.path.isfile(converted_path):
-            # The pipeline doesn't convert .csv resources so direct user to original resource
-            converted_path = endpoint_resource_info["resource_path"]
-        print(f"Converted .csv resource path: {converted_path}")
-        print(f"Transformed resource path: {output_path}")
-
-        column_field_summary = get_column_field_summary(
-            dataset,
-            endpoint_resource_info,
-            column_field_dir,
-            converted_dir,
-            specification_dir,
-            pipeline_dir,
-        )
-        print(column_field_summary)
-
-        issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
-        print(issue_summary)
 
         entity_summary = get_entity_summary(
-            endpoint_resource_info, output_path, dataset, issue_dir, pipeline_dir
+            endpoint_resource_info,
+            output_path,
+            dataset,
+            issue_dir,
+            cache_pipeline_dir,
         )
         print(entity_summary)
 
-        entities_assigned = False
-        # Check for unknown entities and assign them
+        # Check if there are unassigned entities in the issue summary - raise exception if they still exist
+        issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
         if (
             "unknown entity" in issue_summary
             or "unknown entity - missing reference" in issue_summary
         ):
-            # Ask if user wants to proceed
-            print("\nThere are unknown entities")
-            if not get_user_response(
-                "Do you want to assign entities for this resource? (yes/no): "
-            ):
-                return
-
-            # Resource has been processed, run assign entities and reprocess
-
-            # Copy pipeline dir to cache dir so we can modify it
-            cache_pipeline_dir = add_data_cache_dir / "pipeline"
-            copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
-
-            assign_entities(
-                resource_file_paths=[endpoint_resource_info["resource_path"]],
-                collection=collection,
-                dataset=dataset,
-                organisation=[endpoint_resource_info["organisation"]],
-                pipeline_dir=cache_pipeline_dir,
-                specification_dir=specification_dir,
-                organisation_path=organisation_path,
-                endpoints=[endpoint_resource_info["endpoint"]],
-                tmp_dir=add_data_cache_dir,
+            print(issue_summary)
+            raise Exception(
+                f"Unknown entities remain in resource {endpoint_resource_info['resource']} after assigning entities"
             )
 
-            pipeline = Pipeline(cache_pipeline_dir, dataset)
+        entities_assigned = True
 
-            # Now rerun pipeline with new assigned entities
-            try:
-                pipeline_run(
-                    dataset,
-                    pipeline,
-                    Specification(specification_dir),
-                    endpoint_resource_info["resource_path"],
-                    output_path=output_path,
-                    collection_dir=collection_dir,
-                    issue_dir=issue_dir,
-                    operational_issue_dir=operational_issue_dir,
-                    column_field_dir=column_field_dir,
-                    dataset_resource_dir=dataset_resource_dir,
-                    converted_resource_dir=converted_resource_dir,
-                    organisation_path=organisation_path,
-                    endpoints=[endpoint_resource_info["endpoint"]],
-                    organisations=[endpoint_resource_info["organisation"]],
-                    resource=endpoint_resource_info["resource"],
-                    output_log_dir=output_log_dir,
-                    converted_path=os.path.join(
-                        converted_dir, endpoint_resource_info["resource"] + ".csv"
-                    ),
-                )
-            except Exception as e:
-                raise RuntimeError(
-                    f"Pipeline failed to process resource with the following error: {e}"
-                )
+    # Ask if user wants to proceed
+    if not get_user_response(
+        "Do you want to save changes made in this session? (yes/no): "
+    ):
+        return
 
-            entity_summary = get_entity_summary(
-                endpoint_resource_info,
-                output_path,
-                dataset,
-                issue_dir,
-                cache_pipeline_dir,
-            )
-            print(entity_summary)
+    # Save changes to collection
+    collection.save_csv()
+    if entities_assigned:
+        # Save changes to lookup.csv
+        shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
 
-            # Check if there are unassigned entities in the issue summary - raise exception if they still exist
-            issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
-            if (
-                "unknown entity" in issue_summary
-                or "unknown entity - missing reference" in issue_summary
-            ):
-                print(issue_summary)
-                raise Exception(
-                    f"Unknown entities remain in resource {endpoint_resource_info['resource']} after assigning entities"
-                )
-
-            entities_assigned = True
-
-        # Ask if user wants to proceed
-        if not get_user_response(
-            "Do you want to save changes made in this session? (yes/no): "
+    # Now check for existing endpoints for this provision/organisation
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, dataset
+    )
+    print(existing_endpoints_summary)
+    if existing_sources:
+        if get_user_response(
+            "Do you want to retire any of these existing endpoints? (yes/no): "
         ):
-            return
+            # iterate over existing sources and ask if they should be retired
+            sources_to_retire = []
+            for source in existing_sources:
+                if get_user_response(f"{source['endpoint-url']}? (yes/no): "):
+                    sources_to_retire.append(source)
 
-        # Save changes to collection
-        collection.save_csv()
-        if entities_assigned:
-            # Save changes to lookup.csv
-            shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
+            if sources_to_retire:
+                collection.retire_endpoints_and_sources(
+                    pd.DataFrame.from_records(sources_to_retire)
+                )
 
-        # Now check for existing endpoints for this provision/organisation
-        existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-            endpoint_resource_info, collection, dataset
+    # Update dataset and view newly updated dataset
+    if get_user_response(
+        f"Do you want to view the updated {dataset} dataset with the newly added data? (yes/no): "
+    ):
+        # Download existing dataset
+        api = API(specification=specification, cache_dir=cache_dir)
+        dataset_path = os.path.join(cache_dir, "dataset", f"{dataset}.sqlite3")
+        if not os.path.exists(dataset_path):
+            print(f"Downloading {dataset}.sqlite3...")
+            api.download_dataset(
+                dataset=dataset, overwrite=True, path=dataset_path, sqlite=True
+            )
+        else:
+            print(f"Existing dataset at {dataset_path} will be used")
+        print("dataset path", dataset_path)
+        # Update downloaded dataset with newly transformed file
+        dataset_update(
+            input_paths=[output_path],
+            output_path="updated.sqlite3",
+            organisation_path=organisation_path,
+            pipeline=pipeline,
+            dataset=dataset,
+            specification=specification,
+            issue_dir=issue_dir,
+            column_field_dir=column_field_dir,
+            dataset_resource_dir=dataset_resource_dir,
+            dataset_path=dataset_path,
         )
-        print(existing_endpoints_summary)
-        if existing_sources:
-            if get_user_response(
-                "Do you want to retire any of these existing endpoints? (yes/no): "
-            ):
-                # iterate over existing sources and ask if they should be retired
-                sources_to_retire = []
-                for source in existing_sources:
-                    if get_user_response(f"{source['endpoint-url']}? (yes/no): "):
-                        sources_to_retire.append(source)
-
-                if sources_to_retire:
-                    collection.retire_endpoints_and_sources(
-                        pd.DataFrame.from_records(sources_to_retire)
-                    )
 
 
 def add_endpoints_and_lookups(

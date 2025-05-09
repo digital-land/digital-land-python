@@ -22,32 +22,40 @@ class API:
         self.cache_dir = cache_dir
 
     def download_dataset(
-        self, dataset: str, overwrite: bool = False, csv_path: str = None
+        self,
+        dataset: str,
+        overwrite: bool = False,
+        path: str = None,
+        sqlite: bool = False,
     ):
-        """Downloads a dataset.
+        """Downloads a dataset as a .csv.
         dataset: dataaset name
         overwrite: overwrite file is it already exists (otherwise will just return)
-        csv_path: file to download to (otherwise <cache-dir>/dataset/<dataset-name>.csv)
+        path: file to download to (otherwise <cache-dir>/dataset/<dataset-name>.csv/.sqlite3)
         Returns: None.
+        sqlite: if True dataset will be downloaded as .sqlite3 instead of .csv
         The file fill be downloaded to the given path or cache, unless an exception occurs.
         """
-        if csv_path is None:
-            csv_path = os.path.join(self.cache_dir, "dataset", f"{dataset}.csv")
+        extension = ".sqlite3" if sqlite else ".csv"
+        if path is None:
+            path = os.path.join(self.cache_dir, "dataset", f"{dataset}{extension}")
 
-        if os.path.exists(csv_path) and not overwrite:
-            logging.info(f"Dataset file {csv_path} already exists.")
+        if os.path.exists(path) and not overwrite:
+            logging.info(f"Dataset file {path} already exists.")
             return
-
-        url = f"{self.url}/dataset/{dataset}.csv"
+        # we need to collection to find the .sqlite3 url
+        url = f"{self.url}/dataset/{dataset}{extension}"
+        # url = "https://files.planning.data.gov.uk/tree-preservation-order-collection/dataset/tree-preservation-order.sqlite3"
+        url = "https://files.planning.data.gov.uk/central-activities-zone-collection/dataset/central-activities-zone.sqlite3"
 
         response = requests.get(url)
         response.raise_for_status()
 
-        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-        with open(csv_path, "w") as f:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
             f.write(response.text)
 
-        logging.info(f"Downloaded dataset {dataset} from {url} to {csv_path}")
+        logging.info(f"Downloaded dataset {dataset} from {url} to {path}")
 
     def get_valid_category_values(
         self, dataset: str, pipeline: Pipeline
@@ -70,9 +78,7 @@ class API:
             # If we don't have the file cached, try to download it
             if not os.path.exists(csv_path):
                 try:
-                    self.download_dataset(
-                        field_dataset, overwrite=False, csv_path=csv_path
-                    )
+                    self.download_dataset(field_dataset, overwrite=False, path=csv_path)
                 except Exception as ex:
                     logging.warning(
                         f"Unable to download category values '{field_dataset}' ({ex}). These will not be checked."
