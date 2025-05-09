@@ -285,7 +285,7 @@ class DatasetParquetPackage(Package):
                 )
                 n_buckets = 1
             else:
-                # Max partition size should the smallest value of either be 4GB or 1/4 of the available memory
+                # Max partition size should the smallest value of either be 2GB or 1/4 of the available memory
                 max_partition_memory_mb = min(
                     2048, self.parquet_dir_details["memory_available"] / 4
                 )
