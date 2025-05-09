@@ -89,7 +89,7 @@ def test_download_dataset_specified(mocker):
 
     api = API(Mock(), "http://test", "/test/cache-dir")
 
-    api.download_dataset("test", csv_path="test.csv")
+    api.download_dataset("test", path="test.csv")
 
 
 def test_download_dataset_overwrite(mocker):
@@ -99,7 +99,7 @@ def test_download_dataset_overwrite(mocker):
 
     api = API(Mock(), "http://test", "/test/cache-dir")
 
-    api.download_dataset("test", overwrite=True, csv_path="test.csv")
+    api.download_dataset("test", overwrite=True, path="test.csv")
 
 
 def test_download_dataset_error(mocker):

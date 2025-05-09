@@ -1,17 +1,22 @@
 import csv
+from enum import Enum
 import os
 import requests
 import logging
 import typing
 
 from digital_land.pipeline.main import Pipeline
+from digital_land.specification import Specification
 
 DEFAULT_URL = "https://files.planning.data.gov.uk"
 
 
 class API:
     def __init__(
-        self, specification, url: str = DEFAULT_URL, cache_dir: str = "var/cache"
+        self,
+        specification: Specification,
+        url: str = DEFAULT_URL,
+        cache_dir: str = "var/cache",
     ):
         """Create the API object.
         url: CDN url to get files from (defaults to production CDN)
@@ -21,33 +26,60 @@ class API:
         self.url = url
         self.cache_dir = cache_dir
 
-    def download_dataset(
-        self, dataset: str, overwrite: bool = False, csv_path: str = None
-    ):
-        """Downloads a dataset.
-        dataset: dataaset name
-        overwrite: overwrite file is it already exists (otherwise will just return)
-        csv_path: file to download to (otherwise <cache-dir>/dataset/<dataset-name>.csv)
-        Returns: None.
-        The file fill be downloaded to the given path or cache, unless an exception occurs.
-        """
-        if csv_path is None:
-            csv_path = os.path.join(self.cache_dir, "dataset", f"{dataset}.csv")
+    class Extension(str, Enum):
+        CSV = "csv"
+        SQLITE3 = "sqlite3"
 
-        if os.path.exists(csv_path) and not overwrite:
-            logging.info(f"Dataset file {csv_path} already exists.")
+    def download_dataset(
+        self,
+        dataset: str,
+        overwrite: bool = False,
+        path: str = None,
+        extension: Extension = Extension.CSV,
+    ):
+        """
+        Downloads a dataset in CSV or SQLite3 format.
+        - dataset: dataset name.
+        - overwrite: overwrite file is it already exists (otherwise will just return).
+        - path: file to download to (otherwise <cache-dir>/dataset/<dataset-name>.<extension>).
+        - extension: 'csv' or 'sqlite3', 'csv' by default.
+        - Returns: None.
+        The file will be downloaded to the given path or cache, unless an exception occurs.
+
+        """
+        if path is None:
+            path = os.path.join(self.cache_dir, "dataset", f"{dataset}.{extension}")
+
+        if os.path.exists(path) and not overwrite:
+            logging.info(f"Dataset file {path} already exists.")
             return
 
-        url = f"{self.url}/dataset/{dataset}.csv"
+        # different extensions require different urls and reading modes
+        if extension == self.Extension.SQLITE3:
+            collection = self.specification.dataset[dataset]["collection"]
+            url = f"{self.url}/{collection}-collection/dataset/{dataset}.sqlite3"
+            mode = "wb"
+
+            def get_content(response):
+                return (
+                    response.content
+                )  # need binary content otherwise .sqlite3 is corrupted
+
+        else:
+            url = f"{self.url}/dataset/{dataset}.csv"
+            mode = "w"
+
+            def get_content(response):
+                return response.text
 
         response = requests.get(url)
         response.raise_for_status()
 
-        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-        with open(csv_path, "w") as f:
-            f.write(response.text)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, mode) as f:
+            f.write(get_content(response))
 
-        logging.info(f"Downloaded dataset {dataset} from {url} to {csv_path}")
+        logging.info(f"Downloaded dataset {dataset} from {url} to {path}")
 
     def get_valid_category_values(
         self, dataset: str, pipeline: Pipeline
@@ -70,9 +102,7 @@ class API:
             # If we don't have the file cached, try to download it
             if not os.path.exists(csv_path):
                 try:
-                    self.download_dataset(
-                        field_dataset, overwrite=False, csv_path=csv_path
-                    )
+                    self.download_dataset(field_dataset, overwrite=False, path=csv_path)
                 except Exception as ex:
                     logging.warning(
                         f"Unable to download category values '{field_dataset}' ({ex}). These will not be checked."
