@@ -8,6 +8,8 @@ import json
 import pyarrow.parquet as pq
 import pyarrow as pa
 from digital_land.package.dataset_parquet import DatasetParquetPackage
+import random
+import string
 
 
 class MockOrganisation(object):
@@ -374,9 +376,9 @@ def test_load_facts_single_file(data: dict, expected: int, tmp_path):
         specification_dir=None,
     )
 
-    # this method is explicitely designed to load facts from the temp table
-    # however it shouldn't need this, it's dupllicating all of the same data in a emporary space
-    # we  should try leveraging the power of duckdb and parquet.
+    # this method is explicitly designed to load facts from the temp table
+    # however it shouldn't need this, it's duplicating all of the same data in a temporary space
+    # we should try leveraging the power of duckdb and parquet.
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
     output_file = (
@@ -495,6 +497,123 @@ def test_load_facts_one_file_with_empty_file(data, expected, tmp_path):
         len(df) == expected
     ), "No. of facts does not match expected"  # No of unique facts
     assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+
+
+@pytest.mark.parametrize(
+    "data1,data2,expected_facts,expected_entities",
+    [(transformed_1_data, transformed_2_data, 35 * 100 / 2, 3 * 100)],
+)
+def test_load_functions_batch(
+    data1, data2, expected_facts, expected_entities, tmp_path, org_path, resource_path
+):
+    """
+    test loading multiple files into the fact table when they're from a single directory and batched into a single file
+    """
+    # Use current data, but edit the fact and entities so that we have many more facts and entities than current test
+    # data gives us
+    df1 = pd.DataFrame.from_dict(data1)
+    df2 = pd.DataFrame.from_dict(data2)
+    df1_copy = df1.copy()
+    df2_copy = df2.copy()
+    ldf1 = len(df1_copy)
+    one_third1 = ldf1 // 3
+    two_third1 = 2 * ldf1 // 3
+    ldf2 = len(df2_copy)
+    one_third2 = ldf2 // 3
+    two_third2 = 2 * ldf2 // 3
+    transformed_parquet_dir = tmp_path / "transformed"
+    transformed_parquet_dir.mkdir(parents=True, exist_ok=True)
+    random.seed(42)  # Set seed to ensure consistency
+    chars = string.ascii_lowercase + string.digits
+    # Create 100 files so that strategy is 'batch'
+    for i in range(100):
+        # Change the fact and entity values to ensure uniqueness
+        base = i * 10  # base entity value (assigned to first third of rows)
+        if i % 2 == 0:
+            df1_copy = df1_copy.assign(
+                fact=["".join(random.choices(chars, k=10)) for _ in range(ldf1)],
+                entity=[base] * one_third1
+                + [base + 1] * (two_third1 - one_third1)
+                + [base + 2] * (ldf1 - two_third1),
+            )
+            df1_copy.to_parquet(
+                transformed_parquet_dir / f"transformed_resource_{i}.parquet",
+                index=False,
+            )
+        else:
+            df2_copy = df2_copy.assign(
+                fact=["".join(random.choices(chars, k=10)) for _ in range(ldf2)],
+                entity=[base] * one_third2
+                + [base + 1] * (two_third2 - one_third2)
+                + [base + 2] * (ldf2 - two_third2),
+            )
+            df2_copy.to_parquet(
+                transformed_parquet_dir / f"transformed_resource_{i}.parquet",
+                index=False,
+            )
+
+    package = DatasetParquetPackage(
+        dataset="conservation-area",
+        path=tmp_path / "conservation-area",
+        specification_dir=None,
+        transformed_parquet_dir=transformed_parquet_dir,
+    )
+
+    package.group_parquet_files(transformed_parquet_dir=transformed_parquet_dir)
+    package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
+    package.load_fact_resource(transformed_parquet_dir=transformed_parquet_dir)
+    package.load_entities(transformed_parquet_dir, resource_path, org_path)
+
+    # test facts
+    output_file = (
+        tmp_path
+        / "conservation-area"
+        / "fact"
+        / "dataset=conservation-area"
+        / "fact.parquet"
+    )
+    assert os.path.exists(output_file), "fact.parquet file does not exist"
+
+    df = pd.read_parquet(output_file)
+
+    assert len(df) > 0, "No data in fact.parquet file"
+    assert (
+        len(df) == expected_facts
+    ), "No. of facts does not match expected"  # No of unique facts
+    assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+
+    # test fact_resource
+    output_file = (
+        tmp_path
+        / "conservation-area"
+        / "fact-resource"
+        / "dataset=conservation-area"
+        / "fact-resource.parquet"
+    )
+    assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
+
+    df = pd.read_parquet(output_file)
+
+    assert len(df) > 0, "No data in fact-resource,parquet file"
+    assert len(df) == expected_facts, "Not all data saved in fact-resource.parquet file"
+
+    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
+
+    # test entities
+    output_file = (
+        tmp_path
+        / "conservation-area"
+        / "entity"
+        / "dataset=conservation-area"
+        / "entity.parquet"
+    )
+    assert os.path.exists(output_file), "entity.parquet file does not exist"
+
+    df = pd.read_parquet(output_file)
+
+    assert len(df) > 0, "No data in entity.parquet file"
+    assert len(df) == expected_entities, "No. of entities is not correct"
+    assert df["entity"].nunique() == len(df), "Entity column contains duplicate values"
 
 
 @pytest.mark.parametrize("data,expected", [(transformed_1_data, 16)])
