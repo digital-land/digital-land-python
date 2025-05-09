@@ -196,50 +196,47 @@ class DatasetParquetPackage(Package):
         mem = process.memory_info().rss / 1024**2  # Memory in MB
         logger.info(f"[Memory usage] Before grouping: {mem:.2f} MB")
 
-        if self.strategy == "direct":
-            logger.info(f"No batching required for {str(transformed_parquet_dir)}")
-        else:
-            logger.info(f"Batching all files from {str(transformed_parquet_dir)}")
-            target_bytes = target_mb * 1024 * 1024
-            parquet_files = list(transformed_parquet_dir.glob("*.parquet"))
+        logger.info(f"Batching all files from {str(transformed_parquet_dir)}")
+        target_bytes = target_mb * 1024 * 1024
+        parquet_files = list(transformed_parquet_dir.glob("*.parquet"))
 
-            # List of (file_path, file_size_in_bytes)
-            file_sizes = [(f, f.stat().st_size) for f in parquet_files]
-            file_sizes.sort(key=lambda x: x[1], reverse=True)
+        # List of (file_path, file_size_in_bytes)
+        file_sizes = [(f, f.stat().st_size) for f in parquet_files]
+        file_sizes.sort(key=lambda x: x[1], reverse=True)
 
-            batches = []
+        batches = []
 
-            # apply first-fit decreasing heuristic
-            for f, size in file_sizes:
-                placed = False
-                for batch in batches:
-                    if batch["total_size"] + size <= target_bytes:
-                        batch["files"].append(f)
-                        batch["total_size"] += size
-                        placed = True
-                        break
-                if not placed:
-                    # Start a new batch
-                    batches.append({"files": [f], "total_size": size})
+        # apply first-fit decreasing heuristic
+        for f, size in file_sizes:
+            placed = False
+            for batch in batches:
+                if batch["total_size"] + size <= target_bytes:
+                    batch["files"].append(f)
+                    batch["total_size"] += size
+                    placed = True
+                    break
+            if not placed:
+                # Start a new batch
+                batches.append({"files": [f], "total_size": size})
 
-            digits = max(2, len(str(len(batches) - 1)))
-            batch_dir = transformed_parquet_dir / "batch"
-            batch_dir.mkdir(parents=True, exist_ok=True)
-            for i, batch in enumerate(batches):
-                files = batch["files"]
-                output_file = batch_dir / f"batch_{i:0{digits}}.parquet"
-                files_str = ", ".join(f"'{str(f)}'" for f in files)
-                query = f"""
-                    COPY (
-                        SELECT * FROM read_parquet([{files_str}])
-                    ) TO '{str(output_file)}' (FORMAT PARQUET)
-                """
-                self.conn.execute(query)
+        digits = max(2, len(str(len(batches) - 1)))
+        batch_dir = transformed_parquet_dir / "batch"
+        batch_dir.mkdir(parents=True, exist_ok=True)
+        for i, batch in enumerate(batches):
+            files = batch["files"]
+            output_file = batch_dir / f"batch_{i:0{digits}}.parquet"
+            files_str = ", ".join(f"'{str(f)}'" for f in files)
+            query = f"""
+                COPY (
+                    SELECT * FROM read_parquet([{files_str}])
+                ) TO '{str(output_file)}' (FORMAT PARQUET)
+            """
+            self.conn.execute(query)
 
-                # Should we delete the files now that they have been 'batched'?
-                if delete_originals:
-                    for f in files:
-                        f.unlink()
+            # Should we delete the files now that they have been 'batched'?
+            if delete_originals:
+                for f in files:
+                    f.unlink()
 
         process = psutil.Process(os.getpid())
         mem = process.memory_info().rss / 1024**2  # Memory in MB
