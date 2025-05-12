@@ -372,7 +372,7 @@ class DatasetParquetPackage(Package):
                     """
                     )
                 logger.info(
-                    f"Have {len(list(transformed_parquet_dir.glob('result_*.parquet')))} result files"
+                    f"Have {len(list(result_dir.glob('result_*.parquet')))} result files"
                 )
 
                 # for path in bucket_paths:
@@ -392,7 +392,8 @@ class DatasetParquetPackage(Package):
                     PARQUET);
                 """
                 )
-
+                logger.info(f"output_path: {output_path}")
+                logger.info(f"output_path exists: {os.path.exists(output_path)}")
                 # for path in result_paths:
                 #     path.unlink(missing_ok=True)
 
