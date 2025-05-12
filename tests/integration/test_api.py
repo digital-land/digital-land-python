@@ -1,5 +1,7 @@
 import csv
 import os
+import sqlite3
+import tempfile
 
 import pytest
 
@@ -37,6 +39,7 @@ class MockSpecification:
                 "document-type": "conservation-area-document-type"
             },
         }
+        self.dataset = {"test_dataset": {"collection": "test_collection"}}
 
     def get_category_fields(self, dataset):
         return self.category_fields[dataset]
@@ -102,3 +105,40 @@ def test_get_categorical_field_read_csv(pipeline_dir, tmp_path_factory):
 
     # check that the replacement-field has also been given valid values
     assert values["DocumentType"] == ["NEW TYPE"]
+
+
+def test_download_dataset_sqlite(mocker, tmp_path):
+
+    # Create a temporary sqlite3 db
+    with tempfile.NamedTemporaryFile(suffix=".sqlite3") as tmp:
+        tmp_path_sqlite = tmp.name
+
+    conn = sqlite3.connect(tmp_path_sqlite)
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT);")
+    cursor.execute("INSERT INTO test (name) VALUES ('example');")
+    conn.commit()
+    conn.close()
+
+    with open(tmp.name, "rb") as f:
+        sqlite_data = f.read()
+
+    # mocker.patch("requests.get", _mock_get(200, sqlite_data))
+    mock_response = mocker.Mock()
+    mock_response.status_code = 200
+    mock_response.content = sqlite_data
+    mocker.patch("requests.get", return_value=mock_response)
+
+    api = API(MockSpecification(), "http://test", "/test/cache-dir")
+    path = tmp_path / "test.sqlite3"
+
+    api.download_dataset("test_dataset", path=path, extension=api.Extension.SQLITE3)
+
+    # Now check if downloaded sqlite db is accessible
+    conn = sqlite3.connect(path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM test WHERE id = 1;")
+    row = cursor.fetchone()
+    conn.close()
+
+    assert row[0] == "example"
