@@ -387,12 +387,11 @@ class DatasetParquetPackage(Package):
                     COPY(
                         SELECT * FROM
                     read_parquet('{str(result_dir)}/result_*.parquet')
-                    ) TO
-                    '{output_path}.parquet'(FORMAT
-                    PARQUET);
+                ) TO '{str(output_path)}' (FORMAT PARQUET);
                 """
                 )
-
+                logger.info(f"Facts saved to output_path: {output_path}")
+                logger.info(f"output_path exists: {os.path.exists(output_path)}")
                 # for path in result_paths:
                 #     path.unlink(missing_ok=True)
 
