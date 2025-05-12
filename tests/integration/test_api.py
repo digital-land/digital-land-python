@@ -110,10 +110,7 @@ def test_get_categorical_field_read_csv(pipeline_dir, tmp_path_factory):
 def test_download_dataset_sqlite(mocker, tmp_path):
 
     # Create a temporary sqlite3 db
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=".sqlite3",
-    ) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".sqlite3") as tmp:
         tmp_path_sqlite = tmp.name
 
     conn = sqlite3.connect(tmp_path_sqlite)
@@ -130,7 +127,6 @@ def test_download_dataset_sqlite(mocker, tmp_path):
     mock_response = mocker.Mock()
     mock_response.status_code = 200
     mock_response.content = sqlite_data
-    mock_response.raise_for_status = lambda: None
     mocker.patch("requests.get", return_value=mock_response)
 
     api = API(MockSpecification(), "http://test", "/test/cache-dir")
