@@ -387,9 +387,7 @@ class DatasetParquetPackage(Package):
                     COPY(
                         SELECT * FROM
                     read_parquet('{str(result_dir)}/result_*.parquet')
-                    ) TO
-                    '{output_path}.parquet'(FORMAT
-                    PARQUET);
+                    ) TO '{str(output_path)}' (FORMAT PARQUET);
                 """
                 )
                 logger.info(f"output_path: {output_path}")
