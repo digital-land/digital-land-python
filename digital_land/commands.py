@@ -523,17 +523,23 @@ def dataset_update(
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
     bucket_name=None,
+    dataset_path=None,
 ):
     """
     Updates the current state of the sqlite files being held in S3 with new resources
+    `dataset_path` can be passed in to update a local sqlite file instead of downloading from S3.
     """
-    if not output_path:
-        print("missing output path", file=sys.stderr)
-        sys.exit(2)
-
-    if not bucket_name:
-        print("Missing bucket name to get sqlite files", file=sys.stderr)
-        sys.exit(2)
+    if not dataset_path:
+        if not output_path:
+            print("missing output path", file=sys.stderr)
+            sys.exit(2)
+        if not bucket_name:
+            print("Missing bucket name to get sqlite files", file=sys.stderr)
+            sys.exit(2)
+    else:
+        if not os.path.exists(dataset_path):
+            logging.error(f"Local dataset at {dataset_path} not found")
+            sys.exit(2)
 
     # Set up initial objects
     column_field_dir = Path(column_field_dir)
@@ -541,18 +547,31 @@ def dataset_update(
     organisation = Organisation(
         organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
     )
-    package = DatasetPackage(
-        dataset,
-        organisation=organisation,
-        path=output_path,
-        specification_dir=None,  # TBD: package should use this specification object
-    )
-    # Copy files from S3 and load into tables
-    table_name = dataset
-    object_key = output_path
-    package.load_from_s3(
-        bucket_name=bucket_name, object_key=object_key, table_name=table_name
-    )
+    if not dataset_path:
+        package = DatasetPackage(
+            dataset,
+            organisation=organisation,
+            path=output_path,
+            specification_dir=None,  # TBD: package should use this specification object
+        )
+        # Copy files from S3 and load into tables
+        table_name = dataset
+        object_key = output_path
+        package.load_from_s3(
+            bucket_name=bucket_name, object_key=object_key, table_name=table_name
+        )
+    else:
+        # Reading from local dataset file
+        print(dataset_path)
+        package = DatasetPackage(
+            dataset,
+            organisation=organisation,
+            path=dataset_path,
+            specification_dir=None,  # TBD: package should use this specification object
+        )
+        package.set_up_connection()
+        package.load()
+        package.disconnect()
 
     for path in input_paths:
         path_obj = Path(path)
