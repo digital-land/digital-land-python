@@ -188,7 +188,7 @@ def test_dataset_update_local_new_entity(
         assert fact_resource_row["resource"] == "resource-hash"
 
 
-# Testing dataset update ability to update existing entity values
+# Testing dataset update function to update existing entity values
 def test_dataset_update_local_existing_entity(
     test_dirs, column_field_file, dataset_resource_file, issue_file, organisation_path
 ):
@@ -260,7 +260,7 @@ def test_dataset_update_local_existing_entity(
         dataset_path=updated_dataset_path,
     )
 
-    # Check rows have updated with new facts
+    # Test changes
     with sqlite3.connect(updated_dataset_path) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
