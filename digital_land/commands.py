@@ -562,7 +562,7 @@ def dataset_update(
         )
     else:
         # Reading from local dataset file
-        print(dataset_path)
+        logging.info(f"Reading from local dataset file {dataset_path}")
         package = DatasetPackage(
             dataset,
             organisation=organisation,
