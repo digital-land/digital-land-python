@@ -1,10 +1,9 @@
 import urllib
-import os
 import sqlite3
 import pandas as pd
 import geopandas as gpd
 import shapely.wkt
-
+from pathlib import Path
 
 global FILES_URL
 
@@ -12,22 +11,20 @@ FILES_URL = "https://datasette.planning.data.gov.uk/"
 
 
 def download_dataset(dataset, output_dir_path, overwrite=False):
+    output_dir = Path(output_dir_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     dataset_file_name = f"{dataset}.db"
+    output_file_path = output_dir / dataset_file_name
 
-    if not os.path.exists(output_dir_path):
-        os.makedirs(output_dir_path)
-
-    output_file_path = os.path.join(output_dir_path, dataset_file_name)
-
-    if overwrite is False and os.path.exists(output_file_path):
+    if not overwrite and output_file_path.exists():
         return
 
-    final_url = os.path.join(FILES_URL, dataset_file_name)
+    final_url = f"{FILES_URL}{dataset_file_name}"
     print(f"downloading data from {final_url}")
     print(f"to: {output_file_path}")
-    urllib.request.urlretrieve(
-        final_url, os.path.join(output_dir_path, dataset_file_name)
-    )
+
+    urllib.request.urlretrieve(final_url, output_file_path)
     print("download complete")
 
 
