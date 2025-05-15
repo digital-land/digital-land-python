@@ -31,7 +31,6 @@ from digital_land.commands import (
     organisation_check,
     save_state,
     add_data,
-    generate_provision_quality,
 )
 
 from digital_land.command_arguments import (
@@ -826,8 +825,3 @@ def check_state_cmd(
     if diffs:
         print(f"State differs from {state_path} - {', '.join(diffs)}")
         sys.exit(1)
-
-
-@cli.command("generate-provision-quality")
-def generate_provision_quality_cmd():
-    generate_provision_quality()
