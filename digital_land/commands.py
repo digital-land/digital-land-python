@@ -1731,8 +1731,7 @@ def generate_provision_quality():
     """Generates a provision quality dataset and saves it as a parquet file"""
     td = datetime.today().strftime("%Y-%m-%d")
 
-    specification = Specification("specification/")
-    api = API(specification)
+    api = API()
 
     # Download the performance db using api
     api.download_dataset(
