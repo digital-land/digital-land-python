@@ -1731,13 +1731,18 @@ def generate_provision_quality():
     """Generates a provision quality dataset and saves it as a parquet file"""
     td = datetime.today().strftime("%Y-%m-%d")
 
-    # Create the temporary download directory
-    db_dir = Path("/tmp") / "db_downloads"
-    os.makedirs(db_dir, exist_ok=True)
+    specification = Specification("specification/")
+    api = API(specification)
 
-    # Download the performance db
-    fc.download_dataset("performance", db_dir, overwrite=False)
-    path_perf_db = db_dir / "performance.db"
+    # Download the performance db using api
+    api.download_dataset(
+        "performance",
+        extension=api.Extension.SQLITE3,
+        builder=True,
+        builder_name="digital-land",
+    )
+
+    path_perf_db = Path(api.cache_dir) / "dataset" / "performance.sqlite3"
 
     # Issue quality criteria lookup
     lookup_issue_qual = fc.datasette_query(
