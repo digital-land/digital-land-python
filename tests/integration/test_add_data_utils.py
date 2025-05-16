@@ -1,11 +1,15 @@
 import csv
 from datetime import datetime
 import os
+import shutil
+from unittest.mock import Mock
 import pytest
 
 from digital_land.collection import Collection
+from digital_land.specification import Specification
 from digital_land.utils.add_data_utils import (
     clear_log,
+    download_dataset,
     get_column_field_summary,
     get_entity_summary,
     get_existing_endpoints_summary,
@@ -1037,3 +1041,52 @@ def test_get_existing_endpoints_ended_source_with_no_endpoint(tmp_path):
 
     assert not existing_endpoints_summary
     assert len(existing_sources) == 0
+
+
+def test_download_dataset(tmp_path_factory, mocker):
+    dataset = "dataset-one"
+    specification_dir = "tests/data/specification"
+    specification = Specification(specification_dir)
+    # create temp cache dir
+    cache_dir = tmp_path_factory.mktemp("cache")
+
+    # mock api download url
+    sqlite_file_path = "tests/data/dataset/central-activities-zone.sqlite3"
+    with open(sqlite_file_path, "rb") as f:
+        data = f.read()
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.request.headers = {"test": "test"}
+    mock_response.headers = {"test": "test"}
+    mock_response.content = data
+    mocker.patch("requests.get", return_value=mock_response)
+
+    download_dataset(dataset, specification, cache_dir)
+
+    path = os.path.join(cache_dir, "dataset", f"{dataset}.sqlite3")
+    assert os.path.exists(path)
+
+
+def test_download_dataset_use_cache_dataset(tmp_path_factory, mocker):
+    dataset = "dataset-one"
+    specification_dir = "tests/data/specification"
+    specification = Specification(specification_dir)
+    # create temp cache dir
+    cache_dir = tmp_path_factory.mktemp("cache")
+
+    path = os.path.join(cache_dir, "dataset", f"{dataset}.sqlite3")
+    # put db file in cache dir
+    sqlite_file_path = "tests/data/dataset/central-activities-zone.sqlite3"
+    os.makedirs(os.path.dirname(path))
+    shutil.copy(sqlite_file_path, path)
+
+    # mock user response
+    mocker.patch(
+        "digital_land.utils.add_data_utils.get_user_response", return_value=True
+    )
+    mock_get = mocker.patch("requests.get")
+
+    download_dataset(dataset, specification, cache_dir)
+
+    # assert requests.get was NOT called
+    mock_get.assert_not_called()

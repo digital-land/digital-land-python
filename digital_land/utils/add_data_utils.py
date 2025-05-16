@@ -1,11 +1,14 @@
 import csv
+import json
 import os
 import duckdb
+import sqlite3
 from datetime import datetime
 from urllib.parse import urlparse
 
 import pandas as pd
 
+from digital_land.api import API
 from digital_land.collect import Collector
 from digital_land.pipeline.main import Pipeline
 from digital_land.specification import Specification
@@ -295,3 +298,110 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
             )
 
     return existing_endpoints_summary, retirable_sources
+
+
+def download_dataset(dataset, specification, cache_dir):
+    # Download existing dataset
+    api = API(specification=specification, cache_dir=cache_dir)
+    dataset_path = os.path.join(cache_dir, "dataset", f"{dataset}.sqlite3")
+    # Determine whether to download new copy of dataset or use cached version
+    download = True
+    if os.path.exists(dataset_path):
+        print(f"\nExisting dataset at {dataset_path} detected")
+        if get_user_response(
+            "Do you want to use the existing dataset (otherwise download a fresh version)? (yes/no): "
+        ):
+            download = False
+    if download:
+        print(f"Downloading {dataset}.sqlite3...")
+        api.download_dataset(
+            dataset=dataset,
+            overwrite=True,
+            path=dataset_path,
+            extension=api.Extension.SQLITE3,
+        )
+
+    return dataset_path
+
+
+def get_transformed_entities(dataset_path, transformed_path):
+    entities = pd.read_csv(transformed_path)["entity"].unique().tolist()
+    entity_list_str = ", ".join(str(e) for e in entities)
+    sql = f"SELECT * FROM entity WHERE entity IN ({entity_list_str})"
+
+    with sqlite3.connect(dataset_path) as conn:
+        entities_df = pd.read_sql_query(sql, conn)
+
+    return entities_df
+
+
+def normalize_json(val):
+    try:
+        return json.dumps(json.loads(val), sort_keys=True)
+    except Exception:
+        return val  # if failure to pass just return string
+
+
+def get_updated_entities_summary(original_entity_df, updated_entity_df):
+    """
+    This will return a summary of the differences between two dataframes of the same entities
+    """
+    original_entity_df = original_entity_df.set_index("entity").sort_index()
+    updated_entity_df = updated_entity_df.set_index("entity").sort_index()
+
+    # filter out newly added entities, store them in a separate df
+    new_entities_df = updated_entity_df.loc[
+        ~updated_entity_df.index.isin(original_entity_df.index)
+    ]
+    updated_entity_df = updated_entity_df.loc[
+        updated_entity_df.index.isin(original_entity_df.index)
+    ]
+
+    # the json column can get reordered in the update dataset process
+    # load json into dict and sort keys to ensure comparison is correct
+    if "json" in original_entity_df.columns:
+        original_entity_df["json"] = original_entity_df["json"].apply(normalize_json)
+        updated_entity_df["json"] = updated_entity_df["json"].apply(normalize_json)
+        new_entities_df["json"] = new_entities_df["json"].apply(normalize_json)
+
+    # assuming order and entity numbers are the same
+    diff_mask = original_entity_df != updated_entity_df
+
+    # find differences
+    diffs = []
+    for entity, row in diff_mask.iterrows():
+        for col in row.index[row]:
+            diffs.append(
+                {
+                    "entity": entity,
+                    "field": col,
+                    "original_value": original_entity_df.at[entity, col],
+                    "updated_value": updated_entity_df.at[entity, col],
+                }
+            )
+
+    # find diffs for new entities
+    for entity, row in new_entities_df.iterrows():
+        for col, val in row.items():
+            diffs.append(
+                {
+                    "entity": entity,
+                    "field": col,
+                    "original_value": None,
+                    "updated_value": val,
+                    "new_entity": True,
+                }
+            )
+
+    if diffs:
+        diffs_df = pd.DataFrame(diffs)
+        grouped_diffs = diffs_df.groupby("entity")["field"].apply(list).reset_index()
+        print("\nChanged fields by entity:")
+        for _, row in grouped_diffs.iterrows():
+            print(f"Entity: {row['entity']}, Fields changed: {', '.join(row['field'])}")
+        output_path = "diffs.csv"
+        diffs_df.to_csv("diffs.csv")
+        print(f"\nDetailed breakdown found in file: {output_path}")
+    else:
+        print("no diffs")
+    return diffs
