@@ -381,8 +381,6 @@ def pipeline_run(
     # duplicate check and stop messages appearing in issues about reference values not being unique
     if combine_fields == {}:
         issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
-    else:
-        print(f"output_path: {output_path}")
 
     issue_log.apply_entity_map()
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
