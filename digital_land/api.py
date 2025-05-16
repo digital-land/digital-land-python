@@ -14,7 +14,7 @@ DEFAULT_URL = "https://files.planning.data.gov.uk"
 class API:
     def __init__(
         self,
-        specification: Specification,
+        specification: Specification = None,
         url: str = DEFAULT_URL,
         cache_dir: str = "var/cache",
     ):
@@ -66,6 +66,8 @@ class API:
                     raise ValueError("Builder name must be provided when builder=True")
                 url = f"{self.url}/{builder_name}-builder/dataset/{dataset}.sqlite3"
             else:
+                if self.specification is None:
+                    raise ValueError("Specification must be provided")
                 collection = self.specification.dataset[dataset]["collection"]
                 url = f"{self.url}/{collection}-collection/dataset/{dataset}.sqlite3"
             mode = "wb"
