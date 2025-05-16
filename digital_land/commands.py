@@ -259,8 +259,6 @@ def pipeline_run(
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
     redirect_lookups = pipeline.redirect_lookups()
 
-    print(f"combine_fields: {combine_fields}")
-
     # load config db
     # TODO get more information from the config
     # TODO in future we need better way of making specification optional for config
@@ -383,6 +381,8 @@ def pipeline_run(
     # duplicate check and stop messages appearing in issues about reference values not being unique
     if combine_fields == {}:
         issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
+    else:
+        print(f"output_path: {output_path}")
 
     issue_log.apply_entity_map()
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
