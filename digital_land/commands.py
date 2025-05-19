@@ -376,7 +376,11 @@ def pipeline_run(
         ),
     )
 
-    issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
+    # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
+    # If we have done this then we will not call duplicate_reference_check as we have already carried out a
+    # duplicate check and stop messages appearing in issues about reference values not being unique
+    if combine_fields == {}:
+        issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.apply_entity_map()
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
