@@ -335,17 +335,23 @@ def get_transformed_entities(dataset_path, transformed_path):
     return entities_df
 
 
-def normalize_json(val):
+def normalise_json(val):
+    # This function accepts a stringified json
+    # It returns a sorted stringified json of the input
     try:
         return json.dumps(json.loads(val), sort_keys=True)
     except Exception:
-        return val  # if failure to pass just return string
+        return val  # if failure to pass just return original string
 
 
 def get_updated_entities_summary(original_entity_df, updated_entity_df):
     """
     This will return a summary of the differences between two dataframes of the same entities
     """
+    # replace None/nan with "" for consistent comparison
+    original_entity_df = original_entity_df.fillna("")
+    updated_entity_df = updated_entity_df.fillna("")
+
     original_entity_df = original_entity_df.set_index("entity").sort_index()
     updated_entity_df = updated_entity_df.set_index("entity").sort_index()
 
@@ -360,9 +366,9 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
     # the json column can get reordered in the update dataset process
     # load json into dict and sort keys to ensure comparison is correct
     if "json" in original_entity_df.columns:
-        original_entity_df["json"] = original_entity_df["json"].apply(normalize_json)
-        updated_entity_df["json"] = updated_entity_df["json"].apply(normalize_json)
-        new_entities_df["json"] = new_entities_df["json"].apply(normalize_json)
+        original_entity_df["json"] = original_entity_df["json"].apply(normalise_json)
+        updated_entity_df["json"] = updated_entity_df["json"].apply(normalise_json)
+        new_entities_df["json"] = new_entities_df["json"].apply(normalise_json)
 
     # assuming order and entity numbers are the same
     diff_mask = original_entity_df != updated_entity_df
@@ -377,10 +383,11 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
                     "field": col,
                     "original_value": original_entity_df.at[entity, col],
                     "updated_value": updated_entity_df.at[entity, col],
+                    "new_entity": False,
                 }
             )
 
-    # find diffs for new entities
+    # add diffs for new entities
     for entity, row in new_entities_df.iterrows():
         for col, val in row.items():
             diffs.append(
@@ -392,16 +399,16 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
                     "new_entity": True,
                 }
             )
-
+    updated_entities_summary = ""
     if diffs:
         diffs_df = pd.DataFrame(diffs)
         grouped_diffs = diffs_df.groupby("entity")["field"].apply(list).reset_index()
-        print("\nChanged fields by entity:")
+        updated_entities_summary += "\nChanged fields by entity:\n"
         for _, row in grouped_diffs.iterrows():
-            print(f"Entity: {row['entity']}, Fields changed: {', '.join(row['field'])}")
-        output_path = "diffs.csv"
-        diffs_df.to_csv("diffs.csv")
-        print(f"\nDetailed breakdown found in file: {output_path}")
+            updated_entities_summary += (
+                f"\nEntity: {row['entity']}, Fields changed: {', '.join(row['field'])}"
+            )
+        return updated_entities_summary, diffs_df
     else:
-        print("no diffs")
-    return diffs
+        updated_entities_summary += "\nNo differences found in updated dataset"
+        return updated_entities_summary, None

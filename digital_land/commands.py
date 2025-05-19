@@ -1166,7 +1166,13 @@ def add_data(
                 dataset_path=dataset_path,
             )
             updated_entities = get_transformed_entities(dataset_path, output_path)
-            get_updated_entities_summary(original_entities, updated_entities)
+            updated_entities_summary, diffs_df = get_updated_entities_summary(
+                original_entities, updated_entities
+            )
+            print(updated_entities_summary)
+            if diffs_df:
+                diffs_df.to_csv(add_data_cache_dir / "diffs.csv")
+                print(f"\nDetailed breakdown found in file: {output_path}")
 
 
 def add_endpoints_and_lookups(

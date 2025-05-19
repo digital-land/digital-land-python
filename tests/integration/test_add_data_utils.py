@@ -2,7 +2,9 @@ import csv
 from datetime import datetime
 import os
 import shutil
+import tempfile
 from unittest.mock import Mock
+import pandas as pd
 import pytest
 
 from digital_land.collection import Collection
@@ -14,6 +16,8 @@ from digital_land.utils.add_data_utils import (
     get_entity_summary,
     get_existing_endpoints_summary,
     get_issue_summary,
+    get_transformed_entities,
+    get_updated_entities_summary,
 )
 
 
@@ -1090,3 +1094,239 @@ def test_download_dataset_use_cache_dataset(tmp_path_factory, mocker):
 
     # assert requests.get was NOT called
     mock_get.assert_not_called()
+
+
+def test_get_transformed_entities():
+    output_path = tempfile.NamedTemporaryFile().name
+    dataset_path = "tests/data/dataset/central-activities-zone.sqlite3"
+
+    transformed_headers = [
+        "end-date",
+        "entity",
+        "entry-date",
+        "entry-number",
+        "fact",
+        "field",
+        "priority",
+        "reference-entity",
+        "resource",
+        "start-date",
+        "value",
+    ]
+    transformed_rows = [
+        {
+            "end-date": "",
+            "entity": 2200001,
+            "entry-date": "",
+            "entry-number": 1,
+            "fact": "fact1",
+            "field": "field1",
+            "priority": "",
+            "reference-entity": "",
+            "resource": "resource",
+            "start-date": "",
+            "value": "value1",
+        },
+        {
+            "end-date": "",
+            "entity": 2200002,
+            "entry-date": "",
+            "entry-number": 2,
+            "fact": "fact2",
+            "field": "field1",
+            "priority": "",
+            "reference-entity": "",
+            "resource": "resource",
+            "start-date": "",
+            "value": "value1",
+        },
+    ]
+    with open(output_path, "w") as f:
+        writer = csv.DictWriter(f, fieldnames=transformed_headers)
+        writer.writeheader()
+        writer.writerows(transformed_rows)
+
+    entities = get_transformed_entities(dataset_path, output_path)
+
+    assert len(entities) == 2
+    assert entities.iloc[0]["entity"] == 2200001
+    assert entities.iloc[0]["reference"] == "CAZ00000001"
+    assert entities.iloc[1]["entity"] == 2200001
+    assert entities.iloc[1]["reference"] == "CAZ00000001"
+
+
+def test_get_updated_entities_summary_new_entity():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            },
+            {
+                "end-date": "",
+                "entity": 2200002,
+                "dataset": "",
+                "json": "json",
+                "name": "name2",
+                "reference": "ref2",
+            },
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert len(diffs_df) == 5
+    assert "end-date" in diffs_df["field"].values
+    assert "dataset" in diffs_df["field"].values
+    assert "name" in diffs_df["field"].values
+    assert "reference" in diffs_df["field"].values
+    assert "json" in diffs_df["field"].values
+
+    assert "original_value" in diffs_df.columns
+    assert all(not value for value in diffs_df["original_value"].values)
+
+    assert "updated_value" in diffs_df.columns
+    assert diffs_df[diffs_df["field"] == "name"]["updated_value"].values[0] == "name2"
+
+    assert all(value for value in diffs_df["new_entity"].values)
+
+    assert (
+        "Entity: 2200002, Fields changed: end-date, dataset, json, name, reference"
+        in updated_entities_summary
+    )
+    assert "Entity: 2200001" not in updated_entities_summary
+
+
+def test_get_updated_entities_summary_updated_entity():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "updated end date",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "updated name",
+                "reference": "ref1",
+            }
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert len(diffs_df) == 2
+
+    assert diffs_df[diffs_df["field"] == "name"]["original_value"].values[0] == "name1"
+    assert (
+        diffs_df[diffs_df["field"] == "name"]["updated_value"].values[0]
+        == "updated name"
+    )
+
+    assert diffs_df[diffs_df["field"] == "end-date"]["original_value"].values[0] == ""
+    assert (
+        diffs_df[diffs_df["field"] == "end-date"]["updated_value"].values[0]
+        == "updated end date"
+    )
+
+    assert not all(value == "" for value in diffs_df["new_entity"].values)
+
+    assert "Entity: 2200001, Fields changed: end-date, name" in updated_entities_summary
+
+
+def test_get_updated_entities_summary_no_updates():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert "No differences found in updated dataset" in updated_entities_summary
+    assert not diffs_df
+
+
+def test_get_updated_entities_summary_updated_entity_none_agnostic():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": None,
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": None,
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "",
+                "reference": "ref1",
+            }
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert "No differences found in updated dataset" in updated_entities_summary
+    assert not diffs_df
