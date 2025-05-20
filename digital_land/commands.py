@@ -1151,8 +1151,9 @@ def add_data(
         print("Update dataset")
         print("======================================================================")
         if get_user_response(
-            f"""\nDo you want to view an updated {dataset} dataset with the newly added data? \nNote this requires
-            downloading the dataset if not already done so - for some datasets this can take a while \n\n(yes/no): """
+            f"""\nDo you want to view an updated {dataset} dataset with the newly added data?
+            \nNote this requires downloading the dataset if not already done so -
+            for some datasets this can take a while \n\n(yes/no): """
         ):
             dataset_path = download_dataset(dataset, specification, cache_dir)
             original_entities = get_transformed_entities(dataset_path, output_path)
