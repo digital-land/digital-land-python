@@ -1277,7 +1277,6 @@ def test_get_updated_entities_summary_no_updates():
             }
         ]
     )
-
     updated_entity_df = pd.DataFrame.from_records(
         [
             {
