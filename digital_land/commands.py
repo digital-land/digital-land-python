@@ -1171,8 +1171,15 @@ def add_data(
             )
             print(updated_entities_summary)
             if diffs_df is not None:
-                diffs_df.to_csv(add_data_cache_dir / "diffs.csv")
-                print(f"\nDetailed breakdown found in file: {output_path}")
+                diffs_path = (
+                    add_data_cache_dir
+                    / dataset
+                    / "diffs"
+                    / f"{endpoint_resource_info['resource']}.csv"
+                )
+                os.makedirs(os.path.dirname(diffs_path))
+                diffs_df.to_csv(diffs_path)
+                print(f"\nDetailed breakdown found in file: {diffs_path}")
 
 
 def add_endpoints_and_lookups(

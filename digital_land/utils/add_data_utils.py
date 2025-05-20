@@ -370,37 +370,45 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
         updated_entity_df["json"] = updated_entity_df["json"].apply(normalise_json)
         new_entities_df["json"] = new_entities_df["json"].apply(normalise_json)
 
-    # assuming order and entity numbers are the same
-    diff_mask = original_entity_df != updated_entity_df
-
     # find differences
-    diffs = []
-    for entity, row in diff_mask.iterrows():
-        for col in row.index[row]:
-            diffs.append(
-                {
-                    "entity": entity,
-                    "field": col,
-                    "original_value": original_entity_df.at[entity, col],
-                    "updated_value": updated_entity_df.at[entity, col],
-                    "new_entity": False,
-                }
-            )
+    mask = ~(
+        (original_entity_df == updated_entity_df)
+        | (original_entity_df.isna() & updated_entity_df.isna())
+    )
+    diff_positions = mask.stack()
+    # dataframe of which values have changed.
+    changed = diff_positions[diff_positions]
+    diffs = pd.DataFrame(
+        {
+            "entity": changed.index.get_level_values(0),
+            "field": changed.index.get_level_values(1),
+            "original_value": original_entity_df.stack()[changed.index],
+            "updated_value": updated_entity_df.stack()[changed.index],
+            "new_entity": False,
+        }
+    ).reset_index(drop=True)
 
     # add diffs for new entities
     for entity, row in new_entities_df.iterrows():
         for col, val in row.items():
-            diffs.append(
-                {
-                    "entity": entity,
-                    "field": col,
-                    "original_value": None,
-                    "updated_value": val,
-                    "new_entity": True,
-                }
+            diffs = pd.concat(
+                [
+                    diffs,
+                    pd.DataFrame(
+                        [
+                            {
+                                "entity": entity,
+                                "field": col,
+                                "original_value": None,
+                                "updated_value": val,
+                                "new_entity": True,
+                            }
+                        ]
+                    ),
+                ]
             )
     updated_entities_summary = ""
-    if diffs:
+    if len(diffs) > 0:
         diffs_df = pd.DataFrame(diffs)
         grouped_diffs = diffs_df.groupby("entity")["field"].apply(list).reset_index()
         updated_entities_summary += "\nChanged fields by entity:\n"

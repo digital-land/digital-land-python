@@ -1151,8 +1151,8 @@ def test_get_transformed_entities():
     assert len(entities) == 2
     assert entities.iloc[0]["entity"] == 2200001
     assert entities.iloc[0]["reference"] == "CAZ00000001"
-    assert entities.iloc[1]["entity"] == 2200001
-    assert entities.iloc[1]["reference"] == "CAZ00000001"
+    assert entities.iloc[1]["entity"] == 2200002
+    assert entities.iloc[1]["reference"] == "CAZ00000002"
 
 
 def test_get_updated_entities_summary_new_entity():
