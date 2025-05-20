@@ -1170,7 +1170,7 @@ def add_data(
                 original_entities, updated_entities
             )
             print(updated_entities_summary)
-            if diffs_df:
+            if diffs_df is not None:
                 diffs_df.to_csv(add_data_cache_dir / "diffs.csv")
                 print(f"\nDetailed breakdown found in file: {output_path}")
 
