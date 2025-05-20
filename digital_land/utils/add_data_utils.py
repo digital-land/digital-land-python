@@ -325,6 +325,10 @@ def download_dataset(dataset, specification, cache_dir):
 
 
 def get_transformed_entities(dataset_path, transformed_path):
+    """
+    Returns a Dataframe of entities from a dataset.
+    It returns entities that have facts in the transformed file at `transformed_path`
+    """
     entities = pd.read_csv(transformed_path)["entity"].unique().tolist()
     entity_list_str = ", ".join(str(e) for e in entities)
     sql = f"SELECT * FROM entity WHERE entity IN ({entity_list_str})"
@@ -336,6 +340,9 @@ def get_transformed_entities(dataset_path, transformed_path):
 
 
 def normalise_json(val):
+    """
+    Returns a sorted stringified json
+    """
     # This function accepts a stringified json
     # It returns a sorted stringified json of the input
     try:
