@@ -1,11 +1,14 @@
 import csv
+import json
 import os
 import duckdb
+import sqlite3
 from datetime import datetime
 from urllib.parse import urlparse
 
 import pandas as pd
 
+from digital_land.api import API
 from digital_land.collect import Collector
 from digital_land.pipeline.main import Pipeline
 from digital_land.specification import Specification
@@ -295,3 +298,128 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
             )
 
     return existing_endpoints_summary, retirable_sources
+
+
+def download_dataset(dataset, specification, cache_dir):
+    # Download existing dataset
+    api = API(specification=specification, cache_dir=cache_dir)
+    dataset_path = os.path.join(cache_dir, "dataset", f"{dataset}.sqlite3")
+    # Determine whether to download new copy of dataset or use cached version
+    download = True
+    if os.path.exists(dataset_path):
+        print(f"\nExisting dataset at {dataset_path} detected")
+        if get_user_response(
+            "Do you want to use the existing dataset (otherwise download a fresh version)? (yes/no): "
+        ):
+            download = False
+    if download:
+        print(f"Downloading {dataset}.sqlite3...")
+        api.download_dataset(
+            dataset=dataset,
+            overwrite=True,
+            path=dataset_path,
+            extension=api.Extension.SQLITE3,
+        )
+
+    return dataset_path
+
+
+def get_transformed_entities(dataset_path, transformed_path):
+    """
+    Returns a Dataframe of entities from a dataset.
+    It returns entities that have facts in the transformed file at `transformed_path`
+    """
+    entities = pd.read_csv(transformed_path)["entity"].unique().tolist()
+    entity_list_str = ", ".join(str(e) for e in entities)
+    sql = f"SELECT * FROM entity WHERE entity IN ({entity_list_str})"
+
+    with sqlite3.connect(dataset_path) as conn:
+        entities_df = pd.read_sql_query(sql, conn)
+
+    return entities_df
+
+
+def normalise_json(val):
+    """
+    Returns a sorted stringified json
+    """
+    # This function accepts a stringified json
+    # It returns a sorted stringified json of the input
+    try:
+        return json.dumps(json.loads(val), sort_keys=True)
+    except Exception:
+        return val  # if failure to pass just return original string
+
+
+def get_updated_entities_summary(original_entity_df, updated_entity_df):
+    """
+    This will return a summary of the differences between two dataframes of the same entities
+    """
+    # replace None/nan with "" for consistent comparison
+    original_entity_df = original_entity_df.fillna("")
+    updated_entity_df = updated_entity_df.fillna("")
+
+    original_entity_df = original_entity_df.set_index("entity").sort_index()
+    updated_entity_df = updated_entity_df.set_index("entity").sort_index()
+
+    # filter out newly added entities, store them in a separate df
+    new_entities_df = updated_entity_df.loc[
+        ~updated_entity_df.index.isin(original_entity_df.index)
+    ]
+    updated_entity_df = updated_entity_df.loc[
+        updated_entity_df.index.isin(original_entity_df.index)
+    ]
+
+    # the json column can get reordered in the update dataset process
+    # load json into dict and sort keys to ensure comparison is correct
+    if "json" in original_entity_df.columns:
+        original_entity_df["json"] = original_entity_df["json"].apply(normalise_json)
+        updated_entity_df["json"] = updated_entity_df["json"].apply(normalise_json)
+        new_entities_df["json"] = new_entities_df["json"].apply(normalise_json)
+
+    # find differences
+    mask = ~(
+        (original_entity_df == updated_entity_df)
+        | (original_entity_df.isna() & updated_entity_df.isna())
+    )
+    diff_positions = mask.stack()
+    # dataframe of which values have changed.
+    changed = diff_positions[diff_positions]
+    diffs = pd.DataFrame(
+        {
+            "entity": changed.index.get_level_values(0),
+            "field": changed.index.get_level_values(1),
+            "original_value": original_entity_df.stack()[changed.index],
+            "updated_value": updated_entity_df.stack()[changed.index],
+            "new_entity": False,
+        }
+    ).reset_index(drop=True)
+
+    # add diffs for new entities
+    if not new_entities_df.empty:
+        new_diffs = new_entities_df.reset_index().melt(
+            id_vars=["entity"], var_name="field", value_name="updated_value"
+        )
+        new_diffs["original_value"] = None
+        new_diffs["new_entity"] = True
+        # Reorder columns to match
+        new_diffs = new_diffs[
+            ["entity", "field", "original_value", "updated_value", "new_entity"]
+        ]
+
+        # Concatenate with existing diffs
+        diffs = pd.concat([diffs, new_diffs], ignore_index=True)
+
+    updated_entities_summary = ""
+    if len(diffs) > 0:
+        diffs_df = pd.DataFrame(diffs)
+        grouped_diffs = diffs_df.groupby("entity")["field"].apply(list).reset_index()
+        updated_entities_summary += "\nChanged fields by entity:\n"
+        for _, row in grouped_diffs.iterrows():
+            updated_entities_summary += (
+                f"\nEntity: {row['entity']}, Fields changed: {', '.join(row['field'])}"
+            )
+        return updated_entities_summary, diffs_df
+    else:
+        updated_entities_summary += "\nNo differences found in updated dataset"
+        return updated_entities_summary, None

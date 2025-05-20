@@ -1,5 +1,5 @@
-dataset,name,text,typology,prefix
-dataset-one,"First Dataset","Text of first dataset",,
+dataset,name,text,typology,prefix,collection
+dataset-one,"First Dataset","Text of first dataset",,,collection-one
 dataset-two,"Second Dataset","Text of first dataset",,
 dataset-three,"Third Dataset","Text of third dataset",,
 tree-preservation-zone-type,"Types of zone covered by the tree preservation order","Tree preservation zone type",category,

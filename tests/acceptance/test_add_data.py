@@ -1,9 +1,11 @@
 import csv
 from datetime import datetime
 import os
+from pathlib import Path
+import shutil
 import tempfile
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from click.testing import CliRunner
 import pandas as pd
 import pytest
@@ -152,6 +154,19 @@ def mock_request_get_no_reference(mocker):
     )
 
 
+@pytest.fixture
+def mock_download_dataset():
+    original_dataset_path = Path("tests/data/dataset/central-activities-zone.sqlite3")
+    updated_dataset_path = tempfile.NamedTemporaryFile(suffix=".sqlite3").name
+    # copy so we can update a version to compare to original
+    shutil.copy(original_dataset_path, updated_dataset_path)
+    with patch(
+        "digital_land.commands.download_dataset",
+        return_value=Path(updated_dataset_path),
+    ) as mock:
+        yield mock
+
+
 def create_input_csv(
     data,
     fieldnames=[
@@ -181,6 +196,7 @@ def test_cli_add_data(
     cache_dir,
     organisation_csv,
     mock_request_get,
+    mock_download_dataset,
     monkeypatch,
 ):
     no_error_input_data = {
@@ -243,6 +259,7 @@ def test_cli_add_data_incorrect_input_data(
     pipeline_dir,
     organisation_csv,
     mock_request_get,
+    mock_download_dataset,
     cache_dir,
 ):
     incorrect_input_data = {
@@ -287,6 +304,7 @@ def test_cli_add_data_consecutive_runs(
     pipeline_dir,
     organisation_csv,
     mock_request_get,
+    mock_download_dataset,
     monkeypatch,
     cache_dir,
 ):
@@ -365,6 +383,7 @@ def test_cli_add_data_pipeline_fail(
     cache_dir,
     organisation_csv,
     mock_request_get,
+    mock_download_dataset,
     monkeypatch,
 ):
     no_error_input_data = {
@@ -417,6 +436,7 @@ def test_cli_add_data_remaining_unassigned_entities(
     cache_dir,
     organisation_csv,
     mock_request_get_no_reference,
+    mock_download_dataset,
     monkeypatch,
 ):
     no_error_input_data = {
@@ -464,6 +484,7 @@ def test_cli_add_data_old_endpoints_retired(
     cache_dir,
     organisation_csv,
     mock_request_get,
+    mock_download_dataset,
     monkeypatch,
 ):
     no_error_input_data = {
@@ -552,3 +573,61 @@ def test_cli_add_data_old_endpoints_retired(
 
     source_df = pd.read_csv(os.path.join(collection_dir, "source.csv"))
     assert source_df["end-date"].values[0] == datetime.utcnow().isoformat()[:10]
+
+
+# Add acceptance test
+# @patch("digital_land.commands.API.download_dataset", return_value=Path("tests/data/dataset/central-activities-zone.sqlite3"))
+def test_cli_add_data_update_dataset(
+    collection_dir,
+    specification_dir,
+    pipeline_dir,
+    cache_dir,
+    organisation_csv,
+    mock_request_get,
+    mock_download_dataset,
+    monkeypatch,
+):
+    no_error_input_data = {
+        "organisation": "local-authority:SST",
+        "documentation-url": "https://www.sstaffs.gov.uk/planning/conservation-and-heritage/south-staffordshires-conservation-areas",
+        "endpoint-url": "https://www.sstaffs.gov.uk/sites/default/files/2024-11/South Staffs Conservation Area document dataset_1.csv",
+        "start-date": "",
+        "pipelines": "conservation-area",
+        "plugin": "",
+        "licence": "ogl3",
+    }
+    csv_path = create_input_csv(no_error_input_data)
+
+    # Mock in user input
+    monkeypatch.setattr("builtins.input", lambda _: "yes")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "add-data",
+            csv_path,
+            "conservation-area",
+            "--collection-dir",
+            str(collection_dir),
+            "--specification-dir",
+            str(specification_dir),
+            "--pipeline-dir",
+            str(pipeline_dir),
+            "--organisation-path",
+            str(organisation_csv),
+            "--cache-dir",
+            str(cache_dir),
+        ],
+    )
+    if result.exit_code != 0:
+        # Print the command output if the test fails, gives more detail on what's gone wrong
+        print("Command failed with exit code:", result.exit_code)
+        print("Command output:")
+        print(result.output)
+        print("Command error output:")
+        print(result.exception)
+
+    assert result.exit_code == 0
+    print("result std out", result.stdout)
+    assert "Entity: 44000000, Fields changed:" in result.stdout

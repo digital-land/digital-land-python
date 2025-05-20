@@ -65,10 +65,13 @@ from digital_land.api import API
 from digital_land.state import State
 from digital_land.utils.add_data_utils import (
     clear_log,
+    download_dataset,
     get_column_field_summary,
+    get_transformed_entities,
     get_entity_summary,
     get_existing_endpoints_summary,
     get_issue_summary,
+    get_updated_entities_summary,
     is_date_valid,
     is_url_valid,
     get_user_response,
@@ -932,38 +935,42 @@ def add_data(
 
     add_data_cache_dir = cache_dir / "add_data"
 
-    output_path = (
-        add_data_cache_dir
-        / "transformed/"
-        / (endpoint_resource_info["resource"] + ".csv")
-    )
-
-    issue_dir = add_data_cache_dir / "issue/"
-    column_field_dir = add_data_cache_dir / "column_field/"
-    dataset_resource_dir = add_data_cache_dir / "dataset_resource/"
-    converted_resource_dir = add_data_cache_dir / "converted_resource/"
-    converted_dir = add_data_cache_dir / "converted/"
-    output_log_dir = add_data_cache_dir / "log/"
-    operational_issue_dir = add_data_cache_dir / "performance/ " / "operational_issue/"
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    issue_dir.mkdir(parents=True, exist_ok=True)
-    column_field_dir.mkdir(parents=True, exist_ok=True)
-    dataset_resource_dir.mkdir(parents=True, exist_ok=True)
-    converted_resource_dir.mkdir(parents=True, exist_ok=True)
-    converted_dir.mkdir(parents=True, exist_ok=True)
-    output_log_dir.mkdir(parents=True, exist_ok=True)
-    operational_issue_dir.mkdir(parents=True, exist_ok=True)
-
     collection.load_log_items()
     for dataset in endpoint_resource_info["pipelines"]:
+        pipeline = Pipeline(pipeline_dir, dataset)
+        specification = Specification(specification_dir)
+
+        issue_dir = add_data_cache_dir / "issue/" / dataset
+        column_field_dir = add_data_cache_dir / "column_field/" / dataset
+        dataset_resource_dir = add_data_cache_dir / "dataset_resource/" / dataset
+        converted_resource_dir = add_data_cache_dir / "converted_resource/"
+        converted_dir = add_data_cache_dir / "converted/"
+        output_log_dir = add_data_cache_dir / "log/"
+        operational_issue_dir = (
+            add_data_cache_dir / "performance/ " / "operational_issue/"
+        )
+        output_path = (
+            add_data_cache_dir
+            / "transformed/"
+            / dataset
+            / (endpoint_resource_info["resource"] + ".csv")
+        )
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        issue_dir.mkdir(parents=True, exist_ok=True)
+        column_field_dir.mkdir(parents=True, exist_ok=True)
+        dataset_resource_dir.mkdir(parents=True, exist_ok=True)
+        converted_resource_dir.mkdir(parents=True, exist_ok=True)
+        converted_dir.mkdir(parents=True, exist_ok=True)
+        output_log_dir.mkdir(parents=True, exist_ok=True)
+        operational_issue_dir.mkdir(parents=True, exist_ok=True)
         print("======================================================================")
         print("Run pipeline")
         print("======================================================================")
         try:
             pipeline_run(
                 dataset,
-                Pipeline(pipeline_dir, dataset),
+                pipeline,
                 Specification(specification_dir),
                 endpoint_resource_info["resource_path"],
                 output_path=output_path,
@@ -1113,6 +1120,11 @@ def add_data(
             shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
 
         # Now check for existing endpoints for this provision/organisation
+        print(
+            "\n======================================================================"
+        )
+        print("Retire old endpoints/sources")
+        print("======================================================================")
         existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
             endpoint_resource_info, collection, dataset
         )
@@ -1131,6 +1143,48 @@ def add_data(
                     collection.retire_endpoints_and_sources(
                         pd.DataFrame.from_records(sources_to_retire)
                     )
+
+        # Update dataset and view newly updated dataset
+        print(
+            "\n======================================================================"
+        )
+        print("Update dataset")
+        print("======================================================================")
+        if get_user_response(
+            f"""\nDo you want to view an updated {dataset} dataset with the newly added data?
+            \nNote this requires downloading the dataset if not already done so -
+            for some datasets this can take a while \n\n(yes/no): """
+        ):
+            dataset_path = download_dataset(dataset, specification, cache_dir)
+            original_entities = get_transformed_entities(dataset_path, output_path)
+            print(f"Updating {dataset}.sqlite3 with new data...")
+            dataset_update(
+                input_paths=[output_path],
+                output_path=None,
+                organisation_path=organisation_path,
+                pipeline=pipeline,
+                dataset=dataset,
+                specification=specification,
+                issue_dir=os.path.split(issue_dir)[0],
+                column_field_dir=os.path.split(column_field_dir)[0],
+                dataset_resource_dir=os.path.split(dataset_resource_dir)[0],
+                dataset_path=dataset_path,
+            )
+            updated_entities = get_transformed_entities(dataset_path, output_path)
+            updated_entities_summary, diffs_df = get_updated_entities_summary(
+                original_entities, updated_entities
+            )
+            print(updated_entities_summary)
+            if diffs_df is not None:
+                diffs_path = (
+                    add_data_cache_dir
+                    / dataset
+                    / "diffs"
+                    / f"{endpoint_resource_info['resource']}.csv"
+                )
+                os.makedirs(os.path.dirname(diffs_path))
+                diffs_df.to_csv(diffs_path)
+                print(f"\nDetailed breakdown found in file: {diffs_path}")
 
 
 def add_endpoints_and_lookups(
