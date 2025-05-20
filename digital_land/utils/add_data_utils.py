@@ -389,24 +389,20 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
     ).reset_index(drop=True)
 
     # add diffs for new entities
-    for entity, row in new_entities_df.iterrows():
-        for col, val in row.items():
-            diffs = pd.concat(
-                [
-                    diffs,
-                    pd.DataFrame(
-                        [
-                            {
-                                "entity": entity,
-                                "field": col,
-                                "original_value": None,
-                                "updated_value": val,
-                                "new_entity": True,
-                            }
-                        ]
-                    ),
-                ]
-            )
+    if not new_entities_df.empty:
+        new_diffs = new_entities_df.reset_index().melt(
+            id_vars=["entity"], var_name="field", value_name="updated_value"
+        )
+        new_diffs["original_value"] = None
+        new_diffs["new_entity"] = True
+        # Reorder columns to match
+        new_diffs = new_diffs[
+            ["entity", "field", "original_value", "updated_value", "new_entity"]
+        ]
+
+        # Concatenate with existing diffs
+        diffs = pd.concat([diffs, new_diffs], ignore_index=True)
+
     updated_entities_summary = ""
     if len(diffs) > 0:
         diffs_df = pd.DataFrame(diffs)
