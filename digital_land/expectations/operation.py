@@ -238,7 +238,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
     """
     # Assuming spatialite connection so we don't have to install spatialite
 
-    if spatial_field != "geometry" or spatial_field != "point":
+    if spatial_field != "geometry" and spatial_field != "point":
         raise Exception(
             f"Spatial field for duplicate geometry check must be 'point' or 'geometry', not '{spatial_field}'"  # if we let people pass in spatial field this is required
         )
