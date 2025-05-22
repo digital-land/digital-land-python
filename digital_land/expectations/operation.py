@@ -318,7 +318,7 @@ def duplicate_geometry_check(conn, dataset: str):
                     ELSE 'undefined' END as intersection_type,
                     row_number() OVER (PARTITION BY entity_join_key ORDER BY pct_comb_overlap) as key_count
                 FROM calc
-                WHERE pct_overlap_a > 0.9 OR pct_overlap_b > 0.9
+                WHERE pct_overlap_a > 0.9 OR pct_overlap_b > 0.9 -- should this use MATCH_THRESHOLD?
                 ORDER BY entity_join_key
                 )
 
@@ -344,14 +344,16 @@ def duplicate_geometry_check(conn, dataset: str):
     conn.row_factory = sqlite3.Row
     rows = conn.execute(query).fetchall()
 
-    details = [dict(row) for row in rows]
-    if len(details) > 0:
+    rows = [dict(row) for row in rows]
+    if len(rows) > 0:
         result = False
         message = (
-            f"There are {len(details)} duplicate geometries/points in dataset {dataset}"
+            f"There are {len(rows)} duplicate geometries/points in dataset {dataset}"
         )
     else:
         result = True
         message = f"There are no duplicate geometries/points in dataset {dataset}"
+
+    details = {"actual": len(rows), "expected": 0, "entities": rows}
 
     return result, message, details
