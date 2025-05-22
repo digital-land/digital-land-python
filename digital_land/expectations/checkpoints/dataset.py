@@ -100,7 +100,9 @@ class DatasetCheckpoint(BaseCheckpoint):
             expectation["responsibility"] = rule.get("responsibility", "")
 
             # params are different it's read in from a json, onlly format the values
-            expectation["parameters"] = rule["parameters"]
+            expectation["parameters"] = json.loads(
+                rule["parameters"]
+            )  # this loads params as a string, should it be json?
 
         return expectation
 
