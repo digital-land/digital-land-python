@@ -255,20 +255,38 @@ def duplicate_geometry_check(conn, dataset: str):
     """
     )
     # Add geometry column with SRID 0 (ie no co-ordinate reference system)
-    conn.execute(
-        "SELECT AddGeometryColumn('entity_spatial', 'geom', 0, 'GEOMETRY', 'XY');"
-    )
-    # Insert data into new table
-    conn.execute(
-        f"""
-        INSERT INTO entity_spatial (entity, reference, organisation_entity, geom)
-        SELECT entity, reference, organisation_entity, ST_GeomFromText({spatial_field}, 0)
-        FROM entity
-        WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
-    """
-    )
-    # Create the spatial index
-    conn.execute("SELECT CreateSpatialIndex('entity_spatial', 'geom');")
+    if spatial_field == "geometry":
+        conn.execute(
+            "SELECT AddGeometryColumn('entity_spatial', 'geom', 0, 'GEOMETRY', 'XY');"
+        )
+        # Insert data into new table
+        conn.execute(
+            f"""
+            INSERT INTO entity_spatial (entity, reference, organisation_entity, geom)
+            SELECT entity, reference, organisation_entity, ST_GeomFromText({spatial_field}, 0)
+            FROM entity
+            WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
+        """
+        )
+        # Create the spatial index
+        conn.execute("SELECT CreateSpatialIndex('entity_spatial', 'geom');")
+    elif spatial_field == "point":
+        conn.execute(
+            "SELECT AddGeometryColumn('entity_spatial', 'point', 0, 'POINT', 'XY');"
+        )
+        # Insert data into new table
+        conn.execute(
+            f"""
+            INSERT INTO entity_spatial (entity, reference, organisation_entity, point)
+            SELECT entity, reference, organisation_entity, ST_PointFromText({spatial_field}, 0)
+            FROM entity
+            WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
+        """
+        )
+    else:
+        raise Exception(
+            "Spatial field for duplicate geometry check must be 'point' or 'geometry'"  # if we let people pass in spatial field this is required
+        )
 
     # Now perform duplicate check using new table
     MATCH_THRESHOLD = 0.95
@@ -313,15 +331,22 @@ def duplicate_geometry_check(conn, dataset: str):
             WHERE key_count = 1
         """
     elif spatial_field == "point":
-        pass
-    else:
-        raise Exception(
-            "Spatial field for duplicate geometry check must be 'point' or 'geometry'"
-        )
+        query = """
+            SELECT
+                a.entity AS entity_a,
+                a.organisation_entity as organisation_entity_a,
+                b.entity AS entity_b,
+                b.organisation_entity as organisation_entity_b,
+                CAST(MIN(a.entity, b.entity) AS TEXT) || '-' || CAST(MAX(a.entity, b.entity) AS TEXT) AS entity_join_key
+            FROM entity_spatial a
+            JOIN entity_spatial b
+                ON ST_Equals(a.point, b.point)
+                AND a.entity <> b.entity
+            GROUP BY entity_join_key;
+        """
 
     conn.row_factory = sqlite3.Row
     rows = conn.execute(query).fetchall()
-    conn.close()
 
     details = [dict(row) for row in rows]
     if len(details) > 0:
@@ -331,6 +356,6 @@ def duplicate_geometry_check(conn, dataset: str):
         )
     else:
         result = True
-        message = f"There are no duplicate point/geometries in dataset {dataset}"
+        message = f"There are no duplicate geometries/points in dataset {dataset}"
 
     return result, message, details

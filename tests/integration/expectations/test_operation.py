@@ -278,9 +278,8 @@ def test_duplicate_geometry_check(dataset_path):
 
     # Now run operation
     result, message, details = duplicate_geometry_check(conn, "dataset")
-    print("result", result)
-    print("message", message)
-    print("details", details)
+    conn.close()
+
     assert not result
     assert message == "There are 3 duplicate geometries/points in dataset dataset"
 
@@ -301,3 +300,76 @@ def test_duplicate_geometry_check(dataset_path):
 
     # entity 4 shouldn't have any duplicates
     assert not any(row["entity_a"] == 4 or row["entity_b"] == 4 for row in details)
+
+
+def test_duplicate_geometry_check_point(dataset_path):
+    # Add overlapping geometries to db
+    with spatialite.connect(dataset_path) as conn:
+        # add dummy data
+        rows = [
+            {
+                "entity": 1,
+                "point": "POINT(1 1)",
+                "organisation_entity": 100,
+            },
+            {
+                "entity": 2,
+                "point": "POINT(1 1)",  # duplicate point should flag
+                "organisation_entity": 101,
+            },
+            {
+                "entity": 3,
+                "point": "POINT(1 2)",
+                "organisation_entity": 102,
+            },
+        ]
+        for row in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, point, organisation_entity) VALUES (?, ?, ?)",
+                (row["entity"], row["point"], row["organisation_entity"]),
+            )
+        conn.commit()
+
+    # Now run operation
+    result, message, details = duplicate_geometry_check(conn, "tree")
+    conn.close()
+
+    assert not result
+
+    assert message == "There are 1 duplicate geometries/points in dataset tree"
+
+    assert details[0]["entity_join_key"] == "1-2"
+    assert details[0]["organisation_entity_a"] == 100
+    assert details[0]["organisation_entity_b"] == 101
+
+
+def test_duplicate_geometry_check_no_dupes(dataset_path):
+    # Add overlapping geometries to db
+    with spatialite.connect(dataset_path) as conn:
+        # add dummy data
+        rows = [
+            {
+                "entity": 1,
+                "geometry": "POLYGON((0 0, 0 2, 2 2, 2 0, 0 0))",
+                "organisation_entity": 100,
+            },
+            {
+                "entity": 4,
+                "geometry": "POLYGON((1 1, 1 3, 3 3, 3 1, 1 1))",
+                "organisation_entity": 103,
+            },
+        ]
+        for row in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, geometry, organisation_entity) VALUES (?, ?, ?)",
+                (row["entity"], row["geometry"], row["organisation_entity"]),
+            )
+        conn.commit()
+
+    # Now run operation
+    result, message, details = duplicate_geometry_check(conn, "dataset")
+    conn.close()
+
+    assert result
+    assert message == "There are no duplicate geometries/points in dataset dataset"
+    assert not details
