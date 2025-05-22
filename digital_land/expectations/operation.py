@@ -227,13 +227,21 @@ def check_columns(conn, expected: dict):
     return result, message, details
 
 
-def duplicate_geometry_check(conn, dataset: str):
+def duplicate_geometry_check(conn, spatial_field: str):
+    """
+    Compares all the geometries or points of entities in a dataset to find duplicates.
+    Geometries are classed as duplicates if they have > 95% intersection,
+    points are classed as duplicates if they are an exact match
+    args:
+        conn: spatialite connection used to connect to the db, wil be created by the checkpoint class
+        spatial_field: the field to be used for comparison, either 'point' or 'geometry'
+    """
     # Assuming spatialite connection so we don't have to install spatialite
-    # Handle cases where we want to check duplicate points instead
-    spatial_field = "geometry"
-    if dataset == "tree":
-        # need to check sql in this case it it will probs need to be different
-        spatial_field = "point"
+
+    if spatial_field != "geometry" or spatial_field != "point":
+        raise Exception(
+            f"Spatial field for duplicate geometry check must be 'point' or 'geometry', not '{spatial_field}'"  # if we let people pass in spatial field this is required
+        )
 
     # Create new table with spatial index on spatial field
 
@@ -278,10 +286,6 @@ def duplicate_geometry_check(conn, dataset: str):
             FROM entity
             WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
         """
-        )
-    else:
-        raise Exception(
-            "Spatial field for duplicate geometry check must be 'point' or 'geometry'"  # if we let people pass in spatial field this is required
         )
 
     # Now perform duplicate check using new table
@@ -347,12 +351,10 @@ def duplicate_geometry_check(conn, dataset: str):
     rows = [dict(row) for row in rows]
     if len(rows) > 0:
         result = False
-        message = (
-            f"There are {len(rows)} duplicate geometries/points in dataset {dataset}"
-        )
+        message = f"There are {len(rows)} duplicate geometries/points in the dataset"
     else:
         result = True
-        message = f"There are no duplicate geometries/points in dataset {dataset}"
+        message = "There are no duplicate geometries/points in the dataset"
 
     details = {"actual": len(rows), "expected": 0, "entities": rows}
 

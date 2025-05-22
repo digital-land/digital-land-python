@@ -277,11 +277,11 @@ def test_duplicate_geometry_check(dataset_path):
         conn.commit()
 
     # Now run operation
-    result, message, details = duplicate_geometry_check(conn, "dataset")
+    result, message, details = duplicate_geometry_check(conn, "geometry")
     conn.close()
 
     assert not result
-    assert message == "There are 3 duplicate geometries/points in dataset dataset"
+    assert message == "There are 3 duplicate geometries/points in the dataset"
     assert details["actual"] == 3
     assert details["expected"] == 0
 
@@ -335,12 +335,12 @@ def test_duplicate_geometry_check_point(dataset_path):
         conn.commit()
 
     # Now run operation
-    result, message, details = duplicate_geometry_check(conn, "tree")
+    result, message, details = duplicate_geometry_check(conn, "point")
     conn.close()
 
     assert not result
 
-    assert message == "There are 1 duplicate geometries/points in dataset tree"
+    assert message == "There are 1 duplicate geometries/points in the dataset"
 
     assert details["actual"] == 1
     assert details["expected"] == 0
@@ -373,11 +373,11 @@ def test_duplicate_geometry_check_no_dupes(dataset_path):
         conn.commit()
 
     # Now run operation
-    result, message, details = duplicate_geometry_check(conn, "dataset")
+    result, message, details = duplicate_geometry_check(conn, "geometry")
     conn.close()
 
     assert result
-    assert message == "There are no duplicate geometries/points in dataset dataset"
+    assert message == "There are no duplicate geometries/points in the dataset"
     assert not details["entities"]
     assert details["actual"] == 0
     assert details["expected"] == 0
