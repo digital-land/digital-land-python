@@ -235,16 +235,12 @@ def duplicate_geometry_check(conn, dataset: str):
         # need to check sql in this case it it will probs need to be different
         spatial_field = "point"
 
-    # Create new table with spatial index on geom field
+    # Create new table with spatial index on spatial field
 
-    # Create a new table, load in entity table from sqlite and create spatial index on geom field
     conn.execute("DROP TABLE IF EXISTS entity_spatial;")
-    # Initialise spatial metadata if it hasn't already, required to use AddGeometryColumn
     conn.execute(
-        """
-        SELECT InitSpatialMetadata(1);
-    """
-    )
+        "SELECT InitSpatialMetadata(1);"
+    )  # Initialise spatial metadata if it hasn't already, required to use AddGeometryColumn
     conn.execute(
         """
         CREATE TABLE entity_spatial (
