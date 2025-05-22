@@ -130,6 +130,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         """
         params = expectation["parameters"]
         with spatialite.connect(self.dataset_path) as conn:
+            print("expectation", expectation)
             passed, msg, details = expectation["operation"](conn=conn, **params)
 
         return passed, msg, details
