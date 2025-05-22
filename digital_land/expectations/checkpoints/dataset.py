@@ -29,6 +29,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         operation_map = {
             "count_lpa_boundary": count_lpa_boundary,
             "count_deleted_entities": count_deleted_entities,
+            # add new operation here
         }
         operation = operation_map[operation_string]
         return operation

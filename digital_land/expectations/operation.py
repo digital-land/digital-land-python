@@ -1,3 +1,4 @@
+import sqlite3
 import requests
 import pandas as pd
 import urllib
@@ -222,5 +223,114 @@ def check_columns(conn, expected: dict):
 
     result = False if failure_count > 0 else True
     message = f"{success_count} out of {success_count + failure_count} tables had expected columns"
+
+    return result, message, details
+
+
+def duplicate_geometry_check(conn, dataset: str):
+    # Assuming spatialite connection so we don't have to install spatialite
+    # Handle cases where we want to check duplicate points instead
+    spatial_field = "geometry"
+    if dataset == "tree":
+        # need to check sql in this case it it will probs need to be different
+        spatial_field = "point"
+
+    # Create new table with spatial index on geom field
+
+    # Create a new table, load in entity table from sqlite and create spatial index on geom field
+    conn.execute("DROP TABLE IF EXISTS entity_spatial;")
+    # Initialise spatial metadata if it hasn't already, required to use AddGeometryColumn
+    conn.execute(
+        """
+        SELECT InitSpatialMetadata(1);
+    """
+    )
+    conn.execute(
+        """
+        CREATE TABLE entity_spatial (
+            entity INTEGER,
+            reference TEXT,
+            organisation_entity INTEGER
+        );
+    """
+    )
+    # Add geometry column with SRID 0 (ie no co-ordinate reference system)
+    conn.execute(
+        "SELECT AddGeometryColumn('entity_spatial', 'geom', 0, 'GEOMETRY', 'XY');"
+    )
+    # Insert data into new table
+    conn.execute(
+        f"""
+        INSERT INTO entity_spatial (entity, reference, organisation_entity, geom)
+        SELECT entity, reference, organisation_entity, ST_GeomFromText({spatial_field}, 0)
+        FROM entity
+        WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
+    """
+    )
+    # Create the spatial index
+    conn.execute("SELECT CreateSpatialIndex('entity_spatial', 'geom');")
+
+    # Now perform duplicate check using new table
+    MATCH_THRESHOLD = 0.95
+    if spatial_field == "geometry":
+        query = f"""
+            WITH calc as (
+                SELECT
+                    a.entity as entity_a,
+                    a.organisation_entity as organisation_entity_a,
+                    b.entity as entity_b,
+                    b.organisation_entity as organisation_entity_b,
+                    CAST(
+                        MIN(a.entity, b.entity) AS TEXT
+                    ) || '-' || CAST(
+                        MAX(a.entity, b.entity) AS TEXT
+                    ) AS entity_join_key,
+                    ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(ST_Union(a.geom, b.geom)) as pct_comb_overlap,
+                    ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(a.geom) as pct_overlap_a,
+                    ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(b.geom) as pct_overlap_b
+                FROM entity_spatial a
+                JOIN entity_spatial b
+                    ON ST_Intersects(a.geom, b.geom)
+                    AND a.entity <> b.entity
+                ),
+
+            categorised as (
+
+                SELECT
+                    *,
+                    CASE
+                        WHEN pct_overlap_a > {MATCH_THRESHOLD} AND pct_overlap_b > {MATCH_THRESHOLD} THEN 'Complete match (two-way)'
+                        WHEN pct_overlap_a > {MATCH_THRESHOLD} OR pct_overlap_b > {MATCH_THRESHOLD} THEN 'Single match (one-way)'
+                    ELSE 'undefined' END as intersection_type,
+                    row_number() OVER (PARTITION BY entity_join_key ORDER BY pct_comb_overlap) as key_count
+                FROM calc
+                WHERE pct_overlap_a > 0.9 OR pct_overlap_b > 0.9
+                ORDER BY entity_join_key
+                )
+
+            SELECT *
+            FROM categorised
+            WHERE key_count = 1
+        """
+    elif spatial_field == "point":
+        pass
+    else:
+        raise Exception(
+            "Spatial field for duplicate geometry check must be 'point' or 'geometry'"
+        )
+
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(query).fetchall()
+    conn.close()
+
+    details = [dict(row) for row in rows]
+    if len(details) > 0:
+        result = False
+        message = (
+            f"There are {len(details)} duplicate geometries/points in dataset {dataset}"
+        )
+    else:
+        result = True
+        message = f"There are no duplicate point/geometries in dataset {dataset}"
 
     return result, message, details

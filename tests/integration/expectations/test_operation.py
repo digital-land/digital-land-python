@@ -7,6 +7,7 @@ from digital_land.expectations.operation import (
     check_columns,
     count_lpa_boundary,
     count_deleted_entities,
+    duplicate_geometry_check,
 )
 
 
@@ -240,3 +241,63 @@ def test_check_columns_failure(dataset_path):
         assert not details[0]["success"]
         assert "missing" in details[0]["missing"]
         assert "columns" in details[0]["missing"]
+
+
+def test_duplicate_geometry_check(dataset_path):
+    # Add overlapping geometries to db
+    with spatialite.connect(dataset_path) as conn:
+        # add dummy data
+        rows = [
+            {
+                "entity": 1,
+                "geometry": "POLYGON((0 0, 0 2, 2 2, 2 0, 0 0))",
+                "organisation_entity": 100,
+            },
+            {
+                "entity": 2,
+                "geometry": "POLYGON((0 0, 0 2, 2 2, 2 0, 0 0))",
+                "organisation_entity": 101,
+            },  # exact geom match to first entity - complete match
+            {
+                "entity": 3,
+                "geometry": "POLYGON((0.5 0.5, 0.5 1.5, 1.5 1.5, 1.5 0.5, 0.5 0.5))",
+                "organisation_entity": 102,
+            },  # fully encompassed by first entity - one way match
+            {
+                "entity": 4,
+                "geometry": "POLYGON((1 1, 1 3, 3 3, 3 1, 1 1))",
+                "organisation_entity": 103,
+            },
+        ]  # mid section overlap - not enough to trigger overlap
+        for row in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, geometry, organisation_entity) VALUES (?, ?, ?)",
+                (row["entity"], row["geometry"], row["organisation_entity"]),
+            )
+        conn.commit()
+
+    # Now run operation
+    result, message, details = duplicate_geometry_check(conn, "dataset")
+    print("result", result)
+    print("message", message)
+    print("details", details)
+    assert not result
+    assert message == "There are 3 duplicate geometries/points in dataset dataset"
+
+    assert (
+        details[0]["entity_join_key"] == "1-2"
+    )  # ensure this is the 1-2 entity overlap
+    assert (
+        details[0]["organisation_entity_a"] == 100
+    )  # ensure we are getting the organisation entity column
+    assert details[0]["pct_overlap_a"] == 1.0
+    assert details[0]["pct_overlap_b"] == 1.0
+    assert "Complete match" in details[0]["intersection_type"]
+
+    assert details[1]["entity_join_key"] == "1-3"
+    assert details[1]["pct_overlap_a"] == 0.25
+    assert details[1]["pct_overlap_b"] == 1.0
+    assert "Single match" in details[1]["intersection_type"]
+
+    # entity 4 shouldn't have any duplicates
+    assert not any(row["entity_a"] == 4 or row["entity_b"] == 4 for row in details)
