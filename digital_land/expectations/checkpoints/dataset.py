@@ -7,7 +7,11 @@ from digital_land.organisation import Organisation
 
 from .base import BaseCheckpoint
 from ..log import ExpectationLog
-from ..operation import count_lpa_boundary, count_deleted_entities
+from ..operation import (
+    count_lpa_boundary,
+    count_deleted_entities,
+    duplicate_geometry_check,
+)
 
 
 class DatasetCheckpoint(BaseCheckpoint):
@@ -29,7 +33,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         operation_map = {
             "count_lpa_boundary": count_lpa_boundary,
             "count_deleted_entities": count_deleted_entities,
-            # add new operation here
+            "duplicate_geometry_check": duplicate_geometry_check,
         }
         operation = operation_map[operation_string]
         return operation
