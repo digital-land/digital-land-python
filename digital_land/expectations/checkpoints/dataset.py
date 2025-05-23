@@ -149,9 +149,11 @@ class DatasetCheckpoint(BaseCheckpoint):
             passed, message, details = self.run_expectation(expectation)
             self.log.add(
                 {
-                    "organisation": expectation.get("organisation", {}).get(
-                        "organisation", ""
-                    ),
+                    "organisation": (
+                        expectation["organisation"]["organisation"]
+                        if expectation.get("organisation", "")
+                        else ""
+                    ),  # make this neater
                     "name": expectation["name"],
                     "passed": passed,
                     "message": message,
