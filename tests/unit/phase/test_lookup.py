@@ -222,7 +222,7 @@ class TestEntityLookupPhase:
 
 
 class TestFactLookupPhase:
-    def test_no_associated_documents_issue_raised(
+    def test_missing_associated_entity_issue_raised(
         self, get_input_stream_with_linked_field
     ):
         input_stream = get_input_stream_with_linked_field
@@ -247,7 +247,7 @@ class TestFactLookupPhase:
         )
         assert issues.rows[0]["value"] == "a4d1"
 
-    def test_no_associated_documents_issue_for_retired_entity(
+    def test_missing_associated_entity_issue_for_retired_entity(
         self, get_input_stream_with_linked_field
     ):
         input_stream = get_input_stream_with_linked_field
@@ -275,12 +275,36 @@ class TestFactLookupPhase:
         )
         assert issues.rows[0]["value"] == "a4d1"
 
-    def test_no_associated_documents_issue_not_raised(
+    def test_missing_associated_entity_issue_not_raised(
         self, get_input_stream_with_linked_field
     ):
         input_stream = get_input_stream_with_linked_field
         lookups = {
             ",article-4-direction,a4d1,local-authorityabc": "1",
+            ",article-4-direction-area,1,local-authorityabc": "10",
+        }
+        issues = IssueLog()
+
+        phase = FactLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            odp_collections=["article-4-direction"],
+        )
+        phase.entity_field = "reference-entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["reference-entity"] == "1"
+        assert len(issues.rows) == 0
+
+    def test_missing_associated_entity_issue_no_organisation(
+        self, get_input_stream_with_linked_field
+    ):
+        """
+        Ensure issue is not raised when a linked entity is found using only the prefix and reference (without organisation).
+        """
+        input_stream = get_input_stream_with_linked_field
+        lookups = {
+            ",article-4-direction,a4d1,": "1",
             ",article-4-direction-area,1,local-authorityabc": "10",
         }
         issues = IssueLog()

@@ -52,6 +52,15 @@ class LookupPhase(Phase):
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
 
+    def check_associated_organisation(self, entity):
+        if entity in self.reverse_lookups:
+            keywords = {"authority", "development", "government"}
+            for key in self.reverse_lookups[entity]:
+                parts = key.split(",")
+                if len(parts) > 3 and any(keyword in parts[3] for keyword in keywords):
+                    return ""
+        return entity
+
     def get_entity(self, block):
         row = block["row"]
         prefix = row.get("prefix", "")
@@ -85,15 +94,7 @@ class LookupPhase(Phase):
             # When obtaining an entity number using only the prefix and reference, check if the
             # lookup includes an associated organisation. If it does, do not use the entity number,
             # as it is organisation specific.
-            if entity in self.reverse_lookups:
-                keywords = {"authority", "development", "government"}
-                for key in self.reverse_lookups[entity]:
-                    parts = key.split(",")
-                    if len(parts) > 3 and any(
-                        keyword in parts[3] for keyword in keywords
-                    ):
-                        entity = ""
-                        break
+            entity = self.check_associated_organisation(entity)
 
         if entity and self.entity_range:
             if (
@@ -206,6 +207,16 @@ class FactLookupPhase(LookupPhase):
                     organisation=organisation,
                     reference=reference,
                 )
+                if not find_entity:
+                    # TBD this needs to specifically not match unless the organisation and other columns
+                    # are empty in the lookups.csv probably isn't a change here.
+                    # or by the CURIE
+                    find_entity = self.lookup(prefix=prefix, reference=reference)
+
+                    # When obtaining an entity number using only the prefix and reference, check if the
+                    # lookup includes an associated organisation. If it does, do not use the entity number,
+                    # as it is organisation specific.
+                    find_entity = self.check_associated_organisation(find_entity)
 
                 if not find_entity or (
                     str(find_entity) in self.redirect_lookups
@@ -215,7 +226,7 @@ class FactLookupPhase(LookupPhase):
                     if self.odp_collections and prefix in self.odp_collections:
                         self.issues.log_issue(
                             prefix,
-                            "no associated documents found for this area",
+                            "missing associated entity",
                             reference,
                             line_number=line_number,
                         )
