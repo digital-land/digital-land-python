@@ -469,7 +469,7 @@ def test_pipeline_lookup_phase(test_dirs):
     )
 
     assert os.path.exists(issue_log_path)
-    assert "no associated documents found for this area" == issue_dict["issue-type"]
+    assert "missing associated entity" == issue_dict["issue-type"]
     assert "a4d1" == issue_dict["value"]
 
 
@@ -509,7 +509,7 @@ def test_pipeline_lookup_phase_assign_reference_entity(test_dirs):
 
     # assert given error does not exist in issue_log
     assert all(
-        issue.get("issue-type") != "no associated documents found for this area"
+        issue.get("issue-type") != "missing associated entity"
         for issue in issue_log.rows
     )
 
