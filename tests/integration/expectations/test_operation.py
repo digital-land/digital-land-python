@@ -285,24 +285,21 @@ def test_duplicate_geometry_check(dataset_path):
     assert details["actual"] == 3
     assert details["expected"] == 0
 
-    assert (
-        details["entities"][0]["entity_join_key"] == "1-2"
-    )  # ensure this is the 1-2 entity overlap
-    assert (
-        details["entities"][0]["organisation_entity_a"] == 100
-    )  # ensure we are getting the organisation entity column
-    assert details["entities"][0]["pct_overlap_a"] == 1.0
-    assert details["entities"][0]["pct_overlap_b"] == 1.0
-    assert "Complete match" in details["entities"][0]["intersection_type"]
+    assert details["matches"][0]["entity_a"] == 1
+    assert details["matches"][0]["entity_b"] == 2
+    assert details["matches"][0]["organisation_entity_a"] == 100
+    assert details["matches"][0]["organisation_entity_b"] == 101
+    assert "Complete match" in details["matches"][0]["intersection_type"]
 
-    assert details["entities"][1]["entity_join_key"] == "1-3"
-    assert details["entities"][1]["pct_overlap_a"] == 0.25
-    assert details["entities"][1]["pct_overlap_b"] == 1.0
-    assert "Single match" in details["entities"][1]["intersection_type"]
+    assert details["matches"][1]["entity_a"] == 1
+    assert details["matches"][1]["entity_b"] == 3
+    assert details["matches"][1]["organisation_entity_a"] == 100
+    assert details["matches"][1]["organisation_entity_b"] == 102
+    assert "Single match" in details["matches"][1]["intersection_type"]
 
     # entity 4 shouldn't have any duplicates
     assert not any(
-        row["entity_a"] == 4 or row["entity_b"] == 4 for row in details["entities"]
+        row["entity_a"] == 4 or row["entity_b"] == 4 for row in details["matches"]
     )
 
 
@@ -344,9 +341,10 @@ def test_duplicate_geometry_check_point(dataset_path):
 
     assert details["actual"] == 1
     assert details["expected"] == 0
-    assert details["entities"][0]["entity_join_key"] == "1-2"
-    assert details["entities"][0]["organisation_entity_a"] == 100
-    assert details["entities"][0]["organisation_entity_b"] == 101
+    assert details["matches"][0]["entity_a"] == 1
+    assert details["matches"][0]["entity_b"] == 2
+    assert details["matches"][0]["organisation_entity_a"] == 100
+    assert details["matches"][0]["organisation_entity_b"] == 101
 
 
 def test_duplicate_geometry_check_no_dupes(dataset_path):
@@ -378,6 +376,6 @@ def test_duplicate_geometry_check_no_dupes(dataset_path):
 
     assert result
     assert message == "There are no duplicate geometries/points in the dataset"
-    assert not details["entities"]
+    assert not details["matches"]
     assert details["actual"] == 0
     assert details["expected"] == 0

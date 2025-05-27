@@ -352,10 +352,31 @@ def duplicate_geometry_check(conn, spatial_field: str):
     if len(rows) > 0:
         result = False
         message = f"There are {len(rows)} duplicate geometries/points in the dataset"
+        if spatial_field == "geometry":
+            matches = [
+                {
+                    "entity_a": row["entity_a"],
+                    "organisation_entity_a": row["organisation_entity_a"],
+                    "entity_b": row["entity_b"],
+                    "organisation_entity_b": row["organisation_entity_b"],
+                    "intersection_type": row["intersection_type"],
+                }
+                for row in rows
+            ]
+        else:
+            matches = [
+                {
+                    "entity_a": row["entity_a"],
+                    "organisation_entity_a": row["organisation_entity_a"],
+                    "entity_b": row["entity_b"],
+                    "organisation_entity_b": row["organisation_entity_b"],
+                }
+                for row in rows
+            ]
     else:
         result = True
         message = "There are no duplicate geometries/points in the dataset"
+        matches = []
 
-    details = {"actual": len(rows), "expected": 0, "entities": rows}
-
+    details = {"actual": len(rows), "expected": 0, "matches": matches}
     return result, message, details
