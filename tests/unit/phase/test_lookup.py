@@ -241,10 +241,7 @@ class TestFactLookupPhase:
         output = [block for block in phase.process(input_stream)]
 
         assert "reference-entity" not in output
-        assert (
-            issues.rows[0]["issue-type"]
-            == "no associated documents found for this area"
-        )
+        assert issues.rows[0]["issue-type"] == "missing associated entity"
         assert issues.rows[0]["value"] == "a4d1"
 
     def test_missing_associated_entity_issue_for_retired_entity(
@@ -269,10 +266,7 @@ class TestFactLookupPhase:
         output = [block for block in phase.process(input_stream)]
 
         assert "reference-entity" not in output
-        assert (
-            issues.rows[0]["issue-type"]
-            == "no associated documents found for this area"
-        )
+        assert issues.rows[0]["issue-type"] == "missing associated entity"
         assert issues.rows[0]["value"] == "a4d1"
 
     def test_missing_associated_entity_issue_not_raised(
