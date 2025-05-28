@@ -352,20 +352,31 @@ def duplicate_geometry_check(conn, spatial_field: str):
     rows = [dict(row) for row in rows]
     if len(rows) > 0:
         result = False
-        message = f"There are {len(rows)} duplicate geometries/points in the dataset"
         if spatial_field == "geometry":
-            matches = [
+            complete_matches = [
                 {
                     "entity_a": row["entity_a"],
                     "organisation_entity_a": row["organisation_entity_a"],
                     "entity_b": row["entity_b"],
                     "organisation_entity_b": row["organisation_entity_b"],
-                    "intersection_type": row["intersection_type"],
                 }
                 for row in rows
+                if row["intersection_type"] == "Complete match (two-way)"
             ]
+
+            single_matches = [
+                {
+                    "entity_a": row["entity_a"],
+                    "organisation_entity_a": row["organisation_entity_a"],
+                    "entity_b": row["entity_b"],
+                    "organisation_entity_b": row["organisation_entity_b"],
+                }
+                for row in rows
+                if row["intersection_type"] == "Single match (one-way)"
+            ]
+            message = f"There are {len(complete_matches)} complete matches and {len(single_matches)} single matches in the dataset"
         else:
-            matches = [
+            complete_matches = [
                 {
                     "entity_a": row["entity_a"],
                     "organisation_entity_a": row["organisation_entity_a"],
@@ -374,10 +385,19 @@ def duplicate_geometry_check(conn, spatial_field: str):
                 }
                 for row in rows
             ]
+            single_matches = []
+            message = (
+                f"There are {len(complete_matches)} complete matches in the dataset"
+            )
     else:
         result = True
         message = "There are no duplicate geometries/points in the dataset"
-        matches = []
-
-    details = {"actual": len(rows), "expected": 0, "matches": matches}
+        complete_matches = []
+        single_matches = []
+    details = {
+        "actual": len(rows),
+        "expected": 0,
+        "complete_matches": complete_matches,
+        "single_matches": single_matches,
+    }
     return result, message, details
