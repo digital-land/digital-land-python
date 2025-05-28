@@ -6,6 +6,7 @@ from digital_land.utils.add_data_utils import (
     get_user_response,
     is_date_valid,
     get_provision_entities_from_duckdb,
+    normalise_json,
 )
 
 
@@ -93,6 +94,18 @@ def test_get_user_response_fail(monkeypatch):
     result = get_user_response("message")
 
     assert not result
+
+
+def test_normalise_json():
+    json_string = '{"secondproperty": "secondvalue", "firstproperty": "firstvalue"}'
+
+    sorted_json_string = normalise_json(json_string)
+
+    # ensure json is sorted
+    assert isinstance(sorted_json_string, str)
+    assert sorted_json_string.find("firstproperty") < sorted_json_string.find(
+        "secondproperty"
+    )
 
 
 def test_get_provision_entities_from_duckdb(tmp_path):

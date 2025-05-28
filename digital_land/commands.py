@@ -65,10 +65,13 @@ from digital_land.api import API
 from digital_land.state import State
 from digital_land.utils.add_data_utils import (
     clear_log,
+    download_dataset,
     get_column_field_summary,
+    get_transformed_entities,
     get_entity_summary,
     get_existing_endpoints_summary,
     get_issue_summary,
+    get_updated_entities_summary,
     is_date_valid,
     is_url_valid,
     get_user_response,
@@ -376,7 +379,11 @@ def pipeline_run(
         ),
     )
 
-    issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
+    # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
+    # If we have done this then we will not call duplicate_reference_check as we have already carried out a
+    # duplicate check and stop messages appearing in issues about reference values not being unique
+    if combine_fields == {}:
+        issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
 
     issue_log.apply_entity_map()
     issue_log.save(os.path.join(issue_dir, resource + ".csv"))
@@ -479,7 +486,19 @@ def dataset_create(
         path=dataset_parquet_path,
         specification_dir=None,  # TBD: package should use this specification object
         duckdb_path=cache_dir / "overflow.duckdb",
+        transformed_parquet_dir=transformed_parquet_dir,
     )
+    # To find facts we have a complex SQL window function that can cause memory issues. To aid the allocation of memory
+    # we decide on a parquet strategy, based on how many parquet files we have, the overall size of these
+    # files and the available memory. We will look at the following strategies:
+    # 1) if we have a small number of files or the total size of the files is small then we can run the SQL over all of
+    # these files.
+    # 2) Grouping the parquet files into 256MB batches. Then running SQL either on all of these batches at once, or
+    # bucketing the data so that we run the window SQL function on a subset of facts (then concatenate them)
+
+    # Group parquet files into approx 256MB batches (if needed)
+    if pqpackage.strategy != "direct":
+        pqpackage.group_parquet_files(transformed_parquet_dir, target_mb=256)
     pqpackage.load_facts(transformed_parquet_dir)
     pqpackage.load_fact_resource(transformed_parquet_dir)
     pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
@@ -511,17 +530,23 @@ def dataset_update(
     column_field_dir="var/column-field",
     dataset_resource_dir="var/dataset-resource",
     bucket_name=None,
+    dataset_path=None,
 ):
     """
     Updates the current state of the sqlite files being held in S3 with new resources
+    `dataset_path` can be passed in to update a local sqlite file instead of downloading from S3.
     """
-    if not output_path:
-        print("missing output path", file=sys.stderr)
-        sys.exit(2)
-
-    if not bucket_name:
-        print("Missing bucket name to get sqlite files", file=sys.stderr)
-        sys.exit(2)
+    if not dataset_path:
+        if not output_path:
+            print("missing output path", file=sys.stderr)
+            sys.exit(2)
+        if not bucket_name:
+            print("Missing bucket name to get sqlite files", file=sys.stderr)
+            sys.exit(2)
+    else:
+        if not os.path.exists(dataset_path):
+            logging.error(f"Local dataset at {dataset_path} not found")
+            sys.exit(2)
 
     # Set up initial objects
     column_field_dir = Path(column_field_dir)
@@ -529,18 +554,31 @@ def dataset_update(
     organisation = Organisation(
         organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
     )
-    package = DatasetPackage(
-        dataset,
-        organisation=organisation,
-        path=output_path,
-        specification_dir=None,  # TBD: package should use this specification object
-    )
-    # Copy files from S3 and load into tables
-    table_name = dataset
-    object_key = output_path
-    package.load_from_s3(
-        bucket_name=bucket_name, object_key=object_key, table_name=table_name
-    )
+    if not dataset_path:
+        package = DatasetPackage(
+            dataset,
+            organisation=organisation,
+            path=output_path,
+            specification_dir=None,  # TBD: package should use this specification object
+        )
+        # Copy files from S3 and load into tables
+        table_name = dataset
+        object_key = output_path
+        package.load_from_s3(
+            bucket_name=bucket_name, object_key=object_key, table_name=table_name
+        )
+    else:
+        # Reading from local dataset file
+        logging.info(f"Reading from local dataset file {dataset_path}")
+        package = DatasetPackage(
+            dataset,
+            organisation=organisation,
+            path=dataset_path,
+            specification_dir=None,  # TBD: package should use this specification object
+        )
+        package.set_up_connection()
+        package.load()
+        package.disconnect()
 
     for path in input_paths:
         path_obj = Path(path)
@@ -897,38 +935,42 @@ def add_data(
 
     add_data_cache_dir = cache_dir / "add_data"
 
-    output_path = (
-        add_data_cache_dir
-        / "transformed/"
-        / (endpoint_resource_info["resource"] + ".csv")
-    )
-
-    issue_dir = add_data_cache_dir / "issue/"
-    column_field_dir = add_data_cache_dir / "column_field/"
-    dataset_resource_dir = add_data_cache_dir / "dataset_resource/"
-    converted_resource_dir = add_data_cache_dir / "converted_resource/"
-    converted_dir = add_data_cache_dir / "converted/"
-    output_log_dir = add_data_cache_dir / "log/"
-    operational_issue_dir = add_data_cache_dir / "performance/ " / "operational_issue/"
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    issue_dir.mkdir(parents=True, exist_ok=True)
-    column_field_dir.mkdir(parents=True, exist_ok=True)
-    dataset_resource_dir.mkdir(parents=True, exist_ok=True)
-    converted_resource_dir.mkdir(parents=True, exist_ok=True)
-    converted_dir.mkdir(parents=True, exist_ok=True)
-    output_log_dir.mkdir(parents=True, exist_ok=True)
-    operational_issue_dir.mkdir(parents=True, exist_ok=True)
-
     collection.load_log_items()
     for dataset in endpoint_resource_info["pipelines"]:
+        pipeline = Pipeline(pipeline_dir, dataset)
+        specification = Specification(specification_dir)
+
+        issue_dir = add_data_cache_dir / "issue/" / dataset
+        column_field_dir = add_data_cache_dir / "column_field/" / dataset
+        dataset_resource_dir = add_data_cache_dir / "dataset_resource/" / dataset
+        converted_resource_dir = add_data_cache_dir / "converted_resource/"
+        converted_dir = add_data_cache_dir / "converted/"
+        output_log_dir = add_data_cache_dir / "log/"
+        operational_issue_dir = (
+            add_data_cache_dir / "performance/ " / "operational_issue/"
+        )
+        output_path = (
+            add_data_cache_dir
+            / "transformed/"
+            / dataset
+            / (endpoint_resource_info["resource"] + ".csv")
+        )
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        issue_dir.mkdir(parents=True, exist_ok=True)
+        column_field_dir.mkdir(parents=True, exist_ok=True)
+        dataset_resource_dir.mkdir(parents=True, exist_ok=True)
+        converted_resource_dir.mkdir(parents=True, exist_ok=True)
+        converted_dir.mkdir(parents=True, exist_ok=True)
+        output_log_dir.mkdir(parents=True, exist_ok=True)
+        operational_issue_dir.mkdir(parents=True, exist_ok=True)
         print("======================================================================")
         print("Run pipeline")
         print("======================================================================")
         try:
             pipeline_run(
                 dataset,
-                Pipeline(pipeline_dir, dataset),
+                pipeline,
                 Specification(specification_dir),
                 endpoint_resource_info["resource_path"],
                 output_path=output_path,
@@ -1078,11 +1120,16 @@ def add_data(
             shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
 
         # Now check for existing endpoints for this provision/organisation
+        print(
+            "\n======================================================================"
+        )
+        print("Retire old endpoints/sources")
+        print("======================================================================")
         existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
             endpoint_resource_info, collection, dataset
         )
-        if existing_endpoints_summary:
-            print(existing_endpoints_summary)
+        print(existing_endpoints_summary)
+        if existing_sources:
             if get_user_response(
                 "Do you want to retire any of these existing endpoints? (yes/no): "
             ):
@@ -1096,6 +1143,48 @@ def add_data(
                     collection.retire_endpoints_and_sources(
                         pd.DataFrame.from_records(sources_to_retire)
                     )
+
+        # Update dataset and view newly updated dataset
+        print(
+            "\n======================================================================"
+        )
+        print("Update dataset")
+        print("======================================================================")
+        if get_user_response(
+            f"""\nDo you want to view an updated {dataset} dataset with the newly added data?
+            \nNote this requires downloading the dataset if not already done so -
+            for some datasets this can take a while \n\n(yes/no): """
+        ):
+            dataset_path = download_dataset(dataset, specification, cache_dir)
+            original_entities = get_transformed_entities(dataset_path, output_path)
+            print(f"Updating {dataset}.sqlite3 with new data...")
+            dataset_update(
+                input_paths=[output_path],
+                output_path=None,
+                organisation_path=organisation_path,
+                pipeline=pipeline,
+                dataset=dataset,
+                specification=specification,
+                issue_dir=os.path.split(issue_dir)[0],
+                column_field_dir=os.path.split(column_field_dir)[0],
+                dataset_resource_dir=os.path.split(dataset_resource_dir)[0],
+                dataset_path=dataset_path,
+            )
+            updated_entities = get_transformed_entities(dataset_path, output_path)
+            updated_entities_summary, diffs_df = get_updated_entities_summary(
+                original_entities, updated_entities
+            )
+            print(updated_entities_summary)
+            if diffs_df is not None:
+                diffs_path = (
+                    add_data_cache_dir
+                    / dataset
+                    / "diffs"
+                    / f"{endpoint_resource_info['resource']}.csv"
+                )
+                os.makedirs(os.path.dirname(diffs_path))
+                diffs_df.to_csv(diffs_path)
+                print(f"\nDetailed breakdown found in file: {diffs_path}")
 
 
 def add_endpoints_and_lookups(
@@ -1306,6 +1395,7 @@ def assign_entities(
             ",",
             entity["entity"],
         )
+    return new_lookups
 
 
 def get_resource_unidentified_lookups(
@@ -1533,3 +1623,106 @@ def save_state(
     state.save(
         output_path=output_path,
     )
+
+
+def check_and_assign_entities(
+    resource_file_paths,
+    endpoints,
+    collection_name,
+    dataset,
+    organisation,
+    collection_dir,
+    organisation_path,
+    specification_dir,
+    pipeline_dir,
+    input_path=None,
+):
+    # Assigns entities for the given resources in the given collection and run pipeline to get the transformed resource.
+
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+
+    cache_dir = Path("var/cache/")
+    assign_entities_cache_dir = cache_dir / "assign_entities"
+
+    resource_path = resource_file_paths[0]
+    resource = Path(resource_path).name
+    if input_path:
+        output_path = input_path
+    else:
+        output_path = assign_entities_cache_dir / "transformed/" / f"{resource}.csv"
+
+    issue_dir = assign_entities_cache_dir / "issue/"
+    column_field_dir = assign_entities_cache_dir / "column_field/"
+    dataset_resource_dir = assign_entities_cache_dir / "dataset_resource/"
+    converted_resource_dir = assign_entities_cache_dir / "converted_resource/"
+    converted_dir = assign_entities_cache_dir / "converted/"
+    output_log_dir = assign_entities_cache_dir / "log/"
+    operational_issue_dir = (
+        assign_entities_cache_dir / "performance " / "operational_issue/"
+    )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    issue_dir.mkdir(parents=True, exist_ok=True)
+    column_field_dir.mkdir(parents=True, exist_ok=True)
+    dataset_resource_dir.mkdir(parents=True, exist_ok=True)
+    converted_resource_dir.mkdir(parents=True, exist_ok=True)
+    converted_dir.mkdir(parents=True, exist_ok=True)
+    output_log_dir.mkdir(parents=True, exist_ok=True)
+    operational_issue_dir.mkdir(parents=True, exist_ok=True)
+
+    cache_pipeline_dir = assign_entities_cache_dir / collection.name / "pipeline"
+    copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
+
+    new_lookups = assign_entities(
+        resource_file_paths,
+        collection,
+        dataset,
+        organisation,
+        cache_pipeline_dir,
+        specification_dir,
+        organisation_path,
+        endpoints,
+        cache_dir,
+    )
+
+    pipeline = Pipeline(cache_pipeline_dir, dataset)
+    try:
+        pipeline_run(
+            dataset,
+            pipeline,
+            Specification(specification_dir),
+            resource_path,
+            output_path=output_path,
+            collection_dir=collection_dir,
+            issue_dir=issue_dir,
+            operational_issue_dir=operational_issue_dir,
+            column_field_dir=column_field_dir,
+            dataset_resource_dir=dataset_resource_dir,
+            converted_resource_dir=converted_resource_dir,
+            organisation_path=organisation_path,
+            endpoints=endpoints,
+            organisations=organisation,
+            resource=resource,
+            output_log_dir=output_log_dir,
+            converted_path=os.path.join(converted_dir, resource + ".csv"),
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Pipeline failed to process resource with the following error: {e}"
+        )
+
+    endpoint_resource_info = {
+        "resource": resource,
+        "organisation": organisation[0],
+    }
+    new_entities = [entry["entity"] for entry in new_lookups]
+    issue_summary = get_issue_summary(endpoint_resource_info, issue_dir, new_entities)
+    print(issue_summary)
+
+    if "No issues found" not in issue_summary:
+        if not get_user_response(
+            "Do you want to continue processing this resource? (yes/no): "
+        ):
+            return False
+    return True

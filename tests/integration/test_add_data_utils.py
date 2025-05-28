@@ -1,15 +1,23 @@
 import csv
 from datetime import datetime
 import os
+import shutil
+import tempfile
+from unittest.mock import Mock
+import pandas as pd
 import pytest
 
 from digital_land.collection import Collection
+from digital_land.specification import Specification
 from digital_land.utils.add_data_utils import (
     clear_log,
+    download_dataset,
     get_column_field_summary,
     get_entity_summary,
     get_existing_endpoints_summary,
     get_issue_summary,
+    get_transformed_entities,
+    get_updated_entities_summary,
 )
 
 
@@ -50,6 +58,78 @@ def test_get_issue_summary(tmp_path_factory):
 
     assert "issue-type1  field1    1\n             field2    1" in issue_summary
     assert "issue-type2  field1    2" in issue_summary
+
+
+def test_get_issue_summary_no_issues(tmp_path_factory):
+    issue_dir = tmp_path_factory.mktemp("issue")
+
+    resource = "resource"
+    endpoint_resource_info = {"resource": resource}
+
+    headers = ["issue-type", "field", "value"]
+
+    with open(os.path.join(issue_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+
+    issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
+
+    assert "No issues" in issue_summary
+
+
+def test_get_issue_summary_new_entities(tmp_path_factory):
+    issue_dir = tmp_path_factory.mktemp("issue")
+
+    resource = "resource"
+    endpoint_resource_info = {"resource": resource}
+
+    headers = ["entity", "issue-type", "field", "value"]
+    rows = [
+        {
+            "entity": 1,
+            "issue-type": "issue-type1",
+            "field": "field1",
+            "value": "issue1",
+        },
+        {
+            "entity": 1,
+            "issue-type": "issue-type1",
+            "field": "field2",
+            "value": "issue2",
+        },
+        {
+            "entity": 2,
+            "issue-type": "issue-type2",
+            "field": "field1",
+            "value": "issue3",
+        },
+        {
+            "entity": 2,
+            "issue-type": "issue-type2",
+            "field": "field1",
+            "value": "issue4",
+        },
+        {
+            "entity": 3,
+            "issue-type": "issue-type3",
+            "field": "field3",
+            "value": "issue5",
+        },
+    ]
+    with open(os.path.join(issue_dir, resource + ".csv"), "w") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    filtered_issue_summary = get_issue_summary(
+        endpoint_resource_info, issue_dir, new_entities=[1, 3]
+    )
+
+    assert (
+        "issue-type1  field1    1\n             field2    1" in filtered_issue_summary
+    )
+    assert "issue-type3  field3    1" in filtered_issue_summary
+    assert "issue-type2" not in filtered_issue_summary
 
 
 def test_get_entity_summary(tmp_path_factory):
@@ -847,3 +927,406 @@ def test_get_existing_endpoints_summary_ended_endpoint_and_source(tmp_path):
     assert not existing_endpoints_summary
 
     assert not existing_sources
+
+
+def test_get_existing_endpoints_source_with_no_endpoint(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "differentendpoint",
+            "endpoint-url": "test1.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "endpoint": "",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test3",
+        "endpoint": "test3",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "test"
+    )
+
+    assert "WARNING: No endpoint found for source test1" in existing_endpoints_summary
+    assert len(existing_sources) == 0
+
+
+def test_get_existing_endpoints_ended_source_with_no_endpoint(tmp_path):
+    collection_dir = os.path.join(tmp_path, "collection")
+    os.makedirs(collection_dir, exist_ok=True)
+    endpoints = [
+        {
+            "endpoint": "differentendpoint",
+            "endpoint-url": "test1.com",
+            "parameters": "",
+            "plugin": "",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "endpoint.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=endpoints[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(endpoints)
+
+    sources = [
+        {
+            "source": "test1",
+            "endpoint": "",
+            "attribution": "",
+            "collection": "test",
+            "documentation-url": "testing.com",
+            "licence": "test",
+            "organisation": "test-org1",
+            "pipelines": "test",
+            "entry-date": "2019-01-01",
+            "start-date": "2019-01-01",
+            "end-date": "end-date",
+        },
+    ]
+
+    with open(os.path.join(collection_dir, "source.csv"), "w") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=sources[0].keys())
+        dictwriter.writeheader()
+        dictwriter.writerows(sources)
+
+    endpoint_resource_info = {
+        "source": "test3",
+        "endpoint": "test3",
+        "organisation": "test-org1",
+        "pipelines": "test",
+    }
+
+    collection = Collection(directory=collection_dir)
+    collection.load()
+
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
+        endpoint_resource_info, collection, "test"
+    )
+
+    assert not existing_endpoints_summary
+    assert len(existing_sources) == 0
+
+
+def test_download_dataset(tmp_path_factory, mocker):
+    dataset = "dataset-one"
+    specification_dir = "tests/data/specification"
+    specification = Specification(specification_dir)
+    # create temp cache dir
+    cache_dir = tmp_path_factory.mktemp("cache")
+
+    # mock api download url
+    sqlite_file_path = "tests/data/dataset/central-activities-zone.sqlite3"
+    with open(sqlite_file_path, "rb") as f:
+        data = f.read()
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.request.headers = {"test": "test"}
+    mock_response.headers = {"test": "test"}
+    mock_response.content = data
+    mocker.patch("requests.get", return_value=mock_response)
+
+    download_dataset(dataset, specification, cache_dir)
+
+    path = os.path.join(cache_dir, "dataset", f"{dataset}.sqlite3")
+    assert os.path.exists(path)
+
+
+def test_download_dataset_use_cache_dataset(tmp_path_factory, mocker):
+    dataset = "dataset-one"
+    specification_dir = "tests/data/specification"
+    specification = Specification(specification_dir)
+    # create temp cache dir
+    cache_dir = tmp_path_factory.mktemp("cache")
+
+    path = os.path.join(cache_dir, "dataset", f"{dataset}.sqlite3")
+    # put db file in cache dir
+    sqlite_file_path = "tests/data/dataset/central-activities-zone.sqlite3"
+    os.makedirs(os.path.dirname(path))
+    shutil.copy(sqlite_file_path, path)
+
+    # mock user response
+    mocker.patch(
+        "digital_land.utils.add_data_utils.get_user_response", return_value=True
+    )
+    mock_get = mocker.patch("requests.get")
+
+    download_dataset(dataset, specification, cache_dir)
+
+    # assert requests.get was NOT called
+    mock_get.assert_not_called()
+
+
+def test_get_transformed_entities():
+    output_path = tempfile.NamedTemporaryFile().name
+    dataset_path = "tests/data/dataset/central-activities-zone.sqlite3"
+
+    transformed_headers = [
+        "end-date",
+        "entity",
+        "entry-date",
+        "entry-number",
+        "fact",
+        "field",
+        "priority",
+        "reference-entity",
+        "resource",
+        "start-date",
+        "value",
+    ]
+    transformed_rows = [
+        {
+            "end-date": "",
+            "entity": 2200001,
+            "entry-date": "",
+            "entry-number": 1,
+            "fact": "fact1",
+            "field": "field1",
+            "priority": "",
+            "reference-entity": "",
+            "resource": "resource",
+            "start-date": "",
+            "value": "value1",
+        },
+        {
+            "end-date": "",
+            "entity": 2200002,
+            "entry-date": "",
+            "entry-number": 2,
+            "fact": "fact2",
+            "field": "field1",
+            "priority": "",
+            "reference-entity": "",
+            "resource": "resource",
+            "start-date": "",
+            "value": "value1",
+        },
+    ]
+    with open(output_path, "w") as f:
+        writer = csv.DictWriter(f, fieldnames=transformed_headers)
+        writer.writeheader()
+        writer.writerows(transformed_rows)
+
+    entities = get_transformed_entities(dataset_path, output_path)
+
+    assert len(entities) == 2
+    assert entities.iloc[0]["entity"] == 2200001
+    assert entities.iloc[0]["reference"] == "CAZ00000001"
+    assert entities.iloc[1]["entity"] == 2200002
+    assert entities.iloc[1]["reference"] == "CAZ00000002"
+
+
+def test_get_updated_entities_summary_new_entity():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            },
+            {
+                "end-date": "",
+                "entity": 2200002,
+                "dataset": "",
+                "json": "json",
+                "name": "name2",
+                "reference": "ref2",
+            },
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert len(diffs_df) == 5
+    assert "end-date" in diffs_df["field"].values
+    assert "dataset" in diffs_df["field"].values
+    assert "name" in diffs_df["field"].values
+    assert "reference" in diffs_df["field"].values
+    assert "json" in diffs_df["field"].values
+
+    assert "original_value" in diffs_df.columns
+    assert all(not value for value in diffs_df["original_value"].values)
+
+    assert "updated_value" in diffs_df.columns
+    assert diffs_df[diffs_df["field"] == "name"]["updated_value"].values[0] == "name2"
+
+    assert all(value for value in diffs_df["new_entity"].values)
+
+    assert (
+        "Entity: 2200002, Fields changed: end-date, dataset, json, name, reference"
+        in updated_entities_summary
+    )
+    assert "Entity: 2200001" not in updated_entities_summary
+
+
+def test_get_updated_entities_summary_updated_entity():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "updated end date",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "updated name",
+                "reference": "ref1",
+            }
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert len(diffs_df) == 2
+
+    assert diffs_df[diffs_df["field"] == "name"]["original_value"].values[0] == "name1"
+    assert (
+        diffs_df[diffs_df["field"] == "name"]["updated_value"].values[0]
+        == "updated name"
+    )
+
+    assert diffs_df[diffs_df["field"] == "end-date"]["original_value"].values[0] == ""
+    assert (
+        diffs_df[diffs_df["field"] == "end-date"]["updated_value"].values[0]
+        == "updated end date"
+    )
+
+    assert not all(value == "" for value in diffs_df["new_entity"].values)
+
+    assert "Entity: 2200001, Fields changed: end-date, name" in updated_entities_summary
+
+
+def test_get_updated_entities_summary_no_updates():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "name1",
+                "reference": "ref1",
+            }
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert "No differences found in updated dataset" in updated_entities_summary
+    assert not diffs_df
+
+
+def test_get_updated_entities_summary_updated_entity_none_agnostic():
+    original_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": "",
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": None,
+                "reference": "ref1",
+            }
+        ]
+    )
+    updated_entity_df = pd.DataFrame.from_records(
+        [
+            {
+                "end-date": None,
+                "entity": 2200001,
+                "dataset": "",
+                "json": "json",
+                "name": "",
+                "reference": "ref1",
+            }
+        ]
+    )
+
+    updated_entities_summary, diffs_df = get_updated_entities_summary(
+        original_entity_df, updated_entity_df
+    )
+
+    assert "No differences found in updated dataset" in updated_entities_summary
+    assert not diffs_df
