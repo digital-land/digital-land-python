@@ -22,7 +22,6 @@ def run_dataset_checkpoint(
     requires the comfiguration to be passed in.
     """
     rules = config.get_expectation_rules(dataset)
-    print("rules, ", rules)
     checkpoint = DatasetCheckpoint(dataset, file_path, organisations)
     checkpoint.load(rules)
     checkpoint.run()

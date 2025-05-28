@@ -287,6 +287,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
             WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
         """
         )
+        conn.execute("SELECT CreateSpatialIndex('entity_spatial', 'point');")
 
     # Now perform duplicate check using new table
     MATCH_THRESHOLD = 0.95
