@@ -45,6 +45,24 @@ def mock_resource():
 
 
 @pytest.fixture
+def mock_resource_comma_in_reference():
+    row = {
+        "reference": "ref,1",
+        "organisation": "government-organisation:D1342",
+    }
+
+    mock_csv_path = Path("mock_csv_comma")
+    with open(mock_csv_path, "w", encoding="utf-8") as f:
+        dictwriter = csv.DictWriter(f, fieldnames=row.keys())
+        dictwriter.writeheader()
+        dictwriter.writerow(row)
+
+    yield mock_csv_path
+
+    os.remove(mock_csv_path)
+
+
+@pytest.fixture
 def collection_dir(tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
@@ -286,3 +304,70 @@ def test_command_assign_entities(
         in out
     )
     assert "tree , government-organisation:D1342 , Ref3 , 7002000000" in out
+
+
+def test_command_assign_entities_reference_with_comma(
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource_comma_in_reference,
+):
+    """
+    This test ensures that references containing commas (e.g. 'ref,1') are correctly handled
+    and are not assigned extra double quotes (i.e. '"ref,1"') when stored in lookup.
+    """
+    collection_name = "tree-preservation-order"
+    test_endpoint = "endpoint"
+
+    collection = Collection(name=collection_name, directory=collection_dir)
+    collection.load()
+    dataset_resource_map = collection.dataset_resource_map()
+    for dataset in dataset_resource_map:
+        assign_entities(
+            resource_file_paths=["mock_csv_comma"],
+            collection=collection,
+            organisation=["government-organisation:D1342"],
+            specification_dir=specification_dir,
+            organisation_path=organisation_path,
+            pipeline_dir=pipeline_dir,
+            dataset=dataset,
+            endpoints=test_endpoint,
+        )
+
+    lookups = Lookups(pipeline_dir)
+    with open(lookups.lookups_path, newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    lookup_entries = [
+        (row["prefix"], row["organisation"], row["reference"], row["entity"])
+        for row in rows
+    ]
+
+    # assert reference value is 'ref,1' instead of '"ref,1"'
+    assert (
+        "tree-preservation-zone",
+        "government-organisation:D1342",
+        "ref,1",
+        "19100000",
+    ) in lookup_entries
+    assert (
+        "tree",
+        "government-organisation:D1342",
+        "ref,1",
+        "7002000000",
+    ) in lookup_entries
+
+    assert (
+        "tree-preservation-zone",
+        "government-organisation:D1342",
+        '"ref,1"',
+        "19100000",
+    ) not in lookup_entries
+    assert (
+        "tree",
+        "government-organisation:D1342",
+        '"ref,1"',
+        "7002000000",
+    ) not in lookup_entries
