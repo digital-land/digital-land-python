@@ -310,7 +310,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
                 FROM entity_spatial a
                 JOIN entity_spatial b
                     ON ST_Intersects(a.geom, b.geom)
-                    AND a.entity <> b.entity
+                    AND a.entity < b.entity
                 ),
 
             categorised as (
@@ -342,7 +342,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
             FROM entity_spatial a
             JOIN entity_spatial b
                 ON ST_Equals(a.point, b.point)
-                AND a.entity <> b.entity
+                AND a.entity < b.entity
             GROUP BY entity_join_key;
         """
 
