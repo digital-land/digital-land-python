@@ -48,6 +48,7 @@ class EntityReferencePhase(Phase):
                 "reference",
                 "reference value contains reference_prefix",
                 reference_prefix,
+                f"Original reference split into prefix '{reference_prefix}' and reference '{reference}'",
             )
 
         # crude fix for (hopefully) one-of issue with Newham Council
