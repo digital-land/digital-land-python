@@ -23,9 +23,16 @@ class EntityReferencePhase(Phase):
     ensure an entry has the prefix and reference fields
     """
 
-    def __init__(self, dataset=None, prefix=None, specification=None):
+    def __init__(
+        self,
+        dataset=None,
+        prefix=None,
+        specification=None,
+        valid_reference_prefixes=None,
+    ):
         self.dataset = dataset
         self.specification = specification
+        self.valid_reference_prefixes = valid_reference_prefixes
         if prefix:
             self.prefix = prefix
         elif specification:
@@ -47,6 +54,13 @@ class EntityReferencePhase(Phase):
         # solution will need to be sought.
         if "UPRN" in reference_prefix:
             reference_prefix = ""
+
+        if (
+            self.valid_reference_prefixes
+            and reference_prefix not in self.valid_reference_prefixes
+        ):
+            reference_prefix = ""
+        # case that isn't covered by this: prefix from reference that isn't a dataset will be filtered out. when will this happen?
 
         prefix = row.get("prefix", "") or reference_prefix or self.prefix
         return prefix, reference
