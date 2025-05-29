@@ -442,15 +442,9 @@ def dataset_create(
         print("missing output path", file=sys.stderr)
         sys.exit(2)
 
-    # Set up initial objects
-    organisation = Organisation(
-        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
-    )
-
     # create sqlite dataset packageas before and load inn data that isn't in the parquetpackage yet
     package = DatasetPackage(
         dataset,
-        organisation=organisation,
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
