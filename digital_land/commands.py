@@ -559,7 +559,6 @@ def dataset_update(
     if not dataset_path:
         package = DatasetPackage(
             dataset,
-            organisation=organisation,
             path=output_path,
             specification_dir=None,  # TBD: package should use this specification object
         )
@@ -574,7 +573,6 @@ def dataset_update(
         logging.info(f"Reading from local dataset file {dataset_path}")
         package = DatasetPackage(
             dataset,
-            organisation=organisation,
             path=dataset_path,
             specification_dir=None,  # TBD: package should use this specification object
         )
@@ -587,7 +585,7 @@ def dataset_update(
         package.load_transformed(path)
         package.load_column_fields(column_field_dir / dataset / path_obj.name)
         package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    package.load_entities()
+    package.load_entities(organisations=organisation.organisation)
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
     if os.path.exists(old_entity_path):
