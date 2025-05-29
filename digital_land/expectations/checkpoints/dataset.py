@@ -7,7 +7,11 @@ from digital_land.organisation import Organisation
 
 from .base import BaseCheckpoint
 from ..log import ExpectationLog
-from ..operation import count_lpa_boundary, count_deleted_entities
+from ..operation import (
+    count_lpa_boundary,
+    count_deleted_entities,
+    duplicate_geometry_check,
+)
 
 
 class DatasetCheckpoint(BaseCheckpoint):
@@ -29,6 +33,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         operation_map = {
             "count_lpa_boundary": count_lpa_boundary,
             "count_deleted_entities": count_deleted_entities,
+            "duplicate_geometry_check": duplicate_geometry_check,
         }
         operation = operation_map[operation_string]
         return operation
@@ -95,7 +100,7 @@ class DatasetCheckpoint(BaseCheckpoint):
             expectation["responsibility"] = rule.get("responsibility", "")
 
             # params are different it's read in from a json, onlly format the values
-            expectation["parameters"] = rule["parameters"]
+            expectation["parameters"] = json.loads(rule["parameters"])
 
         return expectation
 
@@ -141,7 +146,11 @@ class DatasetCheckpoint(BaseCheckpoint):
             passed, message, details = self.run_expectation(expectation)
             self.log.add(
                 {
-                    "organisation": expectation["organisation"]["organisation"],
+                    "organisation": (
+                        expectation["organisation"]["organisation"]
+                        if expectation.get("organisation", "")
+                        else ""
+                    ),
                     "name": expectation["name"],
                     "passed": passed,
                     "message": message,

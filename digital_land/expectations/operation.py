@@ -1,3 +1,4 @@
+import sqlite3
 import requests
 import pandas as pd
 import urllib
@@ -223,4 +224,180 @@ def check_columns(conn, expected: dict):
     result = False if failure_count > 0 else True
     message = f"{success_count} out of {success_count + failure_count} tables had expected columns"
 
+    return result, message, details
+
+
+def duplicate_geometry_check(conn, spatial_field: str):
+    """
+    Compares all the geometries or points of entities in a dataset to find duplicates.
+    Geometries are classed as duplicates if they have > 95% intersection,
+    points are classed as duplicates if they are an exact match
+    args:
+        conn: spatialite connection used to connect to the db, wil be created by the checkpoint class
+        spatial_field: the field to be used for comparison, either 'point' or 'geometry'
+    """
+    # Assuming spatialite connection so we don't have to install spatialite
+
+    if spatial_field != "geometry" and spatial_field != "point":
+        raise Exception(
+            f"Spatial field for duplicate geometry check must be 'point' or 'geometry', not '{spatial_field}'"  # if we let people pass in spatial field this is required
+        )
+
+    # Create new table with spatial index on spatial field
+
+    conn.execute("DROP TABLE IF EXISTS entity_spatial;")
+    conn.execute(
+        "SELECT InitSpatialMetadata(1);"
+    )  # Initialise spatial metadata if it hasn't already, required to use AddGeometryColumn
+    conn.execute(
+        """
+        CREATE TABLE entity_spatial (
+            entity INTEGER,
+            reference TEXT,
+            organisation_entity INTEGER
+        );
+    """
+    )
+    # Add geometry column with SRID 0 (ie no co-ordinate reference system)
+    if spatial_field == "geometry":
+        conn.execute(
+            "SELECT AddGeometryColumn('entity_spatial', 'geom', 0, 'GEOMETRY', 'XY');"
+        )
+        # Insert data into new table
+        conn.execute(
+            f"""
+            INSERT INTO entity_spatial (entity, reference, organisation_entity, geom)
+            SELECT entity, reference, organisation_entity, ST_GeomFromText({spatial_field}, 0)
+            FROM entity
+            WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
+        """
+        )
+        # Create the spatial index
+        conn.execute("SELECT CreateSpatialIndex('entity_spatial', 'geom');")
+    elif spatial_field == "point":
+        conn.execute(
+            "SELECT AddGeometryColumn('entity_spatial', 'point', 0, 'POINT', 'XY');"
+        )
+        # Insert data into new table
+        conn.execute(
+            f"""
+            INSERT INTO entity_spatial (entity, reference, organisation_entity, point)
+            SELECT entity, reference, organisation_entity, ST_PointFromText({spatial_field}, 0)
+            FROM entity
+            WHERE {spatial_field} IS NOT NULL AND {spatial_field} != '';
+        """
+        )
+        conn.execute("SELECT CreateSpatialIndex('entity_spatial', 'point');")
+
+    # Now perform duplicate check using new table
+    MATCH_THRESHOLD = 0.95
+    if spatial_field == "geometry":
+        query = f"""
+            WITH calc as (
+                SELECT
+                    a.entity as entity_a,
+                    a.organisation_entity as organisation_entity_a,
+                    b.entity as entity_b,
+                    b.organisation_entity as organisation_entity_b,
+                    CAST(
+                        MIN(a.entity, b.entity) AS TEXT
+                    ) || '-' || CAST(
+                        MAX(a.entity, b.entity) AS TEXT
+                    ) AS entity_join_key,
+                    ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(ST_Union(a.geom, b.geom)) as pct_comb_overlap,
+                    ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(a.geom) as pct_overlap_a,
+                    ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(b.geom) as pct_overlap_b
+                FROM entity_spatial a
+                JOIN entity_spatial b
+                    ON ST_Intersects(a.geom, b.geom)
+                    AND a.entity < b.entity
+                ),
+
+            categorised as (
+
+                SELECT
+                    *,
+                    CASE
+                        WHEN pct_overlap_a > {MATCH_THRESHOLD} AND pct_overlap_b > {MATCH_THRESHOLD} THEN 'Complete match (two-way)'
+                        WHEN pct_overlap_a > {MATCH_THRESHOLD} OR pct_overlap_b > {MATCH_THRESHOLD} THEN 'Single match (one-way)'
+                    ELSE 'undefined' END as intersection_type,
+                    row_number() OVER (PARTITION BY entity_join_key ORDER BY pct_comb_overlap) as key_count
+                FROM calc
+                WHERE pct_overlap_a > 0.9 OR pct_overlap_b > 0.9 -- should this use MATCH_THRESHOLD?
+                ORDER BY entity_join_key
+                )
+
+            SELECT *
+            FROM categorised
+            WHERE key_count = 1
+        """
+    elif spatial_field == "point":
+        query = """
+            SELECT
+                a.entity AS entity_a,
+                a.organisation_entity as organisation_entity_a,
+                b.entity AS entity_b,
+                b.organisation_entity as organisation_entity_b,
+                CAST(MIN(a.entity, b.entity) AS TEXT) || '-' || CAST(MAX(a.entity, b.entity) AS TEXT) AS entity_join_key
+            FROM entity_spatial a
+            JOIN entity_spatial b
+                ON ST_Equals(a.point, b.point)
+                AND a.entity < b.entity
+            GROUP BY entity_join_key;
+        """
+
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(query).fetchall()
+
+    rows = [dict(row) for row in rows]
+    if len(rows) > 0:
+        result = False
+        if spatial_field == "geometry":
+            complete_matches = [
+                {
+                    "entity_a": row["entity_a"],
+                    "organisation_entity_a": row["organisation_entity_a"],
+                    "entity_b": row["entity_b"],
+                    "organisation_entity_b": row["organisation_entity_b"],
+                }
+                for row in rows
+                if row["intersection_type"] == "Complete match (two-way)"
+            ]
+
+            single_matches = [
+                {
+                    "entity_a": row["entity_a"],
+                    "organisation_entity_a": row["organisation_entity_a"],
+                    "entity_b": row["entity_b"],
+                    "organisation_entity_b": row["organisation_entity_b"],
+                }
+                for row in rows
+                if row["intersection_type"] == "Single match (one-way)"
+            ]
+            message = f"There are {len(complete_matches)} complete matches and {len(single_matches)} single matches in the dataset"
+        else:
+            complete_matches = [
+                {
+                    "entity_a": row["entity_a"],
+                    "organisation_entity_a": row["organisation_entity_a"],
+                    "entity_b": row["entity_b"],
+                    "organisation_entity_b": row["organisation_entity_b"],
+                }
+                for row in rows
+            ]
+            single_matches = []
+            message = (
+                f"There are {len(complete_matches)} complete matches in the dataset"
+            )
+    else:
+        result = True
+        message = "There are no duplicate geometries/points in the dataset"
+        complete_matches = []
+        single_matches = []
+    details = {
+        "actual": len(rows),
+        "expected": 0,
+        "complete_matches": complete_matches,
+        "single_matches": single_matches,
+    }
     return result, message, details
