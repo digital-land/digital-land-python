@@ -11,10 +11,16 @@ import boto3
 from moto import mock_aws
 import logging
 
+from digital_land.utils.postgres_utils import get_pg_connection, get_df
+
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.package import Specification
 from digital_land.organisation import Organisation
 from digital_land.collect import Collector
+
+from digital_land.commands import (
+    load_pipeline_provenance,
+)
 
 """ dataset_create & dataset_update """
 
@@ -304,7 +310,7 @@ def test_dataset_create_fixture(
     )
     package = DatasetPackage(
         dataset,
-        organisation=organisation,
+        # organisation=organisation,
         path=sqlite3_path,
         specification_dir=specification_dir,  # TBD: package should use this specification object
     )
@@ -319,7 +325,7 @@ def test_dataset_create_fixture(
     package.load_dataset_resource(
         resource_files_fixture["dataset_resource_dir"] / Path(path).name
     )
-    package.load_entities()
+    package.load_entities(organisations=organisation.organisation)
 
     old_entity_path = os.path.join(
         resource_files_fixture["pipeline_dir"], "old-entity.csv"
@@ -381,7 +387,7 @@ def test_dataset_update_fixture(
     )
     package = DatasetPackage(
         dataset,
-        organisation=organisation,
+        # organisation=organisation,
         path=sqlite3_path,
         specification_dir=specification_dir,  # TBD: package should use this specification object
     )
@@ -402,7 +408,7 @@ def test_dataset_update_fixture(
     package.load_dataset_resource(
         resource_files_fixture["dataset_resource_dir"] / Path(path).name
     )
-    package.load_entities()
+    package.load_entities(organisations=organisation.organisation)
 
     old_entity_path = os.path.join(
         resource_files_fixture["pipeline_dir"], "old-entity_updated.csv"
@@ -590,3 +596,160 @@ def test_collection_dir_file_hashes(temp_dir, caplog):
         assert any(
             expected in record.message for record in caplog.records
         ), f"Missing log: {expected}"
+
+
+@pytest.fixture()
+def sqlite_db(tmp_path):
+    """
+    fixture to create a sqlite db
+    """
+    db_path = tmp_path / "test.sqlite3"
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+            CREATE TABLE IF NOT EXISTS fact_resource (
+                fact TEXT,
+                resource TEXT,
+                entry_date TEXT,
+                entry_number TEXT,
+                priority TEXT,
+                reference_entity TEXT,
+                dataset TEXT
+            )
+        """
+    )
+    conn.execute(
+        """
+            CREATE TABLE fact (
+                fact VARCHAR(64) PRIMARY KEY,
+                entity INTEGER NOT NULL,
+                field VARCHAR(64) NOT NULL,
+                value TEXT NOT NULL,
+                entry_date DATE NOT NULL,
+                entry_number INTEGER NOT NULL,
+                resource VARCHAR(64) NOT NULL,
+                priority INTEGER,
+                reference_entity BIGINT,
+                dataset TEXT NOT NULL
+            );
+        """
+    )
+    conn.execute(
+        """
+            CREATE TABLE issue (
+                entity BIGINT,
+                entry_date DATE,
+                entry_number INTEGER NOT NULL,
+                field VARCHAR(64),
+                issue_type VARCHAR(64),
+                line_number INTEGER,
+                dataset VARCHAR(64) NOT NULL,
+                resource VARCHAR(64) NOT NULL,
+                value TEXT,
+                message TEXT
+            )
+        """
+    )
+    conn.commit()
+    conn.close()
+    return db_path
+
+
+# big old test it runs the overarching function probably don't need tto test this too many times
+# focus on tests for individual functions to ensure they're doing the  right thing
+@pytest.mark.parametrize(
+    "fact_data, fact_resource_data, issue_data",
+    [
+        (
+            {
+                "fact": [
+                    "dfdbd3153e0e8529c16a623f10c7770ca0e8a267465a22051c162c1fcd5413fc"
+                ],
+                "entity": [1],
+                "field": ["name"],
+                "value": ["test"],
+                "resource": [
+                    "e51e6f8fd1cadb696d5ca229236b84f2ec67afdea6aad03fc81142b04c67adbd"
+                ],
+                "entry_date": ["2025-01-01"],
+                "entry_number": [3],
+                "priority": [1],
+                "reference_entity": [122],
+                "dataset": ["article-4-direction"],
+            },
+            {
+                "fact": [
+                    "dfdbd3153e0e8529c16a623f10c7770ca0e8a267465a22051c162c1fcd5413fc"
+                ],
+                "resource": [
+                    "e51e6f8fd1cadb696d5ca229236b84f2ec67afdea6aad03fc81142b04c67adbd"
+                ],
+                "entry_date": ["2025-01-01"],
+                "entry_number": ["2"],
+                "priority": ["1"],
+                "reference_entity": ["122"],
+                "dataset": ["article-4-direction"],
+            },
+            {
+                "entity": [1],
+                "entry_date": ["2025-01-01"],
+                "entry_number": [1],
+                "field": ["test"],
+                "issue_type": ["test"],
+                "line_number": [2],
+                "dataset": ["test"],
+                "resource": [
+                    "e51e6f8fd1cadb696d5ca229236b84f2ec67afdea6aad03fc81142b04c67adbd"
+                ],
+                "value": ["test"],
+                "message": ["test"],
+            },
+        )
+    ],
+)
+def test_load_pipeline_provenance_into_empty_db(
+    fact_data,
+    fact_resource_data,
+    issue_data,
+    sqlite_db,
+    platform_db_function_url,
+    specification_dir,
+):
+    # need to load data into sqlite db
+    conn = sqlite3.connect(sqlite_db)
+
+    # load fact_data
+    fact_input_df = pd.DataFrame.from_dict(fact_data)
+    fact_input_df.to_sql("fact", conn, if_exists="append", index=False)
+    # load fact_resource_data
+    fact_resource_input_df = pd.DataFrame.from_dict(fact_resource_data)
+    fact_resource_input_df.to_sql(
+        "fact_resource", conn, if_exists="append", index=False
+    )
+
+    # load issue_data
+    issue_input_df = pd.DataFrame.from_dict(issue_data)
+    issue_input_df.to_sql("issue", conn, if_exists="append", index=False)
+    # close connection
+    conn.close()
+
+    # pass to function
+    load_pipeline_provenance(
+        sqlite_path=sqlite_db,
+        database_url=platform_db_function_url,
+        specification_path=specification_dir,
+    )
+
+    # TODO could add the get_df function to the postgres package
+    conn = get_pg_connection(platform_db_function_url)
+    entity_output_df = get_df("entity", conn)
+    assert len(entity_output_df) > 0
+
+    fact_output_df = get_df("fact", conn)
+    assert len(fact_output_df) > 0
+
+    fact_resource_output_df = get_df("fact_resource", conn)
+    assert len(fact_resource_output_df) > 0
+
+    issue_output_df = get_df("issue", conn)
+    assert len(issue_output_df) > 0

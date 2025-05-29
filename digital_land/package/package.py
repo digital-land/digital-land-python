@@ -50,6 +50,10 @@ class Specification:
 
 
 class Package:
+    """
+    A base package assigning values that are needed by  any package
+    """
+
     def __init__(
         self,
         datapackage,
