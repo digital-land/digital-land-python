@@ -1365,7 +1365,10 @@ def assign_entities(
     lookups.load_csv()
     for new_lookup in new_lookups:
         for idx, entry in enumerate(new_lookup):
-            lookups.add_entry(entry[0])
+            lookup = entry[0]
+            if "reference" in lookup and isinstance(lookup["reference"], str):
+                lookup["reference"] = lookup["reference"].strip('"')
+            lookups.add_entry(lookup)
 
     # save edited csvs
     max_entity_num = lookups.get_max_entity(pipeline_name, specification)

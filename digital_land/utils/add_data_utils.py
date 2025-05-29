@@ -181,6 +181,15 @@ def get_issue_summary(endpoint_resource_info, issue_dir, new_entities=None):
     return issue_summary
 
 
+def get_provision_entities_from_duckdb(lookup_path, pipeline, endpoint_resource_info):
+    conn = duckdb.connect()
+    provision_entity_df = conn.execute(
+        f"SELECT entity FROM read_csv('{lookup_path}', quote='\"') WHERE prefix='{pipeline}' AND organisation='{endpoint_resource_info['organisation']}'"
+    ).df()
+
+    return provision_entity_df["entity"].values if len(provision_entity_df) > 0 else []
+
+
 def get_entity_summary(
     endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
 ):
@@ -231,14 +240,9 @@ def get_entity_summary(
     # Get list of entities for this provision from lookup.csv
     # Potential for failure here when reading huge lookup file
     lookup_path = pipeline_dir / "lookup.csv"
-    conn = duckdb.connect()
-    provision_entity_df = conn.execute(
-        f"SELECT entity FROM '{lookup_path}' WHERE prefix='{pipeline}' AND organisation='{endpoint_resource_info['organisation']}'"
-    ).df()
-    if len(provision_entity_df) > 0:
-        provision_entities = provision_entity_df["entity"].values
-    else:
-        provision_entities = []
+    provision_entities = get_provision_entities_from_duckdb(
+        lookup_path, pipeline, endpoint_resource_info
+    )
 
     # Compare entities found in resource with entities in lookup.csv
     missing_entity_count = len(

@@ -1,9 +1,11 @@
 import pytest
+import pandas as pd
 
 from digital_land.commands import is_url_valid
 from digital_land.utils.add_data_utils import (
     get_user_response,
     is_date_valid,
+    get_provision_entities_from_duckdb,
     normalise_json,
 )
 
@@ -104,3 +106,26 @@ def test_normalise_json():
     assert sorted_json_string.find("firstproperty") < sorted_json_string.find(
         "secondproperty"
     )
+
+
+def test_get_provision_entities_from_duckdb(tmp_path):
+
+    csv_file = tmp_path / "lookup.csv"
+    df = pd.DataFrame(
+        {
+            "prefix": ["tree", "tree"],
+            "organisation": ["organisation", "organisation"],
+            "reference": ["ref,1", "ref,2"],
+            "entity": ["10", "11"],
+        }
+    )
+    df.to_csv(csv_file, index=False)
+
+    pipeline = "tree"
+    endpoint_resource_info = {"organisation": "organisation"}
+
+    result = get_provision_entities_from_duckdb(
+        csv_file, pipeline, endpoint_resource_info
+    )
+
+    assert list(result) == [10, 11]
