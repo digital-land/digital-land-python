@@ -46,7 +46,7 @@ class EntityReferencePhase(Phase):
         if self.issues and reference_prefix:
             self.issues.log_issue(
                 "reference",
-                "reference found with a reference_prefix",
+                "reference value contains reference_prefix",
                 reference_prefix,
             )
 

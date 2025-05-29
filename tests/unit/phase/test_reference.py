@@ -113,4 +113,4 @@ def test_entity_reference_with_prefix_issue():
     )
 
     assert ("DA", "20/21:CIL:1") == phase.process_row({"reference": "DA:20/21:CIL:1"})
-    assert issues.rows[0]["issue-type"] == "reference found with a reference_prefix"
+    assert issues.rows[0]["issue-type"] == "reference value contains reference_prefix"
