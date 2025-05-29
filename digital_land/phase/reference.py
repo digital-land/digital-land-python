@@ -23,7 +23,7 @@ class EntityReferencePhase(Phase):
     ensure an entry has the prefix and reference fields
     """
 
-    def __init__(self, dataset=None, prefix=None, specification=None):
+    def __init__(self, dataset=None, prefix=None, specification=None, issues=None):
         self.dataset = dataset
         self.specification = specification
         if prefix:
@@ -37,10 +37,19 @@ class EntityReferencePhase(Phase):
             self.prefix = specification.dataset_prefix(self.dataset)
         else:
             self.prefix = dataset
+        self.issues = issues
 
     def process_row(self, row):
         reference = row.get("reference", "") or row.get(self.dataset, "")
         reference_prefix, reference = split_curie(reference)
+
+        if self.issues and reference_prefix:
+            self.issues.log_issue(
+                "reference",
+                "reference value contains reference_prefix",
+                reference_prefix,
+                f"Original reference split into prefix '{reference_prefix}' and reference '{reference}'",
+            )
 
         # crude fix for (hopefully) one-of issue with Newham Council
         # if this type of problem becomes common, a more scalable
