@@ -31,6 +31,7 @@ from digital_land.commands import (
     organisation_check,
     save_state,
     add_data,
+    load_pipeline_provenance,
 )
 
 from digital_land.command_arguments import (
@@ -825,3 +826,24 @@ def check_state_cmd(
     if diffs:
         print(f"State differs from {state_path} - {', '.join(diffs)}")
         sys.exit(1)
+
+
+@cli.command(
+    "check-state",
+    short_help="compare the current state against a stated file. Returns with a non-zero return code if they differ.",
+)
+@click.option(
+    "--sqlite-path",
+    type=click.Path(exists=True),
+    help="file path to a sqlite database containing the dataset provenance data",
+)
+@click.option(
+    "--database-url",
+    type=click.STRING,
+    help="the database connection url to load data into, schema is assumed to exist",
+)
+def load_pipeline_provenance_cli(sqlite_path, database_url):
+    """
+    A command line interface to load the pipeline provenance data from a sqlite file into a database.
+    """
+    load_pipeline_provenance(sqlite_path, database_url)
