@@ -1801,7 +1801,7 @@ def generate_provision_quality():
     qual_issue = qual_issue.drop(columns="issue_type")
 
     # IDENTIFY PROBLEMS - expectations - entity beyond LPA bounds
-    s3_uri = f"s3://development-collection-data/log/expectation/dataset=*/*.parquet"
+    s3_uri = "s3://development-collection-data/log/expectation/dataset=*/*.parquet"
 
     qual_expectation_bounds = duckdb.query(
         f"""
