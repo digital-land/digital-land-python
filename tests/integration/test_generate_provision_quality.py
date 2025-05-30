@@ -13,38 +13,38 @@ def test_generate_provision_quality(
 ):
     # mock issue_type
     df1 = pd.DataFrame(
-            [
-                {
-                    "description": "desc",
-                    "issue_type": "missing-value",
-                    "name": "Missing Value",
-                    "severity": "error",
-                    "responsibility": "external",
-                    "quality_criteria": "any other validity error",
-                    "quality_level": 3,
-                }
-            ]
-        )
+        [
+            {
+                "description": "desc",
+                "issue_type": "missing-value",
+                "name": "Missing Value",
+                "severity": "error",
+                "responsibility": "external",
+                "quality_criteria": "any other validity error",
+                "quality_level": 3,
+            }
+        ]
+    )
     # mock LPA boundary check
-    df2 =pd.DataFrame(
-            [
-                {
-                    "organisation": "org1",
-                    "dataset": "dataset1",
-                    "details": '{"actual": 2}',
-                }
-            ]
-        )
+    df2 = pd.DataFrame(
+        [
+            {
+                "organisation": "org1",
+                "dataset": "dataset1",
+                "details": '{"actual": 2}',
+            }
+        ]
+    )
     # mock count value
     df3 = pd.DataFrame(
-            [
-                {
-                    "organisation": "org1",
-                    "dataset": "dataset1",
-                    "details": '{"actual": 1}',
-                }
-            ]
-        )
+        [
+            {
+                "organisation": "org1",
+                "dataset": "dataset1",
+                "details": '{"actual": 1}',
+            }
+        ]
+    )
 
     # Wrap each in a mock with .to_df()
     rel1 = Mock()
