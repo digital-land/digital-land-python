@@ -15,6 +15,7 @@ import geojson
 from requests import HTTPError
 import shapely
 import numpy as np
+import duckdb
 
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.check import duplicate_reference_check
@@ -1744,22 +1745,26 @@ def generate_provision_quality():
     path_perf_db = Path(api.cache_dir) / "dataset" / "performance.sqlite3"
 
     # Issue quality criteria lookup
-    lookup_issue_qual = fc.datasette_query(
-        "digital-land",
-        """
+    specification_repo_url = (
+        "https://raw.githubusercontent.com/digital-land/specification/refs/heads/"
+    )
+    issue_type_url = f"{specification_repo_url}main/content/issue-type.csv"
+
+    lookup_issue_qual = duckdb.query(
+        f"""
         SELECT
             description,
-            issue_type,
+            "issue-type" AS issue_type,
             name,
             severity,
             responsibility,
-            quality_criteria_level || " - " || quality_criteria as quality_criteria,
+            quality_criteria_level || ' - ' || quality_criteria as quality_criteria,
             quality_criteria_level as quality_level
-        FROM issue_type
-        WHERE quality_criteria_level != ''
+        FROM read_csv('{issue_type_url}')
+        WHERE CAST(quality_criteria_level AS string) != ''
         AND quality_criteria != ''
-        """,
-    )
+    """
+    ).to_df()
 
     # Transform data
     provision = fc.query_sqlite(
@@ -1793,54 +1798,47 @@ def generate_provision_quality():
         left_on="problem_type",
         right_on="issue_type",
     )
-    qual_issue.drop("issue_type", axis=1, inplace=True)
+    qual_issue = qual_issue.drop(columns="issue_type")
 
     # IDENTIFY PROBLEMS - expectations - entity beyond LPA bounds
-    qual_expectation_bounds = fc.datasette_query(
-        "digital-land",
-        """
-        SELECT organisation, dataset, details
-        FROM expectation
-        WHERE 1=1
-            AND name = 'Check no entities are outside of the local planning authority boundary'
-            AND passed = 'False'
-            AND message not like '%error%'
-        """,
-    )
+    s3_uri = f"s3://development-collection-data/log/expectation/dataset=*/*.parquet"
 
-    qual_expectation_bounds["problem_source"] = "expectation"
-    qual_expectation_bounds["problem_type"] = (
-        "entity outside of the local planning authority boundary"
+    qual_expectation_bounds = duckdb.query(
+        f"""
+        SELECT organisation, dataset, details
+        FROM   read_parquet('{s3_uri}')
+        WHERE name = 'Check no entities are outside of the local planning authority boundary'
+          AND passed = 'False'
+          AND message not like '%error%'
+        """
+    ).to_df()
+    qual_expectation_bounds = qual_expectation_bounds.assign(
+        problem_source="expectation",
+        problem_type="entity outside of the local planning authority boundary",
+        count=[json.loads(v)["actual"] for v in qual_expectation_bounds["details"]],
+        quality_criteria="3 - entities within LPA boundary",
+        quality_level=3,
     )
-    qual_expectation_bounds["count"] = [
-        json.loads(v)["actual"] for v in qual_expectation_bounds["details"]
-    ]
-    qual_expectation_bounds["quality_criteria"] = "3 - entities within LPA boundary"
-    qual_expectation_bounds["quality_level"] = 3
-    qual_expectation_bounds.drop("details", axis=1, inplace=True)
+    qual_expectation_bounds = qual_expectation_bounds.drop(columns="details")
 
     # IDENTIFY PROBLEMS - expectations - entity beyond LPA bounds
-    qual_expectation_count = fc.datasette_query(
-        "digital-land",
-        """
+    qual_expectation_count = duckdb.query(
+        f"""
         SELECT organisation, dataset, details
-        FROM expectation
-        WHERE 1=1
-            AND name = 'Check number of entities inside the local planning authority boundary matches the manual count'
-            AND passed = 'False'
-            AND message not like '%error%'
-        """,
-    )
+        FROM   read_parquet('{s3_uri}')
+        WHERE  name = 'Check number of entities inside the local planning authority boundary matches the manual count'
+          AND  passed = 'False'
+          AND  message not like '%error%'
+        """
+    ).to_df()
 
-    qual_expectation_count["problem_source"] = "expectation"
-    qual_expectation_count["problem_type"] = "entity count doesn't match manual count"
-    qual_expectation_count["count"] = [
-        json.loads(v)["actual"] for v in qual_expectation_count["details"]
-    ]
-    qual_expectation_count["quality_criteria"] = (
-        "3 - conservation area entity count matches LPA"
+    qual_expectation_count = qual_expectation_count.assign(
+        problem_source="expectation",
+        problem_type="entity count doesn't match manual count",
+        count=[json.loads(v)["actual"] for v in qual_expectation_count["details"]],
+        quality_criteria="3 - conservation area entity count matches LPA",
+        quality_level=3,
     )
-    qual_expectation_count["quality_level"] = 3
     qual_expectation_count.drop("details", axis=1, inplace=True)
 
     # Combine all problem source tables, and aggregate to criteria level
