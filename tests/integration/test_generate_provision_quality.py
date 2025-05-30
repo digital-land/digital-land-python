@@ -1,19 +1,18 @@
 import pandas as pd
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from pathlib import Path
 from datetime import datetime
 from digital_land.commands import generate_provision_quality
 
 
-@patch("digital_land.commands.fc.datasette_query")
+@patch("digital_land.commands.duckdb.query")
 @patch("digital_land.commands.fc.query_sqlite")
 def test_generate_provision_quality(
     mock_query_sqlite,
-    mock_datasette_query,
+    mock_duckdb_query,
 ):
     # mock issue_type
-    mock_datasette_query.side_effect = [
-        pd.DataFrame(
+    df1 = pd.DataFrame(
             [
                 {
                     "description": "desc",
@@ -25,9 +24,9 @@ def test_generate_provision_quality(
                     "quality_level": 3,
                 }
             ]
-        ),
-        # mock LPA boundary check
-        pd.DataFrame(
+        )
+    # mock LPA boundary check
+    df2 =pd.DataFrame(
             [
                 {
                     "organisation": "org1",
@@ -35,9 +34,9 @@ def test_generate_provision_quality(
                     "details": '{"actual": 2}',
                 }
             ]
-        ),
-        # mock count value
-        pd.DataFrame(
+        )
+    # mock count value
+    df3 = pd.DataFrame(
             [
                 {
                     "organisation": "org1",
@@ -45,8 +44,19 @@ def test_generate_provision_quality(
                     "details": '{"actual": 1}',
                 }
             ]
-        ),
-    ]
+        )
+
+    # Wrap each in a mock with .to_df()
+    rel1 = Mock()
+    rel1.to_df.return_value = df1
+
+    rel2 = Mock()
+    rel2.to_df.return_value = df2
+
+    rel3 = Mock()
+    rel3.to_df.return_value = df3
+
+    mock_duckdb_query.side_effect = [rel1, rel2, rel3]
 
     # mock sqlite queries
     mock_query_sqlite.side_effect = [
@@ -81,10 +91,12 @@ def test_generate_provision_quality(
     assert output_file.exists(), "Parquet file not found"
 
     df = pd.read_parquet(output_file)
-    assert "organisation" in df.columns
-    assert "dataset" in df.columns
-    assert "quality" in df.columns
-
     assert not df.empty, "Dataframe loaded from Parquet is empty"
+    assert set(["organisation", "dataset", "quality"]).issubset(df.columns)
     assert len(df) == 1
     assert df.iloc[0]["organisation"] == "org1"
+    assert df.iloc[0]["dataset"] == "dataset1"
+    assert df["quality"].iloc[0] in [
+        "3. data that is good for ODP",
+        "4. data that is trustworthy",
+    ]
