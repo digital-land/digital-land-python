@@ -92,7 +92,11 @@ def convert_features_to_csv(input_path, output_path=None):
     if not output_path:
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
 
-    gdal_version = get_gdal_version()
+    try:
+        gdal_version = get_gdal_version()
+    except Exception as e:
+        logging.error(f"Failed to get GDAL version: {e} assuming 3.5.2 or later")
+        gdal_version = Version("3.5.2")
 
     command = [
         "ogr2ogr",
@@ -149,31 +153,48 @@ def convert_json_to_csv(input_path, encoding, output_path=None):
         output_path = tempfile.NamedTemporaryFile(suffix=".csv").name
     with open(input_path, "r", encoding=encoding) as json:
         js = json_stream.load(json)
+        # check the top  level structure of the json before attempting conversion with ogr2ogr
+        if isinstance(js, json_stream.base.StreamingJSONList):
+            #  could convert to function
+            with open(output_path, "w") as csv_file:
+                iterator = iter(js)
+                first_row = json_stream.to_standard_types(next(iterator))
+                keys = first_row.keys()
+                cw = csv.DictWriter(csv_file, fieldnames=keys)
+                cw.writeheader()
+                cw.writerow(first_row)
 
-        columns = None
-        data = None
+                for row_oject in iterator:
+                    row = json_stream.to_standard_types(row_oject)
+                    cw.writerow(row)
+            return output_path
 
-        for item in js.items():
-            if item[0] in ["columns"]:
-                columns = [x for x in item[1].persistent()]
-                if data is not None:
-                    save_efficient_json_as_csv(
-                        output_path,
-                        columns,
-                        data,
-                    )
-                    return output_path
+        if isinstance(js, json_stream.base.StreamingJSONObject):
 
-            if item[0] in ["data"]:
-                if columns is not None:
-                    save_efficient_json_as_csv(
-                        output_path,
-                        columns,
-                        item[1],
-                    )
-                    return output_path
-                else:
-                    data = [x for x in item[1].persistent()]
+            columns = None
+            data = None
+
+            for item in js.items():
+                if item[0] in ["columns"]:
+                    columns = [x for x in item[1].persistent()]
+                    if data is not None:
+                        save_efficient_json_as_csv(
+                            output_path,
+                            columns,
+                            data,
+                        )
+                        return output_path
+
+                if item[0] in ["data"]:
+                    if columns is not None:
+                        save_efficient_json_as_csv(
+                            output_path,
+                            columns,
+                            item[1],
+                        )
+                        return output_path
+                    else:
+                        data = [x for x in item[1].persistent()]
 
         return convert_features_to_csv(
             input_path,
@@ -239,6 +260,7 @@ class ConvertPhase(Phase):
             return Stream(input_path, f=reader, log=self.dataset_resource_log)
 
         except Exception as ex:
+            # this exception removes all error and hides it
             if self.converted_resource_log:
                 self.converted_resource_log.add(
                     elapsed=time.time() - start_time,
@@ -251,20 +273,23 @@ class ConvertPhase(Phase):
     # should  this  be  a method and not a function? I think we  re-factor it  into a function let's remove references to self
     def _read_text_file(self, input_path, encoding):
         f = read_csv(input_path, encoding)
-        self.dataset_resource_log.mime_type = "text/csv" + self.charset
+        if self.dataset_resource_log is not None:
+            self.dataset_resource_log.mime_type = "text/csv" + self.charset
         content = f.read(10)
         f.seek(0)
         converted_csv_file = None
 
         if content.lower().startswith("<!doctype "):
-            self.dataset_resource_log.mime_type = "text/html" + self.charset
+            if self.dataset_resource_log is not None:
+                self.dataset_resource_log.mime_type = "text/html" + self.charset
             logging.warn("%s has <!doctype, IGNORING!", input_path)
             f.close()
             return None
 
         elif content.lower().startswith(("<?xml ", "<wfs:")):
             logging.debug("%s looks like xml", input_path)
-            self.dataset_resource_log.mime_type = "application/xml" + self.charset
+            if self.dataset_resource_log is not None:
+                self.dataset_resource_log.mime_type = "application/xml" + self.charset
             converted_csv_file = convert_features_to_csv(
                 input_path,
                 self.output_path,
@@ -274,14 +299,18 @@ class ConvertPhase(Phase):
                 logging.warning("conversion from XML to CSV failed")
                 return None
 
-        elif content.lower().startswith("{"):
+        elif content.lower().startswith("{") or content.lower().startswith("[{"):
             logging.debug("%s looks like json", input_path)
-            self.dataset_resource_log.mime_type = "application/json" + self.charset
+            if self.dataset_resource_log is not None:
+                self.dataset_resource_log.mime_type = "application/json" + self.charset
             converted_csv_file = convert_json_to_csv(
                 input_path,
                 encoding,
                 self.output_path,
             )
+
+        # TODO assumption is that it's a csv at this point but we may need to check this
+        # could also dow a copy if we want to
 
         if converted_csv_file:
             f.close()
