@@ -14,7 +14,7 @@ DEFAULT_URL = "https://files.planning.data.gov.uk"
 class API:
     def __init__(
         self,
-        specification: Specification,
+        specification: Specification = None,
         url: str = DEFAULT_URL,
         cache_dir: str = "var/cache",
     ):
@@ -36,6 +36,8 @@ class API:
         overwrite: bool = False,
         path: str = None,
         extension: Extension = Extension.CSV,
+        builder: bool = False,
+        builder_name: str = None,
     ):
         """
         Downloads a dataset in CSV or SQLite3 format.
@@ -43,6 +45,8 @@ class API:
         - overwrite: overwrite file is it already exists (otherwise will just return).
         - path: file to download to (otherwise <cache-dir>/dataset/<dataset-name>.<extension>).
         - extension: 'csv' or 'sqlite3', 'csv' by default.
+        - builder: downloads the dataset from the builder path
+        - builder_name: name to use for accessing the builder path
         - Returns: None.
         The file will be downloaded to the given path or cache, unless an exception occurs.
 
@@ -56,8 +60,16 @@ class API:
 
         # different extensions require different urls and reading modes
         if extension == self.Extension.SQLITE3:
-            collection = self.specification.dataset[dataset]["collection"]
-            url = f"{self.url}/{collection}-collection/dataset/{dataset}.sqlite3"
+            # performance.sqlite requires digital-land-builder path
+            if builder:
+                if not builder_name:
+                    raise ValueError("Builder name must be provided when builder=True")
+                url = f"{self.url}/{builder_name}-builder/dataset/{dataset}.sqlite3"
+            else:
+                if self.specification is None:
+                    raise ValueError("Specification must be provided")
+                collection = self.specification.dataset[dataset]["collection"]
+                url = f"{self.url}/{collection}-collection/dataset/{dataset}.sqlite3"
             mode = "wb"
 
             def get_content(response):
