@@ -61,6 +61,7 @@ setup(
         "boto3",
         "moto",
         "psutil",
+        "psycopg2",
     ],
     entry_points={"console_scripts": ["digital-land=digital_land.cli:cli"]},
     setup_requires=["pytest-runner"],
@@ -79,6 +80,8 @@ setup(
             "sphinx",
             "sphinx-autobuild",
             "sphinx_rtd_theme",
+            "testcontainers",
+            "SQLAlchemy-Utils",
         ]
         + maybe_black
     },

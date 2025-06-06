@@ -343,3 +343,29 @@ class SqlitePackage(Package):
         self.load()
         # self.create_indexes()# Do we need this?
         self.disconnect()
+
+    def export_table_to_csv(self, output_file, table_name):
+        """
+        Function to export the fact table from the sqlite file
+        """
+        # TODO add the export function
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        with open(output_file, "w", newline="") as f:
+            writer = csv.writer(f, delimiter="|")
+
+            # Execute the query
+            cursor.execute(f"SELECT * FROM {table_name}")
+
+            # Write header
+            writer.writerow([desc[0] for desc in cursor.description])
+
+            # Stream rows in chunks
+            while True:
+                rows = cursor.fetchmany(1000)  # adjust chunk size as needed
+                if not rows:
+                    break
+                writer.writerows(rows)
+
+        conn.close()

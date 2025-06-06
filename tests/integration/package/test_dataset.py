@@ -3,12 +3,10 @@ import csv
 import os
 import urllib.request
 import pandas as pd
-from pathlib import Path
 import sqlite3
 
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.package import Specification
-from digital_land.organisation import Organisation
 
 
 @pytest.fixture
@@ -115,9 +113,6 @@ def test_load_old_entities_entities_outside_of_range_are_removed(tmp_path):
     }
 
     specification = Specification(schema=schema, field=field)
-    organisation = Organisation(
-        organisation_path=None, pipeline_dir=None, organisation={}
-    )
 
     # write data to csv as we only seem to load from csv
     data = [
@@ -153,7 +148,6 @@ def test_load_old_entities_entities_outside_of_range_are_removed(tmp_path):
     # create class on sqlite db with old_entity table in it
     package = DatasetPackage(
         "conservation-area",
-        organisation=organisation,
         path=sqlite3_path,
         specification=specification,
     )
@@ -179,7 +173,6 @@ def test_load_old_entities_entities_outside_of_range_are_removed(tmp_path):
 
 def test_entry_date_upsert_uploads_newest_date(
     specification_dir,
-    organisation_csv,
     blank_patch_csv,
     transformed_fact_resources,
     tmp_path,
@@ -187,13 +180,8 @@ def test_entry_date_upsert_uploads_newest_date(
     dataset = "conservation-area"
     sqlite3_path = os.path.join(tmp_path, f"{dataset}.sqlite3")
 
-    organisation = Organisation(
-        organisation_path=organisation_csv,
-        pipeline_dir=Path(os.path.dirname(blank_patch_csv)),
-    )
     package = DatasetPackage(
         "conservation-area",
-        organisation=organisation,
         path=sqlite3_path,
         specification_dir=specification_dir,  # TBD: package should use this specification object
     )
@@ -289,9 +277,6 @@ def test_load_issues_uploads_issues_from_csv(tmp_path):
     }
 
     specification = Specification(schema=schema, field=field)
-    organisation = Organisation(
-        organisation_path=None, pipeline_dir=None, organisation={}
-    )
 
     # write data to csv as we only seem to load from csv
     data = [
@@ -321,7 +306,6 @@ def test_load_issues_uploads_issues_from_csv(tmp_path):
     # create class on sqlite db with old_entity table in it
     package = DatasetPackage(
         "conservation-area",
-        organisation=organisation,
         path=sqlite3_path,
         specification=specification,
     )
@@ -346,7 +330,6 @@ def test_load_issues_uploads_issues_from_csv(tmp_path):
 
 def test_entry_date_upsert_uploads_blank_fields(
     specification_dir,
-    organisation_csv,
     blank_patch_csv,
     transformed_fact_resources_with_blank,
     tmp_path,
@@ -354,13 +337,8 @@ def test_entry_date_upsert_uploads_blank_fields(
     dataset = "conservation-area"
     sqlite3_path = os.path.join(tmp_path, f"{dataset}.sqlite3")
 
-    organisation = Organisation(
-        organisation_path=organisation_csv,
-        pipeline_dir=Path(os.path.dirname(blank_patch_csv)),
-    )
     package = DatasetPackage(
         "conservation-area",
-        organisation=organisation,
         path=sqlite3_path,
         specification_dir=specification_dir,  # TBD: package should use this specification object
     )
@@ -411,7 +389,6 @@ def test_entry_date_upsert_uploads_blank_fields(
 
 def test_insert_newest_date(
     specification_dir,
-    organisation_csv,
     blank_patch_csv,
     transformed_fact_resources,
     transformed_fact_resources_with_blank,
@@ -420,13 +397,8 @@ def test_insert_newest_date(
     dataset = "conservation-area"
     sqlite3_path = os.path.join(tmp_path, f"{dataset}.sqlite3")
 
-    organisation = Organisation(
-        organisation_path=organisation_csv,
-        pipeline_dir=Path(os.path.dirname(blank_patch_csv)),
-    )
     package = DatasetPackage(
         "conservation-area",
-        organisation=organisation,
         path=sqlite3_path,
         specification_dir=specification_dir,  # TBD: package should use this specification object
     )

@@ -31,6 +31,7 @@ from digital_land.organisation import Organisation
 
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.dataset_parquet import DatasetParquetPackage
+from digital_land.package.platform import PlatformPackage
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
@@ -79,6 +80,7 @@ from digital_land.utils.add_data_utils import (
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
+from .utils.postgres_utils import get_pg_connection
 
 logger = logging.getLogger(__name__)
 
@@ -441,15 +443,9 @@ def dataset_create(
         print("missing output path", file=sys.stderr)
         sys.exit(2)
 
-    # Set up initial objects
-    organisation = Organisation(
-        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
-    )
-
     # create sqlite dataset packageas before and load inn data that isn't in the parquetpackage yet
     package = DatasetPackage(
         dataset,
-        organisation=organisation,
         path=output_path,
         specification_dir=None,  # TBD: package should use this specification object
     )
@@ -558,7 +554,6 @@ def dataset_update(
     if not dataset_path:
         package = DatasetPackage(
             dataset,
-            organisation=organisation,
             path=output_path,
             specification_dir=None,  # TBD: package should use this specification object
         )
@@ -573,7 +568,6 @@ def dataset_update(
         logging.info(f"Reading from local dataset file {dataset_path}")
         package = DatasetPackage(
             dataset,
-            organisation=organisation,
             path=dataset_path,
             specification_dir=None,  # TBD: package should use this specification object
         )
@@ -586,7 +580,7 @@ def dataset_update(
         package.load_transformed(path)
         package.load_column_fields(column_field_dir / dataset / path_obj.name)
         package.load_dataset_resource(dataset_resource_dir / dataset / path_obj.name)
-    package.load_entities()
+    package.load_entities(organisations=organisation.organisation)
 
     old_entity_path = os.path.join(pipeline.path, "old-entity.csv")
     if os.path.exists(old_entity_path):
@@ -1728,3 +1722,48 @@ def check_and_assign_entities(
         ):
             return False
     return True
+
+
+def load_pipeline_provenance(sqlite_path: Path, database_url, specification_path):
+    """
+    Load dataset provenance from the sqlite dataset package into the platfom. updates values based on what's coming in.
+    :param sqlite_path: Path to the sqlite database file which contains povenance files realted to the datasets
+    :param database_url: URL of the postgis database.
+    """
+    # TODO link to spec, how do we do this? what should do? why?
+    # download spec if needed
+    # spec = Specification(path=specification_dir,load_on_init=False)
+    # spec.download(overwrite=False)
+    # spec.load()
+    fact_csv_path = sqlite_path.parent / "fact.csv"
+    fact_resource_csv_path = sqlite_path.parent / "fact_resource.csv"
+    issue_csv_path = sqlite_path.parent / "issue.csv"
+    entity_csv_path = sqlite_path.parent / "entity.csv"
+
+    conn = get_pg_connection(database_url)
+
+    # extract CSVs from the sqlite database
+    dataset_package = DatasetPackage(
+        path=sqlite_path, dataset="test", specification_dir=specification_path
+    )
+
+    dataset_package.export_table_to_csv(fact_resource_csv_path, "fact_resource")
+    dataset_package.export_table_to_csv(fact_csv_path, "fact")
+    dataset_package.export_table_to_csv(issue_csv_path, "issue")
+
+    # entities contained in  the fact
+    dataset_package.export_fact_entities_to_csv(entity_csv_path)
+
+    # establish platform package
+    platform = PlatformPackage(database_url=database_url)
+    # load the actual data
+    platform.update_fact_resource(fact_resource_csv_path, conn)
+    platform.update_fact(fact_csv_path, conn)
+    platform.update_entity(entity_csv=entity_csv_path, conn=conn)
+
+    # load othe povinance tables
+    platform.update_issues(issue_csv_path, conn)
+
+    # TODO expannd with other provenance produced by the pipeline phase
+    conn.commit()
+    conn.close()

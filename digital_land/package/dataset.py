@@ -1,6 +1,7 @@
 import csv
 import json
 import logging
+import sqlite3
 from decimal import Decimal
 
 import shapely.wkt
@@ -32,13 +33,12 @@ indexes = {
 
 
 class DatasetPackage(SqlitePackage):
-    def __init__(self, dataset, organisation, **kwargs):
+    def __init__(self, dataset, **kwargs):
         super().__init__(dataset, tables=tables, indexes=indexes, **kwargs)
         self.dataset = dataset
         self.entity_fields = self.specification.schema["entity"]["fields"]
-        self.organisations = organisation.organisation
 
-    def migrate_entity(self, row):
+    def migrate_entity(self, row, organisations):
         dataset = self.dataset
         entity = row.get("entity", "")
 
@@ -55,7 +55,7 @@ class DatasetPackage(SqlitePackage):
 
         # hack until FactReference is reliable ..
         if not row.get("organisation-entity", ""):
-            row["organisation-entity"] = self.organisations.get(
+            row["organisation-entity"] = organisations.get(
                 row.get("organisation", ""), {}
             ).get("entity", "")
 
@@ -118,9 +118,9 @@ class DatasetPackage(SqlitePackage):
             row[fact[1]] = fact[2]
         return row
 
-    def insert_entity(self, facts):
+    def insert_entity(self, facts, organisations):
         row = self.entity_row(facts)
-        row = self.migrate_entity(row)
+        row = self.migrate_entity(row, organisations=organisations)
         if row:
             self.insert("entity", self.entity_fields, row)
 
@@ -147,7 +147,7 @@ class DatasetPackage(SqlitePackage):
         self.commit()
         self.disconnect()
 
-    def load_entities(self):
+    def load_entities(self, organisations):
         """load the entity table from the fact table"""
         self.connect()
         self.create_cursor()
@@ -163,13 +163,13 @@ class DatasetPackage(SqlitePackage):
             # If facts and fact does not point to same entity as first fact
             if facts and fact[0] != facts[0][0]:
                 # Insert existing facts
-                self.insert_entity(facts)
+                self.insert_entity(facts, organisations)
                 # Reset facts list for new entity
                 facts = []
             facts.append(fact)
 
         if facts:
-            self.insert_entity(facts)
+            self.insert_entity(facts, organisations)
 
         self.commit()
         self.disconnect()
@@ -288,6 +288,32 @@ class DatasetPackage(SqlitePackage):
         self.load_facts(path)
         self.commit()
         self.disconnect()
+
+    def export_fact_entities_to_csv(self, output_path):
+        """
+        Function to export a distinct list of entities from the fact table to a CSV file.
+        """
+        # TODO add the export function
+        conn = sqlite3.connect(self.path)
+        cursor = conn.cursor()
+
+        with open(output_path, "w", newline="") as f:
+            writer = csv.writer(f, delimiter="|")
+
+            # Execute the query
+            cursor.execute("SELECT DISTINCT entity FROM fact")
+
+            # Write header
+            writer.writerow([desc[0] for desc in cursor.description])
+
+            # Stream rows in chunks
+            while True:
+                rows = cursor.fetchmany(1000)  # adjust chunk size as needed
+                if not rows:
+                    break
+                writer.writerows(rows)
+
+        conn.close()
 
     def load(self):
         pass
