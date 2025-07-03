@@ -1,0 +1,49 @@
+transport-access-node:
+  description: Transport access node master data
+  attributes:
+    - name: ATCOCode
+      type: STRING
+      nullable: false
+    - name: BusStopType
+      type: STRING
+      nullable: true
+    - name: CommonName
+      type: STRING
+      nullable: true
+    - name: CreationDateTime
+      type: STRING
+      nullable: false
+    - name: Easting
+      type: STRING
+      nullable: true
+    - name: Latitude
+      type: STRING
+      nullable: true
+    - name: Longitude
+      type: STRING
+      nullable: false
+    - name: NaptanCode
+      type: STRING
+      nullable: true
+    - name: Northing
+      type: STRING
+      nullable: true
+    - name: Notes
+      type: STRING
+      nullable: true
+    - name: StopType
+      type: STRING
+      nullable: true
+
+      
+
+
+
+
+
+
+
+
+
+
+ 
