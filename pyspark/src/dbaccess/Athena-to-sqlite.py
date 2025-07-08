@@ -1,3 +1,30 @@
+import logging
+from logging.config import dictConfig
+from pyspark.sql import SparkSession
+
+# -------------------- Logging Configuration --------------------
+LOGGING_CONFIG = {
+    "version": 1,
+    "formatters": {
+        "default": {
+            "format": "[%(asctime)s] %(levelname)s - %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+            "level": "INFO",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}
+
+dictConfig(LOGGING_CONFIG)
+logger = logging.getLogger(__name__)
 
 # Start Spark session with JDBC driver
 spark = SparkSession.builder \
