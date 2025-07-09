@@ -38,3 +38,30 @@ def set_emr_secrets():
             print(f"Secret '{secret_name}' updated successfully.")
         else:
             raise
+
+# Example usage
+# import boto3
+# import json
+# from botocore.exceptions import ClientError
+
+# def get_emr_secrets():
+#     secret_name = "airflow/emr_serverless"
+#     region_name = "eu-west-2"
+
+#     client = boto3.client("secretsmanager", region_name=region_name)
+
+#     try:
+#         response = client.get_secret_value(SecretId=secret_name)
+#         secret = json.loads(response["SecretString"])
+#         return secret
+#     except ClientError as e:
+#         print(f"Error retrieving secret: {e}")
+#         return None
+
+# # Example usage
+# if __name__ == "__main__":
+#     secrets = get_emr_secrets()
+#     if secrets:
+#         print("Retrieved EMR Serverless Secrets:")
+#         for key, value in secrets.items():
+#             print(f"{key}: {value}")
