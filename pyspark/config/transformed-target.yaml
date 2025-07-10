@@ -1,0 +1,19 @@
+transport-access-node-fact-res:
+- end_date
+- fact
+- entry_date
+- entry_number
+- priority
+- resource
+- start_date
+
+transport-access-node-fact:
+- end_date
+- fact
+- entry_date
+- priority
+- start_date
+- entity
+- field
+- reference_entity
+- value

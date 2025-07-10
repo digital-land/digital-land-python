@@ -1,3 +1,4 @@
+from dataclasses import fields
 from logging import config
 import sys
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType
@@ -5,7 +6,7 @@ from pyspark.sql import SparkSession
 import configparser
 import os
 #from pyspark.sql.functions import first, collect_list, concat_ws
-from pyspark.sql.functions import first, collect_list, concat_ws, expr, to_date, year, month, dayofmonth
+from pyspark.sql.functions import first, collect_list, concat_ws, expr, to_date, year, month, dayofmonth, coalesce
 
 import yaml
 import logging
@@ -99,10 +100,11 @@ def read_data(spark, input_path):
 
 # -------------------- Data Transformer --------------------
 def transform_data(df):
-    pivoted_df = df.groupBy("entity").pivot("field", [
-    "start-date", "bus-stop-type", "transport-access-node-type", "point",
-    "name", "organisation", "reference", "prefix", "entry-date", "naptan-code"
-    ]).agg(expr("max(value)"))  
+    #pivoted_df = df.groupBy("entity").pivot("field", [
+    #"start_date", "bus_stop_type", "transport_access_node_type", "point",
+    #"name", "organisation", "reference", "prefix", "entry_date", "naptan_code"
+    #]).agg(expr("max(value)"))
+
     # logger.info("Transforming data")  
     # # Define grouping columns (excluding 'field' and 'value')
     # #todo: need to add a generic method for this which works for all data
@@ -114,20 +116,54 @@ def transform_data(df):
     # # Join the pivoted data with the concatenated fact values
     # final_df = fact_concat_df.join(pivoted_df, on=group_cols, how="inner")
     # # Show the result
-    # final_df.show(truncate=False)
-    return pivoted_df
+    # final_df.show(truncate=False)    
+    
+    # Load YAML file
+    with open("/mnt/c/Users/399182/MHCLG-Repo/digital-land-python/pyspark/config/transformed-source.yaml", "r") as file:
+        yaml_data = yaml.safe_load(file)
+
+    # Extract the list of fields
+    fields = yaml_data.get("transport-access-node", [])
+    
+    # Replace hyphens with underscores in column names
+    for col in df.columns:
+        if "-" in col:
+            df = df.withColumnRenamed(col, col.replace("-", "_"))
+
+    # Get actual DataFrame columns
+    df_columns = df.columns
+
+    # Find fields that are present in both DataFrame and YAML    
+    if set(fields) == set(df.columns):
+        logger.info("All fields are present in the DataFrame")
+    else:
+        logger.warning("Some fields are missing from the DataFrame")
+    
+    return df
+
+def populate_tables(df, table_name):
+    with open("/mnt/c/Users/399182/MHCLG-Repo/digital-land-python/pyspark/config/transformed-target.yaml", "r") as file:
+        yaml_data = yaml.safe_load(file)
+
+    # Extract the list of fields
+    fields = yaml_data.get(table_name, [])
+    
+    # Select only those columns from the DataFrame that are for fact_resource table
+    df_selected = df[fields]
+    df_selected.show(5)
+    return df_selected
+
 
 # -------------------- S3 Writer --------------------
 def write_to_s3(df, output_path):   
     logger.info(f"Writing data to S3 at {output_path}") 
 # Convert entry-date to date type and extract year, month, day
     #df.show()
-    #spark.stop()
-    df = df.withColumn("start_date_parsed", to_date("start-date", "yyyy-MM-dd")) \
+    #spark.stop()clear
+    df = df.withColumn("start_date_parsed", to_date(coalesce("start_date", "entry_date"), "yyyy-MM-dd")) \
     .withColumn("year", year("start_date_parsed")) \
     .withColumn("month", month("start_date_parsed")) \
     .withColumn("day", dayofmonth("start_date_parsed"))
-
 
 # -------------------- PostgreSQL Writer --------------------
 # Write to S3 partitioned by year, month, day
@@ -161,16 +197,22 @@ def main():
     #schema = build_schema(attributes)    
 
     # Read CSV using the dynamic schema
-    df = spark.read.option("header", "true").csv('/mnt/c/Users/2193780/Documents/*.csv')
+    df = spark.read.option("header", "true").csv('/mnt/c/Users/399182/MHCLG-Repo/SourceFiles/AWS-S3/transform-access-node/*.csv')
     #df = read_data(spark,  config['S3_INPUT_PATH'])
     df.printSchema() 
+    df.show()
     processed_df = transform_data(df)
+    populate_tables(processed_df, 'transport-access-node-fact-res')
     # Show schema and sample data
-    processed_df.show()
-    #write_to_postgres(processed_df, config)
     
-    write_to_s3(processed_df, '/mnt/c/Users/2193780/Documents/output_parquet')
+    #write_to_postgres(processed_df, config)
+    logger.info("Writing to output path")
+
+    #write_to_s3(processed_df, '/mnt/c/users/desktop/lakshmi/spark-output/output-parquet')
+    write_to_s3(processed_df, '/home/lakshmi/spark-output/output-parquet-fact-res')
     #write_to_s3(processed_df, config['S3_OUTPUT_PATH'])
+    populate_tables(processed_df, 'transport-access-node-fact')
+    write_to_s3(processed_df, '/home/lakshmi/spark-output/output-parquet-fact')
     spark.stop()
 
 if __name__ == "__main__":

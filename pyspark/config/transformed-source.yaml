@@ -1,0 +1,12 @@
+transport-access-node:
+- end_date
+- entity
+- entry_date
+- entry_number
+- fact
+- field
+- priority
+- reference_entity
+- resource
+- start_date
+- value
