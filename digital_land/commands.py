@@ -852,6 +852,7 @@ def validate_and_add_data_input(
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
+            refill_todays_logs=True,
         )
         try:
             log_path = collector.log_path(datetime.utcnow(), endpoint["endpoint"])
