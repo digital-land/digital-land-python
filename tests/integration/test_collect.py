@@ -7,6 +7,8 @@ from datetime import datetime
 from click.testing import CliRunner
 from digital_land.cli import cli
 
+# from digital_land.collect import Collector
+
 from tests.utils.helpers import hash_digest
 
 ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/main/tests/data/resource_examples/csv.csv"
@@ -64,3 +66,20 @@ def resource_collected(collection_dir, resource):
     raw = urllib.request.urlopen(ENDPOINT).read().decode("utf-8")
     downloaded = "\n".join(raw.splitlines())  # Convert CRLF to LF
     return saved == downloaded
+
+
+# def test_fetch_ovewrite_endpoint_logs():
+#     """identifical fetch function"""
+
+#     # define inputs fo the test
+#     x = "hello"
+#     y = "www.example.com"
+
+#     # construct class
+#     collector = Collector()
+
+#     # run method
+#     collector.fetch(x=x, y=y)
+
+#     # make assertions
+#     assert Path("file.log").exists(), "Log file should still exist"
