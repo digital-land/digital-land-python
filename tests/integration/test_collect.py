@@ -2,9 +2,9 @@ import csv
 import json
 import urllib.request
 import pytest
+import os
 
-import os.path
-from os import path
+from pathlib import Path
 
 from datetime import datetime
 from click.testing import CliRunner
@@ -70,9 +70,22 @@ def resource_collected(collection_dir, resource):
     downloaded = "\n".join(raw.splitlines())  # Convert CRLF to LF
     return saved == downloaded
 
-def test_fetch_overwrite_endpoint_logs(url, pipeline):
-    """fetch a single source endpoint URL, and add it to the collection"""
-    collector = Collector(pipeline.name)
-    collector.fetch(url)       
 
-    assert os.path exists("*.log") == True
+def test_fetch_overwrite_endpoint_logs(collection_dir):
+    """fetch a single source endpoint URL, and add it to the collection"""
+
+    # TODO come back and mock the url request
+    # use pytest-mocker to patch the outputs returned by the collector.get (self.get) method in the collector.fetch method
+    url = "https://raw.githubusercontent.com/digital-land/PublishExamples/refs/heads/main/Article4Direction/Files/Article4DirectionArea/article4directionareas-ok.csv"
+    # url = 'test'
+    # create an empty log file where the log will be stored
+    # python json module can be used to write a blank json
+
+    collector = Collector()
+    collector.fetch(url=url, refill_todays_logs=True)
+
+    # assert that the file exists
+    assert os.path.exists(Path(collection_dir) / "log" / "*.json") is True
+
+    # assert that the log file has been overwritten advise you doing is checking the content has been altered
+    # python json module can be used to read the log in and the json isn't empty
