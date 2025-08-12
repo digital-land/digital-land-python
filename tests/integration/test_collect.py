@@ -3,9 +3,14 @@ import json
 import urllib.request
 import pytest
 
+import os.path
+from os import path
+
 from datetime import datetime
 from click.testing import CliRunner
 from digital_land.cli import cli
+
+from digital_land.collect import Collector
 
 from tests.utils.helpers import hash_digest
 
@@ -64,3 +69,10 @@ def resource_collected(collection_dir, resource):
     raw = urllib.request.urlopen(ENDPOINT).read().decode("utf-8")
     downloaded = "\n".join(raw.splitlines())  # Convert CRLF to LF
     return saved == downloaded
+
+def test_fetch_overwrite_endpoint_logs(url, pipeline):
+    """fetch a single source endpoint URL, and add it to the collection"""
+    collector = Collector(pipeline.name)
+    collector.fetch(url)       
+
+    assert os.path exists("*.log") == True
