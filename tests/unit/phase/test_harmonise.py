@@ -1,68 +1,12 @@
+# tests/unit/phase/test_harmonise.py
 import pathlib
 import sys
-import types
 
 # Make repo root importable: tests/unit/phase/test_harmonise.py -> repo root
 repo_root = pathlib.Path(__file__).resolve().parents[2]
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
-# --- Lightweight stubs to avoid heavy deps during import ---
-
-# 1) Stub digital_land.datatype.factory (avoids validators/requests/etc.)
-dl_dt_factory = types.ModuleType("digital_land.datatype.factory")
-
-
-def datatype_factory(datatype_name: str):
-    class _DT:
-        def normalise(self, v, issues=None):
-            return "" if v is None else str(v)
-
-    return _DT()
-
-
-dl_dt_factory.datatype_factory = datatype_factory
-sys.modules["digital_land.datatype.factory"] = dl_dt_factory
-
-# 2) Stub digital_land.datatype.point.PointDataType
-dl_dt_point = types.ModuleType("digital_land.datatype.point")
-
-
-class PointDataType:
-    def normalise(self, value, issues=None):
-        try:
-            x, y = value
-            x = float(x)
-            y = float(y)
-            return f"POINT ({x} {y})"
-        except Exception:
-            return ""
-
-
-dl_dt_point.PointDataType = PointDataType
-sys.modules["digital_land.datatype.point"] = dl_dt_point
-
-# 3) If shapely isn't installed, stub shapely.wkt.loads
-try:
-    import shapely.wkt  # type: ignore  # noqa: F401
-except Exception:
-    shapely = types.ModuleType("shapely")
-    shapely_wkt = types.ModuleType("shapely.wkt")
-
-    class _Geom:
-        def __init__(self, x, y):
-            self.coords = [(x, y)]
-
-    def loads(s):
-        inner = s[s.find("(") + 1 : s.find(")")]
-        x, y = map(float, inner.split())
-        return _Geom(x, y)
-
-    shapely_wkt.loads = loads
-    sys.modules["shapely"] = shapely
-    sys.modules["shapely.wkt"] = shapely_wkt
-
-# Import the SUT AFTER stubs are in place
 from digital_land.phase.harmonise import HarmonisePhase  # noqa: E402
 
 
@@ -103,7 +47,7 @@ def run_phase(dataset, row, valid_category_values=None):
         valid_category_values=valid_category_values or {},
     )
 
-    # Pass-through normalisation to avoid external deps in tests
+    # Pass-through normalisation to avoid external datatype behaviour affecting this test
     def passthrough(fieldname, value):
         return "" if value is None else str(value)
 
@@ -133,7 +77,8 @@ def test_known_dataset_enforces_mandatories_and_geometry_point():
     geo_or_point_missing = [
         i
         for i in issues.logged
-        if i["field"] in ("geometry", "point") and i["issue_type"] == "missing value"
+        if i["field"] in ("geometry", "point")
+        and i["issue_type"] == "missing value"
     ]
     assert (
         geo_or_point_missing
@@ -177,7 +122,6 @@ def test_unknown_dataset_reference_missing_triggers_issue_only_for_reference():
     assert not others, "No other fields should be enforced for unknown datasets"
 
 
-# New tests for global 'reference' + exemption behaviour
 def test_unknown_dataset_missing_reference_key_now_logs_issue():
     """Unknown dataset with no 'reference' key should log a reference issue."""
     row = {
