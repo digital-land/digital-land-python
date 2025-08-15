@@ -1,57 +1,71 @@
-# tests/test_harmonise.py
+import pathlib
 import sys
 import types
-import pathlib
+
 import pytest
 
 # --- Make repo root importable ---
-# tests/test_harmonise.py -> repo root
-repo_root = pathlib.Path(__file__).resolve().parents[1]
+# tests/unit/phase/test_harmonise.py -> repo root
+repo_root = pathlib.Path(__file__).resolve().parents[2]
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
 # --- Lightweight stubs to avoid heavy deps during import ---
 # 1) Stub digital_land.datatype.factory (avoids validators/requests/etc.)
 dl_dt_factory = types.ModuleType("digital_land.datatype.factory")
+
+
 def datatype_factory(datatype_name: str):
     class _DT:
         def normalise(self, v, issues=None):
             return "" if v is None else str(v)
+
     return _DT()
+
+
 dl_dt_factory.datatype_factory = datatype_factory
 sys.modules["digital_land.datatype.factory"] = dl_dt_factory
 
 # 2) Stub digital_land.datatype.point.PointDataType
 dl_dt_point = types.ModuleType("digital_land.datatype.point")
+
+
 class PointDataType:
     def normalise(self, value, issues=None):
         try:
             x, y = value
-            x = float(x); y = float(y)
+            x = float(x)
+            y = float(y)
             return f"POINT ({x} {y})"
         except Exception:
             return ""
+
+
 dl_dt_point.PointDataType = PointDataType
 sys.modules["digital_land.datatype.point"] = dl_dt_point
 
 # 3) If shapely isn't installed, stub shapely.wkt.loads
 try:
-    import shapely.wkt  # noqa: F401
+    import shapely.wkt  # type: ignore  # noqa: F401
 except Exception:
     shapely = types.ModuleType("shapely")
     shapely_wkt = types.ModuleType("shapely.wkt")
+
     class _Geom:
-        def __init__(self, x, y): self.coords = [(x, y)]
+        def __init__(self, x, y):
+            self.coords = [(x, y)]
+
     def loads(s):
-        inner = s[s.find("(")+1:s.find(")")]
+        inner = s[s.find("(") + 1 : s.find(")")]
         x, y = map(float, inner.split())
         return _Geom(x, y)
+
     shapely_wkt.loads = loads
     sys.modules["shapely"] = shapely
     sys.modules["shapely.wkt"] = shapely_wkt
 
 # --- Import the SUT AFTER stubs are in place ---
-from digital_land.phase.harmonise import HarmonisePhase
+from digital_land.phase.harmonise import HarmonisePhase  # noqa: E402
 
 
 class FakeIssues:
@@ -64,12 +78,14 @@ class FakeIssues:
         self.fieldname = None
 
     def log_issue(self, field, issue_type, value, message=None):
-        self.logged.append({
-            "field": field,
-            "issue_type": issue_type,
-            "value": value,
-            "message": message,
-        })
+        self.logged.append(
+            {
+                "field": field,
+                "issue_type": issue_type,
+                "value": value,
+                "message": message,
+            }
+        )
 
 
 def make_block(row):
@@ -93,6 +109,7 @@ def run_phase(dataset, row, valid_category_values=None):
     # Stub out harmonise_field to be pass-through (avoids real datatypes)
     def passthrough(fieldname, value):
         return "" if value is None else str(value)
+
     phase.harmonise_field = passthrough
 
     out = list(phase.process([make_block(row)]))
@@ -103,26 +120,35 @@ def test_known_dataset_enforces_mandatories_and_geometry_point():
     """
     Known dataset ('conservation-area') should:
       - enforce dataset-specific mandatory fields: ['reference', 'geometry', 'name']
-      - enforce geometry/point co-constraint (one of them must be present if either field is given)
+      - enforce geometry/point co-constraint (one of them must be present if either
+        field is given)
     """
     row = {
         "reference": "CA-001",
-        "geometry": "",      # empty
-        "point": "",         # empty
-        "name": "",          # empty -> should trigger
+        "geometry": "",
+        "point": "",
+        "name": "",
     }
     issues, out = run_phase("conservation-area", row)
 
     # Mandatory 'name' missing
-    missing_name = [i for i in issues.logged
-                    if i["field"] == "name" and i["issue_type"] == "missing value"]
+    missing_name = [
+        i
+        for i in issues.logged
+        if i["field"] == "name" and i["issue_type"] == "missing value"
+    ]
     assert missing_name, "Expected a missing value issue for 'name'"
 
     # Geometry/point co-constraint
-    geo_or_point_missing = [i for i in issues.logged
-                            if i["field"] in ("geometry", "point")
-                            and i["issue_type"] == "missing value"]
-    assert geo_or_point_missing, "Expected at least one missing value issue for geometry/point"
+    geo_or_point_missing = [
+        i
+        for i in issues.logged
+        if i["field"] in ("geometry", "point")
+        and i["issue_type"] == "missing value"
+    ]
+    assert (
+        geo_or_point_missing
+    ), "Expected at least one missing value issue for geometry/point"
 
     assert out and "row" in out[0]
 
@@ -139,15 +165,15 @@ def test_unknown_dataset_only_reference_required_when_present_no_issues():
         "point": "",
     }
     issues, _ = run_phase("not-in-spec", row)
-    assert issues.logged == [], (
-        "No issues should be logged for an unknown dataset when 'reference' is present"
-    )
+    assert (
+        issues.logged == []
+    ), "No issues should be logged for an unknown dataset when 'reference' is present"
 
 
 def test_unknown_dataset_reference_missing_triggers_issue_only_for_reference():
     """
-    Unknown dataset with missing 'reference' should log exactly one issue for 'reference'
-    and nothing else (no geometry/point checks).
+    Unknown dataset with missing 'reference' should log exactly one issue for
+    'reference' and nothing else (no geometry/point checks).
     """
     row = {
         "reference": "",
@@ -157,8 +183,11 @@ def test_unknown_dataset_reference_missing_triggers_issue_only_for_reference():
     }
     issues, _ = run_phase("some-unknown-dataset", row)
 
-    ref_issues = [i for i in issues.logged
-                  if i["field"] == "reference" and i["issue_type"] == "missing value"]
+    ref_issues = [
+        i
+        for i in issues.logged
+        if i["field"] == "reference" and i["issue_type"] == "missing value"
+    ]
     assert len(ref_issues) == 1, "Expected exactly one 'reference' missing issue"
 
     others = [i for i in issues.logged if i["field"] != "reference"]
@@ -166,7 +195,6 @@ def test_unknown_dataset_reference_missing_triggers_issue_only_for_reference():
 
 
 # --- New tests for global 'reference' + exemption behaviour --- #
-
 def test_unknown_dataset_missing_reference_key_now_logs_issue():
     """Unknown dataset with no 'reference' key should log a reference-missing issue (global rule)."""
     row = {
@@ -175,22 +203,28 @@ def test_unknown_dataset_missing_reference_key_now_logs_issue():
         "point": "",
     }
     issues, _ = run_phase("unknown-ds", row)
-    assert any(i["field"] == "reference" and i["issue_type"] == "missing value"
-               for i in issues.logged), \
-        "Expected global reference issue when 'reference' field is absent"
+    assert any(
+        i["field"] == "reference" and i["issue_type"] == "missing value"
+        for i in issues.logged
+    ), "Expected global reference issue when 'reference' field is absent"
 
 
 def test_known_dataset_missing_reference_logs_once():
     """Known dataset missing reference should log exactly one reference issue (global), not duplicate."""
     row = {
-        "reference": "",   # missing value
+        "reference": "",
         "geometry": "",
         "name": "",
     }
     issues, _ = run_phase("conservation-area", row)
-    ref_issues = [i for i in issues.logged
-                  if i["field"] == "reference" and i["issue_type"] == "missing value"]
-    assert len(ref_issues) == 1, "Expected exactly one reference-missing issue for known dataset"
+    ref_issues = [
+        i
+        for i in issues.logged
+        if i["field"] == "reference" and i["issue_type"] == "missing value"
+    ]
+    assert (
+        len(ref_issues) == 1
+    ), "Expected exactly one reference-missing issue for known dataset"
 
 
 def test_brownfield_land_is_exempt_from_global_reference_check():
@@ -204,5 +238,6 @@ def test_brownfield_land_is_exempt_from_global_reference_check():
         "GeoY": "2.0",
     }
     issues, _ = run_phase("brownfield-land", row)
-    assert not any(i["field"] == "reference" for i in issues.logged), \
-        "brownfield-land should be exempt from global reference enforcement"
+    assert not any(
+        i["field"] == "reference" for i in issues.logged
+    ), "brownfield-land should be exempt from global reference enforcement"
