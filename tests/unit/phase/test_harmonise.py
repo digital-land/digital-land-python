@@ -75,7 +75,9 @@ def test_known_dataset_enforces_mandatories_and_geometry_point():
     assert missing_name, "Expected a missing value issue for 'name'"
 
     geo_or_point_missing = [
-        i for i in issues.logged if i["field"] in ("geometry", "point") and i["issue_type"] == "missing value"
+        i
+        for i in issues.logged
+        if i["field"] in ("geometry", "point") and i["issue_type"] == "missing value"
     ]
 
     assert (
