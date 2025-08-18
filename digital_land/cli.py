@@ -319,6 +319,11 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @collection_dir
 @operational_issue_dir
 @output_log_dir
+@click.option(
+    "--converted-path",
+    help="the resource hash to use if it can not be derived from filepath",
+    default=None,
+)
 @click.pass_context
 def pipeline_command(
     ctx,
@@ -339,6 +344,7 @@ def pipeline_command(
     config_path,
     resource,
     output_log_dir,
+    converted_path,
 ):
     dataset = ctx.obj["DATASET"]
     pipeline = ctx.obj["PIPELINE"]
@@ -346,6 +352,9 @@ def pipeline_command(
 
     endpoints = endpoints.split()
     organisations = organisations.split()
+    if converted_path:
+        converted_path = Path(converted_path)
+        converted_path.parent.mkdir(parents=True, exist_ok=True)
 
     return pipeline_run(
         dataset,
@@ -368,6 +377,7 @@ def pipeline_command(
         config_path=config_path,
         resource=resource,
         output_log_dir=output_log_dir,
+        converted_path=converted_path,
     )
 
 
