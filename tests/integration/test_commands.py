@@ -574,6 +574,25 @@ def test_dataset_update_with_new_resources(
     updated_cursor.close()
 
 
+def get_expected_fields(specification, dataset_name):
+    """
+    Helper function to get expected fields for a dataset from the specification. Should be replaced
+    """
+    expected_fields = specification.schema_field[dataset_name]
+    # Remove 'organisation' field if it exists
+    expected_fields = [field for field in expected_fields]
+    # Add additional fields
+    expected_fields.append("dataset")
+    expected_fields.append("organisation-entity")
+    expected_fields.append("geojson")
+    if "geometry" not in expected_fields:
+        expected_fields.append("geometry")
+    if "point" not in expected_fields:
+        expected_fields.append("point")
+    expected_fields.append("typology")
+    return expected_fields
+
+
 @pytest.mark.parametrize(
     "dataset_name",
     ["listed-building-grade"],
@@ -606,8 +625,8 @@ def test_dataset_dump_flattened_for_non_geospatial_data(
     with flattened_csv_path.open() as actual, expected_flattened_csv_result.open() as expected:
         actual_dict_reader = DictReader(actual)
         expected_dict_reader = DictReader(expected)
-        expected_fields = specification.schema_field[dataset_name]
-        assert actual_dict_reader.fieldnames.sort() == expected_fields.sort()
+        expected_fields = get_expected_fields(specification, dataset_name)
+        assert sorted(actual_dict_reader.fieldnames) == sorted(expected_fields)
         for row_actual, row_expected in zip(actual_dict_reader, expected_dict_reader):
             check_fields = [
                 field
@@ -645,7 +664,7 @@ def test_dataset_dump_flattened_for_geospatial_data(
     csv_path = dataset_dir.joinpath(f"{dataset_name}.csv")
 
     flattened_output_dir = tmp_path.joinpath("dataset_output")
-    flattened_output_dir.mkdir()
+    flattened_output_dir.mkdir(exist_ok=True)
     flattened_csv_path = flattened_output_dir.joinpath(f"{dataset_name}.csv")
     flattened_json_path = flattened_output_dir.joinpath(f"{dataset_name}.json")
 
@@ -655,13 +674,11 @@ def test_dataset_dump_flattened_for_geospatial_data(
 
     with flattened_csv_path.open() as actual, expected_flattened_csv_result.open() as expected:
         actual_dict_reader = DictReader(actual)
-        print(list(actual_dict_reader))
         expected_dict_reader = DictReader(expected)
-        print(list(expected_dict_reader))
-        #  first assert statement will check field names are the same as the expected
-        # the second must compare the content? we should focus on fields that only exist in both
-        expected_fields = specification.schema_field[dataset_name]
-        assert actual_dict_reader.fieldnames.sort() == expected_fields.sort()
+        expected_fields = expected_fields = get_expected_fields(
+            specification, dataset_name
+        )
+        assert sorted(actual_dict_reader.fieldnames) == sorted(expected_fields)
         for row_actual, row_expected in zip(actual_dict_reader, expected_dict_reader):
             check_fields = [
                 field
