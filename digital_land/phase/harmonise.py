@@ -47,6 +47,9 @@ MANDATORY_FIELDS_DICT = {
     ],
 }
 
+# Datasets exempt from the global "reference" requirement
+EXEMPT_REFERENCE_DATASETS = {"brownfield-land"}
+
 
 class HarmonisePhase(Phase):
     def __init__(
@@ -54,12 +57,12 @@ class HarmonisePhase(Phase):
         field_datatype_map,
         issues=None,
         dataset=None,
-        valid_category_values={},  # { field: list of valid values }
+        valid_category_values=None,  # { field: list of valid values }
     ):
         self.field_datatype_map = field_datatype_map
         self.issues = issues
         self.dataset = dataset
-        self.valid_category_values = valid_category_values
+        self.valid_category_values = valid_category_values or {}
 
     def get_field_datatype_name(self, fieldname):
         try:
@@ -77,7 +80,6 @@ class HarmonisePhase(Phase):
         return datatype.normalise(value, issues=self.issues)
 
     def process(self, stream):
-
         for block in stream:
             row = block["row"]
             self.issues.resource = block["resource"]
@@ -154,32 +156,57 @@ class HarmonisePhase(Phase):
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (self.dataset, value)
 
-            mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset)
+            # ------------------------------------------------------------------
+            # GLOBAL: enforce "reference" exists and is non-empty for ALL datasets,
+            # except those explicitly exempted (e.g., "brownfield-land").
+            # This runs before any dataset-specific mandatory checks.
+            # ------------------------------------------------------------------
+            if self.dataset not in EXEMPT_REFERENCE_DATASETS:
+                if ("reference" not in row) or (row.get("reference") in ("", None)):
+                    self.issues.log_issue(
+                        "reference",
+                        "missing value",
+                        "",
+                        "reference missing",
+                    )
 
-            # Check for missing values in mandatory fields
-            # Only checking fields given to us - not checking for missing fields
-            # One of geometry or point must not be empty if either field is given
-            for field in row:
-                if field in ["geometry", "point"]:
-                    if (row.get("geometry") == "" or row.get("geometry") is None) and (
-                        row.get("point") == "" or row.get("point") is None
-                    ):
-                        self.issues.log_issue(
-                            field,
-                            "missing value",
-                            "",
-                            f"{field} missing",
-                        )
-                elif mandatory_fields and field in mandatory_fields:
-                    if row.get(field) == "" or row.get(field) is None:
-                        self.issues.log_issue(
-                            field,
-                            "missing value",
-                            "",
-                            f"{field} missing",
-                        )
+            # Determine which fields are mandatory for this dataset
+            is_known_dataset = self.dataset in MANDATORY_FIELDS_DICT
+            mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset, ["reference"])
 
-            # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
+            # For known datasets, avoid double-logging "reference" (global check above)
+            mandatory_fields_excl_reference = [
+                f for f in mandatory_fields if f != "reference"
+            ]
+
+            # Missing value checks
+            if is_known_dataset:
+                # One of geometry or point must not be empty if either field is given
+                for field in row:
+                    if field in ["geometry", "point"]:
+                        if (row.get("geometry") in ("", None)) and (
+                            row.get("point") in ("", None)
+                        ):
+                            self.issues.log_issue(
+                                field,
+                                "missing value",
+                                "",
+                                f"{field} missing",
+                            )
+                    elif field in mandatory_fields_excl_reference:
+                        if row.get(field) in ("", None):
+                            self.issues.log_issue(
+                                field,
+                                "missing value",
+                                "",
+                                f"{field} missing",
+                            )
+            else:
+                # Unknown datasets: nothing further; global reference check above is sufficient.
+                pass
+
+            # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs
+            # with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
                 self.issues.log_issue(
                     "wikipedia", "removed URI prefix", row["wikipedia"]
