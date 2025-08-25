@@ -6,8 +6,8 @@ from .datatype import DataType
 # ============================
 # User-configurable cutoffs
 # ============================
-FUTURE_YEARS_CUTOFF: Optional[int] = 50   # e.g. 50; set to None to ignore
-PAST_YEARS_CUTOFF: Optional[int] = None   # e.g. 225; None = ignore past
+FUTURE_YEARS_CUTOFF: Optional[int] = 50  # e.g. 50; set to None to ignore
+PAST_YEARS_CUTOFF: Optional[int] = None  # e.g. 225; None = ignore past
 CHECK_FIELDS: Tuple[str, ...] = ("start-date", "end-date")  # fields to check
 # ============================
 
@@ -31,7 +31,8 @@ class DateDataType(DataType):
       - Far-past:   flag if date < today - PAST_YEARS_CUTOFF   (if not None)
 
     Notes:
-      * We still return the normalised date; we only log issues when out of range.
+      * We still return the normalised date; we only log issues when out of
+        range.
       * Field name comparison is normalised (case/space/_/- differences ignored).
     """
 
@@ -77,8 +78,11 @@ class DateDataType(DataType):
                 issues.log(
                     "far-future-date",
                     raw_value,
-                    f"{issues.fieldname} {d.isoformat()} is more than "
-                    f"{future_years_cutoff} years in the future (>{future_cutoff.isoformat()}).",
+                    (
+                        f"{issues.fieldname} {d.isoformat()} is more than "
+                        f"{future_years_cutoff} years in the future "
+                        f"(>{future_cutoff.isoformat()})."
+                    ),
                 )
 
         # Far-past
@@ -88,8 +92,11 @@ class DateDataType(DataType):
                 issues.log(
                     "far-past-date",
                     raw_value,
-                    f"{issues.fieldname} {d.isoformat()} is more than "
-                    f"{past_years_cutoff} years in the past (<{past_cutoff.isoformat()}).",
+                    (
+                        f"{issues.fieldname} {d.isoformat()} is more than "
+                        f"{past_years_cutoff} years in the past "
+                        f"(<{past_cutoff.isoformat()})."
+                    ),
                 )
 
     def normalise(
@@ -106,7 +113,9 @@ class DateDataType(DataType):
         If None, uses instance defaults from __init__.
         """
         eff_future = (
-            self.future_years_cutoff if future_years_cutoff is None else future_years_cutoff
+            self.future_years_cutoff
+            if future_years_cutoff is None
+            else future_years_cutoff
         )
         eff_past = (
             self.past_years_cutoff if past_years_cutoff is None else past_years_cutoff
@@ -120,9 +129,9 @@ class DateDataType(DataType):
             "%Y%m%d",
             "%Y/%m/%d %H:%M:%S%z",  # ogr2ogr unix time conversion
             "%Y/%m/%d %H:%M:%S+00",  # ogr2ogr unix time conversion
-            "%Y/%m/%d %H:%M:%S",     # ogr2ogr unix time conversion
-            "%Y/%m/%d %H:%M",        # ogr2ogr unix time conversion
-            "%Y/%m/%dT%H:%M:%S",     # ogr2ogr unix time conversion
+            "%Y/%m/%d %H:%M:%S",  # ogr2ogr unix time conversion
+            "%Y/%m/%d %H:%M",  # ogr2ogr unix time conversion
+            "%Y/%m/%dT%H:%M:%S",  # ogr2ogr unix time conversion
             "%Y/%m/%dT%H:%M:%S.000Z",
             "%Y/%m/%dT%H:%M:%S.000",
             "%Y/%m/%dT%H:%M:%S.%fZ",
@@ -172,9 +181,12 @@ class DateDataType(DataType):
             except ValueError:
                 try:
                     if pattern == "%s":
-                        # Accept epoch milliseconds by default; seconds also work in some datasets
+                        # Accept epoch milliseconds by default; seconds also work
+                        # in some datasets.
                         dt = datetime.utcfromtimestamp(float(value) / 1000.0)
-                        self._check_range_and_log(dt, fieldvalue, issues, eff_future, eff_past)
+                        self._check_range_and_log(
+                            dt, fieldvalue, issues, eff_future, eff_past
+                        )
                         return dt.strftime("%Y-%m-%d")
                     if "%f" in pattern:
                         datearr = value.split(".")
@@ -182,7 +194,9 @@ class DateDataType(DataType):
                             s = len(datearr[1].split("+")[0]) - 6
                             value = value.split("+")[0][:-s]
                         dt = datetime.strptime(value, pattern)
-                        self._check_range_and_log(dt, fieldvalue, issues, eff_future, eff_past)
+                        self._check_range_and_log(
+                            dt, fieldvalue, issues, eff_future, eff_past
+                        )
                         return dt.strftime("%Y-%m-%d")
                 except ValueError:
                     pass
