@@ -427,3 +427,12 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
     else:
         updated_entities_summary += "\nNo differences found in updated dataset"
         return updated_entities_summary, None
+
+
+def print_title(message):
+    """
+    Prints a message with surrounding lines for emphasis.
+    """
+    print("\n" + "=" * len(message))
+    print(message)
+    print("=" * len(message) + "\n")

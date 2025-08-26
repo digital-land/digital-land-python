@@ -27,6 +27,7 @@ from digital_land.utils.add_data_utils import (
     get_transformed_entities,
     get_existing_endpoints_summary,
     get_updated_entities_summary,
+    print_title,
 )
 
 from .pipeline import assign_entities, pipeline_run
@@ -340,7 +341,7 @@ def add_data(
             cache_pipeline_dir = add_data_cache_dir / "pipeline"
             copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
 
-            assign_entities(
+            new_lookups = assign_entities(
                 resource_file_paths=[endpoint_resource_info["resource_path"]],
                 collection=collection,
                 dataset=dataset,
@@ -351,6 +352,8 @@ def add_data(
                 endpoints=[endpoint_resource_info["endpoint"]],
                 tmp_dir=add_data_cache_dir,
             )
+
+            print(new_lookups)
 
             pipeline = Pipeline(cache_pipeline_dir, dataset)
 
@@ -482,6 +485,11 @@ def add_data(
                 os.makedirs(os.path.dirname(diffs_path))
                 diffs_df.to_csv(diffs_path)
                 print(f"\nDetailed breakdown found in file: {diffs_path}")
+        # now focus on duplicates
+        print_title("checking for duplicates")
+
+        # need to find new entities added and check for duplication between those and
+        # other entities
 
 
 def add_endpoints_and_lookups(
