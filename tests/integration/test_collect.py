@@ -80,20 +80,24 @@ def test_fetch_overwrite_endpoint_logs(collection_dir):
     # url = 'test'
     # create an empty log file where the log will be stored
     # python json module can be used to write a blank json
+    log_dir =collection_dir + "/log"
+
+    # with open(Path(collection_dir) / f"{hash_digest(url)}.json", "w") as f:
+    # json.dump({}, f)
     
-    with open(Path(collection_dir) / "log" / "test" / f"{hash_digest(url)}.json", "w") as f:
-        json.dump({}, f)
-
-
+    #file = open(Path(collection_dir) / "log" / "test" / f"{hash_digest(url)}.json", "w",encoding="utf-8")
+    filename = open("myFile2.json", "w", encoding="utf-8")
+    
+    print(filename)
     collector = Collector()
     collector.fetch(url=url, refill_todays_logs=True)
 
     # assert that the file exists
     assert os.path.exists(Path(collection_dir) / "log" / "*.json") is True
-
+   # assert os.path.exists(filename) is True
     # assert that the log file has been overwritten advise you doing is checking the content has been altered
     # python json module can be used to read the log in and the json isn't empty
-    with open(Path(collection_dir) / "log" / "test" / f"{hash_digest(url)}.json", "r") as f:
+    with open(filename, "r") as f:
         log_content = json.load(f)
         assert log_content != {}
         assert log_content["endpoint-url"] == url
