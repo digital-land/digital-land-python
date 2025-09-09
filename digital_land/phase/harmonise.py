@@ -154,7 +154,15 @@ class HarmonisePhase(Phase):
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (self.dataset, value)
 
-            mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset)
+            # -- ORIGINAL LINE (kept for review) --
+            # mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset)
+
+            # -- NEW LINE (per review) --
+            # If dataset is unknown, default mandatory fields to ["reference"].
+            # Known datasets keep their explicit lists (brownfield-land etc.).
+            # This mirrors current behaviour: we only check fields that are present
+            # in the row; we DO NOT flag missing columns.
+            mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset, ["reference"])
 
             # Check for missing values in mandatory fields
             # Only checking fields given to us - not checking for missing fields
@@ -187,6 +195,6 @@ class HarmonisePhase(Phase):
                 o["wikipedia"] = row["wikipedia"].replace(
                     "https://en.wikipedia.org/wiki/", ""
                 )
-            block["row"] = o
 
+            block["row"] = o
             yield block
