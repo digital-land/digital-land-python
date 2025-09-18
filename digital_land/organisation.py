@@ -1,6 +1,7 @@
 import re
 import csv
 import logging
+import urllib
 from pathlib import Path
 
 
@@ -110,3 +111,18 @@ class Organisation:
         use organisation lookup first to ccheck the curie your using
         """
         return self.organisation[org]
+
+    @staticmethod
+    def download(path):
+        """
+        Download the organisation.csv file from the platform.
+        Args:
+            path (Path): The path to download the file to.
+        """
+
+        path = Path(path)
+        source_url = "https://files.planning.data.gov.uk/organisation-collection/dataset/organisation.csv"
+        urllib.request.urlretrieve(
+            f"{source_url}",
+            path,
+        )

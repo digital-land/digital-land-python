@@ -30,3 +30,7 @@ pyrightconfig.json
 /docs/_build
 docs/digital_land*
 docs/modules.rst
+
+# don't store data folder for use as storage for notebooks
+notebooks/data/
+notebooks/.ipynb_checkpoints
