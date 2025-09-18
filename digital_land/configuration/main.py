@@ -5,6 +5,7 @@ The config class is primarily how to access all the different configuration clas
 """
 
 import sqlite3
+import urllib
 from pathlib import Path
 
 from digital_land.package.sqlite import SqlitePackage
@@ -80,3 +81,35 @@ class Config(SqlitePackage):
         super().load(tables)
         self.create_indexes()
         self.disconnect()
+
+    @staticmethod
+    def download_pipeline_files(path, collection):
+        """
+        Download the pipeline configuration files from the data collection cdn repository.
+        Args:
+            path (Path): The path to download the files to.
+            collection (str): The collection name to download the files for.
+        """
+        path = Path(path)
+        source_url = f"https://files.planning.data.gov.uk/config/pipeline/{collection}"
+        pipeline_csvs = [
+            "column.csv",
+            "combine.csv",
+            "concat.csv",
+            "convert.csv",
+            "default.csv",
+            "default-value.csv",
+            "filter.csv",
+            "lookup.csv",
+            "old-entity.csv",
+            "patch.csv",
+            "skip.csv",
+            "transform.csv",
+            "entity-organisation.csv",
+            "expect.csv",
+        ]
+        for pipeline_csv in pipeline_csvs:
+            urllib.request.urlretrieve(
+                f"{source_url}/{pipeline_csv}",
+                path / pipeline_csv,
+            )

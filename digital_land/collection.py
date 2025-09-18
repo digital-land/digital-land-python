@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import urllib
 import pandas as pd
 
 from datetime import datetime
@@ -675,3 +676,34 @@ class Collection:
             print(f"Error: {e}. Please check the file paths and try again.")
         except Exception as e:
             print(f"An unexpected error occurred: {e}.")
+
+    @staticmethod
+    def download(path: Path, collection: str):
+        """
+        Method to download the collection files, both the inputs (source and endpoint) and the outputs (resource and log).
+        Args:
+            path (Path): The path to download the files to.
+            collection (str): The collection name to download the files for.
+        """
+        path = Path(path)
+        source_url = (
+            f"https://files.planning.data.gov.uk/{collection}-collection/collection"
+        )
+        input_csvs = ["source.csv", "endpoint.csv", "old-resource.csv"]
+        output_csvs = [
+            "log.csv",
+            "resource.csv",
+        ]
+
+        # Download input configuration files
+        for csv in input_csvs:
+            urllib.request.urlretrieve(
+                f"{source_url}/{csv}",
+                path / csv,
+            )
+
+        for csv in output_csvs:
+            urllib.request.urlretrieve(
+                f"{source_url}/{csv}",
+                path / csv,
+            )

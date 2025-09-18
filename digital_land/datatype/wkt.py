@@ -77,6 +77,8 @@ def parse_wkt(value, boundary):
         first_geometry = geometry.geoms[0]
         if first_geometry.geom_type in ["MultiPolygon"]:
             first_point = first_geometry.geoms[0].exterior.coords[0]
+        elif first_geometry.geom_type in ["Polygon"]:
+            first_point = first_geometry.exterior.coords[0]
         else:
             return (
                 None,
@@ -197,6 +199,10 @@ def normalise_geometry(geometry, simplification=0.000005):
     if geometry:
         if not geometry.is_valid:
             geometry = geometry.buffer(0)
+
+    # the above can convert a multipolygon back to a polygon so need to check again that its a multipolygon
+    if geometry:
+        geometry = make_multipolygon(geometry)
 
     # fix winding order
     # WKT external rings should be counterclockwise, interior rings clockwise

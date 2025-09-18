@@ -86,6 +86,18 @@ Wait for the [continuous integration tests](https://pypi.python.org/pypi/digital
 
     make upload
 
+## Notebooks
+
+notebooks have been added which contain code that code be useful when debugging the system. currently jupyter isn;t installed as part of the dev environment so before running you may need to install:
+
+```
+pip install jupyterlab
+```
+
+The notebooks are as follows:
+
+* debug_resource_transformation.ipynb - given a resource and a dataset this downloads the resource and relvant information to process the resource. This is very useful for replicating errors that occur in this step.
+
 # Licence
 
 The software in this project is open source and covered by the [LICENSE](LICENSE) file.
