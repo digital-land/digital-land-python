@@ -59,19 +59,19 @@ class DateDataType(DataType):
         ]:
             try:
                 date = datetime.strptime(value, pattern)
-                return date.strftime("%Y-%m-%d")
+                return date.date().isoformat()
             except ValueError:
                 try:
                     if pattern == "%s":
                         date = datetime.utcfromtimestamp(float(value) / 1000.0)
-                        return date.strftime("%Y-%m-%d")
+                        return date.date().isoformat()
                     if "%f" in pattern:
                         datearr = value.split(".")
                         if len(datearr) > 1 and len(datearr[1].split("+")[0]) > 6:
                             s = len(datearr[1].split("+")[0]) - 6
                             value = value.split("+")[0][:-s]
                         date = datetime.strptime(value, pattern)
-                        return date.strftime("%Y-%m-%d")
+                        return date.date().isoformat()
 
                 except ValueError:
                     pass
