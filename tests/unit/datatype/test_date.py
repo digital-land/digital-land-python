@@ -1,97 +1,77 @@
-from datetime import datetime, timedelta
+#!/usr/bin/env pytest
 
-# import pytest
-
-from digital_land.datatype.date import DateDataType
 from digital_land.log import IssueLog
+from digital_land.datatype.date import DateDataType
 
 
-def _add_years(d, years):
-    """Replicate the class's leap-safe year add for stable tests."""
-    try:
-        return d.replace(year=d.year + years)
-    except ValueError:
-        # handle Feb 29 -> Feb 28
-        return d.replace(month=2, day=28, year=d.year + years)
+def test_basic_iso_normalise():
+    d = DateDataType()
+    assert d.normalise("2024-03-15") == "2024-03-15"
 
 
-def _issue_types(issues: IssueLog):
-    return [row.get("issue-type") for row in getattr(issues, "rows", [])]
+def test_strips_quotes_and_commas():
+    d = DateDataType()
+    assert d.normalise('  "2024-01-02",  ') == "2024-01-02"
 
 
-def test_normalise_basic_iso_and_epoch_ms_no_logs_when_field_not_checked():
+def test_microseconds_trim():
+    d = DateDataType()
+    # 9 fractional digits + Z → should trim to 6 and parse
+    assert d.normalise("2024-09-21T12:34:56.123456789Z") == "2024-09-21"
+
+
+def test_epoch_milliseconds_parses():
+    d = DateDataType()
+    # 0 ms since epoch -> 1970-01-01
+    assert d.normalise("0") == "1970-01-01"
+    # 86_400_000 ms = 1 day -> 1970-01-02
+    assert d.normalise("86400000") == "1970-01-02"
+
+
+def test_far_future_date_logs_issue():
     issues = IssueLog()
-    issues.fieldname = "name"  # not in CHECK_FIELDS, so no range checks/logs
-
+    issues.fieldname = "Start date"
     d = DateDataType()
 
-    # ISO date
-    assert d.normalise("2021-01-02", issues=issues) == "2021-01-02"
+    out = d.normalise("3000-01-01", issues=issues)
+    assert out == "3000-01-01"
 
-    # Epoch milliseconds → 2021-01-01
-    assert d.normalise("1609459200000", issues=issues) == "2021-01-01"
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "far-future-date"
+    assert issue["value"] == "3000-01-01"
+    assert "more than 50 years in the future" in issue["message"]
+    assert issues.rows == []
 
-    assert len(issues.rows) == 0
 
-
-def test_normalise_trims_long_microseconds():
+def test_far_past_date_logs_issue():
     issues = IssueLog()
-    issues.fieldname = "name"  # avoid range checks
+    issues.fieldname = "End date"
     d = DateDataType()
 
-    # 9 microsecond digits; implementation should trim to parse
-    assert d.normalise("2021/01/02T03:04:05.123456789Z", issues=issues) == "2021-01-02"
-    assert len(issues.rows) == 0
+    out = d.normalise("1500-01-01", issues=issues)
+    assert out == "1500-01-01"
+
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "far-past-date"
+    assert issue["value"] == "1500-01-01"
+    assert "before 1799-12-31" in issue["message"]
+    assert issues.rows == []
 
 
-def test_far_future_logs_for_start_date_and_returns_value():
-    today = datetime.utcnow().date()
-    far_future = _add_years(today, 2).isoformat()
-
+def test_invalid_date_logs_issue():
     issues = IssueLog()
-    issues.fieldname = "start-date"  # in CHECK_FIELDS
-
-    d = DateDataType(future_years_cutoff=1, past_years_cutoff=None)
-
-    # Still returns the normalised date…
-    assert d.normalise(far_future, issues=issues) == far_future
-    # …but logs a far-future issue
-    assert "far-future-date" in _issue_types(issues)
-
-
-def test_far_past_logs_for_end_date_and_returns_value():
-    today = datetime.utcnow().date()
-    far_past = _add_years(today, -2).isoformat()
-
-    issues = IssueLog()
-    issues.fieldname = "end_date"  # underscore variant; should be normalised
-
-    d = DateDataType(future_years_cutoff=None, past_years_cutoff=1)
-
-    assert d.normalise(far_past, issues=issues) == far_past
-    assert "far-past-date" in _issue_types(issues)
-
-
-def test_fieldname_normalisation_and_per_call_override_future_cutoff():
-    # Using per-call override: future_years_cutoff=0 means > today triggers
-    tomorrow = (datetime.utcnow().date() + timedelta(days=1)).isoformat()
-
-    issues = IssueLog()
-    issues.fieldname = "Start Date"  # spaces/case variant; should match start-date
-
-    d = DateDataType(future_years_cutoff=50)  # constructor default is loose
-    result = d.normalise(tomorrow, issues=issues, future_years_cutoff=0)
-
-    assert result == tomorrow
-    assert "far-future-date" in _issue_types(issues)
-
-
-def test_invalid_date_logs_and_returns_empty_string():
-    issues = IssueLog()
-    issues.fieldname = "start-date"
-
+    issues.fieldname = "Event date"
     d = DateDataType()
+
     assert d.normalise("not-a-date", issues=issues) == ""
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "invalid date"
+    assert issue["value"] == "not-a-date"
+    assert issue["message"] == f"{issues.fieldname} must be a real date"
+    assert issues.rows == []
 
-    types = _issue_types(issues)
-    assert "invalid date" in types
+
+def test_year_and_year_month_defaults():
+    d = DateDataType()
+    assert d.normalise("2023") == "2023-01-01"
+    assert d.normalise("2023-07") == "2023-07-01"
