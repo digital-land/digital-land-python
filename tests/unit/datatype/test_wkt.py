@@ -101,6 +101,28 @@ def test_normalise_geometrycollection_provided():
     assert len(issues.rows) == 0
 
 
+@pytest.mark.parametrize(
+    "input_wkt",
+    [
+        "GEOMETRYCOLLECTION(MULTIPOLYGON(((-1.559516787528992 53.103395307791885,-1.758610121905804 52.85604486157578,-1.1384771950542927 52.89880645657914,-1.559516787528992 53.103395307791885))),MULTIPOLYGON(((-1.0000710189342499 53.11820709658784,-1.338199004530907 52.92881181451128,-0.7660974003374578 52.871540980161825,-1.0000710189342499 53.11820709658784))))",  # noqa: E501
+        "GEOMETRYCOLLECTION(POLYGON((-1.559516787528992 53.103395307791885,-1.758610121905804 52.85604486157578,-1.1384771950542927 52.89880645657914,-1.559516787528992 53.103395307791885)),POLYGON((-1.0000710189342499 53.11820709658784,-1.338199004530907 52.92881181451128,-0.7660974003374578 52.871540980161825,-1.0000710189342499 53.11820709658784)))",  # noqa: E501
+    ],
+    ids=[
+        "overlapping multipolygons in geometry collection",
+        "overlapping polygons in geometry collection",
+    ],
+)
+def test_normalise_converts_to_multipolygon(input_wkt):
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    actual = wkt.normalise(input_wkt, issues=issues)
+    print(issues.rows)
+    assert actual
+    assert shapely.from_wkt(actual).geom_type == "MultiPolygon"
+    assert len(issues.rows) == 0, "more than 0"
+
+
 def test_invalid_geometry_type_throws_correct_error():
     wkt = WktDataType()
     issues = IssueLog()

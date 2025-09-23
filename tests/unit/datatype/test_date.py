@@ -1,5 +1,6 @@
 #!/usr/bin/env pytest
 
+import pytest
 from digital_land.log import IssueLog
 from digital_land.datatype.date import DateDataType
 

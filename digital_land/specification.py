@@ -3,6 +3,9 @@ import os
 from datetime import datetime
 import logging
 import warnings
+import urllib.request
+
+from pathlib import Path
 
 from .datatype.address import AddressDataType
 from .datatype.datatype import DataType
@@ -289,3 +292,38 @@ class Specification:
 
     def get_odp_collections(self):
         return list(set(self.odp_collections))
+
+    @staticmethod
+    def download(path: Path):
+        """
+        Download the latest specification from the digital land github repository. the class can then be instantiated on the path provided
+
+        Args:
+            path (str): The path to save the downloaded specification files.
+        """
+        # check a path is actually provided
+        path = Path(path)
+        source_url = "https://raw.githubusercontent.com/digital-land/specification/main/specification"
+        specification_csvs = [
+            "attribution.csv",
+            "licence.csv",
+            "typology.csv",
+            "theme.csv",
+            "collection.csv",
+            "dataset.csv",
+            "dataset-field.csv",
+            "field.csv",
+            "datatype.csv",
+            "prefix.csv",
+            # deprecated .. THESE ARE NOT DEPRECCIATED YET STILL USED BY PACKAGES
+            "pipeline.csv",
+            "dataset-schema.csv",
+            "provision-rule.csv",
+            "schema.csv",
+            "schema-field.csv",
+        ]
+        for specification_csv in specification_csvs:
+            urllib.request.urlretrieve(
+                f"{source_url}/{specification_csv}",
+                path / specification_csv,
+            )
