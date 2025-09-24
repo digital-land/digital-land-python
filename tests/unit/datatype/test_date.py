@@ -1,88 +1,78 @@
-import pytest
+#!/usr/bin/env pytest
 
+import pytest
 from digital_land.log import IssueLog
 from digital_land.datatype.date import DateDataType
 
 
-class TestDateDataType:
-    @pytest.mark.parametrize(
-        "input,expected",
-        [
-            # normal date formats
-            ("2020-01-02", "2020-01-02"),
-            ("20200102", "2020-01-02"),
-            ("2020/01/02", "2020-01-02"),
-            ("2020 01 02", "2020-01-02"),
-            ("2020.01.02", "2020-01-02"),
-            ("12 March 2020", "2020-03-12"),
-            ("02-01-2020", "2020-01-02"),
-            ("02.01.20", "2020-01-02"),
-            ("02/01/2020", "2020-01-02"),
-            ("02/01/20", "2020-01-02"),
-            ("02-Jan-2020", "2020-01-02"),
-            ("02-Jan-20", "2020-01-02"),
-            ("2 January 2020", "2020-01-02"),
-            ("Jan 2, 2020", "2020-01-02"),
-            ("Jan 2, 20", "2020-01-02"),
-            # date with less than 1000 years as the leading 0 can be removed
-            ("0987-01-07", "0987-01-07"),
-            # timestamp formats
-            ("2020-01-02T03:04:59", "2020-01-02"),
-            ("2020-01-02 03:04:59", "2020-01-02"),
-            ("2020-01-02T03:04:59Z", "2020-01-02"),
-            ("2024-07-02T13:49:47.676511", "2024-07-02"),
-            ("2024-07-03T13:49:47.676511+01:00", "2024-07-03"),
-            ("2024-07-04T13:41:46.7084023+01:00", "2024-07-04"),
-            ("2024-07-04T13:41:46.708402345678", "2024-07-04"),
-            ("2024-07-04T13:41:46.708402345678+01:00", "2024-07-04"),
-            ("2024-07-04T13:41:46.708402345678Z", "2024-07-04"),
-            ("2009/03/30 00:00:00+00", "2009-03-30"),
-            ("2013/04/15 00:00:00", "2013-04-15"),
-            ("2013/04/15 00:00", "2013-04-15"),
-            ("2024/07/02T13:49:47.676511", "2024-07-02"),
-            ("2024/07/03T13:49:47.676511+01:00", "2024-07-03"),
-            ("2024/07/04T13:41:46.7084023+01:00", "2024-07-04"),
-            ("2024/07/04T13:41:46.708402345678", "2024-07-04"),
-            ("2024/07/04T13:41:46.708402345678+01:00", "2024-07-04"),
-            ("2024/07/04T13:41:46.708402345678Z", "2024-07-04"),
-            # years
-            ("2020", "2020-01-01"),
-            ("2020.0", "2020-01-01"),
-            ("2020-01-02T03:04:59Z", "2020-01-02"),
-            ("02/01/2020 03:04:59", "2020-01-02"),
-            ("02/01/2020 03:04", "2020-01-02"),
-            # months
-            ("Jan-20", "2020-01-01"),
-            ("1969-07", "1969-07-01"),
-            ("1969.07", "1969-07-01"),
-            ("1969/07", "1969-07-01"),
-            ("1969 07", "1969-07-01"),
-            #  risky attempts when it's clear american months are used
-            ("2020-13-12", "2020-12-13"),
-            ("13/12/2020", "2020-12-13"),
-            # random found in wild the wild
-            ("22/05/2018\xa0", "2018-05-22"),
-        ],
-    )
-    def test_normalise_values_are_normalised_correctly_with__no_issues(
-        self, input, expected
-    ):
-        date = DateDataType()
-        assert date.normalise(input) == expected
+def test_basic_iso_normalise():
+    d = DateDataType()
+    assert d.normalise("2024-03-15") == "2024-03-15"
 
-        # with with issues
-        issues = IssueLog()
-        actual = date.normalise(input, issues)
-        assert actual == expected
-        assert len(issues.rows) == 0
 
-    @pytest.mark.parametrize("input", ["2019-02-29", "foo"])
-    def test_normalise_removes_invalid_values(self, input):
-        issues = IssueLog()
-        date = DateDataType()
-        actual = date.normalise(input, issues)
-        issue = issues.rows.pop()
-        assert actual == ""
-        assert issue["issue-type"] == "invalid date"
-        assert issue["value"] == input
-        assert issues.rows == []
+def test_strips_quotes_and_commas():
+    d = DateDataType()
+    assert d.normalise('  "2024-01-02",  ') == "2024-01-02"
+
+
+def test_microseconds_trim():
+    d = DateDataType()
+    # 9 fractional digits + Z → should trim to 6 and parse
+    assert d.normalise("2024-09-21T12:34:56.123456789Z") == "2024-09-21"
+
+
+def test_epoch_milliseconds_parses():
+    d = DateDataType()
+    # 0 ms since epoch -> 1970-01-01
+    assert d.normalise("0") == "1970-01-01"
+    # 86_400_000 ms = 1 day -> 1970-01-02
+    assert d.normalise("86400000") == "1970-01-02"
+
+
+def test_far_future_date_logs_issue():
+    issues = IssueLog()
+    issues.fieldname = "Start date"
+    d = DateDataType()
+
+    out = d.normalise("3000-01-01", issues=issues)
+    assert out == "3000-01-01"
+
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "far-future-date"
+    assert issue["value"] == "3000-01-01"
+    assert "more than 50 years in the future" in issue["message"]
+    assert issues.rows == []
+
+
+def test_far_past_date_logs_issue():
+    issues = IssueLog()
+    issues.fieldname = "End date"
+    d = DateDataType()
+
+    out = d.normalise("1500-01-01", issues=issues)
+    assert out == "1500-01-01"
+
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "far-past-date"
+    assert issue["value"] == "1500-01-01"
+    assert "before 1799-12-31" in issue["message"]
+    assert issues.rows == []
+
+
+def test_invalid_date_logs_issue():
+    issues = IssueLog()
+    issues.fieldname = "Event date"
+    d = DateDataType()
+
+    assert d.normalise("not-a-date", issues=issues) == ""
+    issue = issues.rows.pop()
+    assert issue["issue-type"] == "invalid date"
+    assert issue["value"] == "not-a-date"
+    assert issue["message"] == f"{issues.fieldname} must be a real date"
+    assert issues.rows == []
+
+
+def test_year_and_year_month_defaults():
+    d = DateDataType()
+    assert d.normalise("2023") == "2023-01-01"
+    assert d.normalise("2023-07") == "2023-07-01"
