@@ -1,4 +1,5 @@
 import pytest
+from datetime import date as _date
 
 from digital_land.log import IssueLog
 from digital_land.datatype.date import DateDataType
@@ -85,4 +86,58 @@ class TestDateDataType:
         assert actual == ""
         assert issue["issue-type"] == "invalid date"
         assert issue["value"] == input
+        assert issues.rows == []
+
+# ---------- New tests for far-future / far-past logging ----------
+
+    def test_logs_far_future_when_over_cutoff(self):
+        # Freeze "today" for determinism: 2025-01-15 -> future cutoff = 2075-01-15
+        issues = IssueLog()
+        issues.fieldname = "Start date"
+        d = DateDataType(today_provider=lambda: _date(2025, 1, 15))
+
+        val = "2075-01-16"  # strictly greater than cutoff
+        out = d.normalise(val, issues=issues)
+        assert out == val
+
+        assert len(issues.rows) == 1
+        issue = issues.rows.pop()
+        assert issue["issue-type"] == "far-future-date"
+        assert issue["value"] == val
+        assert "more than 50 years in the future" in issue["message"]
+        assert issues.rows == []
+
+    def test_no_far_future_issue_on_cutoff_boundary(self):
+        # Exactly on the cutoff should NOT log
+        issues = IssueLog()
+        d = DateDataType(today_provider=lambda: _date(2025, 1, 15))
+
+        val = "2075-01-15"  # exactly cutoff
+        out = d.normalise(val, issues=issues)
+        assert out == val
+        assert issues.rows == []
+
+    def test_logs_far_past_when_before_cutoff(self):
+        issues = IssueLog()
+        issues.fieldname = "End date"
+        d = DateDataType()  # default far_past_cutoff = 1799-12-31
+
+        val = "1799-12-30"  # strictly before cutoff
+        out = d.normalise(val, issues=issues)
+        assert out == val
+
+        assert len(issues.rows) == 1
+        issue = issues.rows.pop()
+        assert issue["issue-type"] == "far-past-date"
+        assert issue["value"] == val
+        assert "before 1799-12-31" in issue["message"]
+        assert issues.rows == []
+
+    def test_no_far_past_issue_on_cutoff_boundary(self):
+        issues = IssueLog()
+        d = DateDataType()  # default far_past_cutoff = 1799-12-31
+
+        val = "1799-12-31"  # boundary: not logged
+        out = d.normalise(val, issues=issues)
+        assert out == val
         assert issues.rows == []
