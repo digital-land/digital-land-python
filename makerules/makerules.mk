@@ -72,7 +72,7 @@ init::
 ifneq (,$(wildcard requirements.txt))
 	pip3 install --upgrade -r requirements.txt
 endif
-ifneq (,$(wildcard setup.py))
+ifneq (,$(wildcard pyproject.toml))
 	pip install -e .$(PIP_INSTALL_PACKAGE)
 endif
 	sqlite3 --version
