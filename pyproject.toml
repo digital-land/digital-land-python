@@ -9,7 +9,7 @@ dynamic = ["version", "readme"]
 
 description = "Data pipeline tools to collect data and process it into a dataset"
 authors = [
-    { name = "MHCLG Digital Land Team", email = "DigitalLand@communities.gov.uk" },
+    { name = "MHCLG Planning Data Team", email = "DigitalLand@communities.gov.uk" },
 ]
 license = { text = "MIT" }
 urls = { Homepage = "https://github.com/digital-land/digital-land-python" }
