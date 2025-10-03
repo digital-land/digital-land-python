@@ -85,3 +85,7 @@ packages = { find = {exclude = ["tests","docs"] } }
 [tool.setuptools.dynamic]
 # dynamic fields tell setuptools to fetch these at build time
 readme = { file = ["README.md"], content-type = "text/markdown" }
+
+[tool.setuptools_scm]
+# Configure custom options here (version schemes, file writing, etc.)
+version_file = "digital_land/_version.py"
