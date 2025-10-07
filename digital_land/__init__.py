@@ -4,12 +4,14 @@ import logging
 from importlib.metadata import version, PackageNotFoundError
 
 logger = logging.getLogger(__name__)
-
+PACKAGE_NAME = "digital-land"
 try:
-    __version__ = version("digital-land")
+    __version__ = version(PACKAGE_NAME)
 except PackageNotFoundError:
     # package is not installed
-    logger.error("Package 'digital-land' is not installed. So can not retieve version.")
+    logger.error(
+        f"Package '{PACKAGE_NAME}' is not installed. So can not retieve version."
+    )
     pass
 
 
