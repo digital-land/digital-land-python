@@ -25,6 +25,8 @@ pyrightconfig.json
 .idea
 .python-version
 
+# hide semantic versioning output from git
+digital_land/_version.py
 
 # don't store html build file for docs
 /docs/_build
