@@ -1,0 +1,88 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version part to bump (patch, minor, or major)"
+        required: false
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump-version:
+    name: Publish release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to push tags
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required to fetch tags
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=$tag" >> $GITHUB_OUTPUT
+          echo "Latest tag: $tag"
+
+      - name: Calculate next version
+        id: next_version
+        run: |
+          bump="${{ github.event.inputs.bump }}"
+          tag="${{ steps.get_tag.outputs.latest_tag }}"
+          version="${tag#v}"
+
+          IFS='.' read -r major minor patch <<< "$version"
+
+          case "$bump" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+            *)
+              echo "Invalid bump type: $bump"
+              exit 1
+              ;;
+          esac
+
+          new_tag="v${major}.${minor}.${patch}"
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+          echo "Next version: $new_tag"
+
+      - name: Verify tag does not already exist
+        run: |
+          new_tag="${{ steps.next_version.outputs.new_tag }}"
+          if git rev-parse "$new_tag" >/dev/null 2>&1; then
+            echo "❌ Tag $new_tag already exists!"
+            exit 1
+          fi
+
+      - name: Create and push tag
+        run: |
+          new_tag="${{ steps.next_version.outputs.new_tag }}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "$new_tag"
+          git push origin "$new_tag"
+
+      - name: Output result
+        run: echo "✅ Released ${{ steps.next_version.outputs.new_tag }}"
