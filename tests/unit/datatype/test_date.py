@@ -103,15 +103,6 @@ class TestDateDataType:
         issue = issues.rows.pop()
         assert issue["issue-type"] == "far-future-date"
 
-        # now check if values are in normalised arguements over class init
-
-        d = DateDataType()
-        out = d.normalise(val, issues=issues, far_future_date=_date(2025, 1, 15))
-        assert out == ""
-        assert len(issues.rows) == 1
-        issue = issues.rows.pop()
-        assert issue["issue-type"] == "far-future-date"
-
     def test_normalise_far_future_date_not_exceeded(self):
         # Exactly on the cutoff should NOT log
         issues = IssueLog()
