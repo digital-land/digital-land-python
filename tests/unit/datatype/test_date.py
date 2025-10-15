@@ -88,44 +88,48 @@ class TestDateDataType:
         assert issue["value"] == input
         assert issues.rows == []
 
-# ---------- New tests for far-future / far-past logging ----------
+    # ---------- test far future and far past date functionality ----------
 
-    def test_logs_far_future_when_over_cutoff(self):
+    def test_normalise_far_future_date_exceeded(self):
         # Freeze "today" for determinism: 2025-01-15 -> future cutoff = 2075-01-15
         issues = IssueLog()
-        issues.fieldname = "Start date"
-        d = DateDataType(today_provider=lambda: _date(2025, 1, 15))
+        issues.fieldname = "start-date"
+        d = DateDataType(far_future_date=_date(2025, 1, 15))
 
-        val = "2075-01-16"  # strictly greater than cutoff
+        val = "2025-01-16"  # strictly greater than cutoff
         out = d.normalise(val, issues=issues)
-        assert out == val
-
+        assert out == ""
         assert len(issues.rows) == 1
         issue = issues.rows.pop()
         assert issue["issue-type"] == "far-future-date"
-        assert issue["value"] == val
-        assert "more than 50 years in the future" in issue["message"]
-        assert issues.rows == []
 
-    def test_no_far_future_issue_on_cutoff_boundary(self):
+        # now check if values are in normalised arguements over class init
+
+        d = DateDataType()
+        out = d.normalise(val, issues=issues, far_future_date=_date(2025, 1, 15))
+        assert out == ""
+        assert len(issues.rows) == 1
+        issue = issues.rows.pop()
+        assert issue["issue-type"] == "far-future-date"
+
+    def test_normalise_far_future_date_not_exceeded(self):
         # Exactly on the cutoff should NOT log
         issues = IssueLog()
-        d = DateDataType(today_provider=lambda: _date(2025, 1, 15))
+        d = DateDataType(far_future_date=_date(2025, 1, 15))
 
-        val = "2075-01-15"  # exactly cutoff
+        val = "2025-01-15"  # exactly cutoff
         out = d.normalise(val, issues=issues)
         assert out == val
         assert issues.rows == []
 
-    def test_logs_far_past_when_before_cutoff(self):
+    def test_normalise_far_past_date_exceeded(self):
         issues = IssueLog()
-        issues.fieldname = "End date"
-        d = DateDataType()  # default far_past_cutoff = 1799-12-31
+        issues.fieldname = "end-date"
+        d = DateDataType(far_past_date=_date(1799, 12, 31))
 
         val = "1799-12-30"  # strictly before cutoff
         out = d.normalise(val, issues=issues)
-        assert out == val
-
+        assert out == ""
         assert len(issues.rows) == 1
         issue = issues.rows.pop()
         assert issue["issue-type"] == "far-past-date"
@@ -133,9 +137,9 @@ class TestDateDataType:
         assert "before 1799-12-31" in issue["message"]
         assert issues.rows == []
 
-    def test_no_far_past_issue_on_cutoff_boundary(self):
+    def test_normalise_far_past_date_not_exceeded(self):
         issues = IssueLog()
-        d = DateDataType()  # default far_past_cutoff = 1799-12-31
+        d = DateDataType(far_past_date=_date(1799, 12, 31))
 
         val = "1799-12-31"  # boundary: not logged
         out = d.normalise(val, issues=issues)

@@ -1,45 +1,26 @@
 from datetime import datetime
-from datetime import date as _date
 from .datatype import DataType
-from calendar import monthrange
 
 
+# _date(1799, 12, 31)
+# future_years_ahead=50
+# future_years_ahead=50, today_provider=_date.today
 class DateDataType(DataType):
 
-    def __init__(self, far_past_cutoff=_date(1799, 12, 31), future_years_ahead=50, today_provider=_date.today):
-            """
-            far_past_cutoff: dates strictly before this log 'far-past-date'
-            future_years_ahead: how many years ahead from 'today' counts as far-future
-            today_provider: callable returning today's date (inject in tests for determinism)
-            """
-            self.far_past_cutoff = far_past_cutoff
-            self.future_years_ahead = future_years_ahead
-            self.today_provider = today_provider
-
-    def _future_cutoff(self):
-        today = self.today_provider()
-        y = today.year + self.future_years_ahead
-        # keep same month/day if possible (handles Feb 29 & short months)
-        last_day = monthrange(y, today.month)[1]
-        day = min(today.day, last_day)
-        return today.replace(year=y, day=day)
+    def __init__(self, far_past_date=None, far_future_date=None):
+        """
+        far_past_cutoff: dates strictly before this log 'far-past-date'
+        future_years_ahead: how many years ahead from 'today' counts as far-future
+        today_provider: callable returning today's date (inject in tests for determinism)
+        """
+        self.far_past_date = far_past_date
+        self.far_future_date = far_future_date
 
     def normalise(self, fieldvalue, issues=None):
         value = fieldvalue.strip().strip('",')
-        future_cutoff = self._future_cutoff()
 
-        def _log_range(dt):
-            if not issues:
-                return
-            d = dt.date()
-            if d > future_cutoff:
-                issues.log("far-future-date", fieldvalue,
-                            f"{issues.fieldname} is more than {self.future_years_ahead} years in the future")
-            if d < self.far_past_cutoff:
-                issues.log("far-past-date", fieldvalue,
-                            f"{issues.fieldname} is before {self.far_past_cutoff.isoformat()}")
-
-
+        # set date initially to None to be overriten if code is successful
+        date = None
         # all of these patterns have been used!
         for pattern in [
             "%Y-%m-%d",
@@ -93,25 +74,42 @@ class DateDataType(DataType):
         ]:
             try:
                 date = datetime.strptime(value, pattern)
-                _log_range(date)  
-                return date.date().isoformat()
+                break
             except ValueError:
                 try:
                     if pattern == "%s":
                         date = datetime.utcfromtimestamp(float(value) / 1000.0)
-                        _log_range(date)
-                        return date.date().isoformat()
+                        break
                     if "%f" in pattern:
                         datearr = value.split(".")
                         if len(datearr) > 1 and len(datearr[1].split("+")[0]) > 6:
                             s = len(datearr[1].split("+")[0]) - 6
                             value = value.split("+")[0][:-s]
                         date = datetime.strptime(value, pattern)
-                        _log_range(date)
-                        return date.date().isoformat()
+                        break
 
                 except ValueError:
                     pass
+
+        if date is not None:
+            if self.far_past_date and date.date() < self.far_past_date:
+                if issues:
+                    issues.log(
+                        "far-past-date",
+                        fieldvalue,
+                        f"{value} is before {self.far_past_date.isoformat()}",
+                    )
+                return ""
+            if self.far_future_date and date.date() > self.far_future_date:
+                if issues:
+                    issues.log(
+                        "far-future-date",
+                        fieldvalue,
+                        f"{value} is after {self.far_future_date.isoformat()}",
+                    )
+                return ""
+
+            return date.date().isoformat()
 
         if issues:
             issues.log(

@@ -12,7 +12,7 @@ from .latitude import LatitudeDataType
 from .longitude import LongitudeDataType
 
 
-def datatype_factory(datatype_name):
+def datatype_factory(datatype_name, **kwargs):
     typemap = {
         "integer": IntegerDataType,
         "decimal": DecimalDataType,
@@ -30,7 +30,7 @@ def datatype_factory(datatype_name):
     }
 
     if datatype_name in typemap:
-        return typemap[datatype_name]()
+        return typemap[datatype_name](**kwargs)
 
     # TODO double check that the below isn't needed but OrganisationURI has a url datatype
     # so it would never be called.

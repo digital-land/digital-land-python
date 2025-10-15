@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, date
 from .phase import Phase
+from calendar import monthrange
 from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
@@ -47,6 +48,8 @@ MANDATORY_FIELDS_DICT = {
     ],
 }
 
+FAR_FUTURE_YEARS_AHEAD = 50
+
 
 class HarmonisePhase(Phase):
     def __init__(
@@ -73,7 +76,19 @@ class HarmonisePhase(Phase):
 
         self.issues.fieldname = fieldname
         datatype_name = self.get_field_datatype_name(fieldname)
-        datatype = datatype_factory(datatype_name=datatype_name)
+        if datatype_name == "datetime":
+            # add defaullt configuration for datetime
+            far_past_date = date(1799, 12, 31)
+            far_future_date = self._get_far_future_date(FAR_FUTURE_YEARS_AHEAD)
+            datatype = datatype_factory(
+                datatype_name=datatype_name,
+                far_past_date=far_past_date,
+                far_future_date=far_future_date,
+            )
+        # for datetimes add default far past and far future issue types
+        else:
+            datatype = datatype_factory(datatype_name=datatype_name)
+
         return datatype.normalise(value, issues=self.issues)
 
     def process(self, stream):
@@ -190,3 +205,11 @@ class HarmonisePhase(Phase):
             block["row"] = o
 
             yield block
+
+    def _get_far_future_date(self, number_of_years_ahead: int):
+        today = date.today()
+        y = today.year + number_of_years_ahead
+        # keep same month/day if possible (handles Feb 29 & short months)
+        last_day = monthrange(y, today.month)[1]
+        day = min(today.day, last_day)
+        return today.replace(year=y, day=day)
