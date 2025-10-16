@@ -2,9 +2,6 @@ from datetime import datetime
 from .datatype import DataType
 
 
-# _date(1799, 12, 31)
-# future_years_ahead=50
-# future_years_ahead=50, today_provider=_date.today
 class DateDataType(DataType):
 
     def __init__(self, far_past_date=None, far_future_date=None):
