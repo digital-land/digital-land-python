@@ -1,4 +1,5 @@
 import pytest
+from datetime import date as _date
 
 from digital_land.log import IssueLog
 from digital_land.datatype.date import DateDataType
@@ -85,4 +86,53 @@ class TestDateDataType:
         assert actual == ""
         assert issue["issue-type"] == "invalid date"
         assert issue["value"] == input
+        assert issues.rows == []
+
+    # ---------- test far future and far past date functionality ----------
+
+    def test_normalise_far_future_date_exceeded(self):
+        # Freeze "today" for determinism: 2025-01-15 -> future cutoff = 2075-01-15
+        issues = IssueLog()
+        issues.fieldname = "start-date"
+        d = DateDataType(far_future_date=_date(2025, 1, 15))
+
+        val = "2025-01-16"  # strictly greater than cutoff
+        out = d.normalise(val, issues=issues)
+        assert out == ""
+        assert len(issues.rows) == 1
+        issue = issues.rows.pop()
+        assert issue["issue-type"] == "far-future-date"
+
+    def test_normalise_far_future_date_not_exceeded(self):
+        # Exactly on the cutoff should NOT log
+        issues = IssueLog()
+        d = DateDataType(far_future_date=_date(2025, 1, 15))
+
+        val = "2025-01-15"  # exactly cutoff
+        out = d.normalise(val, issues=issues)
+        assert out == val
+        assert issues.rows == []
+
+    def test_normalise_far_past_date_exceeded(self):
+        issues = IssueLog()
+        issues.fieldname = "end-date"
+        d = DateDataType(far_past_date=_date(1799, 12, 31))
+
+        val = "1799-12-30"  # strictly before cutoff
+        out = d.normalise(val, issues=issues)
+        assert out == ""
+        assert len(issues.rows) == 1
+        issue = issues.rows.pop()
+        assert issue["issue-type"] == "far-past-date"
+        assert issue["value"] == val
+        assert "before 1799-12-31" in issue["message"]
+        assert issues.rows == []
+
+    def test_normalise_far_past_date_not_exceeded(self):
+        issues = IssueLog()
+        d = DateDataType(far_past_date=_date(1799, 12, 31))
+
+        val = "1799-12-31"  # boundary: not logged
+        out = d.normalise(val, issues=issues)
+        assert out == val
         assert issues.rows == []
