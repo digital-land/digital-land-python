@@ -76,6 +76,7 @@ from digital_land.utils.add_data_utils import (
     is_url_valid,
     get_user_response,
 )
+from digital_land.utils.hash import hash_dir
 
 from .register import hash_value
 from .utils.gdal_utils import get_gdal_version
@@ -211,7 +212,7 @@ def convert(input_path, output_path):
 
 def pipeline_run(
     dataset,
-    pipeline,
+    pipeline: Pipeline,
     specification,
     input_path,
     output_path,
@@ -237,6 +238,9 @@ def pipeline_run(
     # set up paths
     cache_dir = Path(cache_dir)
 
+    # caculate connfig hash for dataset resource log
+    config_hash = hash_dir(pipeline.path)
+
     if resource is None:
         resource = resource_from_path(input_path)
     dataset = dataset
@@ -245,7 +249,9 @@ def pipeline_run(
     issue_log = IssueLog(dataset=dataset, resource=resource)
     operational_issue_log = OperationalIssueLog(dataset=dataset, resource=resource)
     column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
-    dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
+    dataset_resource_log = DatasetResourceLog(
+        dataset=dataset, resource=resource, config_hash=config_hash
+    )
     converted_resource_log = ConvertedResourceLog(dataset=dataset, resource=resource)
     api = API(specification=specification)
     entity_range_min = specification.get_dataset_entity_min(dataset)

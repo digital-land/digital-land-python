@@ -8,6 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from .store.item import CSVItemStore
 from .schema import Schema
+from digital_land import __version__
 
 
 def entry_date():
@@ -265,15 +266,23 @@ class DatasetResourceLog(Log):
         "mime-type",
         "internal-path",
         "internal-mime-type",
+        "digital_land_version",
+        "config_hash",
     ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, config_hash=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.entry_count = 0
         self.line_count = 0
         self.mime_type = ""
         self.internal_path = ""
         self.internal_mime_type = ""
+        self.digital_land_version = __version__
+
+        if config_hash is None:
+            self.config_hash = ""
+        else:
+            self.config_hash = config_hash
 
     def add(self):
         self.rows.append(
@@ -285,6 +294,8 @@ class DatasetResourceLog(Log):
                 "mime-type": self.mime_type,
                 "internal-path": self.internal_path,
                 "internal-mime-type": self.internal_mime_type,
+                "digital_land_version": self.digital_land_version,
+                "config_hash": self.config_hash,
             }
         )
 
