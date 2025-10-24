@@ -70,7 +70,7 @@ class Specification:
             "text": "VARCHAR",
             "decimal": "DOUBLE",
             "date": "DATE",
-            "datetime": "TIMESTAMP",
+            "datetime": "VARCHAR",
             "flag": "VARCHAR",
             "url": "VARCHAR",
             "uri": "VARCHAR",
