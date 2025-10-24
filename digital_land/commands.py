@@ -14,6 +14,7 @@ from distutils.dir_util import copy_tree
 import geojson
 from requests import HTTPError
 import shapely
+import duckdb
 
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.check import duplicate_reference_check
@@ -608,6 +609,75 @@ def dataset_dump(input_path, output_path):
     os.system(cmd)
 
 
+def _create_parquet_from_csv(
+    csv_path, output_dir, dataset_name, specification, field_names
+):
+    """
+    Create a parquet file from the flattened CSV using DuckDB with data types from specification.
+
+    Args:
+        csv_path: Path to the flattened CSV file
+        output_dir: Directory to write the parquet file
+        dataset_name: Name of the dataset
+        specification: Specification object containing field data types
+        field_names: List of field names in the CSV
+    """
+    parquet_path = os.path.join(output_dir, f"{dataset_name}.parquet")
+
+    try:
+        # Get field to DuckDB type mapping from specification
+        field_duckdb_type_map = specification.get_field_duckdb_type_map()
+
+        # Build columns specification for read_csv_auto
+        column_specs = {}
+        for field in field_names:
+            duckdb_type = field_duckdb_type_map.get(field, "VARCHAR")
+            column_specs[field] = duckdb_type
+
+        # Format the columns dict for DuckDB: {'col1': 'TYPE1', 'col2': 'TYPE2'}
+        columns_str = (
+            "{"
+            + ", ".join(
+                [f"'{field}': '{dtype}'" for field, dtype in column_specs.items()]
+            )
+            + "}"
+        )
+
+        # Create DuckDB connection and export to parquet
+        conn = duckdb.connect()
+
+        query = f"""
+        COPY (
+            SELECT *
+            FROM read_csv_auto(
+                '{csv_path}',
+                header=true,
+                delim=',',
+                quote='"',
+                escape='"',
+                columns={columns_str},
+                max_line_size=100000000
+            )
+        ) TO '{parquet_path}' (FORMAT PARQUET, COMPRESSION 'ZSTD');
+        """
+
+        conn.execute(query)
+        conn.close()
+
+        logging.info(f"Created parquet file: {parquet_path}")
+
+    except (IOError, OSError) as e:
+        # File system errors - log but don't fail the whole process
+        logging.error(f"File system error creating parquet file: {e}")
+        logging.error(
+            f"Parquet file creation failed, but CSV file is available at {csv_path}"
+        )
+    except Exception as e:
+        # Unexpected errors - log and re-raise so we're aware
+        logging.error(f"Unexpected error creating parquet file: {e}")
+        raise
+
+
 def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     if isinstance(csv_path, str):
         path = Path(csv_path)
@@ -654,6 +724,11 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             )
             writer.writerow(kebab_case_row)
             entities.append(kebab_case_row)
+
+    # Create parquet file from the flattened CSV using DuckDB
+    _create_parquet_from_csv(
+        flattened_csv_path, flattened_dir, dataset_name, specification, field_names
+    )
 
     # write the entities to json file as well
     flattened_json_path = os.path.join(flattened_dir, f"{dataset_name}.json")

@@ -14,12 +14,13 @@ from moto import mock_aws
 from pathlib import Path
 from csv import DictReader
 
-from digital_land.commands import dataset_dump_flattened
+from digital_land.commands import dataset_dump_flattened, _create_parquet_from_csv
 from digital_land.package.dataset import DatasetPackage
 
-from digital_land.specification import Specification, specification_path
+from digital_land.specification import Specification
 from digital_land.organisation import Organisation
 from digital_land.collect import Collector
+import duckdb
 
 
 """ dataset_create & dataset_update """
@@ -606,6 +607,7 @@ def test_dataset_dump_flattened_for_non_geospatial_data(
     dataset_dir,
     # Pytest fixtures
     tmp_path,
+    specification_dir,
 ):
     # Setup
     expected_flattened_csv_result = dataset_dir.joinpath(f"{dataset_name}-expected.csv")
@@ -617,7 +619,7 @@ def test_dataset_dump_flattened_for_non_geospatial_data(
     flattened_csv_path = flattened_output_dir.joinpath(f"{dataset_name}.csv")
     flattened_json_path = flattened_output_dir.joinpath(f"{dataset_name}.json")
 
-    specification = Specification(specification_path)
+    specification = Specification(specification_dir)
 
     dataset_dump_flattened(csv_path, flattened_output_dir, specification, dataset_name)
 
@@ -657,6 +659,7 @@ def test_dataset_dump_flattened_for_geospatial_data(
     dataset_dir,
     # Pytest fixtures
     tmp_path,
+    specification_dir,
 ):
     # Setup
     expected_flattened_csv_result = dataset_dir.joinpath(f"{dataset_name}-expected.csv")
@@ -668,7 +671,7 @@ def test_dataset_dump_flattened_for_geospatial_data(
     flattened_csv_path = flattened_output_dir.joinpath(f"{dataset_name}.csv")
     flattened_json_path = flattened_output_dir.joinpath(f"{dataset_name}.json")
 
-    specification = Specification(specification_path)
+    specification = Specification(specification_dir)
 
     dataset_dump_flattened(csv_path, flattened_output_dir, specification, dataset_name)
 
@@ -718,3 +721,314 @@ def test_collection_dir_file_hashes(temp_dir, caplog):
         assert any(
             expected in record.message for record in caplog.records
         ), f"Missing log: {expected}"
+
+
+def test_create_parquet_from_csv_creates_parquet_file(tmp_path, specification_dir):
+    """Test that _create_parquet_from_csv creates a parquet file from a CSV"""
+    # Setup
+    dataset_name = "test-dataset"
+    csv_path = tmp_path / f"{dataset_name}.csv"
+
+    # Create a test CSV file
+    csv_content = """entity,name,start-date,reference,entry-date
+1,Test Name,2024-01-01,REF001,2024-01-01
+2,Another Test,2024-02-15,REF002,2024-02-15"""
+    csv_path.write_text(csv_content)
+
+    # Create a mock specification
+    specification = Specification(specification_dir)
+    field_names = ["entity", "name", "start-date", "reference", "entry-date"]
+
+    # Execute
+    _create_parquet_from_csv(
+        str(csv_path), str(tmp_path), dataset_name, specification, field_names
+    )
+
+    # Assert parquet file exists
+    parquet_path = tmp_path / f"{dataset_name}.parquet"
+    assert parquet_path.exists(), "Parquet file should be created"
+
+
+def test_create_parquet_from_csv_preserves_data_types(tmp_path, specification_dir):
+    """Test that _create_parquet_from_csv correctly types fields based on specification"""
+    # Setup
+    dataset_name = "test-dataset"
+    csv_path = tmp_path / f"{dataset_name}.csv"
+
+    # Create a test CSV with various data types
+    csv_content = """entity,name,start-date,reference
+123,Test Name,2024-01-01,REF001
+456,Another Test,2024-02-15,REF002"""
+    csv_path.write_text(csv_content)
+
+    specification = Specification(specification_dir)
+    field_names = ["entity", "name", "start-date", "reference"]
+
+    # Execute
+    _create_parquet_from_csv(
+        str(csv_path), str(tmp_path), dataset_name, specification, field_names
+    )
+
+    # Assert - Read parquet and check data types
+    parquet_path = tmp_path / f"{dataset_name}.parquet"
+    conn = duckdb.connect()
+    result = conn.execute(f"SELECT * FROM read_parquet('{parquet_path}')").fetchall()
+
+    # Verify data was loaded
+    assert len(result) == 2, "Should have 2 rows"
+    assert result[0][0] == 123, "Entity should be integer"
+    assert result[0][1] == "Test Name", "Name should be string"
+
+    # Check schema types
+    schema = conn.execute(
+        f"DESCRIBE SELECT * FROM read_parquet('{parquet_path}')"
+    ).fetchall()
+    schema_dict = {row[0]: row[1] for row in schema}
+
+    # entity should be BIGINT (integer type)
+    assert "BIGINT" in schema_dict.get("entity", ""), "Entity should be BIGINT type"
+    # name should be VARCHAR (string type)
+    assert "VARCHAR" in schema_dict.get("name", ""), "Name should be VARCHAR type"
+
+    conn.close()
+
+
+def test_create_parquet_from_csv_handles_empty_strings(tmp_path, specification_dir):
+    """Test that _create_parquet_from_csv converts empty strings to NULL for numeric types"""
+    # Setup
+    dataset_name = "test-dataset"
+    csv_path = tmp_path / f"{dataset_name}.csv"
+
+    # Create CSV with empty strings
+    csv_content = """entity,name,start-date
+123,Test Name,2024-01-01
+456,,"""
+    csv_path.write_text(csv_content)
+
+    specification = Specification(specification_dir)
+    field_names = ["entity", "name", "start-date"]
+
+    # Execute
+    _create_parquet_from_csv(
+        str(csv_path), str(tmp_path), dataset_name, specification, field_names
+    )
+
+    # Assert - Check that empty strings are handled properly
+    parquet_path = tmp_path / f"{dataset_name}.parquet"
+    conn = duckdb.connect()
+    result = conn.execute(f"SELECT * FROM read_parquet('{parquet_path}')").fetchall()
+
+    assert len(result) == 2, "Should have 2 rows"
+    # Second row should have NULL for empty date field
+    assert result[1][2] is None, "Empty date string should be converted to NULL"
+
+    conn.close()
+
+
+def test_create_parquet_from_csv_raises_on_unexpected_errors(
+    tmp_path, specification_dir
+):
+    """Test that _create_parquet_from_csv raises exceptions for unexpected errors"""
+    # Setup with invalid CSV path
+    dataset_name = "test-dataset"
+    csv_path = tmp_path / "nonexistent.csv"  # File doesn't exist
+
+    specification = Specification(specification_dir)
+    field_names = ["entity", "name"]
+
+    # Execute & Assert - Should raise an exception
+    with pytest.raises(Exception):
+        _create_parquet_from_csv(
+            str(csv_path), str(tmp_path), dataset_name, specification, field_names
+        )
+
+
+def test_create_parquet_from_csv_errors_on_invalid_data(tmp_path, specification_dir):
+    """Test that _create_parquet_from_csv raises error when data doesn't match expected types"""
+    # Setup with invalid data
+    dataset_name = "test-dataset"
+    csv_path = tmp_path / f"{dataset_name}.csv"
+
+    # Create CSV with invalid integer value
+    csv_content = """entity,name
+123,Valid Name
+not-a-number,Another Name"""
+    csv_path.write_text(csv_content)
+
+    specification = Specification(specification_dir)
+    field_names = ["entity", "name"]
+
+    # Execute & Assert - Should raise an exception due to type mismatch
+    with pytest.raises(Exception):
+        _create_parquet_from_csv(
+            str(csv_path), str(tmp_path), dataset_name, specification, field_names
+        )
+
+
+def test_create_parquet_from_csv_handles_large_multipolygon(
+    tmp_path, specification_dir
+):
+    """Test that _create_parquet_from_csv can handle very large multipolygon/geometry columns"""
+    # Setup
+    dataset_name = "test-dataset"
+    csv_path = tmp_path / f"{dataset_name}.csv"
+
+    # Create a large multipolygon string (simulate 1MB of WKT data)
+    # This represents a complex geometry with many coordinates
+    large_multipolygon = (
+        "MULTIPOLYGON(((" + ",".join([f"{i} {i}" for i in range(100000)]) + ")))"
+    )
+
+    # Write CSV with proper quoting using csv module to handle large fields correctly
+    import csv as csv_module
+
+    with open(csv_path, "w", newline="") as f:
+        writer = csv_module.writer(f)
+        writer.writerow(["entity", "geometry"])
+        writer.writerow(["123", large_multipolygon])
+        writer.writerow(["456", "POINT(1 1)"])
+
+    specification = Specification(specification_dir)
+    field_names = ["entity", "geometry"]
+
+    # Execute
+    _create_parquet_from_csv(
+        str(csv_path), str(tmp_path), dataset_name, specification, field_names
+    )
+
+    # Assert - Verify parquet file was created and contains the large geometry
+    parquet_path = tmp_path / f"{dataset_name}.parquet"
+    assert parquet_path.exists(), "Parquet file should be created"
+
+    # Read back and verify the large geometry was preserved
+    conn = duckdb.connect()
+    result = conn.execute(
+        f"SELECT entity, length(geometry) FROM read_parquet('{parquet_path}') WHERE entity = 123"
+    ).fetchone()
+
+    assert result[0] == 123, "Entity should match"
+    assert result[1] == len(
+        large_multipolygon
+    ), f"Geometry length should be preserved ({len(large_multipolygon):,} bytes)"
+
+    conn.close()
+
+
+def test_dataset_dump_flattened_creates_parquet_file(
+    dataset_dir, tmp_path, specification_dir
+):
+    """Test that dataset_dump_flattened creates a parquet file alongside CSV and JSON"""
+    # Setup
+    dataset_name = "listed-building-grade"
+    csv_path = dataset_dir.joinpath(f"{dataset_name}.csv")
+
+    flattened_output_dir = tmp_path.joinpath("dataset_output")
+    flattened_output_dir.mkdir()
+
+    specification = Specification(specification_dir)
+
+    # Execute
+    dataset_dump_flattened(csv_path, flattened_output_dir, specification, dataset_name)
+
+    # Assert - Check all output files exist
+    flattened_csv_path = flattened_output_dir.joinpath(f"{dataset_name}.csv")
+    flattened_json_path = flattened_output_dir.joinpath(f"{dataset_name}.json")
+    flattened_parquet_path = flattened_output_dir.joinpath(f"{dataset_name}.parquet")
+
+    assert flattened_csv_path.exists(), "CSV file should be created"
+    assert flattened_json_path.exists(), "JSON file should be created"
+    assert flattened_parquet_path.exists(), "Parquet file should be created"
+
+
+def test_dataset_dump_flattened_parquet_matches_csv_data(
+    dataset_dir, tmp_path, specification_dir
+):
+    """Test that parquet file created by dataset_dump_flattened contains same data as CSV"""
+    # Setup
+    dataset_name = "listed-building-grade"
+    csv_path = dataset_dir.joinpath(f"{dataset_name}.csv")
+
+    flattened_output_dir = tmp_path.joinpath("dataset_output")
+    flattened_output_dir.mkdir()
+
+    specification = Specification(specification_dir)
+
+    # Execute
+    dataset_dump_flattened(csv_path, flattened_output_dir, specification, dataset_name)
+
+    # Assert - Compare data between CSV and parquet
+    flattened_csv_path = flattened_output_dir.joinpath(f"{dataset_name}.csv")
+    flattened_parquet_path = flattened_output_dir.joinpath(f"{dataset_name}.parquet")
+
+    # Read CSV
+    with open(flattened_csv_path, "r") as f:
+        csv_reader = DictReader(f)
+        csv_rows = list(csv_reader)
+
+    # Read parquet
+    conn = duckdb.connect()
+    parquet_rows = conn.execute(
+        f"SELECT * FROM read_parquet('{flattened_parquet_path}')"
+    ).fetchall()
+
+    # Get column names from parquet
+    columns = [
+        desc[0]
+        for desc in conn.execute(
+            f"DESCRIBE SELECT * FROM read_parquet('{flattened_parquet_path}')"
+        ).fetchall()
+    ]
+
+    conn.close()
+
+    # Compare row counts
+    assert len(csv_rows) == len(
+        parquet_rows
+    ), "CSV and parquet should have same number of rows"
+
+    # Compare first row entity values
+    csv_entity = csv_rows[0].get("entity", "")
+    parquet_entity = (
+        str(parquet_rows[0][columns.index("entity")]) if "entity" in columns else ""
+    )
+
+    assert (
+        csv_entity == parquet_entity
+    ), "Entity values should match between CSV and parquet"
+
+
+def test_dataset_dump_flattened_parquet_has_correct_schema(
+    dataset_dir, tmp_path, specification_dir
+):
+    """Test that parquet file has correct column types based on specification"""
+    # Setup
+    dataset_name = "listed-building-grade"
+    csv_path = dataset_dir.joinpath(f"{dataset_name}.csv")
+
+    flattened_output_dir = tmp_path.joinpath("dataset_output")
+    flattened_output_dir.mkdir()
+
+    specification = Specification(specification_dir)
+
+    # Execute
+    dataset_dump_flattened(csv_path, flattened_output_dir, specification, dataset_name)
+
+    # Assert - Check schema
+    flattened_parquet_path = flattened_output_dir.joinpath(f"{dataset_name}.parquet")
+
+    conn = duckdb.connect()
+    schema = conn.execute(
+        f"DESCRIBE SELECT * FROM read_parquet('{flattened_parquet_path}')"
+    ).fetchall()
+
+    schema_dict = {row[0]: row[1] for row in schema}
+
+    # Check that entity field is typed as integer
+    if "entity" in schema_dict:
+        assert "BIGINT" in schema_dict["entity"], "Entity should be BIGINT type"
+
+    # Check that string fields are VARCHAR
+    if "name" in schema_dict:
+        assert "VARCHAR" in schema_dict["name"], "Name should be VARCHAR type"
+
+    conn.close()

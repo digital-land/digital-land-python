@@ -80,6 +80,9 @@ class DatasetParquetPackage(Package):
     def get_schema(self):
         schema = {}
 
+        # Get DuckDB type mapping from specification
+        field_duckdb_type_map = self.specification.get_field_duckdb_type_map()
+
         for field in sorted(
             list(
                 set(self.specification.schema["fact"]["fields"]).union(
@@ -87,8 +90,7 @@ class DatasetParquetPackage(Package):
                 )
             )
         ):
-            datatype = self.specification.field[field]["datatype"]
-            schema[field] = "BIGINT" if datatype == "integer" else "VARCHAR"
+            schema[field] = field_duckdb_type_map.get(field, "VARCHAR")
 
         return schema
 
