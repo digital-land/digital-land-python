@@ -265,6 +265,53 @@ class Specification:
     def get_field_datatype_map(self):
         return {key: value["datatype"] for key, value in self.field.items()}
 
+    def get_duckdb_type_mapping(self):
+        """
+        Get a mapping from specification datatypes to DuckDB SQL types.
+
+        This mapping is used when creating parquet files or DuckDB tables
+        to ensure correct type inference from specification.
+
+        Returns:
+            dict: Mapping of specification datatype to DuckDB SQL type
+        """
+        return {
+            "integer": "BIGINT",
+            "string": "VARCHAR",
+            "text": "VARCHAR",
+            "decimal": "DOUBLE",
+            "date": "DATE",
+            "datetime": "VARCHAR",
+            "flag": "VARCHAR",
+            "url": "VARCHAR",
+            "uri": "VARCHAR",
+            "curie": "VARCHAR",
+            "point": "VARCHAR",
+            "multipolygon": "VARCHAR",
+            "address": "VARCHAR",
+            "organisation": "VARCHAR",
+            "latitude": "DOUBLE",
+            "longitude": "DOUBLE",
+        }
+
+    def get_field_duckdb_type_map(self):
+        """
+        Get a mapping from field names to DuckDB SQL types.
+
+        This combines get_field_datatype_map() with get_duckdb_type_mapping()
+        to provide a direct field -> DuckDB type mapping.
+
+        Returns:
+            dict: Mapping of field name to DuckDB SQL type
+        """
+        field_datatype_map = self.get_field_datatype_map()
+        duckdb_type_mapping = self.get_duckdb_type_mapping()
+
+        return {
+            field: duckdb_type_mapping.get(datatype, "VARCHAR")
+            for field, datatype in field_datatype_map.items()
+        }
+
     def get_field_typology_map(self):
         return {key: self.field_typology(key) for key in self.field.keys()}
 
