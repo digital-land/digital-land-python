@@ -15,10 +15,12 @@ on:
 
 jobs:
   bump-version:
-    name: Publish release tag
-    runs-on: ubuntu-latest
+    name: Create release tag
+    runs-on: ubuntu-22.04
     permissions:
       contents: write  # Needed to push tags
+    outputs:
+      new_tag: ${{ steps.next_version.outputs.new_tag }}
 
     steps:
       - name: Checkout repository
@@ -86,3 +88,38 @@ jobs:
 
       - name: Output result
         run: echo "✅ Released ${{ steps.next_version.outputs.new_tag }}"
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-22.04
+    needs: bump-version
+    permissions:
+      contents: read
+      id-token: write  # Required for trusted publishing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.new_tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install build dependencies
+        run: |
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Verify package
+        run: twine check dist/*
+
+      - name: Publish to PyPI
+        run: twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}

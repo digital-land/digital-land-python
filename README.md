@@ -1,6 +1,7 @@
 # Digital Land Pipeline
 
 [![Continuous Integration](https://github.com/digital-land/digital-land-python/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/digital-land/digital-land-python/actions/workflows/continuous-integration.yml)
+[![Deploy Documentation](https://github.com/digital-land/digital-land-python/actions/workflows/deploy-documentation.yml/badge.svg)](https://github.com/digital-land/digital-land-python/actions/workflows/deploy-documentation.yml)
 [![codecov](https://codecov.io/gh/digital-land/digital-land-python/branch/main/graph/badge.svg?token=IH2ETPF2C1)](https://codecov.io/gh/digital-land/digital-land-python)
 [![License](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/digital-land/digital-land-python/blob/main/LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://black.readthedocs.io/en/stable/)
