@@ -316,7 +316,8 @@ def dataset_sqlite_path(tmp_path):
             prefix TEXT,
             reference TEXT,
             start_date TEXT,
-            typology TEXT
+            typology TEXT,
+            priority INTEGER
         );
     """
     )
@@ -816,6 +817,10 @@ def test_load_entities_single_file(
             assert (
                 df[df["entity"] == entity][key].iloc[0] == value
             ), f"Expected {key} to be {value} for entity {entity}"
+    # test expected columns in entity table
+    expected_fields = ["priority"]
+    for field in expected_fields:
+        assert field in df.columns, f"Expected field {field} not found in entity table"
 
 
 # not  great test as have to feed so much in, would be  better to test each table  loading at a time
@@ -858,6 +863,7 @@ def test_load_entities_single_file(
                 "reference": [""],
                 "start_date": [""],
                 "typology": [""],
+                "priority": [1],
             },
         )
     ],

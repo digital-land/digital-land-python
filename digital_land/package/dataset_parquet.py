@@ -528,7 +528,7 @@ class DatasetParquetPackage(Package):
         ]
 
         # set fields
-        fields_to_include = ["entity", "field", "value"]
+        fields_to_include = ["entity", "field", "value", "priority"]
         fields_str = ", ".join(fields_to_include)
 
         # create this statement to add a nul org  column, this is needed when no entities have an associated organisation
