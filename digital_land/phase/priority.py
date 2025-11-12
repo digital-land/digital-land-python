@@ -29,7 +29,16 @@ class PriorityPhase(Phase):
         for block in stream:
             row = block["row"]
             if self.config:
-                block["priority"] = self.priority(row["entity"], row["organisation"])
+                authoritative_organisation = self.config.get_entity_organisation(
+                    row["entity"]
+                )
+                if authoritative_organisation is not None:
+                    if authoritative_organisation == row["organisation"]:
+                        block["priority"] = 1
+                    else:
+                        block["priority"] = self.default_priority
+                        row["organisation"] = authoritative_organisation
+
             else:
                 block["priority"] = self.default_priority
             yield block
