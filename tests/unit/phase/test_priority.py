@@ -25,9 +25,38 @@ def test_process_no_config():
     "organisation, expected_priority",
     [("local-authority:DNC", 1), ("local-authority:NOO", 2)],
 )
-def test_process_config_provided(mocker, organisation, expected_priority):
+def test_process_config_provided_with_authorative_org(
+    mocker, organisation, expected_priority
+):
     config = mocker.Mock()
     config.get_entity_organisation.return_value = "local-authority:DNC"
+    input_stream = [
+        {
+            "row": {
+                "prefix": "dataset",
+                "reference": "1",
+                "organisation": organisation,
+                "entity": 1,
+            },
+            "entry-number": 1,
+            "line-number": 2,
+        }
+    ]
+    phase = PriorityPhase(config=config)
+    output = [block for block in phase.process(input_stream)]
+
+    assert output[0]["priority"] == expected_priority
+
+
+@pytest.mark.parametrize(
+    "organisation, expected_priority",
+    [("local-authority:DNC", 2), ("local-authority:NOO", 2)],
+)
+def test_process_config_provided__with_authorative_org(
+    mocker, organisation, expected_priority
+):
+    config = mocker.Mock()
+    config.get_entity_organisation.return_value = None
     input_stream = [
         {
             "row": {

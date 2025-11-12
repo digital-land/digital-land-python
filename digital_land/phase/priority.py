@@ -38,6 +38,8 @@ class PriorityPhase(Phase):
                     else:
                         block["priority"] = self.default_priority
                         row["organisation"] = authoritative_organisation
+                else:
+                    block["priority"] = self.default_priority
 
             else:
                 block["priority"] = self.default_priority
