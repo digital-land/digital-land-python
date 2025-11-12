@@ -46,6 +46,7 @@ def test_process_config_provided_with_authorative_org(
     output = [block for block in phase.process(input_stream)]
 
     assert output[0]["priority"] == expected_priority
+    assert output[0]["row"]["organisation"] == "local-authority:DNC"
 
 
 @pytest.mark.parametrize(
