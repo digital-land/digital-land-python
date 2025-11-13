@@ -1801,6 +1801,10 @@ def check_and_assign_entities(
         "organisation": organisation[0],
     }
     new_entities = [entry["entity"] for entry in new_lookups]
+    if len(new_entities) == 0:
+        print("No new entities were assigned.")
+        return True
+    
     issue_summary = get_issue_summary(endpoint_resource_info, issue_dir, new_entities)
     print(issue_summary)
 
