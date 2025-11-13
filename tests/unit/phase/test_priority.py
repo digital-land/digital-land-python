@@ -53,7 +53,7 @@ def test_process_config_provided_with_authorative_org(
     "organisation, expected_priority",
     [("local-authority:DNC", 2), ("local-authority:NOO", 2)],
 )
-def test_process_config_provided__with_authorative_org(
+def test_process_config_provided_without_authorative_org(
     mocker, organisation, expected_priority
 ):
     config = mocker.Mock()
