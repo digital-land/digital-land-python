@@ -1814,4 +1814,5 @@ def check_and_assign_entities(
             "Do you want to continue processing this resource? (yes/no): "
         ):
             return False
+    print("end of check_and_assign_entities")
     return True
