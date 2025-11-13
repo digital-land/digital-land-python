@@ -766,16 +766,16 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
                 "field": [
                     "entry-date",
                 ],
-                "priority": [2],
                 "reference_entity": [np.nan],  # 19 records
                 "resource": [
                     "zyx123",
                 ],
                 "start_date": [np.nan],  # 19 records
                 "value": ["2023-01-01"],
+                "priority": [1],
             },
             1,
-            {},
+            {110: {"priority": 1}},
         ),
     ],
 )

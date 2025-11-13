@@ -502,6 +502,7 @@ class DatasetParquetPackage(Package):
             "dataset",
             "typology",
             "json",
+            "priority",
             "organisation_entity",
             "organisation",
         ]
