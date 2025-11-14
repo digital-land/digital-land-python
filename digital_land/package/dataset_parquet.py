@@ -529,7 +529,6 @@ class DatasetParquetPackage(Package):
         select_fields = [
             field for field in entity_fields if field not in null_fields + extra_fields
         ]
-        logging.error(f"select_fields: {select_fields}")
         # set fields
         fields_to_include = ["entity", "field", "value"]
         fields_str = ", ".join(fields_to_include)
@@ -648,7 +647,6 @@ class DatasetParquetPackage(Package):
         #         COPY ( {pivot_query}
         #     ) TO '{str(output_path)}' (FORMAT PARQUET);
         #  """
-        logger.error(sql)
         self.conn.execute(sql)
 
     def combine_parquet_files(self, input_path, output_path):
