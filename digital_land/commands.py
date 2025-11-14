@@ -1757,7 +1757,6 @@ def check_and_assign_entities(
 
     cache_pipeline_dir = assign_entities_cache_dir / collection.name / "pipeline"
     copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
-    print("assigning entities")
     new_lookups = assign_entities(
         resource_file_paths,
         collection,
@@ -1770,7 +1769,6 @@ def check_and_assign_entities(
         cache_dir,
     )
 
-    print("running pipeline")
     pipeline = Pipeline(cache_pipeline_dir, dataset)
     try:
         pipeline_run(
@@ -1814,5 +1812,4 @@ def check_and_assign_entities(
             "Do you want to continue processing this resource? (yes/no): "
         ):
             return False
-    print("end of check_and_assign_entities")
     return True
