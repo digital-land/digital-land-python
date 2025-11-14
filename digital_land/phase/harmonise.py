@@ -169,7 +169,10 @@ class HarmonisePhase(Phase):
                 if value and ":" not in value:
                     o[typology] = "%s:%s" % (self.dataset, value)
 
-            mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset)
+            # [CHANGE] If dataset isn't listed, default to checking 'reference' only.
+            # This generalises behaviour for non-ODP datasets without changing
+            # how listed datasets are handled today (incl. brownfield-land).
+            mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset, ["reference"])
 
             # Check for missing values in mandatory fields
             # Only checking fields given to us - not checking for missing fields
