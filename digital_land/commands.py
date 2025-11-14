@@ -1803,7 +1803,7 @@ def check_and_assign_entities(
     if len(new_entities) == 0:
         print("No new entities were assigned.")
         return True
-    
+
     issue_summary = get_issue_summary(endpoint_resource_info, issue_dir, new_entities)
     print(issue_summary)
 
