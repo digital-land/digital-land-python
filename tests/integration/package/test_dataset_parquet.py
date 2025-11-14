@@ -775,7 +775,7 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
                 "priority": [1],
             },
             1,
-            {110: {"priority": 1}},
+            {110: {"quality": "some"}},
         ),
     ],
 )
