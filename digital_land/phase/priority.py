@@ -9,7 +9,7 @@ class PriorityPhase(Phase):
     """
 
     def __init__(self, config: Config = None):
-        self.default_priority = 2
+        self.default_priority = 1
         if config:
             self.config = config
         else:
@@ -20,7 +20,7 @@ class PriorityPhase(Phase):
 
     def priority(self, entity, organisation):
         return (
-            1
+            2
             if self.config.get_entity_organisation(entity) == organisation
             else self.default_priority
         )
@@ -34,7 +34,7 @@ class PriorityPhase(Phase):
                 )
                 if authoritative_organisation is not None:
                     if authoritative_organisation == row["organisation"]:
-                        block["priority"] = 1
+                        block["priority"] = 2
                     else:
                         block["priority"] = self.default_priority
                         row["organisation"] = authoritative_organisation

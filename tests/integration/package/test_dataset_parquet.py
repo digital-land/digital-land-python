@@ -317,7 +317,7 @@ def dataset_sqlite_path(tmp_path):
             reference TEXT,
             start_date TEXT,
             typology TEXT,
-            priority INTEGER
+            quality TEXT
         );
     """
     )
@@ -749,7 +749,20 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
     "data,expected_count,expected_props",
     # need to buid an example where organisation is blank
     [
-        (transformed_1_data, 2, {11: {"end_date": ""}}),
+        (
+            transformed_1_data,
+            2,
+            {
+                11: {"end_date": ""},
+            },
+        ),
+        (
+            transformed_2_data,
+            7,
+            {
+                114: {"quality": "authoritative"},
+            },
+        ),
         (
             {
                 "end_date": [np.nan],  # 19 records
@@ -808,19 +821,25 @@ def test_load_entities_single_file(
     df = pd.read_parquet(output_file)
 
     assert len(df) > 0, "No data in entity.parquet file"
-    assert len(df) == expected_count, "No. of entities is not correct"
-    assert df["entity"].nunique() == len(df), "Entity column contains duplicate values"
+    entities = list(df["entity"])
+    assert (
+        len(df) == expected_count
+    ), f"No. of entities is not correct, entities are: {entities}"
 
+    assert df["entity"].nunique() == len(df), "Entity column contains duplicate values"
     for entity in expected_props:
         for key, value in expected_props[entity].items():
             logging.info(f"entity={entity}, key={key}, value={value}")
+            actual_value = df[df["entity"] == entity][key].iloc[0]
             assert (
-                df[df["entity"] == entity][key].iloc[0] == value
-            ), f"Expected {key} to be {value} for entity {entity}"
-    # test expected columns in entity table
-    expected_fields = ["priority"]
-    for field in expected_fields:
-        assert field in df.columns, f"Expected field {field} not found in entity table"
+                actual_value == value
+            ), f"Expected {key} to be {value} for entity {entity} but value is {actual_value}"
+    # test non expected columns in entity table which may accidenltally get added
+    not_expected_fields = ["priority"]
+    for field in not_expected_fields:
+        assert (
+            field not in df.columns
+        ), f"Expected field {field} not found in entity table"
 
 
 # not  great test as have to feed so much in, would be  better to test each table  loading at a time
@@ -863,7 +882,7 @@ def test_load_entities_single_file(
                 "reference": [""],
                 "start_date": [""],
                 "typology": [""],
-                "priority": [1],
+                "quality": ["authoritative"],
             },
         )
     ],

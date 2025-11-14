@@ -23,7 +23,7 @@ def test_process_no_config():
 
 @pytest.mark.parametrize(
     "organisation, expected_priority",
-    [("local-authority:DNC", 1), ("local-authority:NOO", 2)],
+    [("local-authority:DNC", 2), ("local-authority:NOO", 1)],
 )
 def test_process_config_provided_with_authorative_org(
     mocker, organisation, expected_priority
@@ -51,7 +51,7 @@ def test_process_config_provided_with_authorative_org(
 
 @pytest.mark.parametrize(
     "organisation, expected_priority",
-    [("local-authority:DNC", 2), ("local-authority:NOO", 2)],
+    [("local-authority:DNC", 1), ("local-authority:NOO", 1)],
 )
 def test_process_config_provided_without_authorative_org(
     mocker, organisation, expected_priority
