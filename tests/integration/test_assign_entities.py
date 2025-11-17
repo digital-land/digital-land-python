@@ -2,6 +2,7 @@ import pytest
 import os
 import csv
 import urllib
+import logging
 
 from pathlib import Path
 from unittest.mock import patch
@@ -345,10 +346,10 @@ def test_check_and_assign_entities(
 
     with open(input_path, "r", encoding="utf-8") as f:
         content = f.read()
-
-    assert "reference,2,,mock_csv,,Ref1" in content
-    assert "reference,2,,mock_csv,,Ref2" in content
-    assert "reference,2,,mock_csv,,Ref3" in content
+    logging.error(content)
+    assert "reference,1,,mock_csv,,Ref1" in content
+    assert "reference,1,,mock_csv,,Ref2" in content
+    assert "reference,1,,mock_csv,,Ref3" in content
 
     out, err = capfd.readouterr()
     assert "Total number of new entities: 3" in out

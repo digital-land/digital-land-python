@@ -504,6 +504,7 @@ class DatasetParquetPackage(Package):
             "json",
             "organisation_entity",
             "organisation",
+            "quality",
         ]
         null_fields = [
             field
@@ -522,11 +523,12 @@ class DatasetParquetPackage(Package):
             "dataset",
             "typology",
             "organisation",
+            "quality",
         ]
+
         select_fields = [
             field for field in entity_fields if field not in null_fields + extra_fields
         ]
-
         # set fields
         fields_to_include = ["entity", "field", "value"]
         fields_str = ", ".join(fields_to_include)
@@ -557,15 +559,17 @@ class DatasetParquetPackage(Package):
             parquet_str = "batch/batch_*.parquet"
 
         query = f"""
-            SELECT {fields_str}{optional_org_str} FROM (
-                SELECT {fields_str}, CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
+            SELECT {fields_str}{optional_org_str}, priority FROM (
+                SELECT {fields_str},
+                MAX(priority) OVER (PARTITION BY entity) AS priority,
+                CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
                 FROM parquet_scan('{transformed_parquet_dir}/{parquet_str}') tf
                 LEFT JOIN read_csv_auto('{resource_path}', max_line_size=40000000) resource_csv
                 ON tf.resource = resource_csv.resource
                 {entity_where_clause}
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY entity, field
-                    ORDER BY priority, entry_date DESC, entry_number DESC, resource_end_date DESC, tf.resource, fact
+                    ORDER BY priority DESC, entry_date DESC, entry_number DESC, resource_end_date DESC, tf.resource, fact
                 ) = 1
             )
         """
@@ -622,6 +626,11 @@ class DatasetParquetPackage(Package):
                         {select_statement},
                         {null_fields_statement},
                         json_object({json_statement}) as json,
+                        CASE
+                            WHEN t1.priority = 1 THEN 'some'
+                            WHEN t1.priority = 2 THEN 'authoritative'
+                            ELSE 'else'
+                        END AS quality,
                         FROM ({pivot_query}) as t1
                         LEFT JOIN ({org_query}) as t2
                         on t1.organisation = t2.organisation
@@ -634,6 +643,10 @@ class DatasetParquetPackage(Package):
             ) TO '{str(output_path)}' (FORMAT PARQUET);
          """
         #  might  need  to un some fetch all toget result back
+        # sql = f"""
+        #         COPY ( {pivot_query}
+        #     ) TO '{str(output_path)}' (FORMAT PARQUET);
+        #  """
         self.conn.execute(sql)
 
     def combine_parquet_files(self, input_path, output_path):

@@ -74,6 +74,7 @@ class DatasetPackage(SqlitePackage):
                     "prefix",
                     "point",
                     "slug",
+                    "quality",
                 ]
                 + self.entity_fields
             }
@@ -114,8 +115,15 @@ class DatasetPackage(SqlitePackage):
         # TBD: handle primary versus secondary sources ..
         row = {}
         row["entity"] = facts[0][0]
+        max_priority = 1
         for fact in facts:
             row[fact[1]] = fact[2]
+            if fact[3] and int(fact[3]) > max_priority:
+                max_priority = int(fact[3])
+        if max_priority == 1:
+            row["quality"] = "some"
+        else:
+            row["quality"] = "authoritative"
         return row
 
     def insert_entity(self, facts):
@@ -152,9 +160,9 @@ class DatasetPackage(SqlitePackage):
         self.connect()
         self.create_cursor()
         self.execute(
-            "select entity, field, value from fact"
+            "select entity, field, value, priority from fact"
             "  where value != '' or field == 'end-date'"
-            "  order by entity, field, priority desc, entry_date"
+            "  order by entity, field, priority, entry_date"
         )
         results = self.cursor.fetchall()
 
