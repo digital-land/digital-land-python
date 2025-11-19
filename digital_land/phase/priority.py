@@ -8,7 +8,8 @@ class PriorityPhase(Phase):
     Deduce priority of the entry when assembling facts
     """
 
-    def __init__(self, config: Config = None):
+    def __init__(self, config: Config = None, providers=[]):
+        self.providers = providers
         self.default_priority = 1
         if config:
             self.config = config
@@ -33,7 +34,7 @@ class PriorityPhase(Phase):
                     row["entity"]
                 )
                 if authoritative_organisation is not None:
-                    if authoritative_organisation == row["organisation"]:
+                    if authoritative_organisation in self.providers:
                         block["priority"] = 2
                     else:
                         block["priority"] = self.default_priority
