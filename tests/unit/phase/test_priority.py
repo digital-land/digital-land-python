@@ -42,7 +42,7 @@ def test_process_config_provided_with_authorative_org(
             "line-number": 2,
         }
     ]
-    phase = PriorityPhase(config=config, pproviders=["local-authority:DNC"])
+    phase = PriorityPhase(config=config, providers=["local-authority:DNC"])
     output = [block for block in phase.process(input_stream)]
 
     assert output[0]["priority"] == expected_priority
