@@ -360,8 +360,8 @@ def pipeline_run(
             enabled=save_harmonised,
         ),
         EntityPrunePhase(dataset_resource_log=dataset_resource_log),
-        PriorityPhase(config=config),
-        PivotPhase(providers=organisations),
+        PriorityPhase(config=config, providers=organisations),
+        PivotPhase(),
         FactCombinePhase(issue_log=issue_log, fields=combine_fields),
         FactorPhase(),
         FactReferencePhase(
