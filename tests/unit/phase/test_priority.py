@@ -42,7 +42,7 @@ def test_process_config_provided_with_authorative_org(
             "line-number": 2,
         }
     ]
-    phase = PriorityPhase(config=config)
+    phase = PriorityPhase(config=config, providers=[organisation])
     output = [block for block in phase.process(input_stream)]
 
     assert output[0]["priority"] == expected_priority
@@ -70,7 +70,37 @@ def test_process_config_provided_without_authorative_org(
             "line-number": 2,
         }
     ]
-    phase = PriorityPhase(config=config)
+    phase = PriorityPhase(config=config, providers=[organisation])
+    output = [block for block in phase.process(input_stream)]
+
+    assert output[0]["priority"] == expected_priority
+
+
+@pytest.mark.parametrize(
+    "organisation, providers, expected_priority",
+    [
+        ("local-authority:DNC", [], 1),
+        ("local-authority:DNC", ["local-authority:NOO"], 1),
+    ],
+)
+def test_process_config_provided_with_different_org_in_data(
+    mocker, organisation, providers, expected_priority
+):
+    config = mocker.Mock()
+    config.get_entity_organisation.return_value = "local-authority:DNC"
+    input_stream = [
+        {
+            "row": {
+                "prefix": "dataset",
+                "reference": "1",
+                "organisation": organisation,
+                "entity": 1,
+            },
+            "entry-number": 1,
+            "line-number": 2,
+        }
+    ]
+    phase = PriorityPhase(config=config, providers=[providers])
     output = [block for block in phase.process(input_stream)]
 
     assert output[0]["priority"] == expected_priority
