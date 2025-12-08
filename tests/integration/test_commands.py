@@ -714,7 +714,9 @@ def test_collection_dir_file_hashes(temp_dir, caplog):
     ]
     caplog.set_level(logging.INFO)
     # Create and run Collector
-    collector = Collector(collection_dir=temp_dir)
+    collector = Collector(
+        resource_dir=str(temp_dir / "resource"), log_dir=str(temp_dir / "log")
+    )
     collector.collection_dir_file_hashes(temp_dir)
 
     for expected in expected_logs:

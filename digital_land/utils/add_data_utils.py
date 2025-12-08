@@ -4,6 +4,7 @@ import os
 import duckdb
 import sqlite3
 from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -64,7 +65,10 @@ def get_user_response(message):
 
 
 def clear_log(collection_dir, endpoint):
-    collector = Collector(collection_dir=collection_dir)
+    collector = Collector(
+        resource_dir=str(Path(collection_dir) / "resource"),
+        log_dir=str(Path(collection_dir) / "log"),
+    )
     log_path = collector.log_path(datetime.utcnow(), endpoint)
     if os.path.isfile(log_path):
         os.remove(log_path)

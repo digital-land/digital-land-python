@@ -11,7 +11,6 @@ import re
 from datetime import datetime
 from enum import Enum
 from timeit import default_timer as timer
-from pathlib import Path
 
 import canonicaljson
 import requests
@@ -45,15 +44,13 @@ class FetchStatus(Enum):
 
 class Collector:
     user_agent = "MHCLG Planning Data Collector"
-    resource_dir = "collection/resource/"
-    log_dir = "collection/log/"
 
-    def __init__(self, dataset="", collection_dir=None):
-
-        self.dataset = dataset
-        if collection_dir:
-            self.resource_dir = Path(collection_dir) / "resource/"
-            self.log_dir = Path(collection_dir) / "log/"
+    def __init__(self, resource_dir, log_dir=None):
+        if not resource_dir:
+            raise ValueError("resource_dir must be set and not empty")
+        self.resource_dir = resource_dir
+        # Log directory is optional for check tool
+        self.log_dir = log_dir
         self.session = requests.Session()
         self.session.mount("file:", FileAdapter())
         self.endpoint = {}
@@ -157,8 +154,14 @@ class Collector:
         plugin="",
         refill_todays_logs=False,
     ):
+        log = {
+            "endpoint-url": url,
+            "entry-date": log_datetime.isoformat(),
+        }
+
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
-            return FetchStatus.EXPIRED
+            log["fetch-status"] = FetchStatus.EXPIRED.name
+            return log
 
         url_endpoint = self.url_endpoint(url)
         if not endpoint:
@@ -167,19 +170,18 @@ class Collector:
             logging.error(
                 "url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint)
             )
-            return FetchStatus.HASH_FAILURE
+            log["fetch-status"] = FetchStatus.HASH_FAILURE.name
+            return log
 
-        # fetch each source at most once per-day, though with an option to re-collect the latest day's sources
-        log_path = self.log_path(log_datetime, endpoint)
-        if not refill_todays_logs:
+        if self.log_dir:
+            log_path = self.log_path(log_datetime, endpoint)
+
+        # fetch each source at most once per-day, though with an option to re-collect the latest day's sources, disable for check tool use
+        if not refill_todays_logs and self.log_dir:
             if os.path.isfile(log_path):
                 logging.debug(f"{log_path} exists")
-                return FetchStatus.ALREADY_FETCHED
-
-        log = {
-            "endpoint-url": url,
-            "entry-date": log_datetime.isoformat(),
-        }
+                log["fetch-status"] = FetchStatus.ALREADY_FETCHED.name
+                return log
 
         start = timer()
 
@@ -197,9 +199,16 @@ class Collector:
 
         log["elapsed"] = str(round(timer() - start, 3))
 
-        status = self.save_resource(content, log_path, log)
-        self.save_log(log_path, log, refill_todays_logs=refill_todays_logs)
-        return status
+        fetch_status = self.save_resource(content, url, log)
+        log["fetch-status"] = (
+            fetch_status.name
+            if isinstance(fetch_status, FetchStatus)
+            else str(fetch_status)
+        )
+        if self.log_dir:
+            self.save_log(log_path, log, refill_todays_logs=refill_todays_logs)
+
+        return log
 
     def save_resource(self, content, url, log):
         if content:

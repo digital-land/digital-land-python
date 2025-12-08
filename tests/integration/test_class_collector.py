@@ -241,7 +241,10 @@ def test_dataset_collector(temp_dir, collection_dir):
         f.write(",".join(columns) + "\n")
 
     # Instantiate the Collector class
-    collector = Collector(collection_dir=collection_dir)
+    collector = Collector(
+        resource_dir=str(collection_dir / "resource"),
+        log_dir=str(collection_dir / "log"),
+    )
 
     yield collector
 
