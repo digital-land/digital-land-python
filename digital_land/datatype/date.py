@@ -22,6 +22,7 @@ class DateDataType(DataType):
         for pattern in [
             "%Y-%m-%d",
             "%Y%m%d",
+            "%Y%m%d%H%M%S",  # added for 14 digit datetime
             "%Y/%m/%d %H:%M:%S%z",  # added to handle ogr2ogr unix time conversion
             "%Y/%m/%d %H:%M:%S+00",  # added to handle ogr2ogr unix time conversion
             "%Y/%m/%d %H:%M:%S",  # added to handle ogr2ogr unix time conversion
