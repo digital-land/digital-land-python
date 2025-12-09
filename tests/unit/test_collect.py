@@ -135,9 +135,9 @@ def test_strip_timestamp(collector, tmp_path):
         content_type="application/json",
     )
 
-    status = collector.fetch(url)
+    fetch_status, log = collector.fetch(url)
 
-    assert status["fetch-status"] == FetchStatus.OK.name
+    assert fetch_status == FetchStatus.OK
     # Check that the timestamp is removed
     expected_content = '{"data": "some data"}'
     expected_hash = sha_digest(expected_content)
