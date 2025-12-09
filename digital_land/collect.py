@@ -160,8 +160,7 @@ class Collector:
         }
 
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
-            log["fetch-status"] = FetchStatus.EXPIRED.name
-            return log
+            return FetchStatus.EXPIRED, log
 
         url_endpoint = self.url_endpoint(url)
         if not endpoint:
@@ -170,8 +169,7 @@ class Collector:
             logging.error(
                 "url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint)
             )
-            log["fetch-status"] = FetchStatus.HASH_FAILURE.name
-            return log
+            return FetchStatus.HASH_FAILURE, log
 
         if self.log_dir:
             log_path = self.log_path(log_datetime, endpoint)
@@ -180,8 +178,7 @@ class Collector:
         if not refill_todays_logs and self.log_dir:
             if os.path.isfile(log_path):
                 logging.debug(f"{log_path} exists")
-                log["fetch-status"] = FetchStatus.ALREADY_FETCHED.name
-                return log
+                return FetchStatus.ALREADY_FETCHED, log
 
         start = timer()
 
@@ -200,15 +197,10 @@ class Collector:
         log["elapsed"] = str(round(timer() - start, 3))
 
         fetch_status = self.save_resource(content, url, log)
-        log["fetch-status"] = (
-            fetch_status.name
-            if isinstance(fetch_status, FetchStatus)
-            else str(fetch_status)
-        )
         if self.log_dir:
             self.save_log(log_path, log, refill_todays_logs=refill_todays_logs)
 
-        return log
+        return fetch_status, log
 
     def save_resource(self, content, url, log):
         if content:

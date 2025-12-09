@@ -935,16 +935,18 @@ def validate_and_add_data_input(
     )
     endpoint_resource_info = {}
     for endpoint in endpoints:
-        status = collector.fetch(
+        status, log = collector.fetch(
             url=endpoint["endpoint-url"],
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
         )
         try:
+            # log is already returned from fetch, but read from file if needed for verification
             log_path = collector.log_path(datetime.utcnow(), endpoint["endpoint"])
-            with open(log_path, "r") as f:
-                log = json.load(f)
+            if os.path.isfile(log_path):
+                with open(log_path, "r") as f:
+                    log = json.load(f)
         except Exception as e:
             print(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"

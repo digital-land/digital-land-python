@@ -8,7 +8,7 @@ SQLDIFF := $(shell command -v sqldiff 2> /dev/null)
 UNAME := $(shell uname)
 
 ifeq ($(UNAME),Darwin)
-	SPATIAL := $(shell ls /opt/homebrew/lib/*spatialite* /usr/local/lib/*spatialite* 2> /dev/null)
+	SPATIAL := $(shell ls /usr/local/lib/*spatialite* 2> /dev/null)
 else
 	SPATIAL := $(shell ls /usr/lib/x86_64-linux-gnu/*spatialite* 2> /dev/null)
 endif
@@ -32,7 +32,7 @@ endif
 endif
 ifndef SPATIAL
 ifeq ($(UNAME),Darwin)
-	$(error Spatial tools not found in PATH)
+	$(error GDAL tools not found in PATH)
 endif
 	sudo apt-get install libsqlite3-mod-spatialite -y
 endif
