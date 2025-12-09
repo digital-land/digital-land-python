@@ -38,6 +38,16 @@ def sha_digest(string):
     return hashlib.sha256(string.encode("utf-8")).hexdigest()
 
 
+def test_no_resource_dir_raises_error():
+    with pytest.raises(ValueError, match="resource_dir must be set and not empty"):
+        Collector(resource_dir=None)
+
+
+def test_empty_resource_dir_raises_error():
+    with pytest.raises(ValueError, match="resource_dir must be set and not empty"):
+        Collector(resource_dir="")
+
+
 @responses.activate
 def test_fetch(collector, prepared_response, tmp_path):
     url = "http://some.url"
