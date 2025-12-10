@@ -44,6 +44,7 @@ def test_state(tmp_path):
             "pipeline",
             "incremental_loading_override",
             "last_updated_date",
+            "transform_count",
         ]
         assert state_data["code"] == get_code_hash()
         assert state_data["specification"] == specification_hash

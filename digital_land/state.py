@@ -121,6 +121,9 @@ def compare_state(
     # Also do not want to compare the last_updated_date as it will change every day
     current.pop("last_updated_date", None)
     compare.pop("last_updated_date", None)
+    # transform count should not be compared as it changes
+    current.pop("transform_count", None)
+    compare.pop("transform_count", None)
 
     if current == compare:
         return None
