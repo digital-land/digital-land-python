@@ -54,6 +54,7 @@ def test_fetch(collector, prepared_response, tmp_path):
     status, log = collector.fetch(url)
 
     assert status == FetchStatus.OK
+    assert log is not None, "Log should not be None after successful fetch"
     output_path = tmp_path / f"resource/{sha_digest('some data')}"
     assert os.path.isfile(output_path)
     assert open(output_path).read() == "some data"
@@ -64,18 +65,22 @@ def test_fetch(collector, prepared_response, tmp_path):
 def test_already_fetched(collector, prepared_response):
     status, log = collector.fetch("http://some.url")
     assert status == FetchStatus.OK
+    assert log is not None, "Log should not be None after successful fetch"
 
     new_status, new_log = collector.fetch("http://some.url")
     assert new_status == FetchStatus.ALREADY_FETCHED
+    assert new_log is None, "Log should be None when already fetched"
 
 
 @responses.activate
 def test_refill_todays_logs(collector, prepared_response):
     status, log = collector.fetch("http://some.url")
     assert status == FetchStatus.OK
+    assert log is not None, "Log should not be None after successful fetch"
 
     new_status, new_log = collector.fetch("http://some.url", refill_todays_logs=True)
     assert new_status == FetchStatus.OK
+    assert new_log is not None, "Log should not be None after successful fetch"
 
 
 @responses.activate
@@ -85,6 +90,7 @@ def test_expired(collector):
     status, log = collector.fetch("http://some.url", end_date=yesterday)
 
     assert status == FetchStatus.EXPIRED
+    assert log is None, "Log should be None when expired"
 
 
 @responses.activate
@@ -92,6 +98,7 @@ def test_hash_check(collector, prepared_response):
     url = "http://some.url"
     status, log = collector.fetch(url, endpoint=sha_digest(url))
 
+    assert log is not None, "Log should not be None after successful fetch"
     assert status == FetchStatus.OK
 
 
@@ -99,6 +106,7 @@ def test_hash_check(collector, prepared_response):
 def test_hash_failure(collector, prepared_response):
     status, log = collector.fetch("http://some.url", endpoint="http://other.url")
 
+    assert log is None, "Log should not be None after hash failure fetch"
     assert status == FetchStatus.HASH_FAILURE
 
 

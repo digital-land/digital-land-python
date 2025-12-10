@@ -84,10 +84,10 @@ from .utils.gdal_utils import get_gdal_version
 logger = logging.getLogger(__name__)
 
 
-def fetch(url, pipeline):
+def fetch(url, pipeline, resource_dir="collection"):
     """fetch a single source endpoint URL, and add it to the collection"""
-    collector = Collector(resource_dir=f"{pipeline.name}/resource")
-    collector.fetch(url)
+    collector = Collector(resource_dir=str(Path(resource_dir) / "resource"))
+    status, log = collector.fetch(url)
 
 
 def collect(endpoint_path, collection_dir, pipeline, refill_todays_logs=False):

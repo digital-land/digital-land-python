@@ -14,13 +14,19 @@ from moto import mock_aws
 from pathlib import Path
 from csv import DictReader
 
-from digital_land.commands import dataset_dump_flattened, _create_parquet_from_csv
+from digital_land.commands import (
+    dataset_dump_flattened,
+    _create_parquet_from_csv,
+    fetch,
+)
 from digital_land.package.dataset import DatasetPackage
 
 from digital_land.specification import Specification
 from digital_land.organisation import Organisation
 from digital_land.collect import Collector
+from digital_land.pipeline.main import Pipeline
 import duckdb
+import responses
 
 
 """ dataset_create & dataset_update """
@@ -1034,3 +1040,41 @@ def test_dataset_dump_flattened_parquet_has_correct_schema(
         assert "VARCHAR" in schema_dict["name"], "Name should be VARCHAR type"
 
     conn.close()
+
+
+@responses.activate
+def test_fetch_creates_resource_file(tmp_path):
+    """Test that fetch command creates resource file in collection/resource/ directory"""
+    url = "http://example.com/data.csv"
+    responses.add(responses.GET, url, body="test data content", status=200)
+
+    # Create minimal pipeline structure
+    pipeline_dir = tmp_path / "pipeline" / "test-dataset"
+    pipeline_dir.mkdir(parents=True)
+    pipeline = Pipeline(str(tmp_path / "pipeline"), "test-dataset")
+
+    # Change to tmp directory for test
+    original_dir = os.getcwd()
+    os.chdir(tmp_path)
+
+    try:
+        fetch(url, pipeline)
+
+        # Check that resource directory was created in default location
+        resource_dir = tmp_path / "collection" / "resource"
+        assert resource_dir.exists(), "Resource directory should be created"
+
+        # Check that exactly one resource file was created
+        resource_files = list(resource_dir.glob("*"))
+        assert len(resource_files) == 1, "Exactly one resource file should be created"
+
+        # Verify the content matches what was fetched
+        resource_file = resource_files[0]
+        with open(resource_file, "r") as f:
+            content = f.read()
+        assert (
+            content == "test data content"
+        ), "Resource file should contain fetched content"
+
+    finally:
+        os.chdir(original_dir)

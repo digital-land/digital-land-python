@@ -160,7 +160,7 @@ class Collector:
         }
 
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
-            return FetchStatus.EXPIRED, log
+            return FetchStatus.EXPIRED, None
 
         url_endpoint = self.url_endpoint(url)
         if not endpoint:
@@ -169,7 +169,7 @@ class Collector:
             logging.error(
                 "url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint)
             )
-            return FetchStatus.HASH_FAILURE, log
+            return FetchStatus.HASH_FAILURE, None
 
         if self.log_dir:
             log_path = self.log_path(log_datetime, endpoint)
@@ -178,7 +178,7 @@ class Collector:
         if not refill_todays_logs and self.log_dir:
             if os.path.isfile(log_path):
                 logging.debug(f"{log_path} exists")
-                return FetchStatus.ALREADY_FETCHED, log
+                return FetchStatus.ALREADY_FETCHED, None
 
         start = timer()
 
