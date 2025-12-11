@@ -214,6 +214,10 @@ class Collector:
         return FetchStatus.FAILED
 
     def collect(self, endpoint_path, refill_todays_logs=False):
+        if not self.log_dir:
+            raise ValueError(
+                "log_dir must be set in the Collector class and not empty to be used in the collect function"
+            )
         for row in csv.DictReader(open(endpoint_path, newline="")):
             endpoint = row["endpoint"]
             url = row["endpoint-url"]
