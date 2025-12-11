@@ -84,15 +84,18 @@ from .utils.gdal_utils import get_gdal_version
 logger = logging.getLogger(__name__)
 
 
-def fetch(url, pipeline):
+def fetch(url, pipeline, resource_dir="collection"):
     """fetch a single source endpoint URL, and add it to the collection"""
-    collector = Collector(pipeline.name)
-    collector.fetch(url)
+    collector = Collector(resource_dir=str(Path(resource_dir) / "resource"))
+    status, log = collector.fetch(url)
 
 
 def collect(endpoint_path, collection_dir, pipeline, refill_todays_logs=False):
     """fetch the sources listed in the endpoint-url column of the ENDPOINT_PATH CSV file"""
-    collector = Collector(pipeline.name, Path(collection_dir))
+    collector = Collector(
+        resource_dir=str(Path(collection_dir) / "resource"),
+        log_dir=str(Path(collection_dir) / "log"),
+    )
     collector.collection_dir_file_hashes(Path(collection_dir))
     collector.collect(endpoint_path, refill_todays_logs=refill_todays_logs)
 
@@ -926,19 +929,24 @@ def validate_and_add_data_input(
         )
 
     # if successfully added we can now attempt to fetch from endpoint
-    collector = Collector(collection_dir=collection_dir)
+    collector = Collector(
+        resource_dir=str(Path(collection_dir) / "resource"),
+        log_dir=str(Path(collection_dir) / "log"),
+    )
     endpoint_resource_info = {}
     for endpoint in endpoints:
-        status = collector.fetch(
+        status, log = collector.fetch(
             url=endpoint["endpoint-url"],
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
         )
         try:
+            # log is already returned from fetch, but read from file if needed for verification
             log_path = collector.log_path(datetime.utcnow(), endpoint["endpoint"])
-            with open(log_path, "r") as f:
-                log = json.load(f)
+            if os.path.isfile(log_path):
+                with open(log_path, "r") as f:
+                    log = json.load(f)
         except Exception as e:
             print(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
@@ -1342,7 +1350,10 @@ def add_endpoints_and_lookups(
                 endpoints.append(endpoint)
 
     # endpoints have been added now lets collect the resources using the endpoint information
-    collector = Collector(collection_dir=collection_dir)
+    collector = Collector(
+        resource_dir=str(Path(collection_dir) / "resource"),
+        log_dir=str(Path(collection_dir) / "log"),
+    )
 
     for endpoint in endpoints:
         collector.fetch(
