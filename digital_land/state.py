@@ -32,6 +32,7 @@ class State(dict):
                 "pipeline": State.get_dir_hash(pipeline_dir),
                 "incremental_loading_override": incremental_loading_override,
                 "last_updated_date": date.today().isoformat(),  # date in YYYY-MM-DD format
+                "transform_count": State.get_transform_count(collection_dir),
             }
         )
 
@@ -82,6 +83,17 @@ class State(dict):
         commit = repo.revparse_single("HEAD")
         return str(commit.id)
 
+    def get_transform_count(collection_dir):
+        """Calculate the number of transformations that need to be completed"""
+        from digital_land.collection import Collection
+
+        collection = Collection(directory=collection_dir)
+        collection.load(directory=collection_dir)
+        dataset_resource = collection.dataset_resource_map()
+
+        # Count total number of transformations (resources across all datasets)
+        return sum(len(resources) for resources in dataset_resource.values())
+
 
 def compare_state(
     specification_dir,
@@ -109,6 +121,9 @@ def compare_state(
     # Also do not want to compare the last_updated_date as it will change every day
     current.pop("last_updated_date", None)
     compare.pop("last_updated_date", None)
+    # transform count should not be compared as it changes
+    current.pop("transform_count", None)
+    compare.pop("transform_count", None)
 
     if current == compare:
         return None
