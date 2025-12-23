@@ -218,7 +218,7 @@ def pipeline_run(
     pipeline,
     specification,
     input_path,
-    output_path,
+    output_path: Path,
     collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     null_path=None,  # TBD: remove this
     issue_dir=None,
@@ -240,6 +240,7 @@ def pipeline_run(
 ):
     # set up paths
     cache_dir = Path(cache_dir)
+    output_path = Path(output_path)
 
     if resource is None:
         resource = resource_from_path(input_path)
@@ -399,6 +400,7 @@ def pipeline_run(
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
     # create converted parquet in the var director
+    # TODO test without output_path conversation above to make sure we have a test that would've failed
     transformed_parquet_dir = output_path.parent
     transformed_parquet_dir.mkdir(exist_ok=True, parents=True)
     convert_tranformed_csv_to_pq(
