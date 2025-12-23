@@ -398,9 +398,8 @@ def pipeline_run(
         column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
     dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
     converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
-    # create converted parquet in the var directory
-    cache_dir = Path(organisation_path).parent
-    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+    # create converted parquet in the var director
+    transformed_parquet_dir = output_path.parent
     transformed_parquet_dir.mkdir(exist_ok=True, parents=True)
     convert_tranformed_csv_to_pq(
         input_path=output_path,
@@ -436,7 +435,7 @@ def dataset_create(
     resource_path = Path(resource_path)
 
     # get  the transformed files from the cache directory this  is  assumed right now but we may want to be stricter in the future
-    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+    transformed_parquet_dir = Path(input_paths[0]).parent
 
     # create directory for dataset_parquet_package, will create a general provenance one for now
     dataset_parquet_path = cache_dir / "provenance"
