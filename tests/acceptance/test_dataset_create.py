@@ -16,8 +16,8 @@ from click.testing import CliRunner
 
 from digital_land.cli import cli
 
-test_collection = "conservation-area"
-test_dataset = "conservation-area"
+TEST_COLLECTION = "conservation-area"
+TEST_DATASET = "conservation-area"
 
 
 @pytest.fixture(scope="session")
@@ -222,6 +222,32 @@ def dataset_dir(session_tmp_path):
 def issue_dir(session_tmp_path):
     issue_dir = session_tmp_path / "issue"
     os.makedirs(issue_dir, exist_ok=True)
+
+    # Create test issue files for each dataset
+    dataset = TEST_DATASET
+    dataset_issue_dir = issue_dir / dataset
+    os.makedirs(dataset_issue_dir, exist_ok=True)
+
+    # Create a sample issue CSV file
+    issue_file = dataset_issue_dir / "test-resource.csv"
+    issue_data = {
+        "dataset": [dataset, dataset, dataset],
+        "resource": ["test-resource", "test-resource", "test-resource"],
+        "line-number": [2, 3, 4],
+        "entry-number": [1, 2, 3],
+        "field": ["name", "reference", "start-date"],
+        "entity": ["", "12345", ""],
+        "issue-type": ["missing value", "invalid format", "invalid date"],
+        "value": ["", "INVALID-REF", "2023-13-45"],
+        "message": [
+            "name field is required",
+            "reference format is invalid",
+            "date must be in format YYYY-MM-DD",
+        ],
+    }
+    df = pd.DataFrame(issue_data)
+    df.to_csv(issue_file, index=False)
+
     return issue_dir
 
 
@@ -245,16 +271,16 @@ def test_acceptance_dataset_create(
     column_field_path,
     dataset_resource_path,
 ):
-    output_path = dataset_dir / f"{test_dataset}.sqlite3"
+    output_path = dataset_dir / f"{TEST_DATASET}.sqlite3"
 
     runner = CliRunner()
     result = runner.invoke(
         cli,
         [
             "--dataset",
-            str(test_dataset),
+            str(TEST_DATASET),
             "--pipeline-dir",
-            str(f"tests/data/{test_collection}/pipeline"),
+            str(f"tests/data/{TEST_COLLECTION}/pipeline"),
             "dataset-create",
             "--output-path",
             str(output_path),

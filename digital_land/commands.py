@@ -496,7 +496,7 @@ def dataset_create(
     issue_paths = issue_dir / dataset
     if issue_paths.exists():
         for issue_path in issue_paths.glob("*.csv"):
-            package.load_issues(issue_path, issue_path)
+            package.load_issues(issue_path)
     else:
         logger.warning("No directory for this dataset in the provided issue_directory")
 
