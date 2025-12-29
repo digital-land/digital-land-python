@@ -135,7 +135,7 @@ transformed_1_data = {
 
 
 @pytest.fixture
-def input_paths(cache_path):
+def input_dir(cache_path):
     data_dicts = {"resource_1": transformed_1_data}
     input_paths = []
     directory = cache_path / "transformed_parquet" / "conservation-area"
@@ -148,7 +148,7 @@ def input_paths(cache_path):
         logging.error(str(input_path))
         input_paths.append(str(input_path))
 
-    return input_paths
+    return directory
 
 
 @pytest.fixture
@@ -237,7 +237,7 @@ def resource_path(session_tmp_path):
 def test_acceptance_dataset_create(
     session_tmp_path,
     organisation_path,
-    input_paths,
+    input_dir,
     issue_dir,
     cache_path,
     dataset_dir,
@@ -270,8 +270,8 @@ def test_acceptance_dataset_create(
             str(cache_path),
             "--resource-path",
             str(resource_path),
-        ]
-        + input_paths,
+            str(input_dir),
+        ],
         catch_exceptions=False,
     )
 

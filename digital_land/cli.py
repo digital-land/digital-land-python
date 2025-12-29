@@ -199,7 +199,7 @@ def convert_cmd(input_path, output_path):
     default="collection/resource.csv",
     help="link to where the resource list is stored",
 )
-@click.argument("input-dir", nargs=-1, type=click.Path(exists=True))
+@click.argument("input-dir", nargs=1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_create_cmd(
     ctx,
