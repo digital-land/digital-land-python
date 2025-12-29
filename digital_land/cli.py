@@ -199,11 +199,11 @@ def convert_cmd(input_path, output_path):
     default="collection/resource.csv",
     help="link to where the resource list is stored",
 )
-@click.argument("input-paths", nargs=-1, type=click.Path(exists=True))
+@click.argument("input-dir", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_create_cmd(
     ctx,
-    input_paths,
+    input_dir,
     output_path,
     organisation_path,
     column_field_dir,
@@ -213,7 +213,7 @@ def dataset_create_cmd(
     resource_path,
 ):
     return dataset_create(
-        input_paths=input_paths,
+        input_dir=input_dir,
         output_path=output_path,
         organisation_path=organisation_path,
         pipeline=ctx.obj["PIPELINE"],
