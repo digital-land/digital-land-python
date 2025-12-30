@@ -62,8 +62,14 @@ def cli(ctx, debug, dataset, pipeline_dir, specification_dir):
     from digital_land.pipeline import Pipeline
     from digital_land.specification import Specification
 
-    ctx.obj["PIPELINE"] = Pipeline(pipeline_dir, dataset)
-    ctx.obj["SPECIFICATION"] = Specification(specification_dir)
+    specification = Specification(specification_dir)
+    ctx.obj["PIPELINE"] = Pipeline(
+        pipeline_dir,
+        dataset,
+        specification=specification,
+        config=None,
+    )
+    ctx.obj["SPECIFICATION"] = specification
     ctx.obj["DATASET"] = dataset
     ctx.obj["DEBUG"] = debug
 
