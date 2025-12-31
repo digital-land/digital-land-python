@@ -30,6 +30,16 @@ from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrun
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.save import SavePhase
 
+from digital_land.log import (
+    DatasetResourceLog,
+    IssueLog,
+    ColumnFieldLog,
+    OperationalIssueLog,
+    ConvertedResourceLog,
+)
+
+from digital_land.check import duplicate_reference_check
+
 
 def chain_phases(phases):
     def add(f, g):
@@ -49,12 +59,15 @@ def run_pipeline(*args):
 
 # TODO should we remove loading from init? it makes it harder to test
 # and what if you only wanted to load specific files
-# TODO replace with config models which load is handled by them
+# TODO replace with config models to manage configuration, pipeline to move to a transform class with phases
 class Pipeline:
     def __init__(self, path, dataset, specification=None, config=None):
         self.dataset = dataset
         self.name = dataset
         self.path = path
+        self.resource = None
+
+        # Pipeline configuration tables
         self.column = {}
         self.filter = {}
         self.skip_pattern = {}
@@ -70,6 +83,7 @@ class Pipeline:
         self.specification = specification
         self.config = config
 
+        # TODO These are to be moved to config class loading and management
         self.load_column()
         self.load_skip_patterns()
         self.load_patch()
@@ -395,6 +409,49 @@ class Pipeline:
         spec.loader.exec_module(module)
         return module.PipelineCallback
 
+    def init_logs(self, dataset, resource):
+        self.issue_log = IssueLog(dataset=dataset, resource=resource)
+        self.operational_issue_log = OperationalIssueLog(
+            dataset=dataset, resource=resource
+        )
+        self.column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
+        self.dataset_resource_log = DatasetResourceLog(
+            dataset=dataset, resource=resource
+        )
+        self.converted_resource_log = ConvertedResourceLog(
+            dataset=dataset, resource=resource
+        )
+
+    def save_logs(
+        self,
+        issue_dir=None,
+        operational_issue_dir=None,
+        column_field_dir=None,
+        dataset_resource_dir=None,
+        converted_resource_dir=None,
+    ):
+        """Save logs to respective directories. Only saves when dir is provided (not None)."""
+        if issue_dir:
+            self.issue_log.apply_entity_map()
+            self.issue_log.save(os.path.join(issue_dir, self.resource + ".csv"))
+        if operational_issue_dir:
+            self.operational_issue_log.save(output_dir=operational_issue_dir)
+        if column_field_dir:
+            self.column_field_log.save(
+                os.path.join(column_field_dir, self.resource + ".csv")
+            )
+        if dataset_resource_dir:
+            self.dataset_resource_log.save(
+                os.path.join(dataset_resource_dir, self.resource + ".csv")
+            )
+        if converted_resource_dir:
+            self.converted_resource_log.save(
+                os.path.join(converted_resource_dir, self.resource + ".csv")
+            )
+
+    def get_logs():
+        pass  # Placeholder for log retrieval logic
+
     @staticmethod
     def compose(phases):
         def add(f, g):
@@ -418,44 +475,41 @@ class Pipeline:
         logging.debug(f"running {self.name} through {phases}")
         self.run_phases(*phases)
 
-    def build_transform_phases(
+    def transform(
         self,
-        *,
         input_path,
         output_path,
-        dataset_resource_log,
-        converted_resource_log,
-        issue_log,
-        operational_issue_log,
-        column_field_log,
         organisation,
+        resource,
         valid_category_values,
         endpoints=None,
         organisations=None,
         entry_date="",
-        resource=None,
-        null_path=None,
         converted_path=None,
         harmonised_output_path=None,
         save_harmonised=False,
     ):
-        """Build the default resource->transformed phase list.
+        """Build and run the default resource -> transformed phase list.
 
         This mirrors the legacy `commands.pipeline_run()` phase wiring, but keeps
         the execution responsibility inside Pipeline.
         """
         if self.specification is None:
             raise ValueError("Pipeline.specification is required to build phases")
+        if self.config is None:
+            raise ValueError("Pipeline.config is required to build phases")
 
         endpoints = endpoints or []
         organisations = organisations or []
 
-        specification = self.specification
         dataset = self.name
-        schema = specification.pipeline[dataset]["schema"]
-        intermediate_fieldnames = specification.intermediate_fieldnames(self)
+        schema = self.specification.pipeline[dataset]["schema"]
+        intermediate_fieldnames = self.specification.intermediate_fieldnames(self)
 
-        # load pipeline configuration
+        # TODO: Future loading from config class not from init()
+        # i.e self.config.get_pipeline_columns(self.dataset)
+
+        # load pipeline configuration files
         skip_patterns = self.skip_patterns(resource, endpoints)
         columns = self.columns(resource, endpoints=endpoints)
         concats = self.concatenations(resource, endpoints=endpoints)
@@ -466,8 +520,12 @@ class Pipeline:
         combine_fields = self.combine_fields(endpoints=endpoints)
         redirect_lookups = self.redirect_lookups()
 
-        entity_range_min = specification.get_dataset_entity_min(dataset)
-        entity_range_max = specification.get_dataset_entity_max(dataset)
+        entity_range_min = self.specification.get_dataset_entity_min(dataset)
+        entity_range_max = self.specification.get_dataset_entity_max(dataset)
+
+        # init logs for this resource run and set current runtime resource
+        self.init_logs(dataset, resource)
+        self.resource = resource
 
         # resource specific default values
         if len(organisations) == 1:
@@ -480,52 +538,52 @@ class Pipeline:
         phases = [
             ConvertPhase(
                 path=input_path,
-                dataset_resource_log=dataset_resource_log,
-                converted_resource_log=converted_resource_log,
+                dataset_resource_log=self.dataset_resource_log,
+                converted_resource_log=self.converted_resource_log,
                 output_path=converted_path,
             ),
-            NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+            NormalisePhase(skip_patterns=skip_patterns),
             ParsePhase(),
-            ConcatFieldPhase(concats=concats, log=column_field_log),
+            ConcatFieldPhase(concats=concats, log=self.column_field_log),
             FilterPhase(filters=self.filters(resource)),
             MapPhase(
                 fieldnames=intermediate_fieldnames,
                 columns=columns,
-                log=column_field_log,
+                log=self.column_field_log,
             ),
             FilterPhase(filters=self.filters(resource, endpoints=endpoints)),
             PatchPhase(
-                issues=issue_log,
+                issues=self.issue_log,
                 patches=patches,
             ),
             HarmonisePhase(
-                field_datatype_map=specification.get_field_datatype_map(),
-                issues=issue_log,
+                field_datatype_map=self.specification.get_field_datatype_map(),
+                issues=self.issue_log,
                 dataset=dataset,
                 valid_category_values=valid_category_values,
             ),
             DefaultPhase(
                 default_fields=default_fields,
                 default_values=default_values,
-                issues=issue_log,
+                issues=self.issue_log,
             ),
             MigratePhase(
-                fields=specification.schema_field[schema],
+                fields=self.specification.schema_field[schema],
                 migrations=self.migrations(),
             ),
-            OrganisationPhase(organisation=organisation, issues=issue_log),
-            FieldPrunePhase(fields=specification.current_fieldnames(schema)),
+            OrganisationPhase(organisation=organisation, issues=self.issue_log),
+            FieldPrunePhase(fields=self.specification.current_fieldnames(schema)),
             EntityReferencePhase(
                 dataset=dataset,
-                prefix=specification.dataset_prefix(dataset),
-                issues=issue_log,
+                prefix=self.specification.dataset_prefix(dataset),
+                issues=self.issue_log,
             ),
             EntityPrefixPhase(dataset=dataset),
             EntityLookupPhase(
                 lookups=lookups,
                 redirect_lookups=redirect_lookups,
-                issue_log=issue_log,
-                operational_issue_log=operational_issue_log,
+                issue_log=self.issue_log,
+                operational_issue_log=self.operational_issue_log,
                 entity_range=[entity_range_min, entity_range_max],
             ),
             SavePhase(
@@ -533,29 +591,39 @@ class Pipeline:
                 fieldnames=intermediate_fieldnames,
                 enabled=save_harmonised,
             ),
-            EntityPrunePhase(dataset_resource_log=dataset_resource_log),
+            EntityPrunePhase(dataset_resource_log=self.dataset_resource_log),
             PriorityPhase(config=self.config, providers=organisations),
             PivotPhase(),
-            FactCombinePhase(issue_log=issue_log, fields=combine_fields),
+            FactCombinePhase(issue_log=self.issue_log, fields=combine_fields),
             FactorPhase(),
             FactReferencePhase(
-                field_typology_map=specification.get_field_typology_map(),
-                field_prefix_map=specification.get_field_prefix_map(),
+                field_typology_map=self.specification.get_field_typology_map(),
+                field_prefix_map=self.specification.get_field_prefix_map(),
             ),
             FactLookupPhase(
                 lookups=lookups,
                 redirect_lookups=redirect_lookups,
-                issue_log=issue_log,
-                odp_collections=specification.get_odp_collections(),
+                issue_log=self.issue_log,
+                odp_collections=self.specification.get_odp_collections(),
             ),
             FactPrunePhase(),
             SavePhase(
                 output_path,
-                fieldnames=specification.factor_fieldnames(),
+                fieldnames=self.specification.factor_fieldnames(),
             ),
         ]
 
-        return phases, combine_fields
+        self.run(*phases)
+
+        # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
+        # If we have done this then we will not call duplicate_reference_check as we have already carried out a
+        # duplicate check and stop messages appearing in issues about reference values not being unique
+        if combine_fields == {}:
+            self.issue_log = duplicate_reference_check(
+                issues=self.issue_log, csv_path=output_path
+            )
+
+        return self.issue_log
 
 
 class EntityNumGen:

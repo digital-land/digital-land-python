@@ -17,7 +17,6 @@ import shapely
 import duckdb
 
 from digital_land.package.organisation import OrganisationPackage
-from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
 from digital_land.collect import Collector
 from digital_land.collection import Collection, resource_path
@@ -32,19 +31,13 @@ from digital_land.organisation import Organisation
 
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.dataset_parquet import DatasetParquetPackage
-
-# from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
 from digital_land.phase.default import DefaultPhase
 from digital_land.phase.dump import DumpPhase
-
-# from digital_land.phase.factor import FactorPhase
 from digital_land.phase.filter import FilterPhase
 from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.phase.lookup import (
-    # EntityLookupPhase,
-    # FactLookuPhase,
     PrintLookupPhase,
 )
 from digital_land.phase.map import MapPhase
@@ -53,14 +46,9 @@ from digital_land.phase.normalise import NormalisePhase
 from digital_land.phase.organisation import OrganisationPhase
 from digital_land.phase.parse import ParsePhase
 from digital_land.phase.patch import PatchPhase
-
-# from digital_land.phase.priority import PriorityPhase
-# from digital_land.phase.pivot import PivotPhase
 from digital_land.phase.prefix import EntityPrefixPhase
-from digital_land.phase.prune import FieldPrunePhase  # EntityPrunePhase, FactPrunePhase
-from digital_land.phase.reference import EntityReferencePhase  # FactReferencePhase
-
-# from digital_land.phase.save import SavePhase
+from digital_land.phase.prune import FieldPrunePhase
+from digital_land.phase.reference import EntityReferencePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.pipeline.process import convert_tranformed_csv_to_pq
 from digital_land.schema import Schema
@@ -224,7 +212,6 @@ def pipeline_run(
     input_path,
     output_path,
     collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
-    null_path=None,  # TBD: remove this
     issue_dir=None,
     operational_issue_dir="performance/operational_issue/",
     organisation_path=None,
@@ -249,22 +236,12 @@ def pipeline_run(
         resource = resource_from_path(input_path)
     dataset = dataset
 
-    # Ensure pipeline owns the shared config/spec objects:
-    if getattr(pipeline, "specification", None) is None:
-        pipeline.specification = specification
-    issue_log = IssueLog(dataset=dataset, resource=resource)
-    operational_issue_log = OperationalIssueLog(dataset=dataset, resource=resource)
-    column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
-    dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
-    converted_resource_log = ConvertedResourceLog(dataset=dataset, resource=resource)
-
-    # load config db
-    # TODO get more information from the config
+    # load config db and pass to Pipeline=> TODO move to pipeline class and use more widely
     # TODO in future we need better way of making specification optional for config
     if Path(config_path).exists():
         config = Config(path=config_path, specification=specification)
     else:
-        logging.error("Config path  does not exist")
+        logging.error("Config path does not exist")
         config = None
 
     pipeline.config = config
@@ -285,42 +262,33 @@ def pipeline_run(
     api = API(specification=specification)
     valid_category_values = api.get_valid_category_values(dataset, pipeline)
 
-    # get phases from pipeline for generic transform and then run
-    phases, combine_fields = pipeline.build_transform_phases(
+    # Transform the resource
+    issue_log = pipeline.transform(
         input_path=input_path,
         output_path=output_path,
-        dataset_resource_log=dataset_resource_log,
-        converted_resource_log=converted_resource_log,
-        issue_log=issue_log,
-        operational_issue_log=operational_issue_log,
-        column_field_log=column_field_log,
         organisation=organisation,
         endpoints=endpoints,
         organisations=organisations,
         entry_date=entry_date,
         resource=resource,
-        null_path=null_path,
         converted_path=converted_path,
         harmonised_output_path=default_output_path("harmonised", input_path),
         save_harmonised=save_harmonised,
         valid_category_values=valid_category_values,
     )
-    pipeline.run(*phases)
 
-    # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
-    # If we have done this then we will not call duplicate_reference_check as we have already carried out a
-    # duplicate check and stop messages appearing in issues about reference values not being unique
-    if combine_fields == {}:
-        issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
+    # Save logs in pipeline
+    pipeline.save_logs(
+        issue_dir=issue_dir,
+        operational_issue_dir=operational_issue_dir,
+        column_field_dir=column_field_dir,
+        dataset_resource_dir=dataset_resource_dir,
+        converted_resource_dir=converted_resource_dir,
+    )
 
-    issue_log.apply_entity_map()
-    issue_log.save(os.path.join(issue_dir, resource + ".csv"))
+    # Parquet seperate save of issue log
     issue_log.save_parquet(os.path.join(output_log_dir, "issue/"))
-    operational_issue_log.save(output_dir=operational_issue_dir)
-    if column_field_dir:
-        column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
-    dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
-    converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
+
     # create converted parquet in the var directory
     cache_dir = Path(organisation_path).parent
     transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
@@ -1440,7 +1408,6 @@ def get_resource_unidentified_lookups(
 
     # normalise phase inputs
     skip_patterns = pipeline.skip_patterns(resource, endpoints)
-    null_path = None
 
     # concat field phase
     concats = pipeline.concatenations(resource, endpoints)
@@ -1483,7 +1450,7 @@ def get_resource_unidentified_lookups(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
         ),
-        NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+        NormalisePhase(skip_patterns=skip_patterns),
         ParsePhase(),
         ConcatFieldPhase(concats=concats, log=column_field_log),
         FilterPhase(filters=pipeline.filters(resource)),
