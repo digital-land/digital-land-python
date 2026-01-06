@@ -488,6 +488,7 @@ class Pipeline:
         converted_path=None,
         harmonised_output_path=None,
         save_harmonised=False,
+        disable_lookups=False,
     ):
         """Build and run the default resource -> transformed phase list.
 
@@ -497,7 +498,7 @@ class Pipeline:
         if self.specification is None:
             raise ValueError("Pipeline.specification is required to build phases")
         if self.config is None:
-            raise ValueError("Pipeline.config is required to build phases")
+            logging.info("Pipeline running without config set")
 
         endpoints = endpoints or []
         organisations = organisations or []
@@ -579,39 +580,64 @@ class Pipeline:
                 issues=self.issue_log,
             ),
             EntityPrefixPhase(dataset=dataset),
-            EntityLookupPhase(
-                lookups=lookups,
-                redirect_lookups=redirect_lookups,
-                issue_log=self.issue_log,
-                operational_issue_log=self.operational_issue_log,
-                entity_range=[entity_range_min, entity_range_max],
-            ),
-            SavePhase(
-                harmonised_output_path,
-                fieldnames=intermediate_fieldnames,
-                enabled=save_harmonised,
-            ),
-            EntityPrunePhase(dataset_resource_log=self.dataset_resource_log),
-            PriorityPhase(config=self.config, providers=organisations),
-            PivotPhase(),
-            FactCombinePhase(issue_log=self.issue_log, fields=combine_fields),
-            FactorPhase(),
-            FactReferencePhase(
-                field_typology_map=self.specification.get_field_typology_map(),
-                field_prefix_map=self.specification.get_field_prefix_map(),
-            ),
-            FactLookupPhase(
-                lookups=lookups,
-                redirect_lookups=redirect_lookups,
-                issue_log=self.issue_log,
-                odp_collections=self.specification.get_odp_collections(),
-            ),
-            FactPrunePhase(),
-            SavePhase(
-                output_path,
-                fieldnames=self.specification.factor_fieldnames(),
-            ),
         ]
+
+        # Conditionally add EntityLookupPhase and EntityPrunePhase if not disabling lookups
+        if not disable_lookups:
+            phases.extend(
+                [
+                    EntityLookupPhase(
+                        lookups=lookups,
+                        redirect_lookups=redirect_lookups,
+                        issue_log=self.issue_log,
+                        operational_issue_log=self.operational_issue_log,
+                        entity_range=[entity_range_min, entity_range_max],
+                    ),
+                ]
+            )
+        else:
+            logging.info(
+                "Skipping EntityLookupPhase and EntityPrunePhase (disable_lookups=True)"
+            )
+
+        phases.extend(
+            [
+                SavePhase(
+                    harmonised_output_path,
+                    fieldnames=intermediate_fieldnames,
+                    enabled=save_harmonised,
+                ),
+            ]
+        )
+
+        if not disable_lookups:
+            phases.append(
+                EntityPrunePhase(dataset_resource_log=self.dataset_resource_log)
+            )
+
+        phases.extend(
+            [
+                PriorityPhase(config=self.config, providers=organisations),
+                PivotPhase(),
+                FactCombinePhase(issue_log=self.issue_log, fields=combine_fields),
+                FactorPhase(),
+                FactReferencePhase(
+                    field_typology_map=self.specification.get_field_typology_map(),
+                    field_prefix_map=self.specification.get_field_prefix_map(),
+                ),
+                FactLookupPhase(
+                    lookups=lookups,
+                    redirect_lookups=redirect_lookups,
+                    issue_log=self.issue_log,
+                    odp_collections=self.specification.get_odp_collections(),
+                ),
+                FactPrunePhase(),
+                SavePhase(
+                    output_path,
+                    fieldnames=self.specification.factor_fieldnames(),
+                ),
+            ]
+        )
 
         self.run(*phases)
 
