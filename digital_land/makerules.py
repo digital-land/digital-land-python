@@ -8,8 +8,6 @@
 
 from enum import Enum
 
-from digital_land.state import compare_state
-
 
 class ProcessingOption(Enum):
     PROCESS_ALL = "all"
@@ -25,46 +23,47 @@ def dataset_path(dataset):
     return "$(DATASET_DIR)" + dataset + ".csv"
 
 
-def get_processing_option(
-    collection,
-    specification_dir,
-    pipeline_dir,
-    resource_dir,
-    incremental_loading_override,
-    state_path,
-):
-    # If there's no previous state, process everything
-    if not state_path:
-        return ProcessingOption.PROCESS_ALL
+# TODO remove function when confirmed not needed
+# def get_processing_option(
+#     collection,
+#     specification_dir,
+#     pipeline_dir,
+#     resource_dir,
+#     incremental_loading_override,
+#     state_path,
+# ):
+#     # If there's no previous state, process everything
+#     if not state_path:
+#         return ProcessingOption.PROCESS_ALL
 
-    # Compare current state with the previous state
-    diffs = compare_state(
-        specification_dir,
-        collection.dir,
-        pipeline_dir,
-        resource_dir,
-        incremental_loading_override,
-        state_path,
-    )
+#     # Compare current state with the previous state
+#     diffs = compare_state(
+#         specification_dir,
+#         collection.dir,
+#         pipeline_dir,
+#         resource_dir,
+#         incremental_loading_override,
+#         state_path,
+#     )
 
-    diffs = diffs or []  # handle if diffs is None
+#     diffs = diffs or []  # handle if diffs is None
 
-    # If incremental loading is overridden or critical configs changed, process everything
-    critical_changes = {"code", "pipeline", "collection", "specification"}
-    if incremental_loading_override or critical_changes & set(diffs):
-        return ProcessingOption.PROCESS_ALL
+#     # If incremental loading is overridden or critical configs changed, process everything
+#     critical_changes = {"code", "pipeline", "collection", "specification"}
+#     if incremental_loading_override or critical_changes & set(diffs):
+#         return ProcessingOption.PROCESS_ALL
 
-    # New resources downloaded
-    if "resource" in diffs:
-        return (
-            ProcessingOption.PROCESS_PARTIAL
-        )  # To be changed to partial in the future
+#     # New resources downloaded
+#     if "resource" in diffs:
+#         return (
+#             ProcessingOption.PROCESS_PARTIAL
+#         )  # To be changed to partial in the future
 
-    if not diffs:
-        return ProcessingOption.PROCESS_NONE
+#     if not diffs:
+#         return ProcessingOption.PROCESS_NONE
 
-    # If there are diffs we don't recognise then play safe and reprocess everything
-    return ProcessingOption.PROCESS_ALL
+#     # If there are diffs we don't recognise then play safe and reprocess everything
+#     return ProcessingOption.PROCESS_ALL
 
 
 def pipeline_makerules(
@@ -76,14 +75,14 @@ def pipeline_makerules(
     state_path=None,
 ):
     dataset_resource = collection.dataset_resource_map()
-    process = get_processing_option(
-        collection,
-        specification_dir,
-        pipeline_dir,
-        resource_dir,
-        incremental_loading_override,
-        state_path,
-    )
+    # process = get_processing_option(
+    #     collection,
+    #     specification_dir,
+    #     pipeline_dir,
+    #     resource_dir,
+    #     incremental_loading_override,
+    #     state_path,
+    # )
 
     redirect = {}
     for entry in collection.old_resource.entries:
@@ -104,14 +103,14 @@ def pipeline_makerules(
                 print("\\\n    %s" % (transformed_path(resource, dataset)), end="")
         print()
 
-        if process == ProcessingOption.PROCESS_NONE:
-            print("\n$(%s)::" % dataset_var)
-            print('\techo "No state change and no new resources to transform"')
-            print("\ntransformed::")
-            print('\techo "No state change and no new resources to transform"')
-            print("\ndataset::")
-            print('\techo "No state change so no resources have been transformed"')
-            continue
+        # if process == ProcessingOption.PROCESS_NONE:
+        #     print("\n$(%s)::" % dataset_var)
+        #     print('\techo "No state change and no new resources to transform"')
+        #     print("\ntransformed::")
+        #     print('\techo "No state change and no new resources to transform"')
+        #     print("\ndataset::")
+        #     print('\techo "No state change so no resources have been transformed"')
+        #     continue
 
         for resource in sorted(dataset_resource[dataset]):
             old_resource = resource

@@ -3,6 +3,7 @@ import subprocess
 import pytest
 from datetime import date
 
+from digital_land.collection import Collection
 from digital_land.state import State
 
 test_hash = "ed4c5979268ad880f7edbdc2047cfcfa6b9ee3b4"
@@ -184,9 +185,10 @@ def test_state_build_has_last_updated_date(tmp_path):
 
 def test_get_transform_count(collection_with_transforms):
     collection_dir, expected_count = collection_with_transforms
-
+    collection = Collection(directory=str(collection_dir))
+    collection.load()
     # Test the get_transform_count method independently
-    count = State.get_transform_count(str(collection_dir))
+    count = State.get_transform_count(collection)
 
     # Should return an integer
     assert isinstance(count, int)
