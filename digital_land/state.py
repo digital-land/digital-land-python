@@ -3,7 +3,7 @@ import pygit2
 import json
 import hashlib
 from datetime import date
-from collection import Collection
+from digital_land.collection import Collection
 
 # Read the file in 32MB chunks
 _chunk_size = 32 * 1024 * 1024
