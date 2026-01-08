@@ -3,6 +3,7 @@ import pygit2
 import json
 import hashlib
 from datetime import date
+from collection import Collection
 
 # Read the file in 32MB chunks
 _chunk_size = 32 * 1024 * 1024
@@ -21,6 +22,11 @@ class State(dict):
         incremental_loading_override,
     ):
         """Build a state object from the current configuration and code"""
+
+        # build collection to get counts
+        collection = Collection(directory=collection_dir)
+        collection.load(directory=collection_dir)
+
         return State(
             {
                 "code": State.get_code_hash(),
@@ -32,7 +38,10 @@ class State(dict):
                 "pipeline": State.get_dir_hash(pipeline_dir),
                 "incremental_loading_override": incremental_loading_override,
                 "last_updated_date": date.today().isoformat(),  # date in YYYY-MM-DD format
-                "transform_count": State.get_transform_count(collection_dir),
+                "transform_count": State.get_transform_count(collection),
+                "transform_count_by_dataset": State.get_transform_count_by_dataset(
+                    collection
+                ),
             }
         )
 
@@ -83,16 +92,23 @@ class State(dict):
         commit = repo.revparse_single("HEAD")
         return str(commit.id)
 
-    def get_transform_count(collection_dir):
+    def get_transform_count(collection: Collection):
         """Calculate the number of transformations that need to be completed"""
-        from digital_land.collection import Collection
-
-        collection = Collection(directory=collection_dir)
-        collection.load(directory=collection_dir)
         dataset_resource = collection.dataset_resource_map()
 
         # Count total number of transformations (resources across all datasets)
         return sum(len(resources) for resources in dataset_resource.values())
+
+    def get_transform_count_by_dataset(collection: Collection):
+        """Calculate the number of transformations that need to be completed"""
+
+        dataset_resource = collection.dataset_resource_map()
+        tranform_count_by_dataset = {}
+        for dataset, resources in dataset_resource.items():
+            tranform_count_by_dataset[dataset] = len(resources)
+
+        # Count total number of transformations (resources across all datasets)
+        return tranform_count_by_dataset
 
 
 def compare_state(
