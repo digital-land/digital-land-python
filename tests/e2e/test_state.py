@@ -45,6 +45,7 @@ def test_state(tmp_path):
             "incremental_loading_override",
             "last_updated_date",
             "transform_count",
+            "transform_count_by_dataset",
         ]
         assert state_data["code"] == get_code_hash()
         assert state_data["specification"] == specification_hash

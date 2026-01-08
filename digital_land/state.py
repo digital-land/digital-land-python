@@ -140,6 +140,9 @@ def compare_state(
     # transform count should not be compared as it changes
     current.pop("transform_count", None)
     compare.pop("transform_count", None)
+    # transform count by dataset should not be compared as it changes
+    current.pop("transform_count_by_dataset", None)
+    compare.pop("transform_count_by_dataset", None)
 
     if current == compare:
         return None
