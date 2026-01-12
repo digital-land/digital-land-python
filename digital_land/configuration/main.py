@@ -10,7 +10,6 @@ from pathlib import Path
 
 from digital_land.package.sqlite import SqlitePackage
 from digital_land.package.package import Specification
-from digital_land.phase.map import normalise
 
 
 class Config(SqlitePackage):
@@ -26,11 +25,10 @@ class Config(SqlitePackage):
         indexes=None,
     ):
         self.path = Path(path)
-        self.specification = specification  # TODO to remove?
+        self.specification = specification
         self.tables = tables or {
             "entity-organisation": "pipeline",
             "expect": "pipeline",
-            "column": "pipeline",
         }
 
         self.indexes = {
@@ -57,55 +55,6 @@ class Config(SqlitePackage):
         self.disconnect()
 
         return result
-
-    def get_pipeline_columns(
-        self, dataset: str, resource: str = "", endpoints=None
-    ) -> dict:
-        """
-        Return {normalised_source_column: target_field} for a dataset/resource/endpoints.
-        Precedence: general < endpoints (in order) < resource.
-        """
-        endpoints = endpoints or []
-
-        self.connect()
-        self.connection.row_factory = sqlite3.Row
-        self.create_cursor()
-
-        def fetch(where_sql, params):
-            self.cursor.execute(
-                f"""
-                select column, field
-                from column
-                where (dataset = '' or dataset = ?)
-                  and {where_sql}
-                """,
-                params,
-            )
-            return [dict(r) for r in self.cursor.fetchall()]
-
-        # general rows (no endpoint/resource)
-        rows = fetch(
-            "(endpoint = '' or endpoint is null) and (resource = '' or resource is null)",
-            [dataset],
-        )
-
-        # endpoint-specific rows
-        for endpoint in endpoints:
-            rows += fetch("endpoint = ?", [dataset, endpoint])
-
-        # resource-specific rows
-        if resource:
-            rows += fetch("resource = ?", [dataset, resource])
-
-        self.disconnect()
-
-        # merge into final mapping
-        columns = {}
-        for r in rows:
-            if not r.get("column"):
-                continue
-            columns[normalise(r["column"])] = r.get("field", "")
-        return columns
 
     def get_expectation_rules(self, dataset):
         self.connect()

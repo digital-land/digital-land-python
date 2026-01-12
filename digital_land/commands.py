@@ -279,11 +279,11 @@ def pipeline_run(
 
     # Save logs in pipeline
     pipeline.save_logs(
-        issue_dir=issue_dir,
-        operational_issue_dir=operational_issue_dir,
-        column_field_dir=column_field_dir,
-        dataset_resource_dir=dataset_resource_dir,
-        converted_resource_dir=converted_resource_dir,
+        issue_path=os.path.join(issue_dir, resource + ".csv"),
+        operational_issue_path=os.path.join(operational_issue_dir, resource + ".csv"),
+        column_field_path=os.path.join(column_field_dir, resource + ".csv"),
+        dataset_resource_path=os.path.join(dataset_resource_dir, resource + ".csv"),
+        converted_resource_path=os.path.join(converted_resource_dir, resource + ".csv"),
     )
 
     # Parquet seperate save of issue log
@@ -292,11 +292,7 @@ def pipeline_run(
     # create converted parquet in the var directory
     cache_dir = Path(organisation_path).parent
     transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
-    operational_issue_log.save(output_dir=operational_issue_dir)
-    if column_field_dir:
-        column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
-    dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
-    converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
+
     # create converted parquet in the var director
     # TODO test without output_path conversation above to make sure we have a test that would've failed
     transformed_parquet_dir = output_path.parent

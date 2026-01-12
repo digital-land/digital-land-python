@@ -1,9 +1,13 @@
+from enum import Enum
 import os
 import csv
 import functools
 import importlib.util
 import logging
 from pathlib import Path
+from typing import Dict, List, Optional
+
+from digital_land.organisation import Organisation
 
 from digital_land.phase.map import normalise
 from digital_land.phase.lookup import key as lookup_key
@@ -41,6 +45,14 @@ from digital_land.log import (
 from digital_land.check import duplicate_reference_check
 
 
+class PipelineStatus(Enum):
+    INITIALISED = 1
+    RUNNING = 2
+    COMPLETE = 3
+    ERROR = 4
+    FAILED = 5
+
+
 def chain_phases(phases):
     def add(f, g):
         return lambda x: g.process(f(x))
@@ -65,7 +77,7 @@ class Pipeline:
         self.dataset = dataset
         self.name = dataset
         self.path = path
-        self.resource = None
+        self._status = PipelineStatus.INITIALISED
 
         # Pipeline configuration tables
         self.column = {}
@@ -424,33 +436,31 @@ class Pipeline:
 
     def save_logs(
         self,
-        issue_dir=None,
-        operational_issue_dir=None,
-        column_field_dir=None,
-        dataset_resource_dir=None,
-        converted_resource_dir=None,
+        issue_path=None,
+        operational_issue_path=None,
+        column_field_path=None,
+        dataset_resource_path=None,
+        converted_resource_path=None,
     ):
+        if self._status != "completed":
+            raise Exception("Cannot save logs for incomplete pipeline run")
         """Save logs to respective directories. Only saves when dir is provided (not None)."""
-        if issue_dir:
-            self.issue_log.apply_entity_map()
-            self.issue_log.save(os.path.join(issue_dir, self.resource + ".csv"))
-        if operational_issue_dir:
-            self.operational_issue_log.save(output_dir=operational_issue_dir)
-        if column_field_dir:
-            self.column_field_log.save(
-                os.path.join(column_field_dir, self.resource + ".csv")
-            )
-        if dataset_resource_dir:
-            self.dataset_resource_log.save(
-                os.path.join(dataset_resource_dir, self.resource + ".csv")
-            )
-        if converted_resource_dir:
-            self.converted_resource_log.save(
-                os.path.join(converted_resource_dir, self.resource + ".csv")
-            )
-
-    def get_logs():
-        pass  # Placeholder for log retrieval logic
+        try:
+            if issue_path:
+                self.issue_log.apply_entity_map()
+                self.issue_log.save(issue_path)
+            if operational_issue_path:
+                self.operational_issue_log.save(operational_issue_path)
+            if column_field_path:
+                self.column_field_log.save(column_field_path)
+            if dataset_resource_path:
+                self.dataset_resource_log.save(dataset_resource_path)
+            if converted_resource_path:
+                self.converted_resource_log.save(converted_resource_path)
+        except Exception as e:
+            logging.error(f"Error saving logs: {e}")
+            return False
+        return True
 
     @staticmethod
     def compose(phases):
@@ -477,23 +487,40 @@ class Pipeline:
 
     def transform(
         self,
-        input_path,
-        output_path,
-        organisation,
-        resource,
-        valid_category_values,
-        endpoints=None,
-        organisations=None,
-        entry_date="",
-        converted_path=None,
-        harmonised_output_path=None,
-        save_harmonised=False,
-        disable_lookups=False,
-    ):
+        input_path: str,
+        output_path: Path,
+        organisation: Organisation,
+        resource: str,
+        valid_category_values: Dict,
+        endpoints: Optional[List[str]] = None,
+        organisations: Optional[List[str]] = None,
+        entry_date: str = "",
+        converted_path: Optional[str] = None,
+        harmonised_output_path: Optional[str] = None,
+        save_harmonised: bool = False,
+        disable_lookups: bool = False,
+    ) -> IssueLog:
         """Build and run the default resource -> transformed phase list.
 
         This mirrors the legacy `commands.pipeline_run()` phase wiring, but keeps
         the execution responsibility inside Pipeline.
+
+        Args:
+            input_path (str): Path to the input resource CSV file to transform (i.e. collection/resource/{file-hash}).
+            output_path (Path): Path where the final transformed CSV will be written (i.e. transformed/{dataset-name}/{file-hash}.csv).
+            organisation (Organisation): Organisation object containing org-specific lookups and mappings.
+            resource (str): Resource file identifier (hash), TBD can be removed.
+            valid_category_values (dict): Dictionary of valid category values per field from the API/specification.
+            endpoints (list, optional): List of endpoint hashes/identifiers for this resource. Defaults to None.
+            organisations (list, optional): List of organisation codes/identifiers associated with the resource. Defaults to None.
+            entry_date (str, optional): Default entry-date value to apply to all records. Defaults to "".
+            converted_path (str, optional): Path to save converted (pre-normalised) resource. Defaults to None.
+            harmonised_output_path (str, optional): Path to save the harmonised/intermediate output. Defaults to None.
+            save_harmonised (bool, optional): Whether to save the harmonised intermediate output. Defaults to False.
+            disable_lookups (bool, optional): Whether to disable entity lookups and pruning phases. Defaults to False. (useful for checking data before lookups are applied)
+
+        Returns:
+            IssueLog: The completed issue log containing all data quality issues found during transformation.
         """
         if self.specification is None:
             raise ValueError("Pipeline.specification is required to build phases")
@@ -526,7 +553,6 @@ class Pipeline:
 
         # init logs for this resource run and set current runtime resource
         self.init_logs(dataset, resource)
-        self.resource = resource
 
         # resource specific default values
         if len(organisations) == 1:
@@ -648,6 +674,8 @@ class Pipeline:
             self.issue_log = duplicate_reference_check(
                 issues=self.issue_log, csv_path=output_path
             )
+
+        self._status = PipelineStatus.COMPLETE
 
         return self.issue_log
 
