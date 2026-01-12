@@ -422,6 +422,7 @@ class Pipeline:
         return module.PipelineCallback
 
     def init_logs(self, dataset, resource):
+        self._status = PipelineStatus.RUNNING
         self.issue_log = IssueLog(dataset=dataset, resource=resource)
         self.operational_issue_log = OperationalIssueLog(
             dataset=dataset, resource=resource
@@ -551,7 +552,7 @@ class Pipeline:
         entity_range_min = self.specification.get_dataset_entity_min(dataset)
         entity_range_max = self.specification.get_dataset_entity_max(dataset)
 
-        # init logs for this resource run and set current runtime resource
+        # init logs for this resource run and set current runtime resource, sets pipeline status to running
         self.init_logs(dataset, resource)
 
         # resource specific default values
