@@ -210,7 +210,7 @@ def pipeline_run(
     pipeline,
     specification,
     input_path,
-    output_path,
+    output_path: Path,
     collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     issue_dir=None,
     operational_issue_dir="performance/operational_issue/",
@@ -292,6 +292,14 @@ def pipeline_run(
     # create converted parquet in the var directory
     cache_dir = Path(organisation_path).parent
     transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+    operational_issue_log.save(output_dir=operational_issue_dir)
+    if column_field_dir:
+        column_field_log.save(os.path.join(column_field_dir, resource + ".csv"))
+    dataset_resource_log.save(os.path.join(dataset_resource_dir, resource + ".csv"))
+    converted_resource_log.save(os.path.join(converted_resource_dir, resource + ".csv"))
+    # create converted parquet in the var director
+    # TODO test without output_path conversation above to make sure we have a test that would've failed
+    transformed_parquet_dir = output_path.parent
     transformed_parquet_dir.mkdir(exist_ok=True, parents=True)
     convert_tranformed_csv_to_pq(
         input_path=output_path,
@@ -303,7 +311,7 @@ def pipeline_run(
 #  build dataset from processed resources
 #
 def dataset_create(
-    input_paths,
+    input_dir,
     output_path,
     organisation_path,
     pipeline,
@@ -315,19 +323,39 @@ def dataset_create(
     cache_dir="var/cache",
     resource_path="collection/resource.csv",
 ):
+    """
+    Create a dataset package from transformed parquet files.
+
+    Builds both SQLite and Parquet dataset packages from transformed resources,
+    loading facts, entities, issues, and provenance information.
+
+    Args:
+        input_dir: Directory containing transformed parquet files
+        output_path: Path for the output SQLite database
+        organisation_path: Path to organisation.csv file
+        pipeline: Pipeline object containing configuration
+        dataset: Name of the dataset to create
+        specification: Specification object defining the dataset schema
+        issue_dir: Directory containing issue logs (default: "issue")
+        column_field_dir: Directory for column-field mappings (default: "var/column-field")
+        dataset_resource_dir: Directory for dataset-resource mappings (default: "var/dataset-resource")
+        cache_dir: Directory for caching intermediate files (default: "var/cache")
+        resource_path: Path to resource.csv file (default: "collection/resource.csv")
+    """
     # set level for logging to see what's going on
     logger.setLevel(logging.INFO)
     logging.getLogger("digital_land.package.dataset_parquet").setLevel(logging.INFO)
 
-    # chek all paths are paths
+    # check all paths are paths
     issue_dir = Path(issue_dir)
     column_field_dir = Path(column_field_dir)
     dataset_resource_dir = Path(dataset_resource_dir)
     cache_dir = Path(cache_dir)
     resource_path = Path(resource_path)
+    input_dir = Path(input_dir)
 
     # get  the transformed files from the cache directory this  is  assumed right now but we may want to be stricter in the future
-    transformed_parquet_dir = cache_dir / "transformed_parquet" / dataset
+    # input_dir
 
     # create directory for dataset_parquet_package, will create a general provenance one for now
     dataset_parquet_path = cache_dir / "provenance"
@@ -351,13 +379,12 @@ def dataset_create(
     # don't use create as we don't want to create the indexes
     package.create_database()
     package.disconnect()
-    for path in input_paths:
-        path_obj = Path(path)
+    for path in input_dir.glob("*.parquet"):
         logging.info(f"loading column field log into {output_path}")
-        package.load_column_fields(column_field_dir / dataset / f"{path_obj.stem}.csv")
+        package.load_column_fields(column_field_dir / dataset / f"{path.stem}.csv")
         logging.info(f"loading dataset resource log into {output_path}")
         package.load_dataset_resource(
-            dataset_resource_dir / dataset / f"{path_obj.stem}.csv"
+            dataset_resource_dir / dataset / f"{path.stem}.csv"
         )
     logger.info(f"loading old entities into {output_path}")
     old_entity_path = Path(pipeline.path) / "old-entity.csv"
@@ -367,8 +394,8 @@ def dataset_create(
     logger.info(f"loading issues into {output_path}")
     issue_paths = issue_dir / dataset
     if issue_paths.exists():
-        for issue_path in os.listdir(issue_paths):
-            package.load_issues(os.path.join(issue_paths, issue_path))
+        for issue_path in issue_paths.glob("*.csv"):
+            package.load_issues(issue_path)
     else:
         logger.warning("No directory for this dataset in the provided issue_directory")
 
@@ -382,7 +409,7 @@ def dataset_create(
         path=dataset_parquet_path,
         specification_dir=None,  # TBD: package should use this specification object
         duckdb_path=cache_dir / "overflow.duckdb",
-        transformed_parquet_dir=transformed_parquet_dir,
+        transformed_parquet_dir=input_dir,
     )
     # To find facts we have a complex SQL window function that can cause memory issues. To aid the allocation of memory
     # we decide on a parquet strategy, based on how many parquet files we have, the overall size of these
@@ -394,10 +421,10 @@ def dataset_create(
 
     # Group parquet files into approx 256MB batches (if needed)
     if pqpackage.strategy != "direct":
-        pqpackage.group_parquet_files(transformed_parquet_dir, target_mb=256)
-    pqpackage.load_facts(transformed_parquet_dir)
-    pqpackage.load_fact_resource(transformed_parquet_dir)
-    pqpackage.load_entities(transformed_parquet_dir, resource_path, organisation_path)
+        pqpackage.group_parquet_files(input_dir, target_mb=256)
+    pqpackage.load_facts(input_dir)
+    pqpackage.load_fact_resource(input_dir)
+    pqpackage.load_entities(input_dir, resource_path, organisation_path)
 
     logger.info("loading fact,fact_resource and entity into {output_path}")
     pqpackage.load_to_sqlite(output_path)

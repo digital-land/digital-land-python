@@ -1,5 +1,6 @@
 # Custom decorators for common command arguments
 import functools
+from pathlib import Path
 
 import click
 
@@ -7,7 +8,7 @@ import click
 def input_output_path(f):
     arguments = [
         click.argument("input-path", type=click.Path(exists=True)),
-        click.argument("output-path", type=click.Path(), default=""),
+        click.argument("output-path", type=click.Path(path_type=Path), default=""),
     ]
     return functools.reduce(lambda x, arg: arg(x), reversed(arguments), f)
 

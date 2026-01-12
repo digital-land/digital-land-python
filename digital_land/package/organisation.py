@@ -197,7 +197,7 @@ class OrganisationPackage(CsvPackage):
                         value=row["wikidata"],
                     )
                 )
-            else:
+            elif wikidata:
                 wikidatas[row["wikidata"]] = organisation
 
             # check LPA value against dataset
