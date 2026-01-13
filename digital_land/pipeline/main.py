@@ -454,7 +454,6 @@ class Pipeline:
         ):
             logging.error("Cannot save logs for incomplete pipeline run")
             return False
-        """Save logs to respective directories. Only saves when dir is provided (not None)."""
         try:
             if issue_path:
                 self.issue_log.apply_entity_map()
