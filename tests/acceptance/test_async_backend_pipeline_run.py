@@ -49,7 +49,6 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
 
     organisation_path = os.path.join(cache_dir, "organisation.csv")
     input_path = os.path.join(collection_dir, resource)
-    null_path = None
     output_path = os.path.join(transformed_dir, dataset, request_id, f"{resource}.csv")
     save_harmonised = False
 
@@ -124,7 +123,7 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
                 dataset_resource_log=dataset_resource_log,
                 output_path=os.path.join(converted_dir, request_id, f"{resource}.csv"),
             ),
-            NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+            NormalisePhase(skip_patterns=skip_patterns),
             ParsePhase(),
             ConcatFieldPhase(concats=concats, log=column_field_log),
             MapPhase(

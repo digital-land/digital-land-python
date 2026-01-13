@@ -310,7 +310,7 @@ def pipeline_run(
             converted_resource_log=converted_resource_log,
             output_path=converted_path,
         ),
-        NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+        NormalisePhase(skip_patterns=skip_patterns),
         ParsePhase(),
         ConcatFieldPhase(concats=concats, log=column_field_log),
         FilterPhase(filters=pipeline.filters(resource)),
