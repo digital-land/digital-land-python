@@ -21,7 +21,7 @@ def test_normalise_whitespace():
 
 
 def test_strip_nulls():
-    n = NormalisePhase(null_path="tests/data/null.csv")
+    n = NormalisePhase()
     assert n.strip_nulls(["a", "b"]) == ["a", "b"]
     assert n.strip_nulls(["a", "????"]) == ["a", ""]
     assert n.strip_nulls(["a", "----"]) == ["a", ""]
