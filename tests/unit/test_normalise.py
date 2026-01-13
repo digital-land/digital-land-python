@@ -4,11 +4,9 @@ from digital_land.phase.normalise import NormalisePhase
 
 def test_init():
     n = NormalisePhase()
-    assert n.null_path.endswith("patch/null.csv")
     assert n.skip_patterns == []
 
-    n = NormalisePhase([r"^,*[^,]*,*$"], null_path="tests/data/null.csv")
-    assert n.null_path == "tests/data/null.csv"
+    n = NormalisePhase([r"^,*[^,]*,*$"])
     assert n.skip_patterns == [re.compile("^,*[^,]*,*$")]
 
 
