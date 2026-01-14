@@ -310,7 +310,7 @@ def pipeline_run(
             converted_resource_log=converted_resource_log,
             output_path=converted_path,
         ),
-        NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+        NormalisePhase(skip_patterns=skip_patterns),
         ParsePhase(),
         ConcatFieldPhase(concats=concats, log=column_field_log),
         FilterPhase(filters=pipeline.filters(resource)),
@@ -1536,7 +1536,6 @@ def get_resource_unidentified_lookups(
 
     # normalise phase inputs
     skip_patterns = pipeline.skip_patterns(resource, endpoints)
-    null_path = None
 
     # concat field phase
     concats = pipeline.concatenations(resource, endpoints)
@@ -1579,7 +1578,7 @@ def get_resource_unidentified_lookups(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
         ),
-        NormalisePhase(skip_patterns=skip_patterns, null_path=null_path),
+        NormalisePhase(skip_patterns=skip_patterns),
         ParsePhase(),
         ConcatFieldPhase(concats=concats, log=column_field_log),
         FilterPhase(filters=pipeline.filters(resource)),

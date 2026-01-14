@@ -1,9 +1,13 @@
 import pytest
 import os
 import csv
+import urllib.request
 import pandas as pd
+from urllib.error import URLError
 from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
+from digital_land.specification import Specification
+from digital_land.organisation import Organisation
 
 
 def write_as_csv(dir, filename, data):
@@ -545,6 +549,350 @@ def test_load_concat_no_prepend_append(empty_pipeline_dir):
             "append": "",
         }
     }
+
+
+@pytest.fixture(scope="session")
+def specification_dir(tmp_path_factory):
+    """Download specification files from GitHub for testing"""
+    specification_dir = tmp_path_factory.mktemp("specification")
+
+    url_domain = "https://raw.githubusercontent.com"
+    url_path = "/digital-land/specification/main/specification"
+    specification_url = f"{url_domain}{url_path}"
+
+    specification_csv_list = [
+        "attribution.csv",
+        "collection.csv",
+        "datapackage-dataset.csv",
+        "datapackage.csv",
+        "dataset-field.csv",
+        "dataset-schema.csv",
+        "dataset.csv",
+        "datatype.csv",
+        "field.csv",
+        "issue-type.csv",
+        "licence.csv",
+        "organisation-dataset.csv",
+        "pipeline.csv",
+        "prefix.csv",
+        "project-status.csv",
+        "project.csv",
+        "provision-reason.csv",
+        "provision-rule.csv",
+        "schema-field.csv",
+        "schema.csv",
+        "severity.csv",
+        "specification-status.csv",
+        "specification.csv",
+        "theme.csv",
+        "typology.csv",
+    ]
+
+    try:
+        for specification_csv in specification_csv_list:
+            urllib.request.urlretrieve(
+                f"{specification_url}/{specification_csv}",
+                os.path.join(specification_dir, specification_csv),
+            )
+    except URLError:
+        pytest.fail("Failed to download specification files")
+
+    return specification_dir
+
+
+@pytest.fixture
+def organisation_path(tmp_path):
+    """Create an organisations dataset for testing."""
+    orgs_path = tmp_path / "organisation.csv"
+    pd.DataFrame.from_dict(get_test_organisation_data()).to_csv(orgs_path, index=False)
+    return orgs_path
+
+
+def get_test_organisation_data():
+    """Test organisation data."""
+    return {
+        "entity": [101, 102],
+        "name": ["Test Org", "Test Org 2"],
+        "prefix": ["local-authority", "local-authority"],
+        "reference": ["test-org", "test-org-2"],
+        "dataset": ["local-authority", "local-authority"],
+        "organisation": ["local-authority:LBH", "local-authority:LBH"],
+    }
+
+
+def get_test_resource_data():
+    """Test resource data for pipeline transformation."""
+    return {
+        "WKT": [
+            "POLYGON ((-0.1 51.5, -0.1 51.51, -0.09 51.51, -0.09 51.5, -0.1 51.5))",
+            "POLYGON ((-0.11 51.5, -0.11 51.51, -0.10 51.51, -0.10 51.5, -0.11 51.5))",
+        ],
+        "ID": [0, 1],
+        "TITLE": ["Test Zone 1", "Test Zone 2"],
+    }
+
+
+def get_test_resource_data_with_unmapped_reference():
+    """Test resource data with a reference not in lookup config."""
+    return {
+        "WKT": [
+            "POLYGON ((-0.1 51.5, -0.1 51.51, -0.09 51.51, -0.09 51.5, -0.1 51.5))",
+            "POLYGON ((-0.11 51.5, -0.11 51.51, -0.10 51.51, -0.10 51.5, -0.11 51.5))",
+            "POLYGON ((-0.12 51.5, -0.12 51.51, -0.11 51.51, -0.11 51.5, -0.12 51.5))",
+        ],
+        "ID": [0, 1, 99],  # 99 is not in lookup config
+        "TITLE": ["Test Zone 1", "Test Zone 2", "Test Zone 3 Unmapped"],
+    }
+
+
+def get_test_column_config(dataset_name):
+    """Test column mapping configuration."""
+    return {
+        "dataset": [dataset_name, dataset_name, dataset_name],
+        "resource": ["", "", ""],
+        "endpoint": ["", "", ""],
+        "column": ["WKT", "ID", "TITLE"],
+        "field": ["geometry", "reference", "name"],
+    }
+
+
+def get_test_lookup_config():
+    """Test lookup mapping configuration."""
+    return {
+        "resource": ["", ""],
+        "entry-number": ["", ""],
+        "prefix": ["central-activities-zone", "central-activities-zone"],
+        "reference": ["0", "1"],
+        "entity": ["2200001", "2200002"],
+        "start-date": ["", ""],
+        "organisation": ["101", "101"],
+        "end-date": ["", ""],
+        "entry-date": ["", ""],
+        "endpoint": ["", ""],
+    }
+
+
+@pytest.fixture
+def test_resource_file(tmp_path):
+    """
+    Create a minimal CSV test file for pipeline processing.
+    Uses WKT geometry format.
+    """
+    test_file = tmp_path / "test_resource.csv"
+    csv_df = pd.DataFrame.from_dict(get_test_resource_data())
+    csv_df.to_csv(test_file, index=False)
+
+    return str(test_file)
+
+
+def test_pipeline_transform_basic(
+    specification_dir, organisation_path, test_resource_file, tmp_path
+):
+    """
+    Lightweight integration test for Pipeline.transform() method.
+
+    Tests that the transform method can successfully:
+    - Load CSV input resource with WKT geometry
+    - Apply column mappings and transformations
+    - Apply organisation defaults
+    - Write output in fact-based model format
+    - Return an issue log
+    """
+    # -- Arrange --
+    pipeline_dir = tmp_path / "pipeline"
+    pipeline_dir.mkdir()
+
+    dataset_name = "central-activities-zone"
+
+    # Column mappings: CSV columns -> dataset fields
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
+        f"{pipeline_dir}/column.csv", index=False
+    )
+
+    # Lookup mappings: reference values -> entity IDs
+    pd.DataFrame(get_test_lookup_config()).to_csv(
+        f"{pipeline_dir}/lookup.csv", index=False
+    )
+
+    # Initialize pipeline components
+    spec = Specification(specification_dir)
+    org = Organisation(organisation_path=organisation_path)
+    pipeline = Pipeline(str(pipeline_dir), dataset_name, specification=spec)
+
+    output_path = tmp_path / "output" / "transformed.csv"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # -- Act --
+    issue_log = pipeline.transform(
+        input_path=test_resource_file,
+        output_path=output_path,
+        organisation=org,
+        resource=test_resource_file,
+        valid_category_values={},
+        organisations=["local-authority:LBH"],
+        disable_lookups=False,
+    )
+
+    # -- Assert --
+    assert output_path.exists(), "Output file should be created"
+    assert issue_log is not None, "Issue log should be returned"
+
+    # Verify output structure and content
+    output_df = pd.read_csv(output_path)
+    assert len(output_df) > 0, "Output should contain at least one row"
+    assert "entity" in output_df.columns, "Output should have entity column"
+    assert "field" in output_df.columns, "Output should have field column"
+    assert "value" in output_df.columns, "Output should have value column"
+
+    # Verify expected fields are present
+    actual_fields = set(output_df["field"].unique())
+    expected_fields = {"prefix", "geometry", "reference", "name", "organisation"}
+    assert expected_fields.issubset(
+        actual_fields
+    ), f"Expected fields {expected_fields} not all present in {actual_fields}"
+
+    # Verify entities were created
+    assert output_df["entity"].notna().any(), "At least one entity should be created"
+    entities = output_df["entity"].dropna().unique()
+    assert len(entities) > 0, "Should have created entities for test data"
+
+
+def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
+    specification_dir, organisation_path, tmp_path
+):
+    """
+    Test that when lookups are enabled and data has unmapped references,
+    issue log contains 'unknown entity - missing reference' errors.
+    """
+    # -- Arrange --
+    pipeline_dir = tmp_path / "pipeline"
+    pipeline_dir.mkdir()
+
+    dataset_name = "central-activities-zone"
+
+    # Create test resource with unmapped reference
+    test_file = tmp_path / "test_resource.csv"
+    pd.DataFrame(get_test_resource_data_with_unmapped_reference()).to_csv(
+        test_file, index=False
+    )
+
+    # Column mappings
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
+        f"{pipeline_dir}/column.csv", index=False
+    )
+
+    # Lookup mappings (only references 0 and 1, not 99)
+    pd.DataFrame(get_test_lookup_config()).to_csv(
+        f"{pipeline_dir}/lookup.csv", index=False
+    )
+
+    spec = Specification(specification_dir)
+    org = Organisation(organisation_path=organisation_path)
+    pipeline = Pipeline(str(pipeline_dir), dataset_name, specification=spec)
+
+    output_path = tmp_path / "output" / "transformed.csv"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # -- Act --
+    issue_log = pipeline.transform(
+        input_path=str(test_file),
+        output_path=output_path,
+        organisation=org,
+        resource=str(test_file),
+        valid_category_values={},
+        organisations=["local-authority:LBH"],
+        disable_lookups=False,  # Lookups ENABLED
+    )
+
+    # -- Assert --
+    assert output_path.exists(), "Output file should be created"
+
+    # Check that issue log contains "unknown entity - missing reference"
+    issues = issue_log.rows
+    issue_types = [issue["issue-type"] for issue in issues if "issue-type" in issue]
+    assert (
+        "unknown entity" in issue_types
+    ), "Should have 'unknown entity' error for unmapped reference 99"
+
+    # Verify the unmapped reference (99) was NOT included in output (pruned)
+    output_df = pd.read_csv(output_path)
+    # When lookups are enabled, unmapped references get pruned, so we should only have 2 entities
+    entities = output_df["entity"].dropna().unique()
+    assert len(entities) == 2, "Should only have 2 entities (reference 99 pruned)"
+
+
+def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
+    specification_dir, organisation_path, tmp_path
+):
+    """
+    Test that when lookups are disabled and data has unmapped references,
+    issue log does NOT contain 'unknown entity - missing reference' errors,
+    and data is created with empty entity column.
+    """
+    # -- Arrange --
+    pipeline_dir = tmp_path / "pipeline"
+    pipeline_dir.mkdir()
+
+    dataset_name = "central-activities-zone"
+
+    # Create test resource with unmapped reference
+    test_file = tmp_path / "test_resource.csv"
+    pd.DataFrame(get_test_resource_data_with_unmapped_reference()).to_csv(
+        test_file, index=False
+    )
+
+    # Column mappings
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
+        f"{pipeline_dir}/column.csv", index=False
+    )
+
+    # Lookup mappings (only references 0 and 1, not 99)
+    pd.DataFrame(get_test_lookup_config()).to_csv(
+        f"{pipeline_dir}/lookup.csv", index=False
+    )
+
+    spec = Specification(specification_dir)
+    org = Organisation(organisation_path=organisation_path)
+    pipeline = Pipeline(str(pipeline_dir), dataset_name, specification=spec)
+
+    output_path = tmp_path / "output" / "transformed.csv"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # -- Act --
+    issue_log = pipeline.transform(
+        input_path=str(test_file),
+        output_path=output_path,
+        organisation=org,
+        resource=str(test_file),
+        valid_category_values={},
+        organisations=["local-authority:LBH"],
+        disable_lookups=True,  # Lookups DISABLED
+    )
+
+    # -- Assert --
+    assert output_path.exists(), "Output file should be created"
+
+    # Check that issue log does NOT contain "unknown entity - missing reference"
+    issues = issue_log.rows
+    issue_types = [issue["issue-type"] for issue in issues if "issue-type" in issue]
+    assert (
+        "unknown entity - missing reference" not in issue_types
+    ), "Should NOT have 'unknown entity - missing reference' error when lookups disabled"
+
+    # Verify all data was created including unmapped reference
+    output_df = pd.read_csv(output_path)
+
+    # Check that we have rows with empty entity values (the unmapped reference)
+    empty_entity_rows = output_df[
+        output_df["entity"].isna() | (output_df["entity"] == "")
+    ]
+    assert (
+        len(empty_entity_rows) > 0
+    ), "Should have rows with empty entity for unmapped reference 99"
+
+    # Verify reference field for unmapped data exists in output
+    reference_values = output_df[output_df["field"] == "reference"]["value"].tolist()
+    assert "99" in reference_values, "Unmapped reference 99 should be in output"
 
 
 if __name__ == "__main__":
