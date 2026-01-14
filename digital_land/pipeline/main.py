@@ -449,8 +449,8 @@ class Pipeline:
             bool: True if all logs saved successfully, False otherwise."""
         if (
             self._status != PipelineStatus.COMPLETE
-            or self._status != PipelineStatus.ERROR
-            or self._status != PipelineStatus.FAILED
+            and self._status != PipelineStatus.ERROR
+            and self._status != PipelineStatus.FAILED
         ):
             logging.error("Cannot save logs for incomplete pipeline run")
             return False
