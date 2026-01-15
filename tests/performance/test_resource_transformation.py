@@ -13,7 +13,7 @@ from digital_land.organisation import Organisation
 
 # set the below if you want to use a permenant directory to view data after running test
 # o to stopp epeated downloads of tests
-DATA_DIRECTORY = "data"
+DATA_DIRECTORY = None
 
 
 @pytest.mark.parametrize(
