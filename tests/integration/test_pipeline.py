@@ -1,9 +1,7 @@
 import pytest
 import os
 import csv
-import urllib.request
 import pandas as pd
-from urllib.error import URLError
 from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
 from digital_land.specification import Specification
@@ -549,55 +547,6 @@ def test_load_concat_no_prepend_append(empty_pipeline_dir):
             "append": "",
         }
     }
-
-
-@pytest.fixture(scope="session")
-def specification_dir(tmp_path_factory):
-    """Download specification files from GitHub for testing"""
-    specification_dir = tmp_path_factory.mktemp("specification")
-
-    url_domain = "https://raw.githubusercontent.com"
-    url_path = "/digital-land/specification/main/specification"
-    specification_url = f"{url_domain}{url_path}"
-
-    specification_csv_list = [
-        "attribution.csv",
-        "collection.csv",
-        "datapackage-dataset.csv",
-        "datapackage.csv",
-        "dataset-field.csv",
-        "dataset-schema.csv",
-        "dataset.csv",
-        "datatype.csv",
-        "field.csv",
-        "issue-type.csv",
-        "licence.csv",
-        "organisation-dataset.csv",
-        "pipeline.csv",
-        "prefix.csv",
-        "project-status.csv",
-        "project.csv",
-        "provision-reason.csv",
-        "provision-rule.csv",
-        "schema-field.csv",
-        "schema.csv",
-        "severity.csv",
-        "specification-status.csv",
-        "specification.csv",
-        "theme.csv",
-        "typology.csv",
-    ]
-
-    try:
-        for specification_csv in specification_csv_list:
-            urllib.request.urlretrieve(
-                f"{specification_url}/{specification_csv}",
-                os.path.join(specification_dir, specification_csv),
-            )
-    except URLError:
-        pytest.fail("Failed to download specification files")
-
-    return specification_dir
 
 
 @pytest.fixture
