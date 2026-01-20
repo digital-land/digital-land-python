@@ -84,17 +84,8 @@ class LookupPhase(Phase):
                 organisation=organisation,
                 reference=reference,
             )
+            or self.lookup(prefix=prefix, reference=reference)
         )
-        if not entity:
-            # TBD this needs to specifically not match unless the organisation and other columns
-            # are empty in the lookups.csv probably isn't a change here.
-            # or by the CURIE
-            entity = self.lookup(prefix=prefix, reference=reference)
-
-            # When obtaining an entity number using only the prefix and reference, check if the
-            # lookup includes an associated organisation. If it does, do not use the entity number,
-            # as it is organisation specific.
-            entity = self.check_associated_organisation(entity)
 
         if entity and self.entity_range:
             if (
