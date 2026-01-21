@@ -3,11 +3,14 @@ import os
 import csv
 import urllib.request
 import pandas as pd
+import logging
 from urllib.error import URLError
 from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
 from digital_land.specification import Specification
 from digital_land.organisation import Organisation
+
+logger = logging.getLogger(__name__)
 
 
 def write_as_csv(dir, filename, data):
@@ -712,7 +715,7 @@ def get_test_lookup_config():
         "reference": ["0", "1"],
         "entity": ["2200001", "2200002"],
         "start-date": ["", ""],
-        "organisation": ["101", "101"],
+        "organisation": ["local-authority:LBH", "local-authority:LBH"],
         "end-date": ["", ""],
         "entry-date": ["", ""],
         "endpoint": ["", ""],
@@ -760,11 +763,11 @@ def test_pipeline_transform_basic(
     pd.DataFrame(get_test_lookup_config()).to_csv(
         f"{pipeline_dir}/lookup.csv", index=False
     )
-
     # Initialize pipeline components
     spec = Specification(specification_dir)
     org = Organisation(organisation_path=organisation_path)
     pipeline = Pipeline(str(pipeline_dir), dataset_name, specification=spec)
+    logger.info(f"Pipeline Lookups: {pipeline.lookup}")
 
     output_path = tmp_path / "output" / "transformed.csv"
     output_path.parent.mkdir(parents=True, exist_ok=True)
