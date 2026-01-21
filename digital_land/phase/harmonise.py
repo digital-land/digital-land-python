@@ -46,6 +46,10 @@ MANDATORY_FIELDS_DICT = {
         "GeoX",
         "GeoY",
     ],
+    "developer-agreement": ["reference",],
+    "developer-agreement-contribution": ["reference",],
+    "developer-agreement-transaction": ["reference",],
+    "infrastucture-funding-statement": ["reference",],
 }
 
 FAR_FUTURE_YEARS_AHEAD = 50
