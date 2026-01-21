@@ -313,3 +313,101 @@ def test_harmonise_geox_geoy():
 
     assert len(issues.rows) == 1
     assert "out of bounds" in issues.rows[0]["issue-type"]
+
+# ---------------------------
+# New tests for generalisation
+# ---------------------------
+
+def test_unknown_dataset_blank_reference_flags():
+    """For datasets not listed in the dictionary, 'reference' is the only mandatory field by default."""
+    issues = IssueLog()
+    field_datatype_map = {"reference": "string", "name": "string"}
+
+    h = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues,
+        dataset="my-unknown-dataset",
+    )
+    reader = FakeDictReader(
+        [
+            {"reference": "", "name": "Something"},
+        ]
+    )
+    output = list(h.process(reader))
+    assert len(output) == 1
+
+    # exactly one issue for empty reference
+    assert len(issues.rows) == 1
+    assert issues.rows[0]["field"] == "reference"
+    assert issues.rows[0]["issue-type"] == "missing value"
+    assert issues.rows[0]["value"] == ""
+
+
+def test_unknown_dataset_reference_present_or_absent_not_flagged():
+    """
+    For unknown datasets:
+    - Non-blank 'reference' is NOT flagged.
+    - If 'reference' key is not present at all, it is NOT flagged (no missing-column checks).
+    """
+    issues_present = IssueLog()
+    issues_absent = IssueLog()
+    field_datatype_map = {"reference": "string", "name": "string"}
+
+    # Case 1: reference present and non-blank -> no issues
+    h1 = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues_present,
+        dataset="another-unknown-dataset",
+    )
+    reader1 = FakeDictReader([{"reference": "ABC123", "name": "X"}])
+    _ = list(h1.process(reader1))
+    assert len(issues_present.rows) == 0
+
+    # Case 2: reference key absent entirely -> no issues (we only check fields that exist)
+    h2 = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues_absent,
+        dataset="another-unknown-dataset",
+    )
+    reader2 = FakeDictReader([{"name": "X"}])
+    _ = list(h2.process(reader2))
+    assert len(issues_absent.rows) == 0
+
+
+def test_brownfield_land_reference_not_forced():
+    """
+    brownfield-land is listed in the dictionary and does NOT include 'reference'
+    as a mandatory field—so a blank 'reference' should NOT be flagged.
+    """
+    issues = IssueLog()
+    field_datatype_map = {
+        "reference": "string",
+        "OrganisationURI": "string",
+        "SiteReference": "string",
+        "SiteNameAddress": "string",
+        "GeoX": "string",
+        "GeoY": "string",
+    }
+
+    h = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues,
+        dataset="brownfield-land",
+    )
+    reader = FakeDictReader(
+        [
+            {
+                "reference": "",  # should not be treated as mandatory for brownfield-land
+                "OrganisationURI": "org:1",
+                "SiteReference": "SR1",
+                "SiteNameAddress": "Some site",
+                "GeoX": "-1.50",
+                "GeoY": "53.50",
+            }
+        ]
+    )
+    output = list(h.process(reader))
+    assert len(output) == 1
+
+    # No issue about 'reference'
+    assert all(i["field"] != "reference" for i in issues.rows)
