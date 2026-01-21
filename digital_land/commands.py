@@ -1786,7 +1786,6 @@ def check_and_assign_entities(
 
     cache_pipeline_dir = assign_entities_cache_dir / collection.name / "pipeline"
     copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
-
     new_lookups = assign_entities(
         resource_file_paths,
         collection,
@@ -1830,6 +1829,10 @@ def check_and_assign_entities(
         "organisation": organisation[0],
     }
     new_entities = [entry["entity"] for entry in new_lookups]
+    if len(new_entities) == 0:
+        print("No new entities were assigned.")
+        return True
+
     issue_summary = get_issue_summary(endpoint_resource_info, issue_dir, new_entities)
     print(issue_summary)
 
