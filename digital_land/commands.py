@@ -1017,9 +1017,21 @@ def add_data(
     specification_dir,
     organisation_path,
     cache_dir=None,
+    input_dict=None,
 ):
-    # Potentially track a list of files to clean up at the end of session? e.g log file
+    """
+    Add data from an endpoint to a collection.
 
+    Args:
+        input_dict: Optional dict to bypass terminal prompts. Supported keys:
+            - acceptRun: bool - Accept processing the resource
+            - acceptAssignEntities: bool - Accept assigning entities
+            - acceptSave: bool - Accept saving changes
+            - acceptRetire: bool - Accept retiring old endpoints
+            - retireEndpoints: list - List of endpoint URLs to retire
+            - acceptUpdate: bool - Accept viewing updated dataset
+    """
+    # Potentially track a list of files to clean up at the end of session? e.g log file
     # First validate the input .csv and collect from the endpoint
     collection, endpoint_resource_info = validate_and_add_data_input(
         csv_file_path,
@@ -1034,9 +1046,14 @@ def add_data(
     clear_log(collection_dir, endpoint_resource_info["endpoint"])
 
     # Ask if user wants to proceed
-    if not get_user_response(
-        "Do you want to continue processing this resource? (yes/no): "
-    ):
+    if input_dict and "acceptRun" in input_dict:
+        accept_run = input_dict["acceptRun"]
+    else:
+        accept_run = get_user_response(
+            "Do you want to continue processing this resource? (yes/no): "
+        )
+
+    if not accept_run:
         return
 
     if not cache_dir:
@@ -1143,9 +1160,14 @@ def add_data(
         ):
             # Ask if user wants to proceed
             print("\nThere are unknown entities")
-            if not get_user_response(
-                "Do you want to assign entities for this resource? (yes/no): "
-            ):
+            if input_dict and "acceptAssignEntities" in input_dict:
+                accept_assign = input_dict["acceptAssignEntities"]
+            else:
+                accept_assign = get_user_response(
+                    "Do you want to assign entities for this resource? (yes/no): "
+                )
+
+            if not accept_assign:
                 return
 
             # Resource has been processed, run assign entities and reprocess
@@ -1219,9 +1241,14 @@ def add_data(
             entities_assigned = True
 
         # Ask if user wants to proceed
-        if not get_user_response(
-            "Do you want to save changes made in this session? (yes/no): "
-        ):
+        if input_dict and "acceptSave" in input_dict:
+            accept_save = input_dict["acceptSave"]
+        else:
+            accept_save = get_user_response(
+                "Do you want to save changes made in this session? (yes/no): "
+            )
+
+        if not accept_save:
             return
 
         # Save changes to collection
@@ -1241,14 +1268,26 @@ def add_data(
         )
         print(existing_endpoints_summary)
         if existing_sources:
-            if get_user_response(
-                "Do you want to retire any of these existing endpoints? (yes/no): "
-            ):
+            if input_dict and "acceptRetire" in input_dict:
+                accept_retire = input_dict["acceptRetire"]
+            else:
+                accept_retire = get_user_response(
+                    "Do you want to retire any of these existing endpoints? (yes/no): "
+                )
+
+            if accept_retire:
                 # iterate over existing sources and ask if they should be retired
                 sources_to_retire = []
-                for source in existing_sources:
-                    if get_user_response(f"{source['endpoint-url']}? (yes/no): "):
-                        sources_to_retire.append(source)
+                if input_dict and "retireEndpoints" in input_dict:
+                    # Use provided list of endpoints to retire
+                    retire_urls = input_dict["retireEndpoints"]
+                    for source in existing_sources:
+                        if source["endpoint-url"] in retire_urls:
+                            sources_to_retire.append(source)
+                else:
+                    for source in existing_sources:
+                        if get_user_response(f"{source['endpoint-url']}? (yes/no): "):
+                            sources_to_retire.append(source)
 
                 if sources_to_retire:
                     collection.retire_endpoints_and_sources(
@@ -1261,11 +1300,16 @@ def add_data(
         )
         print("Update dataset")
         print("======================================================================")
-        if get_user_response(
-            f"""\nDo you want to view an updated {dataset} dataset with the newly added data?
-            \nNote this requires downloading the dataset if not already done so -
-            for some datasets this can take a while \n\n(yes/no): """
-        ):
+        if input_dict and "acceptUpdate" in input_dict:
+            accept_update = input_dict["acceptUpdate"]
+        else:
+            accept_update = get_user_response(
+                f"""\nDo you want to view an updated {dataset} dataset with the newly added data?
+                \nNote this requires downloading the dataset if not already done so -
+                for some datasets this can take a while \n\n(yes/no): """
+            )
+
+        if accept_update:
             dataset_path = download_dataset(dataset, specification, cache_dir)
             original_entities = get_transformed_entities(dataset_path, output_path)
             print(f"Updating {dataset}.sqlite3 with new data...")

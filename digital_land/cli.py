@@ -487,6 +487,12 @@ def retire_endpoints_cmd(config_collections_dir, csv_path):
     "--cache-dir",
     type=click.Path(exists=True),
 )
+@click.option(
+    "--input-dict",
+    "-i",
+    type=click.STRING,
+    help='JSON string to bypass prompts, e.g. \'{"acceptRun": true, "acceptSave": true}\'',
+)
 def add_data_cmd(
     csv_path,
     collection_name,
@@ -495,7 +501,9 @@ def add_data_cmd(
     specification_dir,
     organisation_path,
     cache_dir,
+    input_dict,
 ):
+    print(f"DEBUG: add_data_cmd called with csv_path={csv_path}")
     csv_file_path = Path(csv_path)
     if not csv_file_path.is_file():
         logging.error(f"CSV file not found at path: {csv_path}")
@@ -503,6 +511,17 @@ def add_data_cmd(
     collection_dir = Path(collection_dir)
     pipeline_dir = Path(pipeline_dir)
     specification_dir = Path(specification_dir)
+
+    # Parse input_dict if provided
+    parsed_input_dict = None
+    if input_dict:
+        try:
+            import json
+
+            parsed_input_dict = json.loads(input_dict)
+        except json.JSONDecodeError as e:
+            logging.error(f"Invalid JSON in --input-dict: {e}")
+            sys.exit(2)
 
     return add_data(
         csv_file_path,
@@ -512,6 +531,7 @@ def add_data_cmd(
         specification_dir,
         organisation_path,
         cache_dir=cache_dir,
+        input_dict=parsed_input_dict,
     )
 
 
