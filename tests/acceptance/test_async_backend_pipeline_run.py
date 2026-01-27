@@ -36,7 +36,7 @@ from digital_land.specification import Specification
 def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
     endpoints = ["d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"]
     pipeline_dir = test_dirs["pipeline_dir"]
-    organisation = "test-org"
+    organisation = "test-org:test"
     request_id = request_id
     collection_dir = test_dirs["collection_dir"]
     converted_dir = test_dirs["converted_resource_dir"]
@@ -78,7 +78,7 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
         dictwriter.writerow(row2)
 
     # Create organisation.csv with data
-    row = {"organisation": "test-org", "name": "Test Org"}
+    row = {"organisation": "test-org:test", "name": "Test Org"}
     fieldnames = row.keys()
     with open(organisation_path, "w") as f:
         dictwriter = csv.DictWriter(f, fieldnames=fieldnames)
@@ -115,7 +115,7 @@ def run_pipeline_for_test(test_dirs, dataset, resource, request_id, input_path):
 
     # Load organisations
     organisation = Organisation(organisation_path, Path(pipeline.path))
-    default_values["organisation"] = organisation
+    default_values["organisation"] = "test-org:test"
     try:
         run_pipeline(
             ConvertPhase(
@@ -216,12 +216,12 @@ def test_async_pipeline_run(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2024-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
         {
             "reference": "ABC_0002",
             "entry-date": "2024-01-02",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
     ]
 
@@ -282,12 +282,12 @@ def test_pipeline_output_is_complete(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2024-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
         {
             "reference": "ABC_0002",
             "entry-date": "2024-01-02",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
     ]
 
@@ -433,7 +433,7 @@ def test_pipeline_lookup_phase(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2025-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
             "article-4-direction": "a4d1",
         }
     ]
@@ -481,7 +481,7 @@ def test_pipeline_lookup_phase_assign_reference_entity(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2025-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
             "article-4-direction": "a4d2",
         }
     ]

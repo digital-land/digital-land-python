@@ -166,7 +166,7 @@ class HarmonisePhase(Phase):
                     logger.error(
                         f"Exception occurred while fetching geoX, geoY coordinates: {e}"
                     )
-
+            # TODO need to identify why below exists and possibly remove
             # ensure typology fields are a CURIE
             for typology in ["organisation", "geography", "document"]:
                 value = o.get(typology, "")

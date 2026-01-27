@@ -28,6 +28,7 @@ def get_input_stream():
 def get_input_stream_with_linked_field():
     return [
         {
+            "organisation": "local-authorityabc",
             "row": {
                 "fact": "abc",
                 "entity": "10",
@@ -37,7 +38,7 @@ def get_input_stream_with_linked_field():
                 "reference": "a4d1",
                 "entry-number": 1,
                 "line-number": 2,
-            }
+            },
         }
     ]
 

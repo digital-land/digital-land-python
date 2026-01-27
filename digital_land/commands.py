@@ -959,6 +959,7 @@ def validate_and_add_data_input(
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
             plugin=endpoint["plugin"],
+            refill_todays_logs=True,
         )
         try:
             # log is already returned from fetch, but read from file if needed for verification

@@ -24,4 +24,8 @@ class OrganisationPhase(Phase):
                 self.issues.log_issue(
                     "organisation", "invalid organisation", organisation_value
                 )
+
+            # Store at block level for post-pivot lookups
+            block["organisation"] = row["organisation"]
+
             yield block

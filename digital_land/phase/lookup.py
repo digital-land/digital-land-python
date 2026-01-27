@@ -84,17 +84,8 @@ class LookupPhase(Phase):
                 organisation=organisation,
                 reference=reference,
             )
+            or self.lookup(prefix=prefix, reference=reference)
         )
-        if not entity:
-            # TBD this needs to specifically not match unless the organisation and other columns
-            # are empty in the lookups.csv probably isn't a change here.
-            # or by the CURIE
-            entity = self.lookup(prefix=prefix, reference=reference)
-
-            # When obtaining an entity number using only the prefix and reference, check if the
-            # lookup includes an associated organisation. If it does, do not use the entity number,
-            # as it is organisation specific.
-            entity = self.check_associated_organisation(entity)
 
         if entity and self.entity_range:
             if (
@@ -195,43 +186,44 @@ class FactLookupPhase(LookupPhase):
             reference = row.get("reference", "")
             entity_number = row.get("entity", "")
 
-            if not (prefix and reference and entity_number in self.reverse_lookups):
+            if not (prefix and reference and entity_number):
                 yield block
                 continue
-            value = self.reverse_lookups[entity_number]
 
-            if value:
-                organisation = value[-1].split(",")[-1]
-                find_entity = self.lookup(
-                    prefix=prefix,
-                    organisation=organisation,
-                    reference=reference,
-                )
-                if not find_entity:
-                    # TBD this needs to specifically not match unless the organisation and other columns
-                    # are empty in the lookups.csv probably isn't a change here.
-                    # or by the CURIE
-                    find_entity = self.lookup(prefix=prefix, reference=reference)
+            # Get organisation from block metadata (set by OrganisationPhase)
+            organisation = block.get("organisation", "").replace(
+                "local-authority-eng", "local-authority"
+            )
 
-                    # When obtaining an entity number using only the prefix and reference, check if the
-                    # lookup includes an associated organisation. If it does, do not use the entity number,
-                    # as it is organisation specific.
-                    find_entity = self.check_associated_organisation(find_entity)
+            find_entity = self.lookup(
+                prefix=prefix,
+                organisation=organisation,
+                reference=reference,
+            )
+            if not find_entity:
+                # TBD this needs to specifically not match unless the organisation and other columns
+                # are empty in the lookups.csv probably isn't a change here.
+                # or by the CURIE
+                find_entity = self.lookup(prefix=prefix, reference=reference)
 
-                if not find_entity or (
-                    str(find_entity) in self.redirect_lookups
-                    and int(self.redirect_lookups[str(find_entity)].get("status", 0))
-                    == 410
-                ):
-                    if self.odp_collections and prefix in self.odp_collections:
-                        self.issues.log_issue(
-                            prefix,
-                            "missing associated entity",
-                            reference,
-                            line_number=line_number,
-                        )
-                else:
-                    row[self.entity_field] = find_entity
+                # When obtaining an entity number using only the prefix and reference, check if the
+                # lookup includes an associated organisation. If it does, do not use the entity number,
+                # as it is organisation specific.
+                find_entity = self.check_associated_organisation(find_entity)
+
+            if not find_entity or (
+                str(find_entity) in self.redirect_lookups
+                and int(self.redirect_lookups[str(find_entity)].get("status", 0)) == 410
+            ):
+                if self.odp_collections and prefix in self.odp_collections:
+                    self.issues.log_issue(
+                        prefix,
+                        "missing associated entity",
+                        reference,
+                        line_number=line_number,
+                    )
+            else:
+                row[self.entity_field] = find_entity
             yield block
 
 
