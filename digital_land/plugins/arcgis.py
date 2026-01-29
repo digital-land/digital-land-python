@@ -11,7 +11,7 @@ def get(collector, url, log={}, plugin="arcgis"):
 
         response = dumper._request("GET", url)
         dumper.get_metadata()
-        log["status"] = str(response.status_code)
+        response_status = str(response.status_code)
 
         content = '{"type":"FeatureCollection","features":['
         sep = "\n"
@@ -23,6 +23,7 @@ def get(collector, url, log={}, plugin="arcgis"):
         content += "]}"
 
         content = str.encode(content)
+        log["status"] = response_status
 
     except Exception as exception:
         logging.warning(exception)

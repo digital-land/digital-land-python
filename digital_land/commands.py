@@ -19,7 +19,7 @@ import duckdb
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.check import duplicate_reference_check
 from digital_land.specification import Specification
-from digital_land.collect import Collector
+from digital_land.collect import Collector, FetchStatus
 from digital_land.collection import Collection, resource_path
 from digital_land.log import (
     DatasetResourceLog,
@@ -954,7 +954,7 @@ def validate_and_add_data_input(
     )
     endpoint_resource_info = {}
     for endpoint in endpoints:
-        status, log = collector.fetch(
+        fetch_status, log = collector.fetch(
             url=endpoint["endpoint-url"],
             endpoint=endpoint["endpoint"],
             end_date=endpoint["end-date"],
@@ -972,13 +972,16 @@ def validate_and_add_data_input(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
             )
             break
-
-        status = log.get("status", None)
-        # Raise exception if status is not 200
-        if not status or status != "200":
-            exception = log.get("exception", None)
+        log_status = log.get("status", None)
+        exception = log.get("exception", None)
+        if fetch_status not in [FetchStatus.OK, FetchStatus.ALREADY_FETCHED]:
             raise HTTPError(
-                f"Failed to collect from URL with status: {status if status else exception}"
+                f"Failed to collect from URL. fetch status: {fetch_status}, log status: {log_status}, exception: {exception}"
+            )
+        # Raise exception if status is not 200
+        if not log_status or log_status != "200":
+            raise HTTPError(
+                f"Failed to collect from URL with status: {log_status if log_status else exception}"
             )
 
         # Resource and path will only be printed if downloaded successfully but should only happen if status is 200
@@ -994,7 +997,7 @@ def validate_and_add_data_input(
                 resource_path,
             )
 
-        print(f"Log Status for {endpoint['endpoint']}: The status is {status}")
+        print(f"Log Status for {endpoint['endpoint']}: The status is {log_status}")
         endpoint_resource_info.update(
             {
                 "endpoint": endpoint["endpoint"],
