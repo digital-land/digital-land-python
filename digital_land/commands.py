@@ -261,6 +261,7 @@ def pipeline_run(
     concats = pipeline.concatenations(resource, endpoints=endpoints)
     patches = pipeline.patches(resource=resource, endpoints=endpoints)
     lookups = pipeline.lookups(resource=resource)
+    rule_lookups = pipeline.rule_lookups(resource=resource)
     default_fields = pipeline.default_fields(resource=resource, endpoints=endpoints)
     default_values = pipeline.default_values(endpoints=endpoints)
     combine_fields = pipeline.combine_fields(endpoints=endpoints)
@@ -356,6 +357,7 @@ def pipeline_run(
             issue_log=issue_log,
             operational_issue_log=operational_issue_log,
             entity_range=[entity_range_min, entity_range_max],
+            rule_lookups=rule_lookups,
         ),
         SavePhase(
             default_output_path("harmonised", input_path),
@@ -376,6 +378,7 @@ def pipeline_run(
             redirect_lookups=redirect_lookups,
             issue_log=issue_log,
             odp_collections=specification.get_odp_collections(),
+            rule_lookups=rule_lookups,
         ),
         FactPrunePhase(),
         SavePhase(

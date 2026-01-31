@@ -90,6 +90,7 @@ class Pipeline:
         self.concat = {}
         self.migrate = {}
         self.lookup = {}
+        self.rule_lookup = {}
         self.redirect_lookup = {}
 
         self.specification = specification
@@ -262,8 +263,28 @@ class Pipeline:
                 "local-authority-eng", "local-authority"
             )
 
+            entity = row.get("entity", "")
+            resource = row.get("resource", "")
+
+            # rows with no entity are treated as range-based rules
+            if (
+                not entity
+                and row.get("offset", "")
+                and row.get("entity-minimum", "")
+                and row.get("entity-maximum", "")
+            ):
+                rule = {
+                    "prefix": prefix,
+                    "organisation": organisation,
+                    "offset": int(row["offset"]),
+                    "entity-minimum": int(row.get("entity-minimum", 0)),
+                    "entity-maximum": int(row.get("entity-maximum", 0)),
+                }
+                self.rule_lookup.setdefault(resource, []).append(rule)
+                continue
+
             # composite key, ordered by specificity
-            resource_lookup = self.lookup.setdefault(row.get("resource", ""), {})
+            resource_lookup = self.lookup.setdefault(resource, {})
             resource_lookup[
                 lookup_key(
                     entry_number=entry_number,
@@ -271,7 +292,7 @@ class Pipeline:
                     reference=reference,
                     organisation=organisation,
                 )
-            ] = row["entity"]
+            ] = entity
 
     def load_redirect_lookup(self):
         for row in self.file_reader("old-entity.csv"):
@@ -403,6 +424,12 @@ class Pipeline:
         if resource:
             d.update(self.lookup.get(resource, {}))
         return d
+
+    def rule_lookups(self, resource=None):
+        rules = list(self.rule_lookup.get("", []))
+        if resource:
+            rules.extend(self.rule_lookup.get(resource, []))
+        return rules
 
     def redirect_lookups(self):
         return self.redirect_lookup

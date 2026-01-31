@@ -147,6 +147,105 @@ class TestLookupPhase:
 
         assert output[0]["row"]["entity"] == "10"
 
+    def test_rule_lookup_valid_match(self):
+        rule_lookups = [
+            {
+                "prefix": "dataset",
+                "organisation": "",
+                "offset": 1000,
+                "entity-minimum": 1000,
+                "entity-maximum": 4000,
+            }
+        ]
+        phase = LookupPhase(rule_lookups=rule_lookups)
+        result = phase.rule_lookup(prefix="dataset", reference="100")
+        assert result == "1100"
+
+    def test_rule_lookup_out_of_range(self):
+        rule_lookups = [
+            {
+                "prefix": "dataset",
+                "organisation": "",
+                "offset": 1000,
+                "entity-minimum": 2000,
+                "entity-maximum": 4000,
+            }
+        ]
+        phase = LookupPhase(rule_lookups=rule_lookups)
+        result = phase.rule_lookup(prefix="dataset", reference="100")
+        assert result == ""
+
+    def test_rule_lookup_non_integer_reference(self):
+        rule_lookups = [
+            {
+                "prefix": "dataset",
+                "organisation": "",
+                "offset": 1000,
+                "entity-minimum": 1000,
+                "entity-maximum": 4000,
+            }
+        ]
+        phase = LookupPhase(rule_lookups=rule_lookups)
+        result = phase.rule_lookup(prefix="dataset", reference="abc")
+        assert result == ""
+
+    def test_rule_lookup_no_matching_prefix(self):
+        rule_lookups = [
+            {
+                "prefix": "other-dataset",
+                "organisation": "",
+                "offset": 1000,
+                "entity-minimum": 1000,
+                "entity-maximum": 4000,
+            }
+        ]
+        phase = LookupPhase(rule_lookups=rule_lookups)
+        result = phase.rule_lookup(prefix="dataset", reference="100")
+        assert result == ""
+
+    def test_rule_lookup_with_organisation(self):
+        rule_lookups = [
+            {
+                "prefix": "dataset",
+                "organisation": "local-authority:ABC",
+                "offset": 1000,
+                "entity-minimum": 1000,
+                "entity-maximum": 4000,
+            }
+        ]
+        phase = LookupPhase(rule_lookups=rule_lookups)
+        result = phase.rule_lookup(
+            prefix="dataset", organisation="local-authority:ABC", reference="100"
+        )
+        assert result == "1100"
+        result = phase.rule_lookup(
+            prefix="dataset", organisation="local-authority:XYZ", reference="100"
+        )
+        assert result == ""
+
+    def test_rule_lookup_fallback_in_get_entity(self):
+        rule_lookups = [
+            {
+                "prefix": "dataset",
+                "organisation": "",
+                "offset": 1000,
+                "entity-minimum": 1000,
+                "entity-maximum": 4000,
+            }
+        ]
+        phase = LookupPhase(rule_lookups=rule_lookups)
+        phase.entity_field = "entity"
+        block = {
+            "row": {
+                "prefix": "dataset",
+                "reference": "100",
+                "organisation": "",
+            },
+            "entry-number": 1,
+        }
+        entity = phase.get_entity(block)
+        assert entity == "1100"
+
 
 class TestPrintLookupPhase:
     def test_process_does_not_produce_new_lookup(self, get_input_stream, get_lookup):
