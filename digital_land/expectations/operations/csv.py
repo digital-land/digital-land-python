@@ -52,7 +52,7 @@ def check_unique(conn, file_path: Path, field: str):
         field: the column name to check for uniqueness
     """
     result = conn.execute(
-        f'SELECT "{field}", COUNT(*) as cnt FROM read_csv_auto(\'{file_path}\') GROUP BY "{field}" HAVING cnt > 1'
+        f'SELECT "{field}", COUNT(*) as cnt FROM read_csv_auto(\'{file_path}\',all_varchar=true) GROUP BY "{field}" HAVING cnt > 1'
     ).fetchall()
 
     duplicates = [{"value": row[0], "count": row[1]} for row in result]

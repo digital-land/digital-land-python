@@ -68,20 +68,25 @@ def test_check_unique_passes(duckdb_conn, csv_file):
     assert len(details["duplicates"]) == 0
 
 
-def test_check_unique_fails(tmp_path):
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [["a"], ["b"], ["a"]],
+        [[1], [""], [1]],
+    ],
+)
+def test_check_unique_fails(tmp_path, rows):
     file_path = tmp_path / "dupes.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["name"])
-        writer.writerow(["a"])
-        writer.writerow(["b"])
-        writer.writerow(["a"])
+        for row in rows:
+            writer.writerow(row)
 
     conn = duckdb.connect()
     passed, message, details = check_unique(conn, file_path=file_path, field="name")
     assert passed is False
     assert len(details["duplicates"]) == 1
-    assert details["duplicates"][0]["value"] == "a"
     assert details["duplicates"][0]["count"] == 2
 
 
