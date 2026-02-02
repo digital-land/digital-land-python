@@ -14,6 +14,8 @@ demodata/
 .eggs
 *.gfs
 .venv
+/venv
+/local_testing
 .direnv
 var/cache
 /collection
