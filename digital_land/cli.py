@@ -462,6 +462,49 @@ def expectations_run_dataset_checkpoint(
     run_dataset_checkpoint(dataset, file_path, output_dir, config, organisations)
 
 
+@cli.command(
+    "expectations-csv-checkpoint",
+    short_help="runs data quality expectations against a CSV file using duckdb",
+)
+@click.option(
+    "--dataset",
+    type=click.STRING,
+    help="the dataset name for logging purposes",
+    required=True,
+)
+@click.option(
+    "--file-path",
+    type=click.Path(),
+    help="path to the CSV file to run expectations against",
+    required=True,
+)
+@click.option(
+    "--log-dir",
+    type=click.Path(),
+    help="directory to store expectation logs",
+    required=True,
+)
+@click.option(
+    "--rules",
+    type=click.STRING,
+    help="JSON string containing the list of expectation rules",
+    required=True,
+)
+def expectations_run_csv_checkpoint(
+    dataset,
+    file_path,
+    log_dir,
+    rules,
+):
+    import json
+
+    from digital_land.expectations.commands import run_csv_checkpoint
+
+    output_dir = Path(log_dir) / "expectation"
+    parsed_rules = json.loads(rules)
+    run_csv_checkpoint(dataset, file_path, output_dir, parsed_rules)
+
+
 @cli.command("retire-endpoints-and-sources")
 @config_collections_dir
 @click.argument("csv-path", nargs=1, type=click.Path())

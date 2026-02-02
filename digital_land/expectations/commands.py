@@ -1,4 +1,5 @@
 from .checkpoints.dataset import DatasetCheckpoint
+from .checkpoints.csv import CsvCheckpoint
 
 from digital_land.configuration.main import Config
 from digital_land.organisation import Organisation
@@ -29,3 +30,18 @@ def run_dataset_checkpoint(
     # TODO add failure on critical error back in
     if act_on_critical_error:
         checkpoint.act_on_critical_error()
+
+
+def run_csv_checkpoint(
+    dataset,
+    file_path,
+    output_dir,
+    rules,
+):
+    """
+    Run expectation rules against a CSV file using duckdb.
+    """
+    checkpoint = CsvCheckpoint(dataset, file_path)
+    checkpoint.load(rules)
+    checkpoint.run()
+    checkpoint.save(output_dir)
