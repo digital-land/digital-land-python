@@ -1,13 +1,21 @@
-def count_rows(conn, expected: int, comparison_rule: str = "greater_than"):
+from pathlib import Path
+
+
+def count_rows(
+    conn, file_path: Path, expected: int, comparison_rule: str = "greater_than"
+):
     """
-    Counts the number of rows in the loaded CSV data and compares against an expected value.
+    Counts the number of rows in the CSV and compares against an expected value.
 
     Args:
-        conn: duckdb connection with CSV loaded as 'csv_data' table
+        conn: duckdb connection
+        file_path: path to the CSV file
         expected: the expected row count
         comparison_rule: how to compare actual vs expected
     """
-    result = conn.execute("SELECT COUNT(*) FROM csv_data").fetchone()
+    result = conn.execute(
+        f"SELECT COUNT(*) FROM read_csv_auto('{file_path}')"
+    ).fetchone()
     actual = result[0]
 
     comparison_rules = {
@@ -34,16 +42,17 @@ def count_rows(conn, expected: int, comparison_rule: str = "greater_than"):
     return passed, message, details
 
 
-def check_unique(conn, field: str):
+def check_unique(conn, file_path: Path, field: str):
     """
     Checks that all values in a given field are unique.
 
     Args:
-        conn: duckdb connection with CSV loaded as 'csv_data' table
+        conn: duckdb connection
+        file_path: path to the CSV file
         field: the column name to check for uniqueness
     """
     result = conn.execute(
-        f'SELECT "{field}", COUNT(*) as cnt FROM csv_data GROUP BY "{field}" HAVING cnt > 1'
+        f'SELECT "{field}", COUNT(*) as cnt FROM read_csv_auto(\'{file_path}\') GROUP BY "{field}" HAVING cnt > 1'
     ).fetchall()
 
     duplicates = [{"value": row[0], "count": row[1]} for row in result]
@@ -63,20 +72,21 @@ def check_unique(conn, field: str):
     return passed, message, details
 
 
-def check_no_shared_values(conn, field_1: str, field_2: str):
+def check_no_shared_values(conn, file_path: Path, field_1: str, field_2: str):
     """
     Checks that no value appears in both field_1 and field_2.
 
     Args:
-        conn: duckdb connection with CSV loaded as 'csv_data' table
+        conn: duckdb connection
+        file_path: path to the CSV file
         field_1: the first column name
         field_2: the second column name
     """
     result = conn.execute(
         f"""
         SELECT DISTINCT a."{field_1}" as value
-        FROM csv_data a
-        WHERE a."{field_1}" IN (SELECT "{field_2}" FROM csv_data)
+        FROM read_csv_auto('{file_path}') a
+        WHERE a."{field_1}" IN (SELECT "{field_2}" FROM read_csv_auto('{file_path}'))
         AND a."{field_1}" IS NOT NULL AND a."{field_1}" != ''
         """
     ).fetchall()

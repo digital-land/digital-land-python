@@ -12,10 +12,6 @@ class CsvCheckpoint(BaseCheckpoint):
         self.dataset = dataset
         self.file_path = Path(file_path)
         self.log = ExpectationLog(dataset=dataset)
-        self.conn = duckdb.connect()
-        self.conn.execute(
-            f"CREATE TABLE csv_data AS SELECT * FROM read_csv_auto('{self.file_path}')"
-        )
 
     def operation_factory(self, operation_string: str):
         operation_map = {
@@ -47,28 +43,31 @@ class CsvCheckpoint(BaseCheckpoint):
             }
             self.expectations.append(expectation)
 
-    def run_expectation(self, expectation) -> tuple:
+    def run_expectation(self, conn, expectation) -> tuple:
         params = expectation["parameters"]
-        passed, msg, details = expectation["operation"](conn=self.conn, **params)
+        passed, msg, details = expectation["operation"](
+            conn=conn, file_path=self.file_path, **params
+        )
         return passed, msg, details
 
     def run(self):
-        for expectation in self.expectations:
-            passed, message, details = self.run_expectation(expectation)
-            self.log.add(
-                {
-                    "organisation": "",
-                    "name": expectation["name"],
-                    "passed": passed,
-                    "message": message,
-                    "details": details,
-                    "description": expectation["description"],
-                    "severity": expectation["severity"],
-                    "responsibility": expectation["responsibility"],
-                    "operation": expectation["operation"].__name__,
-                    "parameters": expectation["parameters"],
-                }
-            )
+        with duckdb.connect() as conn:
+            for expectation in self.expectations:
+                passed, message, details = self.run_expectation(conn, expectation)
+                self.log.add(
+                    {
+                        "organisation": "",
+                        "name": expectation["name"],
+                        "passed": passed,
+                        "message": message,
+                        "details": details,
+                        "description": expectation["description"],
+                        "severity": expectation["severity"],
+                        "responsibility": expectation["responsibility"],
+                        "operation": expectation["operation"].__name__,
+                        "parameters": expectation["parameters"],
+                    }
+                )
 
     def save(self, output_dir: Path):
         self.log.save_parquet(output_dir)
