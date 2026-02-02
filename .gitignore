@@ -15,7 +15,6 @@ demodata/
 *.gfs
 .venv
 /venv
-/local_testing
 .direnv
 var/cache
 /collection
@@ -38,3 +37,15 @@ docs/modules.rst
 # don't store data folder for use as storage for notebooks
 notebooks/data/
 notebooks/.ipynb_checkpoints
+
+# local_testing
+/local_testing/cache/
+/local_testing/converted/
+/local_testing/extracted/
+/local_testing/output/
+/local_testing/pipeline/
+/local_testing/polars_phases/
+/local_testing/raw/
+/local_testing/reports/
+/local_testing/specification/
+/local_testing/venv/
