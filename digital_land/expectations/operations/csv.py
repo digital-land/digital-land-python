@@ -1,6 +1,10 @@
 from pathlib import Path
 
 
+def _read_csv(file_path: Path) -> str:
+    return f"read_csv_auto('{str(file_path)}',all_varchar=true,delim=',',quote='\"',escape='\"')"
+
+
 def count_rows(
     conn, file_path: Path, expected: int, comparison_rule: str = "greater_than"
 ):
@@ -13,9 +17,7 @@ def count_rows(
         expected: the expected row count
         comparison_rule: how to compare actual vs expected
     """
-    result = conn.execute(
-        f"SELECT COUNT(*) FROM read_csv_auto('{file_path}')"
-    ).fetchone()
+    result = conn.execute(f"SELECT COUNT(*) FROM {_read_csv(file_path)}").fetchone()
     actual = result[0]
 
     comparison_rules = {
@@ -52,7 +54,7 @@ def check_unique(conn, file_path: Path, field: str):
         field: the column name to check for uniqueness
     """
     result = conn.execute(
-        f'SELECT "{field}", COUNT(*) as cnt FROM read_csv_auto(\'{file_path}\',all_varchar=true) GROUP BY "{field}" HAVING cnt > 1'
+        f'SELECT "{field}", COUNT(*) as cnt FROM {_read_csv(file_path)} GROUP BY "{field}" HAVING cnt > 1'
     ).fetchall()
 
     duplicates = [{"value": row[0], "count": row[1]} for row in result]
@@ -85,8 +87,8 @@ def check_no_shared_values(conn, file_path: Path, field_1: str, field_2: str):
     result = conn.execute(
         f"""
         SELECT DISTINCT a."{field_1}" as value
-        FROM read_csv_auto('{file_path}',all_varchar=true) a
-        WHERE a."{field_1}" IN (SELECT "{field_2}" FROM read_csv_auto('{file_path}',all_varchar=true))
+        FROM {_read_csv(file_path)} a
+        WHERE a."{field_1}" IN (SELECT "{field_2}" FROM {_read_csv(file_path)})
         AND a."{field_1}" IS NOT NULL AND a."{field_1}" != ''
         """
     ).fetchall()
