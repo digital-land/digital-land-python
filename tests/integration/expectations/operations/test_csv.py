@@ -85,13 +85,20 @@ def test_check_unique_fails(tmp_path):
     assert details["duplicates"][0]["count"] == 2
 
 
-def test_check_no_shared_values_passes(tmp_path):
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [["a", "x"], ["b", "y"]],
+        [["1", ""], ["2", "3"]],
+    ],
+)
+def test_check_no_shared_values_passes(tmp_path, rows):
     file_path = tmp_path / "no_shared.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["col1", "col2"])
-        writer.writerow(["a", "x"])
-        writer.writerow(["b", "y"])
+        for row in rows:
+            writer.writerow(row)
 
     conn = duckdb.connect()
     passed, message, details = check_no_shared_values(

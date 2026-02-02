@@ -85,8 +85,8 @@ def check_no_shared_values(conn, file_path: Path, field_1: str, field_2: str):
     result = conn.execute(
         f"""
         SELECT DISTINCT a."{field_1}" as value
-        FROM read_csv_auto('{file_path}') a
-        WHERE a."{field_1}" IN (SELECT "{field_2}" FROM read_csv_auto('{file_path}'))
+        FROM read_csv_auto('{file_path}',all_varchar=true) a
+        WHERE a."{field_1}" IN (SELECT "{field_2}" FROM read_csv_auto('{file_path}',all_varchar=true))
         AND a."{field_1}" IS NOT NULL AND a."{field_1}" != ''
         """
     ).fetchall()
