@@ -55,7 +55,7 @@ MANDATORY_FIELDS_DICT = {
     "developer-agreement-transaction": [
         "reference",
     ],
-    "infrastucture-funding-statement": [
+    "infrastructure-funding-statement": [
         "reference",
     ],
 }
