@@ -22,6 +22,7 @@ source_filenames = [
     "passenger-transport-executive.csv",
     "regional-park-authority.csv",
     "waste-authority.csv",
+    "local-authority-group.csv",
 ]
 
 
