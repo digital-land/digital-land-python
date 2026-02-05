@@ -217,6 +217,7 @@ class SqlitePackage(Package):
                     "expect|organisations",
                     "expect|parameters",
                     "expectation|parameters",
+                    "organisation|organisations"
                 ]:
                     parent_field = self.specification.field[field]["parent-field"]
                     join_table = "%s_%s" % (table, parent_field)
