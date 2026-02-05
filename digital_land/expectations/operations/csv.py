@@ -133,9 +133,9 @@ def check_no_overlapping_ranges(conn, file_path: Path, min_field: str, max_field
             b."{max_field}" as b_max
         FROM {_read_csv(file_path)} a
         JOIN {_read_csv(file_path)} b
-        ON CAST(a."{min_field}" AS INTEGER) < CAST(b."{min_field}" AS INTEGER)
-        WHERE CAST(a."{min_field}" AS INTEGER) <= CAST(b."{max_field}" AS INTEGER)
-        AND CAST(a."{max_field}" AS INTEGER) >= CAST(b."{min_field}" AS INTEGER)
+        ON CAST(a."{min_field}" AS BIGINT) < CAST(b."{min_field}" AS BIGINT)
+        WHERE CAST(a."{min_field}" AS BIGINT) <= CAST(b."{max_field}" AS BIGINT)
+        AND CAST(a."{max_field}" AS BIGINT) >= CAST(b."{min_field}" AS BIGINT)
         """
     ).fetchall()
 
