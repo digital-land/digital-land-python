@@ -145,14 +145,20 @@ def test_check_no_shared_values_ignores_empty(tmp_path):
     assert passed is True
 
 
-def test_check_no_overlapping_ranges_passes(tmp_path):
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [["1", "10"], ["11", "20"], ["21", "30"]],
+        [["3000000000", "3000000010"], ["3000000011", "3000000020"]],  # BIGINT values
+    ],
+)
+def test_check_no_overlapping_ranges_passes(tmp_path, rows):
     file_path = tmp_path / "ranges.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["min", "max"])
-        writer.writerow(["1", "10"])
-        writer.writerow(["11", "20"])
-        writer.writerow(["21", "30"])
+        for row in rows:
+            writer.writerow(row)
 
     conn = duckdb.connect()
     passed, message, details = check_no_overlapping_ranges(
