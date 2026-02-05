@@ -109,3 +109,51 @@ def check_no_shared_values(conn, file_path: Path, field_1: str, field_2: str):
     }
 
     return passed, message, details
+
+
+def check_no_overlapping_ranges(conn, file_path: Path, min_field: str, max_field: str):
+    """
+    Checks that no ranges overlap between rows.
+
+    Two ranges [a_min, a_max] and [b_min, b_max] overlap if:
+    a_min <= b_max AND a_max >= b_min
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file
+        min_field: the column name for the range minimum
+        max_field: the column name for the range maximum
+    """
+    result = conn.execute(
+        f"""
+        SELECT
+            a."{min_field}" as a_min,
+            a."{max_field}" as a_max,
+            b."{min_field}" as b_min,
+            b."{max_field}" as b_max
+        FROM {_read_csv(file_path)} a
+        JOIN {_read_csv(file_path)} b
+        ON CAST(a."{min_field}" AS INTEGER) < CAST(b."{min_field}" AS INTEGER)
+        WHERE CAST(a."{min_field}" AS INTEGER) <= CAST(b."{max_field}" AS INTEGER)
+        AND CAST(a."{max_field}" AS INTEGER) >= CAST(b."{min_field}" AS INTEGER)
+        """
+    ).fetchall()
+
+    overlaps = [
+        {"range_1": [row[0], row[1]], "range_2": [row[2], row[3]]} for row in result
+    ]
+
+    if len(overlaps) == 0:
+        passed = True
+        message = f"no overlapping ranges found between '{min_field}' and '{max_field}'"
+    else:
+        passed = False
+        message = f"there were {len(overlaps)} overlapping ranges found"
+
+    details = {
+        "min_field": min_field,
+        "max_field": max_field,
+        "overlaps": overlaps,
+    }
+
+    return passed, message, details

@@ -6,6 +6,7 @@ from digital_land.expectations.operations.csv import (
     count_rows,
     check_unique,
     check_no_shared_values,
+    check_no_overlapping_ranges,
 )
 
 
@@ -142,3 +143,55 @@ def test_check_no_shared_values_ignores_empty(tmp_path):
         conn, file_path=file_path, field_1="col1", field_2="col2"
     )
     assert passed is True
+
+
+def test_check_no_overlapping_ranges_passes(tmp_path):
+    file_path = tmp_path / "ranges.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["min", "max"])
+        writer.writerow(["1", "10"])
+        writer.writerow(["11", "20"])
+        writer.writerow(["21", "30"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_no_overlapping_ranges(
+        conn, file_path=file_path, min_field="min", max_field="max"
+    )
+    assert passed is True
+    assert len(details["overlaps"]) == 0
+
+
+def test_check_no_overlapping_ranges_fails(tmp_path):
+    file_path = tmp_path / "overlapping.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["min", "max"])
+        writer.writerow(["1", "15"])
+        writer.writerow(["10", "20"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_no_overlapping_ranges(
+        conn, file_path=file_path, min_field="min", max_field="max"
+    )
+    assert passed is False
+    assert len(details["overlaps"]) == 1
+    assert details["overlaps"][0]["range_1"] == ["1", "15"]
+    assert details["overlaps"][0]["range_2"] == ["10", "20"]
+
+
+def test_check_no_overlapping_ranges_adjacent_fails(tmp_path):
+    """Adjacent ranges sharing a boundary value (e.g. [1,10] and [10,20]) are overlapping."""
+    file_path = tmp_path / "adjacent.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["min", "max"])
+        writer.writerow(["1", "10"])
+        writer.writerow(["10", "20"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_no_overlapping_ranges(
+        conn, file_path=file_path, min_field="min", max_field="max"
+    )
+    assert passed is False
+    assert len(details["overlaps"]) == 1

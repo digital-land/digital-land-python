@@ -4,7 +4,12 @@ from pathlib import Path
 
 from .base import BaseCheckpoint
 from ..log import ExpectationLog
-from ..operations.csv import count_rows, check_unique, check_no_shared_values
+from ..operations.csv import (
+    count_rows,
+    check_unique,
+    check_no_shared_values,
+    check_no_overlapping_ranges,
+)
 
 
 class CsvCheckpoint(BaseCheckpoint):
@@ -18,6 +23,7 @@ class CsvCheckpoint(BaseCheckpoint):
             "count_rows": count_rows,
             "check_unique": check_unique,
             "check_no_shared_values": check_no_shared_values,
+            "check_no_overlapping_ranges": check_no_overlapping_ranges,
         }
         if operation_string not in operation_map:
             raise ValueError(
