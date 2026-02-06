@@ -39,7 +39,7 @@ def run_pipeline_transform(
 ):
     # Set up paths and parameters used in transform
     endpoints = ["d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"]
-    organisation = "test-org"
+    organisation = "test-org:test"
     organisation_path = os.path.join(test_dirs["cache_dir"], "organisation.csv")
 
     # Transform function requires a mocked lookup.csv and Organisation Class.
@@ -64,7 +64,7 @@ def run_pipeline_transform(
     write_csv_rows(os.path.join(test_dirs["pipeline_dir"], "lookup.csv"), lookup_rows)
 
     write_csv_rows(
-        organisation_path, [{"organisation": "test-org", "name": "Test Org"}]
+        organisation_path, [{"organisation": "test-org:test", "name": "Test Org"}]
     )
 
     specification = Specification(test_dirs["specification_dir"])
@@ -74,7 +74,7 @@ def run_pipeline_transform(
     issue_log = pipeline.transform(
         resource=resource,
         organisation=organisation,
-        organisations=["local-authority:test-org"],  # Essentially a providers list
+        organisations=["local-authority:test-org:test"],  # Essentially a providers list
         endpoints=endpoints,
         input_path=input_path,
         output_path=output_path,
@@ -112,12 +112,12 @@ def test_async_pipeline_run(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2024-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
         {
             "reference": "ABC_0002",
             "entry-date": "2024-01-02",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
     ]
     input_path = create_test_input_csv(test_dirs, resource, rows)
@@ -166,12 +166,12 @@ def test_pipeline_output_is_complete(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2024-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
         {
             "reference": "ABC_0002",
             "entry-date": "2024-01-02",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
     ]
 
@@ -218,12 +218,12 @@ def test_issue_log_creation(test_dirs):
         {
             "reference": "issue_log_test1",
             "entry-date": "2023-12-12",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
         {
             "reference": "issue_log_test2",
             "entry-date": "2024-01-02",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
     ]
 
@@ -256,12 +256,12 @@ def test_column_field_log_creation(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2024-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
         {
             "reference": "ABC_0002",
             "entry-date": "2024-01-02",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
         },
     ]
 
@@ -297,7 +297,7 @@ def test_pipeline_lookup_phase(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2025-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
             "article-4-direction": "a4d1",
         },
     ]
@@ -337,7 +337,7 @@ def test_pipeline_lookup_phase_assign_reference_entity(test_dirs):
         {
             "reference": "ABC_0001",
             "entry-date": "2025-01-01",
-            "organisation": "test-org",
+            "organisation": "test-org:test",
             "article-4-direction": "a4d2",
         },
     ]

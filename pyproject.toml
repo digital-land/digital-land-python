@@ -69,7 +69,7 @@ test = [
     "sphinx",
     "sphinx-autobuild",
     "sphinx_rtd_theme",
-    "black",
+    "black==24.8.0",
 ]
 
 notebook = [
