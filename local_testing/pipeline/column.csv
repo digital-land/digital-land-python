@@ -1,0 +1,11 @@
+dataset,resource,column,field
+title-boundary,,reference,reference
+title-boundary,,name,name
+title-boundary,,geometry,geometry
+title-boundary,,start-date,start-date
+title-boundary,,entry-date,entry-date
+title-boundary,,end-date,end-date
+title-boundary,,prefix,prefix
+title-boundary,,organisation,organisation
+title-boundary,,notes,notes
+title-boundary,,national-cadastral-reference,notes

@@ -43,7 +43,6 @@ notebooks/.ipynb_checkpoints
 /local_testing/converted/
 /local_testing/extracted/
 /local_testing/output/
-/local_testing/pipeline/
 /local_testing/polars_phases/
 /local_testing/raw/
 /local_testing/reports/
@@ -53,4 +52,4 @@ notebooks/.ipynb_checkpoints
 /local_testing/main.py
 /local_testing/pipeline_report.py
 /local_testing/pipeline_runner.py
-/local_testing/README.md
+
