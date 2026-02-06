@@ -45,6 +45,82 @@ class TestPipeLine:
         for key in p.lookup.keys():
             assert "local-authority-eng" not in key
 
+    def test_load_lookup_rule_with_all_fields(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "reference": "",
+                        "entity": "",
+                        "offset": "1000000",
+                        "entity-minimum": "1000000",
+                        "entity-maximum": "2000000",
+                        "resource": "",
+                    }
+                ]
+            else:
+                return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+
+        p = Pipeline("anything", "stuff")
+        rules = p.rule_lookups()
+        assert len(rules) == 1
+        assert rules[0]["offset"] == 1000000
+        assert rules[0]["entity-minimum"] == 1000000
+        assert rules[0]["entity-maximum"] == 2000000
+        assert rules[0]["prefix"] == "listed-building"
+
+    def test_load_lookup_rule_missing_entity_minimum(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "reference": "",
+                        "entity": "",
+                        "offset": "1000000",
+                        "entity-minimum": "",
+                        "entity-maximum": "2000000",
+                        "resource": "",
+                    }
+                ]
+            else:
+                return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+
+        p = Pipeline("anything", "stuff")
+        rules = p.rule_lookups()
+        assert len(rules) == 0
+
+    def test_load_lookup_rule_missing_entity_maximum(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "reference": "",
+                        "entity": "",
+                        "offset": "1000000",
+                        "entity-minimum": "1000000",
+                        "entity-maximum": "",
+                        "resource": "",
+                    }
+                ]
+            else:
+                return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+
+        p = Pipeline("anything", "stuff")
+        rules = p.rule_lookups()
+        assert len(rules) == 0
+
     def test_skip_patterns(self):
         p = Pipeline("tests/data/pipeline/", "pipeline-one")
         pattern = p.skip_patterns()
