@@ -245,6 +245,7 @@ def pipeline_run(
         config = None
 
     pipeline.config = config
+    pipeline.specification = specification
 
     # load organisations
     organisation = Organisation(
