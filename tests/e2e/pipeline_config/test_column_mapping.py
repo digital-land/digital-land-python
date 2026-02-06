@@ -138,7 +138,6 @@ def test_pipeline_run(test_dirs):
         input_path=input_path,
         output_path=output_path,
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
-        null_path=None,  # TBD: remove this
         issue_dir=issue_dir,
         operational_issue_dir=operational_issue_dir,
         organisation_path=organisation_path,
@@ -262,7 +261,6 @@ def test_pipeline_run_with_default_values(test_dirs):
         input_path=input_path,
         output_path=output_path,
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
-        null_path=None,  # TBD: remove this
         issue_dir=issue_dir,
         operational_issue_dir=operational_issue_dir,
         organisation_path=organisation_path,

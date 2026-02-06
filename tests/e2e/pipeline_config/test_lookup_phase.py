@@ -53,11 +53,11 @@ def test_pipeline_run(test_dirs):
         input_path=input_path,
         output_path=output_path,
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
-        null_path=None,  # TBD: remove this
         issue_dir=issue_dir,
         operational_issue_dir=operational_issues_dir,
         organisation_path=organisation_path,
         save_harmonised=False,
+        column_field_dir=test_dirs["column_field_dir"],
         dataset_resource_dir=dataset_resource_dir,
         converted_resource_dir=converted_resource_dir,
         endpoints=test_endpoints,
