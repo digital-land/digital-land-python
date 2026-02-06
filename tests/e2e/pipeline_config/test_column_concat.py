@@ -51,6 +51,7 @@ def test_dirs(tmp_path_factory):
         "concat_datasource-log", numbered=False
     )
     output_log_dir = tmp_path_factory.mktemp("concat_output-log", numbered=False)
+    column_field_dir = tmp_path_factory.mktemp("concat_column-field", numbered=False)
 
     output_dir = tmp_path_factory.mktemp("concat_output", numbered=False)
 
@@ -80,6 +81,7 @@ def test_dirs(tmp_path_factory):
         "datasource_log_dir": datasource_log_dir,
         "converted_resource_dir": converted_resource_dir,
         "output_log_dir": output_log_dir,
+        "column_field_dir": column_field_dir,
     }
 
 
@@ -344,11 +346,11 @@ def test_pipeline_run(test_dirs):
         input_path=input_path,
         output_path=output_path,
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
-        null_path=None,  # TBD: remove this
         issue_dir=issue_dir,
         operational_issue_dir=operational_issue_dir,
         organisation_path=organisation_path,
         save_harmonised=False,
+        column_field_dir=test_dirs["column_field_dir"],
         dataset_resource_dir=dataset_resource_dir,
         converted_resource_dir=converted_resource_dir,
         endpoints=test_endpoints,
