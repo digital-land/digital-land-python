@@ -52,6 +52,23 @@ Development requires Python 3.6.2 or later, we recommend using a [virtual enviro
     make
     python -m digital-land --help
 
+## Testing
+
+This repository follows a structured testing approach. See [TESTING.md](TESTING.md) for detailed testing guidelines and structure documentation.
+
+### Quick Test Commands
+
+```bash
+# Run all tests
+pytest
+
+# Run phase_polars tests
+pytest tests/unit/phase_polars/ tests/integration/phase_polars/
+
+# Run with coverage
+pytest --cov=digital_land
+```
+
 
 ## Commands Guide
 
