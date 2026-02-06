@@ -217,7 +217,7 @@ def test_issue_log_creation(test_dirs):
     rows = [
         {
             "reference": "issue_log_test1",
-            "entry-date": "2023-12-12",
+            "entry-date": "invalid-date",  # Invalid date to trigger an issue
             "organisation": "test-org:test",
         },
         {
