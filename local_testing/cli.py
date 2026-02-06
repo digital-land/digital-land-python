@@ -62,6 +62,11 @@ Examples:
             action="store_true",
             help="Run both original and Polars pipelines for performance comparison",
         )
+        parser.add_argument(
+            "--phases",
+            type=str,
+            help="Comma-separated phase numbers to run (e.g. '1,2,9' or '1-5,9')",
+        )
 
         return parser
 

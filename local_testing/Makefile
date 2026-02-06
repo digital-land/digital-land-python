@@ -1,4 +1,4 @@
-.PHONY: help init setup-dirs setup-spec check-spec list run fast compare test clean clean-all
+.PHONY: help init setup-dirs setup-spec check-spec list run run-all fast compare test clean clean-all
 
 PYTHON := venv/bin/python3
 PIP := venv/bin/pip
@@ -12,19 +12,22 @@ help:
 	@echo "  make setup-spec        Clone specification files from GitHub"
 	@echo "  make check-spec        Check if specification files exist"
 	@echo "  make list              List available Local Authorities"
-	@echo "  make run LA=Name       Process a Local Authority"
-	@echo "  make fast LA=Name      Process with DuckDB + Parquet"
-	@echo "  make compare LA=Name   Run original + Polars for comparison"
+	@echo "  make run LA=Name       Process with comparison (Original + Polars)"
+	@echo "  make run-all           Process ALL LAs with comparison"
+	@echo "  make fast LA=Name      DuckDB+Parquet with comparison"
 	@echo "  make test              Test all module imports"
 	@echo "  make clean             Remove generated data"
 	@echo "  make clean-all         Remove data + venv"
 	@echo ""
+	@echo "Note: All run commands automatically include Polars comparison"
+	@echo ""
 	@echo "Examples:"
 	@echo "  make init                              # Complete setup"
 	@echo "  make setup-spec                        # Clone specification if missing"
-	@echo "  make run LA=Buckinghamshire LIMIT=100"
-	@echo "  make fast LA=\"East Sussex\""
-	@echo "  make compare LA=Buckinghamshire LIMIT=1000"
+	@echo "  make run LA=Buckinghamshire LIMIT=100  # Compare both pipelines"
+	@echo "  make run LA=Buckinghamshire PHASES=1,2,9  # Run specific phases"
+	@echo "  make run-all LIMIT=100                 # Process all LAs with comparison"
+	@echo "  make fast LA=\"East Sussex\"             # Fast mode with comparison"
 
 setup-dirs:
 	@mkdir -p raw extracted converted output reports cache pipeline
@@ -74,11 +77,14 @@ list: venv
 
 run: venv
 	@test -n "$(LA)" || (echo "Error: make run LA=Name"; exit 1)
-	@$(PYTHON) main.py --la "$(LA)" $(if $(LIMIT),--limit $(LIMIT))
+	@$(PYTHON) main.py --la "$(LA)" --compare $(if $(LIMIT),--limit $(LIMIT)) $(if $(PHASES),--phases $(PHASES))
+
+run-all: venv
+	@$(PYTHON) run_all.py $(LIMIT)
 
 fast: venv
 	@test -n "$(LA)" || (echo "Error: make fast LA=Name"; exit 1)
-	@$(PYTHON) main.py --la "$(LA)" --use-duckdb --use-parquet $(if $(LIMIT),--limit $(LIMIT))
+	@$(PYTHON) main.py --la "$(LA)" --use-duckdb --use-parquet --compare $(if $(LIMIT),--limit $(LIMIT))
 
 compare: venv
 	@test -n "$(LA)" || (echo "Error: make compare LA=Name"; exit 1)
