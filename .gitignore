@@ -49,7 +49,3 @@ notebooks/.ipynb_checkpoints
 /local_testing/specification/
 /local_testing/venv/
 
-/local_testing/main.py
-/local_testing/pipeline_report.py
-/local_testing/pipeline_runner.py
-
