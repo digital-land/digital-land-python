@@ -314,9 +314,13 @@ class PipelineReport:
                     saved = phase.duration_seconds - polars_phase.duration_seconds
                     speedup_str = f"{speedup:.1f}x" if speedup != float("inf") else "∞"
 
-                    lines.append(
-                        f"{phase.phase_number:<3} {phase.name:<26} {phase.duration_seconds:>9.4f}s {polars_phase.duration_seconds:>9.4f}s {speedup_str:>9} {saved:>10.4f}s {phase.output_count:>10,} {polars_phase.output_count:>10,}"
+                    phase_line = (
+                        f"{phase.phase_number:<3} {phase.name:<26} "
+                        f"{phase.duration_seconds:>9.4f}s {polars_phase.duration_seconds:>9.4f}s "
+                        f"{speedup_str:>9} {saved:>10.4f}s {phase.output_count:>10,} "
+                        f"{polars_phase.output_count:>10,}"
                     )
+                    lines.append(phase_line)
 
                     total_original += phase.duration_seconds
                     total_polars += polars_phase.duration_seconds
