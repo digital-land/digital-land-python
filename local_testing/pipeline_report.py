@@ -282,9 +282,11 @@ class PipelineReport:
             lines.append("")
 
             # Header
-            lines.append(
-                f"{'#':<3} {'Phase Name':<26} {'Original':>11} {'Polars':>11} {'Speedup':>10} {'Time Saved':>12} {'Orig Out':>10} {'Polars Out':>10}"
+            header = (
+                f"{'#':<3} {'Phase Name':<26} {'Original':>11} {'Polars':>11} "
+                f"{'Speedup':>10} {'Time Saved':>12} {'Orig Out':>10} {'Polars Out':>10}"
             )
+            lines.append(header)
             lines.append("-" * 100)
 
             # Build lookup for Polars phases by name

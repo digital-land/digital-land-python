@@ -340,20 +340,20 @@ class GMLConverter:
             limit_clause = f"LIMIT {limit}" if limit else ""
 
             query = f"""
-                SELECT 
+                SELECT
                     INSPIREID as reference,
                     INSPIREID as name,
                     NATIONALCADASTRALREFERENCE as "national-cadastral-reference",
                     ST_AsText(ST_Transform(geom, 'EPSG:27700', 'EPSG:4326')) as geometry,
-                    CASE 
-                        WHEN VALIDFROM IS NOT NULL 
+                    CASE
+                        WHEN VALIDFROM IS NOT NULL
                         THEN strftime(CAST(VALIDFROM AS DATE), '%Y-%m-%d')
-                        ELSE NULL 
+                        ELSE NULL
                     END as "start-date",
-                    CASE 
-                        WHEN BEGINLIFESPANVERSION IS NOT NULL 
+                    CASE
+                        WHEN BEGINLIFESPANVERSION IS NOT NULL
                         THEN strftime(CAST(BEGINLIFESPANVERSION AS DATE), '%Y-%m-%d')
-                        ELSE NULL 
+                        ELSE NULL
                     END as "entry-date",
                     NULL as "end-date",
                     'title-boundary' as prefix,
@@ -452,20 +452,20 @@ class GMLConverter:
             limit_clause = f"LIMIT {limit}" if limit else ""
 
             query = f"""
-                SELECT 
+                SELECT
                     INSPIREID as reference,
                     INSPIREID as name,
                     NATIONALCADASTRALREFERENCE as "national-cadastral-reference",
                     ST_AsText(ST_Transform(geom, 'EPSG:27700', 'EPSG:4326')) as geometry,
-                    CASE 
-                        WHEN VALIDFROM IS NOT NULL 
+                    CASE
+                        WHEN VALIDFROM IS NOT NULL
                         THEN strftime(CAST(VALIDFROM AS DATE), '%Y-%m-%d')
-                        ELSE NULL 
+                        ELSE NULL
                     END as "start-date",
-                    CASE 
-                        WHEN BEGINLIFESPANVERSION IS NOT NULL 
+                    CASE
+                        WHEN BEGINLIFESPANVERSION IS NOT NULL
                         THEN strftime(CAST(BEGINLIFESPANVERSION AS DATE), '%Y-%m-%d')
-                        ELSE NULL 
+                        ELSE NULL
                     END as "entry-date",
                     NULL as "end-date",
                     'title-boundary' as prefix,

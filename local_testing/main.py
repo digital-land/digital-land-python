@@ -265,7 +265,7 @@ def main():
     # Run Polars pipeline for comparison if requested
     if args.compare:
         print("\n  Running Polars pipeline for comparison...")
-        from polars_phases import run_polars_pipeline, PolarsPhaseMetrics
+        from polars_phases import run_polars_pipeline
 
         # Define required parameters
         field_datatype_map = {"geometry": "text"}  # Simplified for now
@@ -350,7 +350,7 @@ def main():
     print(f"Fact Records: {report.fact_records:,}")
 
     if report.steps:
-        print(f"\nStep Summary:")
+        print("\nStep Summary:")
         for name, step in report.steps.items():
             status = "✓" if step.success else "✗"
             print(f"  {status} {name:<20} {step.duration_seconds:8.3f}s")

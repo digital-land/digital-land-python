@@ -8,7 +8,7 @@ with detailed timing and progress tracking.
 import time
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 
 from pipeline_config import PipelineConfig
 
@@ -148,7 +148,7 @@ class PipelineRunner:
 
             csv_input = input_csv.with_suffix(".csv")
             if not csv_input.exists():
-                print(f"  Converting Parquet to CSV for original pipeline...")
+                print("  Converting Parquet to CSV for original pipeline...")
                 pl.read_parquet(input_csv).write_csv(csv_input)
             input_csv = csv_input
 

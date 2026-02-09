@@ -23,7 +23,7 @@ def main():
     print("Fetching endpoint list...")
     endpoints = CLI.fetch_endpoint_list()
     print(f"Found {len(endpoints)} Local Authorities")
-    print(f"Running with Polars comparison enabled\n")
+    print("Running with Polars comparison enabled\n")
 
     success_count = 0
     error_count = 0
@@ -76,10 +76,10 @@ def main():
     if successful_times:
         print(f"  Min Time:        {min(successful_times):.1f}s")
         print(f"  Max Time:        {max(successful_times):.1f}s")
-    print(f"\n  Note: All LAs processed with both Original + Polars pipelines")
+    print("\n  Note: All LAs processed with both Original + Polars pipelines")
 
     if errors:
-        print(f"\nFailed Local Authorities:")
+        print("\nFailed Local Authorities:")
         for la in errors:
             print(f"  - {la}")
 
