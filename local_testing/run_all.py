@@ -59,9 +59,11 @@ def main():
 
     # Calculate batch metrics
     batch_duration = time.time() - batch_start
-    avg_duration = sum(t["duration"] for t in la_times) / len(la_times) if la_times else 0
+    avg_duration = (
+        sum(t["duration"] for t in la_times) / len(la_times) if la_times else 0
+    )
     successful_times = [t["duration"] for t in la_times if t["status"] == "success"]
-    
+
     # Summary
     print(f"\n{'='*60}")
     print("BATCH PROCESSING COMPLETE (with Polars Comparison)")
@@ -85,7 +87,7 @@ def main():
     reports_dir = Path(__file__).parent / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
+
     batch_report = {
         "batch_timestamp": timestamp,
         "total_las": len(endpoints),
@@ -96,13 +98,13 @@ def main():
         "polars_comparison_enabled": True,
         "limit": limit,
         "la_results": la_times,
-        "errors": errors
+        "errors": errors,
     }
-    
+
     batch_json = reports_dir / f"batch_{timestamp}_summary.json"
     with open(batch_json, "w") as f:
         json.dump(batch_report, f, indent=2)
-    
+
     print(f"\nBatch report saved: {batch_json}")
     print(f"{'='*60}\n")
 

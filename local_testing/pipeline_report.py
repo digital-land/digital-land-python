@@ -141,16 +141,22 @@ class PipelineReport:
         phases_to_output = self.phases
         polars_phases_to_output = self.polars_phases
         if self.selected_phases:
-            phases_to_output = [p for p in self.phases if p.phase_number in self.selected_phases]
-            polars_phases_to_output = [p for p in self.polars_phases if p.phase_number in self.selected_phases]
-        
+            phases_to_output = [
+                p for p in self.phases if p.phase_number in self.selected_phases
+            ]
+            polars_phases_to_output = [
+                p for p in self.polars_phases if p.phase_number in self.selected_phases
+            ]
+
         return {
             "run_id": self.run_id,
             "timestamp": self.timestamp,
             "local_authority": self.local_authority,
             "dataset": self.dataset,
             "record_limit": self.record_limit,
-            "selected_phases": list(sorted(self.selected_phases)) if self.selected_phases else None,
+            "selected_phases": (
+                list(sorted(self.selected_phases)) if self.selected_phases else None
+            ),
             "input_records": self.input_records,
             "harmonised_records": self.harmonised_records,
             "fact_records": self.fact_records,
@@ -269,7 +275,7 @@ class PipelineReport:
             lines.append("=" * 100)
             lines.append("PHASE-BY-PHASE COMPARISON: ORIGINAL vs POLARS")
             lines.append("=" * 100)
-            
+
             # Show phase selection info if applicable
             if self.selected_phases:
                 lines.append(f"Running selected phases: {sorted(self.selected_phases)}")
@@ -287,7 +293,9 @@ class PipelineReport:
             # Filter phases if selection is active
             phases_to_display = self.phases
             if self.selected_phases:
-                phases_to_display = [p for p in self.phases if p.phase_number in self.selected_phases]
+                phases_to_display = [
+                    p for p in self.phases if p.phase_number in self.selected_phases
+                ]
 
             total_original = 0.0
             total_polars = 0.0
@@ -339,12 +347,12 @@ class PipelineReport:
             lines.append("-" * 100)
             lines.append("ORIGINAL PIPELINE - PHASE TIMING (Row-by-Row)")
             lines.append("-" * 100)
-            
+
             # Show phase selection info if applicable
             if self.selected_phases:
                 lines.append(f"Running selected phases: {sorted(self.selected_phases)}")
                 lines.append("")
-            
+
             lines.append(
                 f"{'#':<4} {'Phase Name':<30} {'Duration':>12} {'% of Transform':>14} {'Output':>10}"
             )
@@ -353,7 +361,9 @@ class PipelineReport:
             # Filter phases if selection is active
             phases_to_display = self.phases
             if self.selected_phases:
-                phases_to_display = [p for p in self.phases if p.phase_number in self.selected_phases]
+                phases_to_display = [
+                    p for p in self.phases if p.phase_number in self.selected_phases
+                ]
 
             for phase in phases_to_display:
                 pct = (
@@ -375,12 +385,14 @@ class PipelineReport:
         lines.append("-" * 100)
         lines.append("TOP 5 SLOWEST PHASES (Original Pipeline)")
         lines.append("-" * 100)
-        
+
         # Filter phases for "top slowest" if selection is active
         phases_for_top5 = self.phases
         if self.selected_phases:
-            phases_for_top5 = [p for p in self.phases if p.phase_number in self.selected_phases]
-        
+            phases_for_top5 = [
+                p for p in self.phases if p.phase_number in self.selected_phases
+            ]
+
         sorted_phases = sorted(
             phases_for_top5, key=lambda x: x.duration_seconds, reverse=True
         )[:5]
@@ -404,7 +416,9 @@ class PipelineReport:
             # Filter phases for speedup calculation if selection is active
             phases_for_speedup = self.phases
             if self.selected_phases:
-                phases_for_speedup = [p for p in self.phases if p.phase_number in self.selected_phases]
+                phases_for_speedup = [
+                    p for p in self.phases if p.phase_number in self.selected_phases
+                ]
 
             polars_by_name = {p.name: p for p in self.polars_phases}
             speedups = []
@@ -465,13 +479,13 @@ class PipelineReport:
     def save_json(self, path: Path):
         """Save report as JSON file."""
         import json
-        
+
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
-    
+
     def save_text(self, path: Path):
         """Save report as text file."""
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write(self.generate_text_report())

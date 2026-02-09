@@ -35,10 +35,10 @@ DATASET = "title-boundary"
 def parse_phase_selection(phases_str: str) -> set:
     """
     Parse phase selection string into set of phase numbers.
-    
+
     Args:
         phases_str: Comma-separated phase numbers or ranges (e.g., "1,2,9" or "1-5,9")
-        
+
     Returns:
         Set of selected phase numbers, or None if invalid
     """
@@ -53,11 +53,11 @@ def parse_phase_selection(phases_str: str) -> set:
             else:
                 # Single phase: "9"
                 phases.add(int(part))
-        
+
         # Validate phase numbers (1-26)
         if any(p < 1 or p > 26 for p in phases):
             return None
-        
+
         return phases
     except (ValueError, AttributeError):
         return None
@@ -261,20 +261,20 @@ def main():
         fact_records=results["facts"],
         transform_time=results.get("transform_time", 0),
     )
-    
+
     # Run Polars pipeline for comparison if requested
     if args.compare:
         print("\n  Running Polars pipeline for comparison...")
         from polars_phases import run_polars_pipeline, PolarsPhaseMetrics
-        
+
         # Define required parameters
         field_datatype_map = {"geometry": "text"}  # Simplified for now
         intermediate_fieldnames = ["entity", "name", "geometry", "organisation"]
         factor_fieldnames = ["entity", "fact"]
-        
+
         polars_harmonised = output_dir / f"{la_name}_polars_harmonised.csv"
         polars_facts = output_dir / f"{la_name}_polars_facts.csv"
-        
+
         polars_start = time.time()
         polars_metrics, polars_harm_count, polars_fact_count = run_polars_pipeline(
             input_csv=output_path,
@@ -287,11 +287,12 @@ def main():
             selected_phases=selected_phases,  # Pass phase selection to Polars
         )
         polars_end = time.time()
-        
+
         # Store Polars metrics in report
         report.polars_phases = []
         for metric in polars_metrics:
             from pipeline_report import PhaseMetrics
+
             phase_metric = PhaseMetrics(
                 name=metric.name,
                 phase_number=metric.phase_number,
@@ -302,12 +303,16 @@ def main():
                 output_count=metric.output_count,
             )
             report.polars_phases.append(phase_metric)
-        
+
         report.polars_harmonised_records = polars_harm_count
         report.polars_fact_records = polars_fact_count
         report.polars_transform_seconds = polars_end - polars_start
-        
-        speedup = results.get("transform_time", 0) / report.polars_transform_seconds if report.polars_transform_seconds > 0 else 0
+
+        speedup = (
+            results.get("transform_time", 0) / report.polars_transform_seconds
+            if report.polars_transform_seconds > 0
+            else 0
+        )
         print(f"  Polars transform time: {report.polars_transform_seconds:.3f}s")
         print(f"  Speedup: {speedup:.1f}x faster")
 
