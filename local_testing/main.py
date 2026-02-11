@@ -266,6 +266,15 @@ def main():
     if args.compare:
         print("\n  Running Polars pipeline for comparison...")
         from polars_phases import run_polars_pipeline
+        import polars as pl
+
+        # Polars pipeline requires Parquet - convert CSV if needed
+        polars_input = output_path
+        if output_path.suffix.lower() == ".csv":
+            polars_input = output_path.with_suffix(".parquet")
+            if not polars_input.exists():
+                print(f"  Converting CSV to Parquet for Polars pipeline...")
+                pl.read_csv(output_path).write_parquet(polars_input)
 
         # Define required parameters
         field_datatype_map = {"geometry": "text"}  # Simplified for now
@@ -277,7 +286,7 @@ def main():
 
         polars_start = time.time()
         polars_metrics, polars_harm_count, polars_fact_count = run_polars_pipeline(
-            input_csv=output_path,
+            input_csv=polars_input,
             harmonised_csv=polars_harmonised,
             facts_csv=polars_facts,
             field_datatype_map=field_datatype_map,
