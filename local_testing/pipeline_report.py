@@ -289,8 +289,8 @@ class PipelineReport:
             lines.append(header)
             lines.append("-" * 100)
 
-            # Build lookup for Polars phases by name
-            polars_by_name = {p.name: p for p in self.polars_phases}
+            # Build lookup for Polars phases by phase number (not name, since names may differ)
+            polars_by_number = {p.phase_number: p for p in self.polars_phases}
 
             # Filter phases if selection is active
             phases_to_display = self.phases
@@ -304,7 +304,7 @@ class PipelineReport:
             total_saved = 0.0
 
             for phase in phases_to_display:
-                polars_phase = polars_by_name.get(phase.name)
+                polars_phase = polars_by_number.get(phase.phase_number)
                 if polars_phase:
                     if polars_phase.duration_seconds > 0:
                         speedup = phase.duration_seconds / polars_phase.duration_seconds
@@ -314,8 +314,18 @@ class PipelineReport:
                     saved = phase.duration_seconds - polars_phase.duration_seconds
                     speedup_str = f"{speedup:.1f}x" if speedup != float("inf") else "∞"
 
+                    # Show phase name(s) - if different, show "Original→Polars"
+                    if phase.name != polars_phase.name:
+                        phase_display = f"{phase.name}→{polars_phase.name}"
+                    else:
+                        phase_display = phase.name
+                    
+                    # Truncate if too long
+                    if len(phase_display) > 26:
+                        phase_display = phase_display[:23] + "..."
+
                     phase_line = (
-                        f"{phase.phase_number:<3} {phase.name:<26} "
+                        f"{phase.phase_number:<3} {phase_display:<26} "
                         f"{phase.duration_seconds:>9.4f}s {polars_phase.duration_seconds:>9.4f}s "
                         f"{speedup_str:>9} {saved:>10.4f}s {phase.output_count:>10,} "
                         f"{polars_phase.output_count:>10,}"
