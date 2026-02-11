@@ -29,9 +29,8 @@ class CLI:
             epilog="""
 Examples:
   python main.py                            # List available LAs
-  python main.py --la "Buckinghamshire"     # Process Buckinghamshire (Polars+Parquet)
+  python main.py --la "Buckinghamshire"     # Process Buckinghamshire (DuckDB+Parquet)
   python main.py --la "Buckinghamshire" --limit 100   # Limit to 100 records
-  python main.py --use-duckdb               # Use DuckDB for conversion (faster)
   python main.py --compare                  # Run both pipelines for comparison
             """,
         )
@@ -49,11 +48,6 @@ Examples:
         )
         parser.add_argument(
             "--list", action="store_true", help="List available Local Authorities"
-        )
-        parser.add_argument(
-            "--use-duckdb",
-            action="store_true",
-            help="Use DuckDB for GML conversion (faster, with coordinate transforms)",
         )
         parser.add_argument(
             "--compare",

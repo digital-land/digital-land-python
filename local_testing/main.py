@@ -5,6 +5,15 @@ Title Boundary Pipeline - Download, Convert, and Transform GML data from Land Re
 Orchestration script that coordinates multiple specialized classes.
 """
 
+# Configure GDAL BEFORE any imports (for corporate firewalls/Zscaler)
+import os
+os.environ['GML_SKIP_RESOLVE_ELEMS'] = 'ALL'
+os.environ['GML_SKIP_CORRUPTED_FEATURES'] = 'YES'
+os.environ['GDAL_DISABLE_READDIR_ON_OPEN'] = 'EMPTY_DIR'
+os.environ['CPL_VSIL_CURL_ALLOWED_EXTENSIONS'] = ''
+os.environ['GDAL_HTTP_ENABLED'] = 'NO'
+os.environ['CPL_CURL_VERBOSE'] = 'NO'
+
 import sys
 import time
 from pathlib import Path
@@ -178,23 +187,26 @@ def main():
     step_convert = report.add_step("Convert")
     converter = GMLConverter()
 
-    # Choose conversion method based on arguments
-    # Always output Parquet for optimal Polars pipeline performance
-    if args.use_duckdb:
-        method = "DuckDB+Parquet"
-        output_path = converted_dir / f"{la_slug}.parquet"
+    # Convert GML to Parquet - try DuckDB first (fastest), fall back to Polars
+    output_path = converted_dir / f"{la_slug}.parquet"
+    method_used = None
+    record_count = 0
+    
+    try:
         record_count = converter.convert_to_parquet_duckdb(
             gml_path, output_path, limit=args.limit
         )
-    else:
-        method = "Polars+Parquet"
-        output_path = converted_dir / f"{la_slug}.parquet"
+        method_used = "DuckDB+Parquet"
+    except Exception as e:
+        print(f"\n  DuckDB conversion failed: {e}")
+        print(f"  Falling back to Polars conversion (offline-compatible)...\n")
         record_count = converter.convert_to_parquet(
             gml_path, output_path, limit=args.limit
         )
+        method_used = "Polars+Parquet"
 
     step_convert.mark_complete(
-        success=record_count > 0, record_count=record_count, method=method
+        success=record_count > 0, record_count=record_count, method=method_used
     )
 
     if record_count == 0:
