@@ -7,12 +7,13 @@ Orchestration script that coordinates multiple specialized classes.
 
 # Configure GDAL BEFORE any imports (for corporate firewalls/Zscaler)
 import os
-os.environ['GML_SKIP_RESOLVE_ELEMS'] = 'ALL'
-os.environ['GML_SKIP_CORRUPTED_FEATURES'] = 'YES'
-os.environ['GDAL_DISABLE_READDIR_ON_OPEN'] = 'EMPTY_DIR'
-os.environ['CPL_VSIL_CURL_ALLOWED_EXTENSIONS'] = ''
-os.environ['GDAL_HTTP_ENABLED'] = 'NO'
-os.environ['CPL_CURL_VERBOSE'] = 'NO'
+
+os.environ["GML_SKIP_RESOLVE_ELEMS"] = "ALL"
+os.environ["GML_SKIP_CORRUPTED_FEATURES"] = "YES"
+os.environ["GDAL_DISABLE_READDIR_ON_OPEN"] = "EMPTY_DIR"
+os.environ["CPL_VSIL_CURL_ALLOWED_EXTENSIONS"] = ""
+os.environ["GDAL_HTTP_ENABLED"] = "NO"
+os.environ["CPL_CURL_VERBOSE"] = "NO"
 
 import sys
 import time
@@ -191,7 +192,7 @@ def main():
     output_path = converted_dir / f"{la_slug}.parquet"
     method_used = None
     record_count = 0
-    
+
     try:
         record_count = converter.convert_to_parquet_duckdb(
             gml_path, output_path, limit=args.limit

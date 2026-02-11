@@ -319,7 +319,7 @@ class PipelineReport:
                         phase_display = f"{phase.name}→{polars_phase.name}"
                     else:
                         phase_display = phase.name
-                    
+
                     # Truncate if too long
                     if len(phase_display) > 26:
                         phase_display = phase_display[:23] + "..."
