@@ -10,7 +10,7 @@ The pipeline uses a **clean modular architecture** with 8 specialized classes:
 1. **CLI** (121 lines) - Command-line interface and argument parsing
 2. **FileDownloader** (95 lines) - Downloads GML files from data sources
 3. **GMLExtractor** (50 lines) - Extracts GML from ZIP archives
-4. **GMLConverter** (458 lines) - Converts GML to CSV/Parquet (4 strategies)
+4. **GMLConverter** (458 lines) - Converts GML to Parquet (2 strategies)
 5. **PipelineConfig** (93 lines) - Manages pipeline configuration files
 6. **PipelineRunner** (254 lines) - Executes 26-phase digital-land transformation
 7. **PipelineReport** (346 lines) - Performance tracking and reporting
@@ -106,8 +106,8 @@ python main.py --la "Buckinghamshire" --limit 100
 # Skip download if already have the file
 python main.py --la "Buckinghamshire" --skip-download
 
-# Use DuckDB with Parquet for best performance
-python main.py --la "Buckinghamshire" --use-duckdb --use-parquet
+# Use DuckDB for best performance (all methods output Parquet)
+python main.py --la "Buckinghamshire" --use-duckdb
 ```
 
 ## What It Does
@@ -116,7 +116,7 @@ The pipeline performs 5 steps:
 
 1. **Download** (FileDownloader) - Fetches data files from source API
 2. **Extract** (GMLExtractor) - Unzips and locates GML files  
-3. **Convert** (GMLConverter) - Parses GML and converts to CSV/Parquet (4 methods available)
+3. **Convert** (GMLConverter) - Parses GML and converts to Parquet (2 methods available)
 4. **Transform** (PipelineRunner) - Runs full 26-phase digital-land pipeline
 5. **Report** (PipelineReport) - Generates performance report (JSON + text)
 
@@ -141,7 +141,7 @@ local_testing/
 ├── venv/                # Virtual environment (created with: make init)
 ├── raw/                 # Downloaded ZIP files
 ├── extracted/           # Extracted GML files
-├── converted/           # GML converted to CSV/Parquet
+├── converted/           # GML converted to Parquet
 ├── output/              # Pipeline output (harmonised + facts)
 ├── reports/             # Performance reports
 ├── cache/               # Organisation.csv cache
@@ -169,13 +169,11 @@ local_testing/
 - Simple, focused responsibility
 
 ### GMLConverter (`gml_converter.py`)
-- **4 conversion strategies**:
-  1. Regex → CSV (default, no dependencies)
-  2. Regex → Parquet (Polars)
-  3. DuckDB → CSV (spatial extension)
-  4. DuckDB → Parquet (fastest, best)
+- **2 Parquet-only conversion strategies**:
+  1. Polars → Parquet (regex parsing, default)
+  2. DuckDB → Parquet (fastest, with spatial transforms)
 - Parses GML polygons to WKT
-- Handles coordinate transformation
+- Optimized for Polars pipeline performance
 
 ### PipelineConfig (`pipeline_config.py`)
 - Creates pipeline configuration CSVs

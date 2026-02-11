@@ -172,36 +172,26 @@ def main():
     # =========================================================================
     # Step 3: Convert - use GMLConverter class
     # =========================================================================
-    output_format = "Parquet" if args.use_parquet else "CSV"
-    print(f"\nStep 3: Convert GML to {output_format}")
+    print(f"\nStep 3: Convert GML to Parquet")
     print("-" * 40)
 
     step_convert = report.add_step("Convert")
     converter = GMLConverter()
 
     # Choose conversion method based on arguments
-    if args.use_duckdb and args.use_parquet:
+    # Always output Parquet for optimal Polars pipeline performance
+    if args.use_duckdb:
         method = "DuckDB+Parquet"
         output_path = converted_dir / f"{la_slug}.parquet"
         record_count = converter.convert_to_parquet_duckdb(
             gml_path, output_path, limit=args.limit
         )
-    elif args.use_duckdb:
-        method = "DuckDB+CSV"
-        output_path = converted_dir / f"{la_slug}.csv"
-        record_count = converter.convert_to_csv_duckdb(
-            gml_path, output_path, limit=args.limit
-        )
-    elif args.use_parquet:
+    else:
         method = "Polars+Parquet"
         output_path = converted_dir / f"{la_slug}.parquet"
         record_count = converter.convert_to_parquet(
             gml_path, output_path, limit=args.limit
         )
-    else:
-        method = "Polars+CSV"
-        output_path = converted_dir / f"{la_slug}.csv"
-        record_count = converter.convert_to_csv(gml_path, output_path, limit=args.limit)
 
     step_convert.mark_complete(
         success=record_count > 0, record_count=record_count, method=method

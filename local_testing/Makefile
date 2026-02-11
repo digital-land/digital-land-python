@@ -12,9 +12,9 @@ help:
 	@echo "  make setup-spec        Clone specification files from GitHub"
 	@echo "  make check-spec        Check if specification files exist"
 	@echo "  make list              List available Local Authorities"
-	@echo "  make run LA=Name       Process with comparison (Original + Polars)"
+	@echo "  make run LA=Name       Process with comparison (Polars+Parquet)"
 	@echo "  make run-all           Process ALL LAs with comparison"
-	@echo "  make fast LA=Name      DuckDB+Parquet with comparison"
+	@echo "  make fast LA=Name      DuckDB+Parquet with comparison (fastest)"
 	@echo "  make test              Test all module imports"
 	@echo "  make clean             Remove generated data"
 	@echo "  make clean-all         Remove data + venv"
@@ -84,7 +84,7 @@ run-all: venv
 
 fast: venv
 	@test -n "$(LA)" || (echo "Error: make fast LA=Name"; exit 1)
-	@$(PYTHON) main.py --la "$(LA)" --use-duckdb --use-parquet --compare $(if $(LIMIT),--limit $(LIMIT))
+	@$(PYTHON) main.py --la "$(LA)" --use-duckdb --compare $(if $(LIMIT),--limit $(LIMIT))
 
 compare: venv
 	@test -n "$(LA)" || (echo "Error: make compare LA=Name"; exit 1)

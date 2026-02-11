@@ -1,20 +1,20 @@
 """
 GML converter for title-boundary datasets.
 
-Provides multiple conversion strategies:
-- Regex-based CSV conversion
-- Polars-based Parquet conversion
-- DuckDB-based conversion (fastest, with spatial transforms)
+Provides Parquet conversion strategies optimized for performance:
+- Polars-based Parquet conversion (regex parsing, good compatibility)
+- DuckDB-based Parquet conversion (fastest, with spatial transforms)
+
+All methods output Parquet format for optimal performance with the Polars pipeline.
 """
 
-import csv
 import re
 from pathlib import Path
 from typing import Optional
 
 
 class GMLConverter:
-    """Converts GML files to CSV/Parquet with multiple strategies."""
+    """Converts GML files to Parquet format with multiple strategies."""
 
     @staticmethod
     def extract_polygon_wkt(geometry_text: str) -> str:
@@ -88,111 +88,7 @@ class GMLConverter:
         match = re.search(pattern, text)
         return match.group(1) if match else ""
 
-    def convert_to_csv(
-        self, gml_path: Path, csv_path: Path, limit: Optional[int] = None
-    ) -> int:
-        """
-        Convert GML file to CSV format using regex parsing.
 
-        This is the baseline method - slower but doesn't require external dependencies.
-
-        Args:
-            gml_path: Path to input GML file
-            csv_path: Path to output CSV file
-            limit: Optional limit on number of records to convert
-
-        Returns:
-            Number of records converted
-        """
-        print(f"  Converting GML to CSV...")
-        print(f"  Input:  {gml_path}")
-        print(f"  Output: {csv_path}")
-
-        size_mb = gml_path.stat().st_size / (1024 * 1024)
-        print(f"  GML size: {size_mb:.1f} MB")
-
-        with open(gml_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Find all cadastral parcel elements
-        pattern = r"<LR:PREDEFINED[^>]*>(.*?)</LR:PREDEFINED>"
-        matches = re.findall(pattern, content, re.DOTALL)
-        total_features = len(matches)
-        print(f"  Found {total_features} cadastral parcels")
-
-        if limit:
-            print(f"  Limiting to {limit} records")
-
-        fieldnames = [
-            "reference",
-            "name",
-            "national-cadastral-reference",
-            "geometry",
-            "start-date",
-            "entry-date",
-            "end-date",
-            "prefix",
-            "organisation",
-            "notes",
-        ]
-
-        csv_path.parent.mkdir(parents=True, exist_ok=True)
-        count = 0
-
-        with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(
-                csvfile, fieldnames=fieldnames, extrasaction="ignore"
-            )
-            writer.writeheader()
-
-            for match in matches:
-                feature = {}
-
-                inspire_id = self.extract_field(match, "INSPIREID")
-                if inspire_id:
-                    feature["reference"] = inspire_id
-                    feature["name"] = inspire_id
-
-                ncr = self.extract_field(match, "NATIONALCADASTRALREFERENCE")
-                if ncr:
-                    feature["national-cadastral-reference"] = ncr
-
-                valid_from = self.extract_field(match, "VALIDFROM")
-                if valid_from:
-                    feature["start-date"] = (
-                        valid_from.split("T")[0] if "T" in valid_from else valid_from
-                    )
-
-                begin_lifespan = self.extract_field(match, "BEGINLIFESPANVERSION")
-                if begin_lifespan:
-                    feature["entry-date"] = (
-                        begin_lifespan.split("T")[0]
-                        if "T" in begin_lifespan
-                        else begin_lifespan
-                    )
-
-                geometry_match = re.search(
-                    r"<LR:GEOMETRY>(.*?)</LR:GEOMETRY>", match, re.DOTALL
-                )
-                if geometry_match:
-                    wkt = self.extract_polygon_wkt(geometry_match.group(1))
-                    if wkt:
-                        feature["geometry"] = wkt
-
-                if "reference" in feature:
-                    feature["prefix"] = "title-boundary"
-                    feature["organisation"] = "government-organisation:D2"
-                    writer.writerow(feature)
-                    count += 1
-
-                    if count % 5000 == 0:
-                        print(f"    Converted {count}/{total_features} features...")
-
-                    if limit and count >= limit:
-                        break
-
-        print(f"  Converted {count} records to CSV")
-        return count
 
     def convert_to_parquet(
         self, gml_path: Path, parquet_path: Path, limit: Optional[int] = None
@@ -200,8 +96,8 @@ class GMLConverter:
         """
         Convert GML file to Parquet format using regex parsing + Polars.
 
-        Parquet is faster to read than CSV and preserves data types.
-        Falls back to CSV if Polars is not installed.
+        Parquet preserves data types and is optimized for the Polars pipeline.
+        Requires Polars to be installed.
 
         Args:
             gml_path: Path to input GML file
@@ -214,10 +110,9 @@ class GMLConverter:
         try:
             import polars as pl
         except ImportError:
-            print("  Polars not installed. Install with: pip install polars")
-            print("  Falling back to CSV...")
-            csv_path = parquet_path.with_suffix(".csv")
-            return self.convert_to_csv(gml_path, csv_path, limit)
+            raise ImportError(
+                "Polars is required for GML conversion. Install with: pip install polars"
+            )
 
         print(f"  Converting GML to Parquet...")
         print(f"  Input:  {gml_path}")
@@ -392,113 +287,4 @@ class GMLConverter:
             print("  Falling back to Polars-based converter...")
             return self.convert_to_parquet(gml_path, parquet_path, limit)
 
-    def convert_to_csv_duckdb(
-        self, gml_path: Path, csv_path: Path, limit: Optional[int] = None
-    ) -> int:
-        """
-        Convert GML file to CSV format using DuckDB with spatial extension.
 
-        This is significantly faster than regex parsing and properly handles:
-        - Coordinate transformations (OSGB EPSG:27700 to WGS84 EPSG:4326)
-        - Complex geometries (multi-polygons, holes)
-        - Large files with streaming
-
-        Note: For even better performance, use convert_to_parquet_duckdb() instead.
-        Falls back to regex-based converter if DuckDB is not available.
-
-        Args:
-            gml_path: Path to input GML file
-            csv_path: Path to output CSV file
-            limit: Optional limit on number of records to convert
-
-        Returns:
-            Number of records converted
-        """
-        try:
-            import duckdb
-        except ImportError:
-            print("  DuckDB not installed. Install with: pip install duckdb")
-            print("  Falling back to regex-based converter...")
-            return self.convert_to_csv(gml_path, csv_path, limit)
-
-        print(f"  Converting GML to CSV using DuckDB...")
-        print(f"  Input:  {gml_path}")
-        print(f"  Output: {csv_path}")
-
-        size_mb = gml_path.stat().st_size / (1024 * 1024)
-        print(f"  GML size: {size_mb:.1f} MB")
-
-        csv_path.parent.mkdir(parents=True, exist_ok=True)
-
-        try:
-            # Create DuckDB connection and load spatial extension
-            con = duckdb.connect()
-            try:
-                con.execute("INSTALL spatial; LOAD spatial;")
-                print("  Loaded DuckDB spatial extension")
-            except Exception as ext_err:
-                print(f"  Failed to load spatial extension: {ext_err}")
-                print("  This may be a network issue. Try running:")
-                print(
-                    "    python -c \"import duckdb; duckdb.connect().execute('INSTALL spatial')\""
-                )
-                print("  Falling back to regex-based converter...")
-                con.close()
-                return self.convert_to_csv(gml_path, csv_path, limit)
-
-            # Read GML file using ST_Read (GDAL-based)
-            print("  Reading GML file...")
-
-            limit_clause = f"LIMIT {limit}" if limit else ""
-
-            query = f"""
-                SELECT
-                    INSPIREID as reference,
-                    INSPIREID as name,
-                    NATIONALCADASTRALREFERENCE as "national-cadastral-reference",
-                    ST_AsText(ST_Transform(geom, 'EPSG:27700', 'EPSG:4326')) as geometry,
-                    CASE
-                        WHEN VALIDFROM IS NOT NULL
-                        THEN strftime(CAST(VALIDFROM AS DATE), '%Y-%m-%d')
-                        ELSE NULL
-                    END as "start-date",
-                    CASE
-                        WHEN BEGINLIFESPANVERSION IS NOT NULL
-                        THEN strftime(CAST(BEGINLIFESPANVERSION AS DATE), '%Y-%m-%d')
-                        ELSE NULL
-                    END as "entry-date",
-                    NULL as "end-date",
-                    'title-boundary' as prefix,
-                    'government-organisation:D2' as organisation,
-                    NULL as notes
-                FROM ST_Read('{gml_path}')
-                WHERE INSPIREID IS NOT NULL
-                {limit_clause}
-            """
-
-            # Execute and get count first
-            count_query = f"SELECT COUNT(*) FROM ST_Read('{gml_path}')"
-            total_count = con.execute(count_query).fetchone()[0]
-            print(f"  Found {total_count:,} cadastral parcels")
-
-            if limit:
-                print(f"  Limiting to {limit} records")
-
-            # Export directly to CSV
-            print("  Transforming and writing to CSV...")
-            con.execute(f"COPY ({query}) TO '{csv_path}' (HEADER, DELIMITER ',')")
-
-            # Count output rows
-            result_count = con.execute(
-                f"SELECT COUNT(*) FROM read_csv('{csv_path}')"
-            ).fetchone()[0]
-
-            con.close()
-
-            print(f"  Converted {result_count:,} records to CSV")
-            return result_count
-
-        except Exception as e:
-            print(f"  DuckDB conversion failed: {e}")
-            print("  Falling back to regex-based converter...")
-            return self.convert_to_csv(gml_path, csv_path, limit)
