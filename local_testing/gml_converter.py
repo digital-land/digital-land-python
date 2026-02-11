@@ -194,7 +194,7 @@ class GMLConverter:
         Convert GML file to Parquet format using DuckDB with spatial extension.
 
         This is the fastest method - DuckDB reads GML directly and writes Parquet.
-        Falls back to Polars-based converter if DuckDB is not available.
+        Requires DuckDB with spatial extension to be installed.
 
         Args:
             gml_path: Path to input GML file
@@ -203,13 +203,12 @@ class GMLConverter:
 
         Returns:
             Number of records converted
+
+        Raises:
+            ImportError: If DuckDB is not installed
+            Exception: If spatial extension cannot be loaded or conversion fails
         """
-        try:
-            import duckdb
-        except ImportError:
-            print("  DuckDB not installed. Install with: pip install duckdb")
-            print("  Falling back to Polars-based converter...")
-            return self.convert_to_parquet(gml_path, parquet_path, limit)
+        import duckdb
 
         print(f"  Converting GML to Parquet using DuckDB...")
         print(f"  Input:  {gml_path}")
@@ -220,71 +219,59 @@ class GMLConverter:
 
         parquet_path.parent.mkdir(parents=True, exist_ok=True)
 
-        try:
-            con = duckdb.connect()
-            try:
-                con.execute("INSTALL spatial; LOAD spatial;")
-                print("  Loaded DuckDB spatial extension")
-            except Exception as ext_err:
-                print(f"  Failed to load spatial extension: {ext_err}")
-                print("  Falling back to Polars-based converter...")
-                con.close()
-                return self.convert_to_parquet(gml_path, parquet_path, limit)
+        con = duckdb.connect()
+        con.execute("INSTALL spatial; LOAD spatial;")
+        print("  Loaded DuckDB spatial extension")
 
-            print("  Reading GML file...")
-            limit_clause = f"LIMIT {limit}" if limit else ""
+        print("  Reading GML file...")
+        limit_clause = f"LIMIT {limit}" if limit else ""
 
-            query = f"""
-                SELECT
-                    INSPIREID as reference,
-                    INSPIREID as name,
-                    NATIONALCADASTRALREFERENCE as "national-cadastral-reference",
-                    ST_AsText(ST_Transform(geom, 'EPSG:27700', 'EPSG:4326')) as geometry,
-                    CASE
-                        WHEN VALIDFROM IS NOT NULL
-                        THEN strftime(CAST(VALIDFROM AS DATE), '%Y-%m-%d')
-                        ELSE NULL
-                    END as "start-date",
-                    CASE
-                        WHEN BEGINLIFESPANVERSION IS NOT NULL
-                        THEN strftime(CAST(BEGINLIFESPANVERSION AS DATE), '%Y-%m-%d')
-                        ELSE NULL
-                    END as "entry-date",
-                    NULL as "end-date",
-                    'title-boundary' as prefix,
-                    'government-organisation:D2' as organisation,
-                    NULL as notes
-                FROM ST_Read('{gml_path}')
-                WHERE INSPIREID IS NOT NULL
-                {limit_clause}
-            """
+        query = f"""
+            SELECT
+                INSPIREID as reference,
+                INSPIREID as name,
+                NATIONALCADASTRALREFERENCE as "national-cadastral-reference",
+                ST_AsText(ST_Transform(geom, 'EPSG:27700', 'EPSG:4326')) as geometry,
+                CASE
+                    WHEN VALIDFROM IS NOT NULL
+                    THEN strftime(CAST(VALIDFROM AS DATE), '%Y-%m-%d')
+                    ELSE NULL
+                END as "start-date",
+                CASE
+                    WHEN BEGINLIFESPANVERSION IS NOT NULL
+                    THEN strftime(CAST(BEGINLIFESPANVERSION AS DATE), '%Y-%m-%d')
+                    ELSE NULL
+                END as "entry-date",
+                NULL as "end-date",
+                'title-boundary' as prefix,
+                'government-organisation:D2' as organisation,
+                NULL as notes
+            FROM ST_Read('{gml_path}')
+            WHERE INSPIREID IS NOT NULL
+            {limit_clause}
+        """
 
-            count_query = f"SELECT COUNT(*) FROM ST_Read('{gml_path}')"
-            total_count = con.execute(count_query).fetchone()[0]
-            print(f"  Found {total_count:,} cadastral parcels")
+        count_query = f"SELECT COUNT(*) FROM ST_Read('{gml_path}')"
+        total_count = con.execute(count_query).fetchone()[0]
+        print(f"  Found {total_count:,} cadastral parcels")
 
-            if limit:
-                print(f"  Limiting to {limit} records")
+        if limit:
+            print(f"  Limiting to {limit} records")
 
-            # Export directly to Parquet (much faster than CSV)
-            print("  Transforming and writing to Parquet...")
-            con.execute(
-                f"COPY ({query}) TO '{parquet_path}' (FORMAT PARQUET, COMPRESSION 'snappy')"
-            )
+        # Export directly to Parquet (much faster than CSV)
+        print("  Transforming and writing to Parquet...")
+        con.execute(
+            f"COPY ({query}) TO '{parquet_path}' (FORMAT PARQUET, COMPRESSION 'snappy')"
+        )
 
-            # Count output rows
-            result_count = con.execute(
-                f"SELECT COUNT(*) FROM read_parquet('{parquet_path}')"
-            ).fetchone()[0]
+        # Count output rows
+        result_count = con.execute(
+            f"SELECT COUNT(*) FROM read_parquet('{parquet_path}')"
+        ).fetchone()[0]
 
-            con.close()
+        con.close()
 
-            print(f"  Converted {result_count:,} records to Parquet")
-            return result_count
-
-        except Exception as e:
-            print(f"  DuckDB conversion failed: {e}")
-            print("  Falling back to Polars-based converter...")
-            return self.convert_to_parquet(gml_path, parquet_path, limit)
+        print(f"  Converted {result_count:,} records to Parquet")
+        return result_count
 
 
