@@ -46,6 +46,7 @@ notebooks/.ipynb_checkpoints
 /local_testing/polars_phases/*
 !/local_testing/polars_phases/base.py
 !/local_testing/polars_phases/load.py
+!/local_testing/polars_phases/normalise.py
 /local_testing/raw/
 /local_testing/reports/
 /local_testing/specification/
