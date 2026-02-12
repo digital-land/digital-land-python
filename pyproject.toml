@@ -59,6 +59,7 @@ test = [
     "coverage",
     "flake8",
     "pytest",
+    "pytest-html",
     "coveralls",
     "twine",
     "responses",

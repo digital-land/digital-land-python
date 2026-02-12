@@ -27,6 +27,10 @@ pytest -v
 pytest --cov=digital_land --cov-report=html
 ```
 
+Test reports are automatically generated in the `tests/reports/` folder (ignored in git):
+- `tests/reports/index.html` - HTML test report
+- `tests/reports/junit.xml` - JUnit XML format for CI/CD integration
+
 ## Test Organization
 
 ### Unit Tests (`unit/`)
@@ -184,6 +188,34 @@ pytest --cov=digital_land.phase tests/unit/phase/ -v
 # Coverage with terminal report
 pytest --cov=digital_land --cov-report=term-missing tests/unit/
 ```
+
+## Test Reports
+
+All test runs automatically generate reports in the `tests/reports/` folder:
+
+```
+tests/
+├── reports/
+│   ├── index.html          # HTML test report with detailed results
+│   └── junit.xml           # JUnit XML for CI/CD pipelines
+└── ...
+```
+
+The `tests/reports/` folder is git-ignored and safe to exclude from commits.
+
+### Viewing Reports
+
+**HTML Report** - Open in your browser:
+```bash
+open tests/reports/index.html
+```
+
+Shows:
+- Test summary (passed, failed, skipped)
+- Detailed test results with duration
+- Error messages and tracebacks
+- Performance metrics
+- Logs output per test
 
 ## Test Data
 

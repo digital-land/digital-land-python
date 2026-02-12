@@ -26,6 +26,9 @@ pyrightconfig.json
 .idea
 .python-version
 
+# test reports and coverage
+tests/reports/
+
 # hide semantic versioning output from git
 digital_land/_version.py
 
