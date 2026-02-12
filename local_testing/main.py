@@ -15,18 +15,18 @@ os.environ["CPL_VSIL_CURL_ALLOWED_EXTENSIONS"] = ""
 os.environ["GDAL_HTTP_ENABLED"] = "NO"
 os.environ["CPL_CURL_VERBOSE"] = "NO"
 
-import sys
-import time
-from pathlib import Path
-from datetime import datetime
+import sys  # noqa: E402
+import time  # noqa: E402
+from pathlib import Path  # noqa: E402
+from datetime import datetime  # noqa: E402
 
-from cli import CLI
-from file_downloader import FileDownloader
-from gml_extractor import GMLExtractor
-from gml_converter import GMLConverter
-from pipeline_config import PipelineConfig
-from pipeline_runner import PipelineRunner
-from pipeline_report import PipelineReport
+from cli import CLI  # noqa: E402
+from file_downloader import FileDownloader  # noqa: E402
+from gml_extractor import GMLExtractor  # noqa: E402
+from gml_converter import GMLConverter  # noqa: E402
+from pipeline_config import PipelineConfig  # noqa: E402
+from pipeline_runner import PipelineRunner  # noqa: E402
+from pipeline_report import PipelineReport  # noqa: E402
 
 
 # =============================================================================
