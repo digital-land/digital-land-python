@@ -13,16 +13,16 @@ black:
 flake8:
 	flake8 .
 
-test:: test-unit test-integration test-e2e
+test:: test-unit test-integration test-acceptance
 
 test-unit:
 	[ -d tests/unit ] && python -m pytest tests/unit
 
 test-integration:
-	python -m pytest tests/integration
+	[ -d tests/integration ] && python -m pytest tests/integration
 
-test-e2e:
-	[ -d tests/e2e ] && python -m pytest tests/e2e
+test-acceptance:
+	[ -d tests/acceptance ] && python -m pytest tests/acceptance
 
 coverage:
 	coverage run --source $(PACKAGE) -m pytest && coverage report
@@ -40,4 +40,4 @@ upload::	dist
 	twine upload dist/*
 
 makerules::
-	curl -qfsL '$(SOURCE_URL)/makerules/main/python.mk' > makerules/python.mk
+	curl -qfsL '$(MAKERULES_URL)python.mk' > makerules/python.mk
