@@ -1,0 +1,34 @@
+# Builds docs only (no deploy). Fails if the build is broken so issues are caught before merge.
+
+name: Validate Documentation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: null
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          make init
+
+      - name: Generate Documentation
+        run: |
+          make docs
