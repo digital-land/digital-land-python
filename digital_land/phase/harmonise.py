@@ -5,7 +5,6 @@ from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
 import logging
-from digital_land.utils.timer import timer
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +103,8 @@ class HarmonisePhase(Phase):
 
         return datatype.normalise(value, issues=self.issues)
 
-    @timer
     def process(self, stream):
+
         for block in stream:
             row = block["row"]
             self.issues.resource = block["resource"]
@@ -189,9 +188,9 @@ class HarmonisePhase(Phase):
             # One of geometry or point must not be empty if either field is given
             for field in row:
                 if field in ["geometry", "point"]:
-                    if (
-                        row.get("geometry") == "" or row.get("geometry") is None
-                    ) and (row.get("point") == "" or row.get("point") is None):
+                    if (row.get("geometry") == "" or row.get("geometry") is None) and (
+                        row.get("point") == "" or row.get("point") is None
+                    ):
                         self.issues.log_issue(
                             field,
                             "missing value",
