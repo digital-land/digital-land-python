@@ -97,6 +97,9 @@ init::
 ifneq (,$(wildcard requirements.txt))
 	pip3 install --upgrade -r requirements.txt
 endif
+ifneq (,$(wildcard pyproject.toml))
+	pip install -e .$(PIP_INSTALL_PACKAGE)
+endif
 ifneq (,$(wildcard setup.py))
 	pip install -e .$(PIP_INSTALL_PACKAGE)
 endif
