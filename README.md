@@ -42,19 +42,29 @@
 
 ## Development environment
 
+Before Initialising you will need to:
+- ensure GNU make is being used, if using macOS then it may need installing
+- ensure python is available on the system, Development requires Python 3.6.2 or later, see [our guidance](https://digital-land.github.io/technical-documentation/development/how-to-guides/using-different-python-versions/)
+- set up a [virtual environment](https://docs.python.org/3/library/venv.html), see [our guidance](https://digital-land.github.io/technical-documentation/development/how-to-guides/make-python-venv/)
+- ensurre SQLite is installed and is capable of loading extensions
+
 The GDAL tools are required to convert geographic data, and in order for all of the tests to pass.
 
-Makefile depends on GNU make if using macOS install make using brew and run gmake.  
-
-Development requires Python 3.6.2 or later, we recommend using a [virtual environment](https://docs.python.org/3/library/venv.html):
+after the above is satisfied run the foow to get setup:
 
     make init
-    make
     python -m digital-land --help
+
+On linux this will automatically install key dependecies, on mac o othe systems it may error:
+- The GDAL tools are required to convert geographic data, and in order for all of the tests to pass. see [our guidance](https://digital-land.github.io/technical-documentation/development/how-to-guides/installing-gdal/)
 
 ## Testing
 
-This repository follows a structured testing approach. See [TESTING.md](TESTING.md) for detailed testing guidelines and structure documentation.
+> [!WARNING]
+> Some machines may experience segmentation faults when running the test suite. This is a known issue.
+
+This repository follows a structured testing approach. It aims to follow our [team's guidance](https://digital-land.github.io/technical-documentation/development/testing-guidance/). See [TESTING.md](TESTING.md) for detailed testing guidelines and structure documentation.
+
 
 ### Quick Test Commands
 
