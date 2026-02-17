@@ -1,79 +1,5 @@
 #!/usr/bin/env python3
 """
-Script to demonstrate the output of convert phase stream
-"""
-from digital_land.phase_polars.transform.convert import ConvertPhase
-
-# Path to the CSV file
-csv_path = "/Users/399182/MHCLG-Github/digital-land-python/tests/integration/data/Buckinghamshire_Council.csv"
-
-# Create convert phase instance
-convert_phase = ConvertPhase(path=csv_path)
-
-# Process the file
-stream = convert_phase.process()
-
-# Print first 5 blocks from the stream
-print("First 5 blocks from convert phase stream:\n")
-print("=" * 80)
-
-for i, block in enumerate(stream):
-    if i >= 5:
-        break
-    print(f"\nBlock {i}:")
-    print(f"  Keys: {list(block.keys())}")
-    print(f"  Dataset: {block.get('dataset')}")
-    print(f"  Resource: {block.get('resource')}")
-    print(f"  Line number: {block.get('line-number')}")
-    print(f"  Line (first 100 chars): {str(block.get('line'))[:100]}...")
-    print(f"  Row: {block.get('row')}")
-    print("-" * 80)
-
-print("\nDone!")
-
-
-# # Step 2: Convert stream to LazyFrame and process through normalise phase
-# print("\n" + "=" * 80)
-# print("STEP 2: Convert stream to LazyFrame and process through normalise phase")
-# print("=" * 80)
-
-# from digital_land.utils.convert_dictionary_polarsdf import DictToPolarsConverter
-# from digital_land.phase_polars.transform.normalise import NormalisePhase
-
-# # Create convert phase instance again (stream is consumed)
-# convert_phase = ConvertPhase(path=csv_path)
-# stream = convert_phase.process()
-
-# # Convert stream to LazyFrame
-# print("\nConverting stream to Polars LazyFrame...")
-# lf = DictToPolarsConverter.from_stream(stream)
-
-# print(f"LazyFrame created with {len(lf.columns)} columns")
-# print(f"Columns: {lf.columns[:5]}...")  # Show first 5 column names
-
-# # Collect and show first 5 rows before normalisation
-# print("\nFirst 5 rows BEFORE normalisation:")
-# print("-" * 80)
-# df_before = lf.collect()
-# print(df_before.head(5))
-
-# # Process through normalise phase
-# print("\nProcessing through NormalisePhase...")
-# normalise_phase = NormalisePhase()
-# lf_normalised = normalise_phase.process(lf)
-
-# # Collect and show first 5 rows after normalisation
-# print("\nFirst 5 rows AFTER normalisation:")
-# print("-" * 80)
-# df_after = lf_normalised.collect()
-# print(df_after.head(5))
-
-# print("\n" + "=" * 80)
-# print("Integration test completed successfully!")
-# print("=" * 80)
-
-#!/usr/bin/env python3
-"""
 Integration test: Convert phase stream -> LazyFrame -> Normalise phase
 """
 import sys
@@ -151,5 +77,37 @@ print(df_after.head(5))
 
 print("\n" + "=" * 80)
 print("Integration test completed successfully!")
+print("=" * 80)
+
+print("\n" + "=" * 80)
+print("STEP 3: Convert LazyFrame back to stream object")
+print("=" * 80)
+
+from digital_land.utils.convert_polarsdf_dictionary import PolarsToDictConverter
+
+# Convert normalized LazyFrame back to stream
+print("\nConverting normalized LazyFrame back to stream...")
+stream_blocks = PolarsToDictConverter.to_stream_blocks(
+    lf_normalised,
+    dataset="title-boundary",
+    path=csv_path,
+    resource="Buckinghamshire_Council"
+)
+
+print("\nFirst 5 blocks from converted stream:")
+print("-" * 80)
+for i, block in enumerate(stream_blocks):
+    if i >= 5:
+        break
+    print(f"\nBlock {i}:")
+    print(f"  Keys: {list(block.keys())}")
+    print(f"  Dataset: {block.get('dataset')}")
+    print(f"  Resource: {block.get('resource')}")
+    print(f"  Entry number: {block.get('entry-number')}")
+    print(f"  Row (first 3 items): {dict(list(block.get('row', {}).items())[:3])}")
+    print("-" * 40)
+
+print("\n" + "=" * 80)
+print("Complete workflow: Stream → LazyFrame → Normalise → Stream")
 print("=" * 80)
 
