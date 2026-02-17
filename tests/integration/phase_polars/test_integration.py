@@ -111,3 +111,41 @@ print("\n" + "=" * 80)
 print("Complete workflow: Stream → LazyFrame → Normalise → Stream")
 print("=" * 80)
 
+print("\n" + "=" * 80)
+print("STEP 4: Pass stream to legacy Parse phase")
+print("=" * 80)
+
+from digital_land.phase.parse import ParsePhase
+
+# Recreate stream from LazyFrame for parse phase
+stream_for_parse = PolarsToDictConverter.to_stream_blocks(
+    lf_normalised,
+    dataset="title-boundary",
+    path=csv_path,
+    resource="Buckinghamshire_Council"
+)
+
+# Create parse phase instance
+parse_phase = ParsePhase()
+
+# Process through parse phase
+print("\nProcessing stream through ParsePhase...")
+parsed_stream = parse_phase.process(stream_for_parse)
+
+print("\nFirst 5 blocks from parsed stream:")
+print("-" * 80)
+for i, block in enumerate(parsed_stream):
+    if i >= 5:
+        break
+    print(f"\nBlock {i}:")
+    print(f"  Keys: {list(block.keys())}")
+    print(f"  Dataset: {block.get('dataset')}")
+    print(f"  Resource: {block.get('resource')}")
+    print(f"  Entry number: {block.get('entry-number')}")
+    print(f"  Row (first 3 items): {dict(list(block.get('row', {}).items())[:3])}")
+    print("-" * 40)
+
+print("\n" + "=" * 80)
+print("Complete workflow: Stream → LazyFrame → Normalise → Stream → Parse")
+print("=" * 80)
+
