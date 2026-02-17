@@ -2,7 +2,7 @@
 """
 Script to demonstrate the output of convert phase stream
 """
-from digital_land.phase.convert import ConvertPhase
+from digital_land.phase_polars.transform.convert import ConvertPhase
 
 # Path to the CSV file
 csv_path = "/Users/399182/MHCLG-Github/digital-land-python/tests/integration/data/Buckinghamshire_Council.csv"
