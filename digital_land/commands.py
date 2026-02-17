@@ -59,6 +59,32 @@ from digital_land.phase.reference import EntityReferencePhase, FactReferencePhas
 from digital_land.phase.save import SavePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
 from digital_land.pipeline.process import convert_tranformed_csv_to_pq
+from digital_land.phase_polars import run_polars_pipeline
+from digital_land.phase_polars import (
+    ConvertPhase as PolarsConvertPhase,
+    NormalisePhase as PolarsNormalisePhase,
+    ConcatFieldPhase as PolarsConcatFieldPhase,
+    FilterPhase as PolarsFilterPhase,
+    MapPhase as PolarsMapPhase,
+    PatchPhase as PolarsPatchPhase,
+    HarmonisePhase as PolarsHarmonisePhase,
+    DefaultPhase as PolarsDefaultPhase,
+    MigratePhase as PolarsMigratePhase,
+    OrganisationPhase as PolarsOrganisationPhase,
+    FieldPrunePhase as PolarsFieldPrunePhase,
+    EntityPrunePhase as PolarsEntityPrunePhase,
+    FactPrunePhase as PolarsFactPrunePhase,
+    EntityReferencePhase as PolarsEntityReferencePhase,
+    FactReferencePhase as PolarsFactReferencePhase,
+    EntityPrefixPhase as PolarsEntityPrefixPhase,
+    EntityLookupPhase as PolarsEntityLookupPhase,
+    FactLookupPhase as PolarsFactLookupPhase,
+    SavePhase as PolarsSavePhase,
+    PivotPhase as PolarsPivotPhase,
+    FactCombinePhase as PolarsFactCombinePhase,
+    FactorPhase as PolarsFactorPhase,
+    PriorityPhase as PolarsPriorityPhase,
+)
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
 from digital_land.configuration.main import Config
@@ -237,6 +263,7 @@ def pipeline_run(
     resource=None,
     output_log_dir=None,
     converted_path=None,
+    use_polars=False,
 ):
     # set up paths
     cache_dir = Path(cache_dir)
@@ -302,87 +329,168 @@ def pipeline_run(
         if "entry-date" not in default_values:
             default_values["entry-date"] = entry_date
 
-    # TODO Migrate all of this into a function in the Pipeline function
-    run_pipeline(
-        ConvertPhase(
-            path=input_path,
-            dataset_resource_log=dataset_resource_log,
-            converted_resource_log=converted_resource_log,
-            output_path=converted_path,
-        ),
-        NormalisePhase(skip_patterns=skip_patterns),
-        ParsePhase(),
-        ConcatFieldPhase(concats=concats, log=column_field_log),
-        FilterPhase(filters=pipeline.filters(resource)),
-        MapPhase(
-            fieldnames=intermediate_fieldnames,
-            columns=columns,
-            log=column_field_log,
-        ),
-        FilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
-        PatchPhase(
-            issues=issue_log,
-            patches=patches,
-        ),
-        HarmonisePhase(
-            field_datatype_map=specification.get_field_datatype_map(),
-            issues=issue_log,
-            dataset=dataset,
-            valid_category_values=valid_category_values,
-        ),
-        DefaultPhase(
-            default_fields=default_fields,
-            default_values=default_values,
-            issues=issue_log,
-        ),
-        # TBD: move migrating columns to fields to be immediately after map
-        # this will simplify harmonisation and remove intermediate_fieldnames
-        # but effects brownfield-land and other pipelines which operate on columns
-        MigratePhase(
-            fields=specification.schema_field[schema],
-            migrations=pipeline.migrations(),
-        ),
-        OrganisationPhase(organisation=organisation, issues=issue_log),
-        FieldPrunePhase(fields=specification.current_fieldnames(schema)),
-        EntityReferencePhase(
-            dataset=dataset,
-            prefix=specification.dataset_prefix(dataset),
-            issues=issue_log,
-        ),
-        EntityPrefixPhase(dataset=dataset),
-        EntityLookupPhase(
-            lookups=lookups,
-            redirect_lookups=redirect_lookups,
-            issue_log=issue_log,
-            operational_issue_log=operational_issue_log,
-            entity_range=[entity_range_min, entity_range_max],
-        ),
-        SavePhase(
-            default_output_path("harmonised", input_path),
-            fieldnames=intermediate_fieldnames,
-            enabled=save_harmonised,
-        ),
-        EntityPrunePhase(dataset_resource_log=dataset_resource_log),
-        PriorityPhase(config=config, providers=organisations),
-        PivotPhase(),
-        FactCombinePhase(issue_log=issue_log, fields=combine_fields),
-        FactorPhase(),
-        FactReferencePhase(
-            field_typology_map=specification.get_field_typology_map(),
-            field_prefix_map=specification.get_field_prefix_map(),
-        ),
-        FactLookupPhase(
-            lookups=lookups,
-            redirect_lookups=redirect_lookups,
-            issue_log=issue_log,
-            odp_collections=specification.get_odp_collections(),
-        ),
-        FactPrunePhase(),
-        SavePhase(
-            output_path,
-            fieldnames=specification.factor_fieldnames(),
-        ),
-    )
+    if use_polars:
+        # ── Polars-based pipeline ──────────────────────────────────────────
+        run_polars_pipeline(
+            PolarsConvertPhase(
+                path=input_path,
+                dataset_resource_log=dataset_resource_log,
+                converted_resource_log=converted_resource_log,
+                output_path=converted_path,
+            ),
+            PolarsNormalisePhase(skip_patterns=skip_patterns),
+            # ParsePhase is not needed – ConvertPhase already produces a DataFrame
+            PolarsConcatFieldPhase(concats=concats, log=column_field_log),
+            PolarsFilterPhase(filters=pipeline.filters(resource)),
+            PolarsMapPhase(
+                fieldnames=intermediate_fieldnames,
+                columns=columns,
+                log=column_field_log,
+            ),
+            PolarsFilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
+            PolarsPatchPhase(
+                issues=issue_log,
+                patches=patches,
+            ),
+            PolarsHarmonisePhase(
+                field_datatype_map=specification.get_field_datatype_map(),
+                issues=issue_log,
+                dataset=dataset,
+                valid_category_values=valid_category_values,
+            ),
+            PolarsDefaultPhase(
+                default_fields=default_fields,
+                default_values=default_values,
+                issues=issue_log,
+            ),
+            PolarsMigratePhase(
+                fields=specification.schema_field[schema],
+                migrations=pipeline.migrations(),
+            ),
+            PolarsOrganisationPhase(organisation=organisation, issues=issue_log),
+            PolarsFieldPrunePhase(fields=specification.current_fieldnames(schema)),
+            PolarsEntityReferencePhase(
+                dataset=dataset,
+                prefix=specification.dataset_prefix(dataset),
+                issues=issue_log,
+            ),
+            PolarsEntityPrefixPhase(dataset=dataset),
+            PolarsEntityLookupPhase(
+                lookups=lookups,
+                redirect_lookups=redirect_lookups,
+                issue_log=issue_log,
+                operational_issue_log=operational_issue_log,
+                entity_range=[entity_range_min, entity_range_max],
+            ),
+            PolarsSavePhase(
+                default_output_path("harmonised", input_path),
+                fieldnames=intermediate_fieldnames,
+                enabled=save_harmonised,
+            ),
+            PolarsEntityPrunePhase(dataset_resource_log=dataset_resource_log),
+            PolarsPriorityPhase(config=config, providers=organisations),
+            PolarsPivotPhase(),
+            PolarsFactCombinePhase(issue_log=issue_log, fields=combine_fields),
+            PolarsFactorPhase(),
+            PolarsFactReferencePhase(
+                field_typology_map=specification.get_field_typology_map(),
+                field_prefix_map=specification.get_field_prefix_map(),
+            ),
+            PolarsFactLookupPhase(
+                lookups=lookups,
+                redirect_lookups=redirect_lookups,
+                issue_log=issue_log,
+                odp_collections=specification.get_odp_collections(),
+            ),
+            PolarsFactPrunePhase(),
+            PolarsSavePhase(
+                output_path,
+                fieldnames=specification.factor_fieldnames(),
+            ),
+        )
+    else:
+        # ── Original streaming pipeline ────────────────────────────────────
+        # TODO Migrate all of this into a function in the Pipeline function
+        run_pipeline(
+            ConvertPhase(
+                path=input_path,
+                dataset_resource_log=dataset_resource_log,
+                converted_resource_log=converted_resource_log,
+                output_path=converted_path,
+            ),
+            NormalisePhase(skip_patterns=skip_patterns),
+            ParsePhase(),
+            ConcatFieldPhase(concats=concats, log=column_field_log),
+            FilterPhase(filters=pipeline.filters(resource)),
+            MapPhase(
+                fieldnames=intermediate_fieldnames,
+                columns=columns,
+                log=column_field_log,
+            ),
+            FilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
+            PatchPhase(
+                issues=issue_log,
+                patches=patches,
+            ),
+            HarmonisePhase(
+                field_datatype_map=specification.get_field_datatype_map(),
+                issues=issue_log,
+                dataset=dataset,
+                valid_category_values=valid_category_values,
+            ),
+            DefaultPhase(
+                default_fields=default_fields,
+                default_values=default_values,
+                issues=issue_log,
+            ),
+            # TBD: move migrating columns to fields to be immediately after map
+            # this will simplify harmonisation and remove intermediate_fieldnames
+            # but effects brownfield-land and other pipelines which operate on columns
+            MigratePhase(
+                fields=specification.schema_field[schema],
+                migrations=pipeline.migrations(),
+            ),
+            OrganisationPhase(organisation=organisation, issues=issue_log),
+            FieldPrunePhase(fields=specification.current_fieldnames(schema)),
+            EntityReferencePhase(
+                dataset=dataset,
+                prefix=specification.dataset_prefix(dataset),
+                issues=issue_log,
+            ),
+            EntityPrefixPhase(dataset=dataset),
+            EntityLookupPhase(
+                lookups=lookups,
+                redirect_lookups=redirect_lookups,
+                issue_log=issue_log,
+                operational_issue_log=operational_issue_log,
+                entity_range=[entity_range_min, entity_range_max],
+            ),
+            SavePhase(
+                default_output_path("harmonised", input_path),
+                fieldnames=intermediate_fieldnames,
+                enabled=save_harmonised,
+            ),
+            EntityPrunePhase(dataset_resource_log=dataset_resource_log),
+            PriorityPhase(config=config, providers=organisations),
+            PivotPhase(),
+            FactCombinePhase(issue_log=issue_log, fields=combine_fields),
+            FactorPhase(),
+            FactReferencePhase(
+                field_typology_map=specification.get_field_typology_map(),
+                field_prefix_map=specification.get_field_prefix_map(),
+            ),
+            FactLookupPhase(
+                lookups=lookups,
+                redirect_lookups=redirect_lookups,
+                issue_log=issue_log,
+                odp_collections=specification.get_odp_collections(),
+            ),
+            FactPrunePhase(),
+            SavePhase(
+                output_path,
+                fieldnames=specification.factor_fieldnames(),
+            ),
+        )
 
     # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
     # If we have done this then we will not call duplicate_reference_check as we have already carried out a
