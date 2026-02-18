@@ -1,51 +1,10 @@
 import polars as pl
-from typing import Dict, List, Any, Union, Iterator
+from typing import Dict, List, Any, Iterator
 
 
-class DictToPolarsConverter:
+class StreamToPolarsConverter:
     """Utility class to convert dictionary objects to Polars LazyFrame objects."""
-
-    @staticmethod
-    def from_dict(data: Dict[str, Any]) -> pl.LazyFrame:
-        """
-        Convert a dictionary to a Polars LazyFrame.
-        
-        Args:
-            data: Dictionary with column names as keys and lists of values
-            
-        Returns:
-            pl.LazyFrame: Polars LazyFrame object
-        """
-        return pl.DataFrame(data).lazy()
-
-    @staticmethod
-    def from_records(records: List[Dict[str, Any]]) -> pl.LazyFrame:
-        """
-        Convert a list of dictionaries (records) to a Polars LazyFrame.
-        
-        Args:
-            records: List of dictionaries where each dict represents a row
-            
-        Returns:
-            pl.LazyFrame: Polars LazyFrame object
-        """
-        return pl.DataFrame(records).lazy()
-
-    @staticmethod
-    def from_csv_dict(csv_dict: Dict[str, List[Any]]) -> pl.LazyFrame:
-        """
-        Convert CSV-like dictionary (columns and data) to Polars LazyFrame.
-        
-        Args:
-            csv_dict: Dictionary with 'columns' and 'data' keys
-            
-        Returns:
-            pl.LazyFrame: Polars LazyFrame object
-        """
-        if "columns" in csv_dict and "data" in csv_dict:
-            return pl.DataFrame(csv_dict["data"], schema=csv_dict["columns"]).lazy()
-        return DictToPolarsConverter.from_dict(csv_dict)
-
+    
     @staticmethod
     def from_stream(stream: Iterator[Dict[str, Any]]) -> pl.LazyFrame:
         """

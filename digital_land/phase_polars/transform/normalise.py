@@ -35,7 +35,7 @@ class NormalisePhase:
             pl.LazyFrame: Normalised LazyFrame
         """
         # Get all string columns
-        string_cols = [col for col in lf.columns]
+        string_cols = lf.collect_schema().names()
         
         # Normalise whitespace: strip spaces and replace line breaks
         for col in string_cols:
