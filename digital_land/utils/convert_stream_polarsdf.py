@@ -1,5 +1,6 @@
 import polars as pl
 from typing import Dict, List, Any, Iterator
+import io
 
 
 class StreamToPolarsConverter:
@@ -14,7 +15,7 @@ class StreamToPolarsConverter:
             stream: Iterator yielding blocks with 'line' or 'row' keys
             
         Returns:
-            pl.LazyFrame: Polars LazyFrame object
+            pl.LazyFrame: Polars LazyFrame object with inferred schema
         """
         blocks = list(stream)
         if not blocks:
@@ -22,11 +23,21 @@ class StreamToPolarsConverter:
         
         fieldnames = blocks[0].get("line", [])
         
-        rows = []
+        # Build CSV string for Polars to parse with type inference
+        csv_lines = [','.join(f'"{field}"' for field in fieldnames)]
+        
         for block in blocks[1:]:
             if "row" in block and block["row"]:
-                rows.append(block["row"])
+                row = [str(block["row"].get(field, '')) for field in fieldnames]
             elif "line" in block:
-                rows.append(dict(zip(fieldnames, block["line"])))
+                row = [str(val) for val in block["line"]]
+            else:
+                continue
+            csv_lines.append(','.join(f'"{val}"' for val in row))
         
-        return pl.DataFrame(rows).lazy()
+        if len(csv_lines) <= 1:
+            return pl.DataFrame().lazy()
+        
+        # Use Polars CSV reader with type inference
+        csv_string = '\n'.join(csv_lines)
+        return pl.read_csv(io.StringIO(csv_string), try_parse_dates=True).lazy()

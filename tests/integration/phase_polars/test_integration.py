@@ -3,9 +3,10 @@
 Integration test: Convert phase stream -> LazyFrame -> Normalise phase -> Stream
 """
 from pathlib import Path
-from digital_land.phase_polars.convert import ConvertPhase
+from digital_land.phase.convert import ConvertPhase
 from digital_land.phase_polars.transform.normalise import NormalisePhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
+import polars as pl
 
 
 class IntegrationTest:
@@ -39,7 +40,13 @@ class IntegrationTest:
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
         df = lf_normalised.collect()
         with open(lazyframe_output_file, 'w') as f:
-            f.write(str(df))
+            f.write(f"\nPolars DataFrame:\n")
+            f.write(f"Shape: {df.shape}\n")
+            f.write(f"Columns: {df.columns}\n")
+            f.write(f"Schema: {df.schema}\n")
+            f.write(f"\nAll columns data:\n")
+            with pl.Config(set_tbl_cols=-1, set_tbl_rows=-1, set_tbl_width_chars=1000):
+                f.write(str(df))
         print(f"LazyFrame output written to: {lazyframe_output_file}")
         
         # Also write as CSV for easier inspection
