@@ -22,6 +22,7 @@ sys.modules['cchardet'].UniversalDetector = MockUniversalDetector
 from digital_land.phase.convert import ConvertPhase
 from digital_land.phase_polars.transform.normalise import NormalisePhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
+from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 import polars as pl
 
 
@@ -36,12 +37,15 @@ class IntegrationTest:
         convert_phase = ConvertPhase(path=str(self.csv_path))
         stream = convert_phase.process()
         
-        # Write stream output to text file
+        # Store original stream blocks
+        original_blocks = list(stream)
+        
+        # Write original stream output
         stream_output_file = self.output_dir / "stream_output.txt"
         with open(stream_output_file, 'w') as f:
-            for block in stream:
+            for block in original_blocks:
                 f.write(str(block) + '\n')
-        print(f"Stream output written to: {stream_output_file}")
+        print(f"Original stream output written to: {stream_output_file}")
         
         # Convert Stream to Polars LazyFrame
         convert_phase = ConvertPhase(path=str(self.csv_path))
@@ -52,7 +56,7 @@ class IntegrationTest:
         normalise_phase = NormalisePhase()
         lf_normalised = normalise_phase.process(lf)
         
-        # Write final LazyFrame output as text
+        # Write LazyFrame output
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
         df = lf_normalised.collect()
         with open(lazyframe_output_file, 'w') as f:
@@ -65,7 +69,49 @@ class IntegrationTest:
                 f.write(str(df))
         print(f"LazyFrame output written to: {lazyframe_output_file}")
         
-        # Also write as CSV for easier inspection
+        # Convert LazyFrame back to stream
+        converted_stream = polars_to_stream(
+            lf_normalised,
+            dataset="test",
+            resource="Buckinghamshire_Council",
+            path=str(self.csv_path),
+            parsed=False
+        )
+        converted_blocks = list(converted_stream)
+        
+        # Write converted stream output
+        converted_stream_file = self.output_dir / "converted_stream_output.txt"
+        with open(converted_stream_file, 'w') as f:
+            for block in converted_blocks:
+                f.write(str(block) + '\n')
+        print(f"Converted stream output written to: {converted_stream_file}")
+        
+        # Compare streams
+        comparison_file = self.output_dir / "stream_comparison.txt"
+        with open(comparison_file, 'w') as f:
+            f.write(f"Original stream blocks: {len(original_blocks)}\n")
+            f.write(f"Converted stream blocks: {len(converted_blocks)}\n\n")
+            
+            if len(original_blocks) == len(converted_blocks):
+                f.write("Block count matches!\n\n")
+                
+                # Compare first 3 blocks
+                for i in range(min(3, len(original_blocks))):
+                    f.write(f"Block {i}:\n")
+                    f.write(f"  Original keys: {list(original_blocks[i].keys())}\n")
+                    f.write(f"  Converted keys: {list(converted_blocks[i].keys())}\n")
+                    
+                    if 'line' in original_blocks[i] and 'line' in converted_blocks[i]:
+                        orig_line = original_blocks[i]['line']
+                        conv_line = converted_blocks[i]['line']
+                        f.write(f"  Lines match: {orig_line == conv_line}\n")
+                    f.write("\n")
+            else:
+                f.write("Block count DOES NOT match!\n")
+        
+        print(f"Stream comparison written to: {comparison_file}")
+        
+        # Write CSV
         csv_output_file = self.output_dir / "normalised_output.csv"
         df.write_csv(csv_output_file)
         print(f"CSV output written to: {csv_output_file}")
