@@ -2,7 +2,23 @@
 """
 Integration test: Convert phase stream -> LazyFrame -> Normalise phase -> Stream
 """
+import sys
 from pathlib import Path
+
+# Mock missing dependencies before imports
+class MockUniversalDetector:
+    def __init__(self): pass
+    def reset(self): pass
+    def feed(self, line): pass
+    def close(self): pass
+    @property
+    def done(self): return True
+    @property
+    def result(self): return {"encoding": "utf-8"}
+
+sys.modules['cchardet'] = type(sys)('cchardet')
+sys.modules['cchardet'].UniversalDetector = MockUniversalDetector
+
 from digital_land.phase.convert import ConvertPhase
 from digital_land.phase_polars.transform.normalise import NormalisePhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
