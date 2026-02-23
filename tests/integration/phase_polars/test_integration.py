@@ -36,7 +36,9 @@ import polars as pl  # noqa: E402
 from digital_land.phase.convert import ConvertPhase  # noqa: E402
 from digital_land.phase_polars.transform.normalise import NormalisePhase  # noqa: E402
 from digital_land.phase_polars.transform.parse import ParsePhase  # noqa: E402
-from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter  # noqa: E402
+from digital_land.utils.convert_stream_polarsdf import (
+    StreamToPolarsConverter,
+)  # noqa: E402
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream  # noqa: E402
 
 

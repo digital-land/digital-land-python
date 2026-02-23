@@ -11,9 +11,13 @@ class TestPolarsToStream:
         """Test LazyFrame to stream conversion in unparsed format."""
         df = pl.DataFrame({"col1": ["val1", "val2"], "col2": ["a", "b"]})
         lf = df.lazy()
-        
-        blocks = list(polars_to_stream(lf, dataset="test", resource="res1", path="/test.csv", parsed=False))
-        
+
+        blocks = list(
+            polars_to_stream(
+                lf, dataset="test", resource="res1", path="/test.csv", parsed=False
+            )
+        )
+
         assert len(blocks) == 3
         assert blocks[0]["line"] == ["col1", "col2"]
         assert blocks[0]["line-number"] == 0
@@ -24,9 +28,13 @@ class TestPolarsToStream:
         """Test LazyFrame to stream conversion in parsed format."""
         df = pl.DataFrame({"name": ["test1", "test2"], "value": [100, 200]})
         lf = df.lazy()
-        
-        blocks = list(polars_to_stream(lf, dataset="test", resource="res1", path="/test.csv", parsed=True))
-        
+
+        blocks = list(
+            polars_to_stream(
+                lf, dataset="test", resource="res1", path="/test.csv", parsed=True
+            )
+        )
+
         assert len(blocks) == 2
         assert blocks[0]["entry-number"] == 1
         assert blocks[0]["row"] == {"name": "test1", "value": 100}
@@ -37,9 +45,9 @@ class TestPolarsToStream:
         """Test empty LazyFrame conversion."""
         df = pl.DataFrame({"col1": []})
         lf = df.lazy()
-        
+
         blocks = list(polars_to_stream(lf, parsed=False))
-        
+
         assert len(blocks) == 1
         assert blocks[0]["line"] == ["col1"]
 
@@ -47,9 +55,13 @@ class TestPolarsToStream:
         """Test that metadata is correctly included."""
         df = pl.DataFrame({"col": ["val"]})
         lf = df.lazy()
-        
-        blocks = list(polars_to_stream(lf, dataset="ds1", resource="r1", path="/p.csv", parsed=False))
-        
+
+        blocks = list(
+            polars_to_stream(
+                lf, dataset="ds1", resource="r1", path="/p.csv", parsed=False
+            )
+        )
+
         assert blocks[0]["dataset"] == "ds1"
         assert blocks[0]["resource"] == "r1"
         assert blocks[0]["path"] == "/p.csv"

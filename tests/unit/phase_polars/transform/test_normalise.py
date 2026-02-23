@@ -96,9 +96,7 @@ def test_multiple_skip_patterns():
     """Test multiple skip patterns."""
     phase = NormalisePhase(skip_patterns=["^SKIP", "^IGNORE"])
 
-    lf = pl.DataFrame(
-        {"field1": ["keep", "SKIP_THIS", "IGNORE_THIS", "keep2"]}
-    ).lazy()
+    lf = pl.DataFrame({"field1": ["keep", "SKIP_THIS", "IGNORE_THIS", "keep2"]}).lazy()
 
     result = phase.process(lf).collect()
 
