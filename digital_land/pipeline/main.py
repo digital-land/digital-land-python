@@ -7,6 +7,9 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from digital_land import __version__
+from digital_land.utils.hash_utils import hash_directory
+
 from digital_land.organisation import Organisation
 
 from digital_land.phase.map import normalise
@@ -424,6 +427,20 @@ class Pipeline:
         self.dataset_resource_log = DatasetResourceLog(
             dataset=dataset, resource=resource
         )
+        self.dataset_resource_log.code_version = __version__
+        try:
+            self.dataset_resource_log.config_hash = hash_directory(self.path)
+        except Exception:
+            logging.warning(f"Could not hash pipeline config directory: {self.path}")
+        if self.specification:
+            try:
+                self.dataset_resource_log.specification_hash = hash_directory(
+                    self.specification.path
+                )
+            except Exception:
+                logging.warning(
+                    f"Could not hash specification directory: {self.specification.path}"
+                )
         self.converted_resource_log = ConvertedResourceLog(
             dataset=dataset, resource=resource
         )
