@@ -23,6 +23,7 @@ from digital_land.phase.convert import ConvertPhase
 from digital_land.phase_polars.transform.normalise import NormalisePhase
 from digital_land.phase_polars.transform.parse import ParsePhase
 from digital_land.phase_polars.transform.concat import ConcatPhase
+from digital_land.phase_polars.transform.filter import FilterPhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 import polars as pl
@@ -75,9 +76,17 @@ class IntegrationTest:
         concat_phase = ConcatPhase(concats=concat_config)
         lf_concatenated = concat_phase.process(lf_parsed)
         
+        # Pass concatenated LazyFrame to filter phase
+        # Test filter configuration: only include rows where prefix starts with "title"
+        filter_config = {
+            "prefix": "^title"
+        }
+        filter_phase = FilterPhase(filters=filter_config)
+        lf_filtered = filter_phase.process(lf_concatenated)
+        
         # Write LazyFrame output
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
-        df = lf_concatenated.collect()
+        df = lf_filtered.collect()
         with open(lazyframe_output_file, 'w') as f:
             f.write(f"\nPolars DataFrame:\n")
             f.write(f"Shape: {df.shape}\n")
@@ -90,7 +99,7 @@ class IntegrationTest:
         
         # Convert LazyFrame back to stream
         converted_stream = polars_to_stream(
-            lf_concatenated,
+            lf_filtered,
             dataset="test",
             resource="Buckinghamshire_Council",
             path=str(self.csv_path),
