@@ -22,6 +22,7 @@ sys.modules['cchardet'].UniversalDetector = MockUniversalDetector
 from digital_land.phase.convert import ConvertPhase
 from digital_land.phase_polars.transform.normalise import NormalisePhase
 from digital_land.phase_polars.transform.parse import ParsePhase
+from digital_land.phase_polars.transform.concat import ConcatPhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 import polars as pl
@@ -61,9 +62,22 @@ class IntegrationTest:
         parse_phase = ParsePhase()
         lf_parsed = parse_phase.process(lf_normalised)
         
+        # Pass parsed LazyFrame to concat phase
+        # Test concat configuration: concatenate prefix and reference with "-" separator
+        concat_config = {
+            "full-reference": {
+                "fields": ["prefix", "reference"],
+                "separator": "-",
+                "prepend": "",
+                "append": ""
+            }
+        }
+        concat_phase = ConcatPhase(concats=concat_config)
+        lf_concatenated = concat_phase.process(lf_parsed)
+        
         # Write LazyFrame output
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
-        df = lf_parsed.collect()
+        df = lf_concatenated.collect()
         with open(lazyframe_output_file, 'w') as f:
             f.write(f"\nPolars DataFrame:\n")
             f.write(f"Shape: {df.shape}\n")
@@ -76,7 +90,7 @@ class IntegrationTest:
         
         # Convert LazyFrame back to stream
         converted_stream = polars_to_stream(
-            lf_parsed,
+            lf_concatenated,
             dataset="test",
             resource="Buckinghamshire_Council",
             path=str(self.csv_path),
