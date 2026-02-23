@@ -7,10 +7,10 @@ class ParsePhase:
     def process(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """
         Add entry-number column to LazyFrame.
-        
+
         Args:
             lf: Input Polars LazyFrame
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with entry-number column
         """
