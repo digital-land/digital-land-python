@@ -21,6 +21,7 @@ sys.modules['cchardet'].UniversalDetector = MockUniversalDetector
 
 from digital_land.phase.convert import ConvertPhase
 from digital_land.phase_polars.transform.normalise import NormalisePhase
+from digital_land.phase_polars.transform.parse import ParsePhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 import polars as pl
@@ -56,9 +57,13 @@ class IntegrationTest:
         normalise_phase = NormalisePhase()
         lf_normalised = normalise_phase.process(lf)
         
+        # Pass normalised LazyFrame to parse phase
+        parse_phase = ParsePhase()
+        lf_parsed = parse_phase.process(lf_normalised)
+        
         # Write LazyFrame output
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
-        df = lf_normalised.collect()
+        df = lf_parsed.collect()
         with open(lazyframe_output_file, 'w') as f:
             f.write(f"\nPolars DataFrame:\n")
             f.write(f"Shape: {df.shape}\n")
@@ -71,7 +76,7 @@ class IntegrationTest:
         
         # Convert LazyFrame back to stream
         converted_stream = polars_to_stream(
-            lf_normalised,
+            lf_parsed,
             dataset="test",
             resource="Buckinghamshire_Council",
             path=str(self.csv_path),
