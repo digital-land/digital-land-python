@@ -78,3 +78,30 @@ def test_empty_dataframe():
     result = phase.process(lf).collect()
 
     assert len(result) == 0
+
+
+def test_newline_conversion():
+    """Test newline to CRLF conversion."""
+    phase = NormalisePhase()
+
+    lf = pl.DataFrame({"field1": ["line1\nline2", "line1\r\nline2"]}).lazy()
+
+    result = phase.process(lf).collect()
+
+    assert result["field1"][0] == "line1\r\nline2"
+    assert result["field1"][1] == "line1\r\nline2"
+
+
+def test_multiple_skip_patterns():
+    """Test multiple skip patterns."""
+    phase = NormalisePhase(skip_patterns=["^SKIP", "^IGNORE"])
+
+    lf = pl.DataFrame(
+        {"field1": ["keep", "SKIP_THIS", "IGNORE_THIS", "keep2"]}
+    ).lazy()
+
+    result = phase.process(lf).collect()
+
+    assert len(result) == 2
+    assert result["field1"][0] == "keep"
+    assert result["field1"][1] == "keep2"
