@@ -1695,7 +1695,7 @@ def check_and_assign_entities(
         endpoints,
         cache_dir,
     )
-
+    print ( "NEW_LOOKUPS",new_lookups)
     pipeline = Pipeline(cache_pipeline_dir, dataset)
     try:
         pipeline_run(
