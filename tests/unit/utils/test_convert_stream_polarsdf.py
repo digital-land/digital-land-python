@@ -1,6 +1,5 @@
 """Unit tests for StreamToPolarsConverter."""
 
-import polars as pl
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 
 
