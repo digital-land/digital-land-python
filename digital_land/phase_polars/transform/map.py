@@ -1,5 +1,6 @@
 import re
 import polars as pl
+from ...log import ColumnFieldLog
 
 
 normalise_pattern = re.compile(r"[^a-z0-9-_]")
@@ -13,9 +14,17 @@ def normalise(name):
 class MapPhase:
     """Rename field names using column map with Polars LazyFrame."""
 
-    def __init__(self, fieldnames, columns=None):
+    def __init__(self, fieldnames, columns=None, log=None):
         self.columns = columns or {}
         self.normalised_fieldnames = {normalise(f): f for f in fieldnames}
+        if not log:
+            log = ColumnFieldLog()
+        self.log = log
+
+    def log_headers(self, headers):
+        """Log the column to field mappings."""
+        for column, field in headers.items():
+            self.log.add(column=column, field=field)
 
     def headers(self, fieldnames):
         headers = {}
@@ -57,6 +66,9 @@ class MapPhase:
         """
         existing_columns = lf.collect_schema().names()
         headers = self.headers(existing_columns)
+        
+        # Log the mappings
+        self.log_headers(headers)
         
         rename_map = {}
         columns_to_drop = []
