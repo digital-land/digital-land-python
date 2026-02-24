@@ -84,7 +84,7 @@ class IntegrationTest:
                 "fields": ["prefix", "reference"],
                 "separator": "-",
                 "prepend": "",
-                "append": ""
+                "append": "",
             }
         }
         concat_phase = ConcatPhase(concats=concat_config)
