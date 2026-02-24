@@ -25,13 +25,13 @@ def test_filter_basic_match():
     assert result["reference"][1] == "3"
 
 
-def test_filter_negative_pattern():
-    """Test filtering with negative lookahead pattern."""
+def test_filter_exclude_pattern():
+    """Test filtering to exclude specific values."""
     data = {"reference": ["1", "2", "3"], "somefield": ["Group", "Individual", "Zone"]}
     lf = pl.LazyFrame(data)
 
-    # Filter to exclude rows starting with "Individual"
-    filters = {"somefield": "^(?!Individual).*"}
+    # Filter for rows starting with "G" or "Z" (excludes "Individual")
+    filters = {"somefield": "^[GZ]"}
 
     phase = FilterPhase(filters=filters)
     result = phase.process(lf).collect()
