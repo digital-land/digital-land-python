@@ -1,4 +1,5 @@
 import csv
+
 try:
     from cchardet import UniversalDetector
 except ImportError:
