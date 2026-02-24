@@ -24,6 +24,7 @@ from digital_land.phase_polars.transform.normalise import NormalisePhase
 from digital_land.phase_polars.transform.parse import ParsePhase
 from digital_land.phase_polars.transform.concat import ConcatPhase
 from digital_land.phase_polars.transform.filter import FilterPhase
+from digital_land.phase_polars.transform.map import MapPhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 import polars as pl
@@ -84,9 +85,16 @@ class IntegrationTest:
         filter_phase = FilterPhase(filters=filter_config)
         lf_filtered = filter_phase.process(lf_concatenated)
         
+        # Pass filtered LazyFrame to map phase
+        # Test map configuration: rename columns based on fieldnames
+        fieldnames = ["organisation-entity", "reference", "prefix", "full-reference"]
+        column_map = {"prefix": "site-prefix"}
+        map_phase = MapPhase(fieldnames=fieldnames, columns=column_map)
+        lf_mapped = map_phase.process(lf_filtered)
+        
         # Write LazyFrame output
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
-        df = lf_filtered.collect()
+        df = lf_mapped.collect()
         with open(lazyframe_output_file, 'w') as f:
             f.write(f"\nPolars DataFrame:\n")
             f.write(f"Shape: {df.shape}\n")
@@ -99,7 +107,7 @@ class IntegrationTest:
         
         # Convert LazyFrame back to stream
         converted_stream = polars_to_stream(
-            lf_filtered,
+            lf_mapped,
             dataset="test",
             resource="Buckinghamshire_Council",
             path=str(self.csv_path),
