@@ -110,6 +110,7 @@ def collection_pipeline_makerules(
     resource_dir,
     incremental_loading_override,
     state_path=None,
+    dataset_resource_dir=None,
 ):
     collection = Collection(name=None, directory=collection_dir)
     collection.load()
@@ -119,6 +120,7 @@ def collection_pipeline_makerules(
         resource_dir,
         incremental_loading_override,
         state_path=state_path,
+        dataset_resource_dir=dataset_resource_dir,
     )
 
 
@@ -1622,6 +1624,7 @@ def save_state(
     resource_dir,
     incremental_loading_override,
     output_path,
+    dataset_resource_dir=None,
 ):
     state = State.build(
         specification_dir=specification_dir,
@@ -1629,6 +1632,7 @@ def save_state(
         pipeline_dir=pipeline_dir,
         resource_dir=resource_dir,
         incremental_loading_override=incremental_loading_override,
+        dataset_resource_dir=dataset_resource_dir,
     )
     state.save(
         output_path=output_path,
