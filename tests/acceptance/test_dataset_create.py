@@ -367,7 +367,7 @@ def test_acceptance_dataset_create(
 
         assert pq_rows > 0, f"parquet file {file.stem} is empty"
         sql_rows = cursor.execute(
-            f"SELECT COUNT(*) FROM {file.stem.replace('-','_')};"
+            f"SELECT COUNT(*) FROM {file.stem.replace('-', '_')};"
         ).fetchone()[0]
         assert sql_rows > 0, f"database table {file.stem} is empty"
         assert (
