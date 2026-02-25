@@ -47,13 +47,11 @@ class TestPipeLine:
 
     def test_load_lookup_rule_with_all_fields(self, mocker):
         def mock_file_reader(self, filepath):
-            if filepath == "lookup.csv":
+            if filepath == "lookup-rule.csv":
                 return [
                     {
                         "prefix": "listed-building",
                         "organisation": "",
-                        "reference": "",
-                        "entity": "",
                         "offset": "1000000",
                         "entity-minimum": "1000000",
                         "entity-maximum": "2000000",
@@ -75,13 +73,11 @@ class TestPipeLine:
 
     def test_load_lookup_rule_missing_entity_minimum(self, mocker):
         def mock_file_reader(self, filepath):
-            if filepath == "lookup.csv":
+            if filepath == "lookup-rule.csv":
                 return [
                     {
                         "prefix": "listed-building",
                         "organisation": "",
-                        "reference": "",
-                        "entity": "",
                         "offset": "1000000",
                         "entity-minimum": "",
                         "entity-maximum": "2000000",
@@ -99,13 +95,11 @@ class TestPipeLine:
 
     def test_load_lookup_rule_missing_entity_maximum(self, mocker):
         def mock_file_reader(self, filepath):
-            if filepath == "lookup.csv":
+            if filepath == "lookup-rule.csv":
                 return [
                     {
                         "prefix": "listed-building",
                         "organisation": "",
-                        "reference": "",
-                        "entity": "",
                         "offset": "1000000",
                         "entity-minimum": "1000000",
                         "entity-maximum": "",

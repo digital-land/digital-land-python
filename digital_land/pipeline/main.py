@@ -106,6 +106,7 @@ class Pipeline:
         self.load_combine_fields()
         self.load_migrate()
         self.load_lookup()
+        self.load_lookup_rule()
         self.load_redirect_lookup()
         self.load_filter()
 
@@ -266,10 +267,32 @@ class Pipeline:
             entity = row.get("entity", "")
             resource = row.get("resource", "")
 
-            # rows with no entity are treated as range-based rules
+            # composite key, ordered by specificity
+            resource_lookup = self.lookup.setdefault(resource, {})
+            resource_lookup[
+                lookup_key(
+                    entry_number=entry_number,
+                    prefix=prefix,
+                    reference=reference,
+                    organisation=organisation,
+                )
+            ] = entity
+
+    def load_lookup_rule(self):
+        for row in self.file_reader("lookup-rule.csv"):
+            prefix = (
+                row.get("prefix", "")
+                or row.get("dataset", "")
+                or row.get("pipeline", "")
+            )
+            organisation = row.get("organisation", "")
+            organisation = organisation.replace(
+                "local-authority-eng", "local-authority"
+            )
+            resource = row.get("resource", "")
+
             if (
-                not entity
-                and row.get("offset", "")
+                row.get("offset", "")
                 and row.get("entity-minimum", "")
                 and row.get("entity-maximum", "")
             ):
@@ -281,18 +304,6 @@ class Pipeline:
                     "entity-maximum": int(row.get("entity-maximum", 0)),
                 }
                 self.rule_lookup.setdefault(resource, []).append(rule)
-                continue
-
-            # composite key, ordered by specificity
-            resource_lookup = self.lookup.setdefault(resource, {})
-            resource_lookup[
-                lookup_key(
-                    entry_number=entry_number,
-                    prefix=prefix,
-                    reference=reference,
-                    organisation=organisation,
-                )
-            ] = entity
 
     def load_redirect_lookup(self):
         for row in self.file_reader("old-entity.csv"):
