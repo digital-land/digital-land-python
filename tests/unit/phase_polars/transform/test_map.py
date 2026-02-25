@@ -37,34 +37,52 @@ def test_map_headers_column_clash():
 
 
 def test_map_empty_geometry_column():
-    lf = pl.LazyFrame({
-        "categories": [""],
-        "conservation-area": [""],
-        "documentation-url": [""],
-        "end-date": [""],
-        "entity": [""],
-        "entry-date": [""],
-        "WKT": ["MULTIPOLYGON()"],
-        "legislation": [""],
-        "name": [""],
-        "notes": [""],
-        "organisation": [""],
-        "point": [""],
-        "prefix": [""],
-        "reference": [""],
-        "start-date": [""],
-        "geometry": [""]
-    })
-    
+    lf = pl.LazyFrame(
+        {
+            "categories": [""],
+            "conservation-area": [""],
+            "documentation-url": [""],
+            "end-date": [""],
+            "entity": [""],
+            "entry-date": [""],
+            "WKT": ["MULTIPOLYGON()"],
+            "legislation": [""],
+            "name": [""],
+            "notes": [""],
+            "organisation": [""],
+            "point": [""],
+            "prefix": [""],
+            "reference": [""],
+            "start-date": [""],
+            "geometry": [""],
+        }
+    )
+
     m = MapPhase(
         [
-            "categories", "conservation-area", "documentation-url", "end-date",
-            "entity", "entry-date", "geometry", "legislation", "name", "notes",
-            "organisation", "point", "prefix", "reference", "start-date"
+            "categories",
+            "conservation-area",
+            "documentation-url",
+            "end-date",
+            "entity",
+            "entry-date",
+            "geometry",
+            "legislation",
+            "name",
+            "notes",
+            "organisation",
+            "point",
+            "prefix",
+            "reference",
+            "start-date",
         ],
-        {"wkt": "geometry", "documenturl": "documentation-url", "url": "documentation-url"}
+        {
+            "wkt": "geometry",
+            "documenturl": "documentation-url",
+            "url": "documentation-url",
+        },
     )
-    
+
     result = m.process(lf).collect()
     assert "geometry" in result.columns
     assert "WKT" not in result.columns
@@ -85,39 +103,45 @@ def test_map_normalize_removes_underscores(column_name, expected):
 
 
 def test_map_column_names_with_underscores_when_column_not_in_specification():
-    lf = pl.LazyFrame({
-        "Organisation_Label": ["col-1-val"],
-        "PermissionDate": ["col-2-val"],
-        "test": [""]
-    })
-    
+    lf = pl.LazyFrame(
+        {
+            "Organisation_Label": ["col-1-val"],
+            "PermissionDate": ["col-2-val"],
+            "test": [""],
+        }
+    )
+
     fieldnames = ["Organisation_Label", "PermissionDate", "SiteNameAddress"]
     columns = {"address": "SiteNameAddress", "ownership": "OwnershipStatus"}
-    
+
     m = MapPhase(fieldnames, columns)
     result = m.process(lf).collect()
-    
+
     assert set(result.columns) == {"Organisation_Label", "PermissionDate"}
-    assert result.to_dicts() == [{"Organisation_Label": "col-1-val", "PermissionDate": "col-2-val"}]
+    assert result.to_dicts() == [
+        {"Organisation_Label": "col-1-val", "PermissionDate": "col-2-val"}
+    ]
 
 
 def test_map_column_names_with_underscores_when_column_in_specification():
-    lf = pl.LazyFrame({
-        "Organisation_Label": ["col-1-val"],
-        "end_date": ["col-2-val"],
-        "SiteNameAddress": [""]
-    })
-    
+    lf = pl.LazyFrame(
+        {
+            "Organisation_Label": ["col-1-val"],
+            "end_date": ["col-2-val"],
+            "SiteNameAddress": [""],
+        }
+    )
+
     fieldnames = ["Organisation_Label", "end_date", "SiteNameAddress"]
     columns = {
         "organisation-label": "Organisation-Label",
         "end-date": "end-date",
-        "ownership": "OwnershipStatus"
+        "ownership": "OwnershipStatus",
     }
-    
+
     m = MapPhase(fieldnames, columns)
     result = m.process(lf).collect()
-    
+
     assert set(result.columns) == {"Organisation-Label", "SiteNameAddress", "end-date"}
 
 
