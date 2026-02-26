@@ -7,7 +7,7 @@ from digital_land.organisation import Organisation
 
 from .base import BaseCheckpoint
 from ..log import ExpectationLog
-from ..operation import (
+from ..operations.dataset import (
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
