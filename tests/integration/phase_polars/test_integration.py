@@ -26,6 +26,7 @@ from digital_land.phase_polars.transform.concat import ConcatPhase
 from digital_land.phase_polars.transform.filter import FilterPhase
 from digital_land.phase_polars.transform.map import MapPhase
 from digital_land.phase_polars.transform.patch import PatchPhase
+from digital_land.phase_polars.transform.harmonise import HarmonisePhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 import polars as pl
@@ -103,9 +104,19 @@ class IntegrationTest:
         patch_phase = PatchPhase(patches=patch_config)
         lf_patched = patch_phase.process(lf_mapped)
         
+        # Pass patched LazyFrame to harmonise phase
+        # Test harmonise configuration with valid category values
+        valid_category_values = {}
+        harmonise_phase = HarmonisePhase(
+            field_datatype_map={},
+            dataset="test",
+            valid_category_values=valid_category_values
+        )
+        lf_harmonised = harmonise_phase.process(lf_patched)
+        
         # Write LazyFrame output
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
-        df = lf_patched.collect()
+        df = lf_harmonised.collect()
         with open(lazyframe_output_file, 'w') as f:
             f.write(f"\nPolars DataFrame:\n")
             f.write(f"Shape: {df.shape}\n")
@@ -118,7 +129,7 @@ class IntegrationTest:
         
         # Convert LazyFrame back to stream
         converted_stream = polars_to_stream(
-            lf_patched,
+            lf_harmonised,
             dataset="test",
             resource="Buckinghamshire_Council",
             path=str(self.csv_path),
