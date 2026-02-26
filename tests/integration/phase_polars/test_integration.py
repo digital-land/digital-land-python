@@ -25,6 +25,7 @@ from digital_land.phase_polars.transform.parse import ParsePhase
 from digital_land.phase_polars.transform.concat import ConcatPhase
 from digital_land.phase_polars.transform.filter import FilterPhase
 from digital_land.phase_polars.transform.map import MapPhase
+from digital_land.phase_polars.transform.patch import PatchPhase
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 import polars as pl
@@ -92,9 +93,19 @@ class IntegrationTest:
         map_phase = MapPhase(fieldnames=fieldnames, columns=column_map)
         lf_mapped = map_phase.process(lf_filtered)
         
+        # Pass mapped LazyFrame to patch phase
+        # Test patch configuration: normalize site-prefix values
+        patch_config = {
+            "site-prefix": {
+                "^title$": "title-number"
+            }
+        }
+        patch_phase = PatchPhase(patches=patch_config)
+        lf_patched = patch_phase.process(lf_mapped)
+        
         # Write LazyFrame output
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
-        df = lf_mapped.collect()
+        df = lf_patched.collect()
         with open(lazyframe_output_file, 'w') as f:
             f.write(f"\nPolars DataFrame:\n")
             f.write(f"Shape: {df.shape}\n")
@@ -107,7 +118,7 @@ class IntegrationTest:
         
         # Convert LazyFrame back to stream
         converted_stream = polars_to_stream(
-            lf_mapped,
+            lf_patched,
             dataset="test",
             resource="Buckinghamshire_Council",
             path=str(self.csv_path),
