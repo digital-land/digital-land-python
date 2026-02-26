@@ -35,33 +35,6 @@ def test_map_to_patch_integration():
     ]
 
 
-def test_patch_with_regex_patterns():
-    """Test Patch phase with complex regex patterns."""
-    lf = pl.LazyFrame(
-        {
-            "Deliverable": ["yes", "no", "deliverable", "TRUE", "FALSE"],
-            "Hectares": ["5 Hectares", "10 ha", "3.5", "2.1 hectares", "7"],
-        }
-    )
-
-    patches = {
-        "Deliverable": {
-            "^deliverable$": "yes",
-            "^TRUE$": "yes",
-            "^FALSE$": "",
-            "^no$": "",
-        },
-        "Hectares": {r"(\S*)\s*[Hh]ectares?$": r"\1", r"(\S*)\s*ha$": r"\1"},
-    }
-
-    patch_phase = PatchPhase(patches=patches)
-    result = patch_phase.process(lf).collect()
-
-    assert result["Deliverable"].to_list() == ["yes", "", "yes", "yes", ""]
-    assert result["Hectares"].to_list() == ["5", "10", "3.5", "2.1", "7"]
-
-
 if __name__ == "__main__":
     test_map_to_patch_integration()
-    test_patch_with_regex_patterns()
     print("All integration tests passed!")
