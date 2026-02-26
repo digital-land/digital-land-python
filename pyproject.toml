@@ -21,6 +21,7 @@ dependencies = [
     "cchardet",
     "esridump",
     "pandas",
+    "polars",
     "pyproj",
     "requests",
     "validators",
