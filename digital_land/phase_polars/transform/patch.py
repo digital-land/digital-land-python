@@ -5,8 +5,9 @@ import polars as pl
 class PatchPhase:
     """Apply regex-based patches to field values using Polars LazyFrame."""
 
-    def __init__(self, patches=None):
+    def __init__(self, patches=None, issues=None):
         self.patch = patches or {}
+        self.issues = issues
 
     def apply_patch(self, fieldname, value):
         patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
@@ -16,6 +17,8 @@ class PatchPhase:
             match = re.match(pattern, value, flags=re.IGNORECASE)
             if match:
                 newvalue = match.expand(replacement)
+                if newvalue != value and self.issues:
+                    self.issues.log_issue(fieldname, "patch", value)
                 return newvalue
         return value
 
@@ -34,12 +37,18 @@ class PatchPhase:
         
         df = lf.collect()
         
-        for field in df.columns:
-            df = df.with_columns(
-                pl.col(field).map_elements(
-                    lambda val: self.apply_patch(field, val) if val else val,
-                    return_dtype=pl.Utf8
-                ).alias(field)
-            )
+        # Process row by row to maintain exact legacy behavior with issue logging
+        rows = df.to_dicts()
+        for idx, row in enumerate(rows):
+            # Set issue context if issues logging is enabled
+            if self.issues:
+                self.issues.resource = row.get("resource", "")
+                self.issues.line_number = row.get("line-number", 0)
+                self.issues.entry_number = row.get("entry-number", 0)
+            
+            # Apply patches to each field in the row
+            for field in row:
+                if field not in ["resource", "line-number", "entry-number"]:
+                    row[field] = self.apply_patch(field, row[field])
         
-        return df.lazy()
+        return pl.DataFrame(rows).lazy()
