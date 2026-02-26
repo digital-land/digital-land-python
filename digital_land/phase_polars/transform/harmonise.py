@@ -6,6 +6,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# NOTE: This module intentionally mirrors legacy stream harmonisation behaviour.
+# The acceptance tests compare legacy and polars outputs field-by-field, so
+# comments below call out parity-sensitive decisions.
+
 # Storing mandatory fields in dict per dataset
 MANDATORY_FIELDS_DICT = {
     "article-4-direction": [
@@ -61,6 +65,27 @@ MANDATORY_FIELDS_DICT = {
 FAR_FUTURE_YEARS_AHEAD = 50
 
 
+class _NoOpIssues:
+    """Lightweight stand-in for IssueLog; discards all messages."""
+
+    # Datatype normalisers in ``digital_land.datatype`` expect an ``issues``
+    # object exposing ``log``/``log_issue``. In the polars path we currently
+    # normalise values without collecting per-row issue telemetry, so this
+    # adapter preserves compatibility without changing datatype code.
+
+    def __init__(self, fieldname=""):
+        self.fieldname = fieldname
+        self.resource = ""
+        self.line_number = 0
+        self.entry_number = 0
+
+    def log(self, *args, **kwargs):
+        pass
+
+    def log_issue(self, *args, **kwargs):
+        pass
+
+
 class HarmonisePhase:
     """
     Apply data harmonisation to Polars LazyFrame using datatype conversions.
@@ -102,6 +127,10 @@ class HarmonisePhase:
 
         existing_columns = lf.collect_schema().names()
 
+        # Keep ordering aligned with the legacy HarmonisePhase where possible.
+        # Some steps depend on prior normalisation (e.g. date checks run after
+        # datatype conversion has produced ISO-like values).
+
         # Apply categorical field normalization
         lf = self._harmonise_categorical_fields(lf, existing_columns)
 
@@ -139,7 +168,8 @@ class HarmonisePhase:
             if field not in existing_columns:
                 continue
 
-            # Create a mapping of lowercase values to actual valid values
+            # Legacy behaviour: compare case-insensitively and treat spaces as
+            # interchangeable with hyphens for matching only.
             value_map = {v.lower().replace(" ", "-"): v for v in valid_values}
             valid_list = list(value_map.values())
 
@@ -168,22 +198,69 @@ class HarmonisePhase:
     ) -> pl.LazyFrame:
         """
         Apply datatype-based harmonisation to field values.
-        
+
+        Delegates to the same ``datatype.normalise()`` functions used by the
+        legacy stream-based HarmonisePhase so that both pipelines produce
+        identical output for every datatype (datetime → ISO dates,
+        multipolygon → WGS84 MULTIPOLYGON WKT, decimal → normalised string,
+        etc.).
+
         Args:
             lf: Input LazyFrame
             existing_columns: List of existing column names
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with harmonised field values
         """
-        # For now, this is a placeholder for field harmonisation
-        # In a full implementation, this would apply datatype-specific conversions
-        # (similar to the legacy phase's harmonise_field method)
-        # This could involve:
-        # - Decimal formatting
-        # - Date standardization
-        # - Address normalization
-        # - etc.
+        from digital_land.datatype.factory import datatype_factory
+
+        for field in existing_columns:
+            if field not in self.field_datatype_map:
+                continue
+
+            datatype_name = self.field_datatype_map[field]
+
+            # Build datatype exactly as legacy does, including datetime bounds.
+            if datatype_name == "datetime":
+                far_past_date = date(1799, 12, 31)
+                far_future_date = self._get_far_future_date(FAR_FUTURE_YEARS_AHEAD)
+                datatype = datatype_factory(
+                    datatype_name=datatype_name,
+                    far_past_date=far_past_date,
+                    far_future_date=far_future_date,
+                )
+            else:
+                datatype = datatype_factory(datatype_name=datatype_name)
+
+            # Closure factory gives each column a stable datatype instance and
+            # field-specific issues context.
+            def _make_normaliser(dt, fname):
+                issues = _NoOpIssues(fname)
+
+                def _normalise(value):
+                    if value is None or (
+                        isinstance(value, str) and not value.strip()
+                    ):
+                        return ""
+                    try:
+                        result = dt.normalise(str(value), issues=issues)
+                        return result if result is not None else ""
+                    except Exception as e:
+                        logger.debug("harmonise error for %s: %s", fname, e)
+                        return ""
+
+                return _normalise
+
+            normaliser = _make_normaliser(datatype, field)
+
+            # Cast to Utf8 first to match legacy, which normalises string input.
+            lf = lf.with_columns(
+                pl.col(field)
+                .cast(pl.Utf8)
+                .map_elements(normaliser, return_dtype=pl.Utf8)
+                .alias(field)
+            )
+
         return lf
 
     def _remove_future_dates(
@@ -191,11 +268,16 @@ class HarmonisePhase:
     ) -> pl.LazyFrame:
         """
         Remove values for entry-date or LastUpdatedDate if they are in the future.
-        
+
+        Called *after* ``_harmonise_field_values`` so dates are already in
+        ISO ``YYYY-MM-DD`` format.  Uses ``strict=False`` so empty strings
+        or unparseable remnants just become null (kept as-is via the
+        ``otherwise`` branch).
+
         Args:
             lf: Input LazyFrame
             existing_columns: List of existing column names
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with future dates removed
         """
@@ -205,10 +287,14 @@ class HarmonisePhase:
             if field not in existing_columns:
                 continue
 
-            # Create expression to clear future dates
+            # ``strict=False`` avoids hard failures for empty/non-date values;
+            # null parse results naturally fall through to ``otherwise``.
             lf = lf.with_columns(
                 pl.when(
-                    pl.col(field).str.strptime(pl.Date, "%Y-%m-%d") > pl.lit(today)
+                    pl.col(field)
+                    .cast(pl.Utf8)
+                    .str.strptime(pl.Date, "%Y-%m-%d", strict=False)
+                    > pl.lit(today)
                 )
                 .then(pl.lit(""))
                 .otherwise(pl.col(field))
@@ -221,37 +307,67 @@ class HarmonisePhase:
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
         """
-        Process GeoX, GeoY coordinates to ensure valid formatting.
-        
+        Process GeoX, GeoY coordinates through PointDataType.
+
+        Matches legacy behaviour: builds a Point from the coordinate pair,
+        runs CRS detection / conversion (OSGB → WGS84 etc.) via
+        ``PointDataType.normalise``, and extracts the transformed
+        longitude / latitude back into GeoX / GeoY.
+
         Args:
             lf: Input LazyFrame
             existing_columns: List of existing column names
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with processed geometry
         """
         if "GeoX" not in existing_columns or "GeoY" not in existing_columns:
             return lf
 
-        # Validate that GeoX and GeoY can be parsed as floats
-        # If either is invalid, clear both
-        lf = lf.with_columns(
-            [
-                pl.when(
-                    (pl.col("GeoX").str.to_decimal().is_not_null())
-                    & (pl.col("GeoY").str.to_decimal().is_not_null())
+        import shapely.wkt as _wkt
+        from digital_land.datatype.point import PointDataType
+
+        point_dt = PointDataType()
+        issues = _NoOpIssues("GeoX,GeoY")
+
+        def _normalise_point(row_struct):
+            geox = row_struct.get("GeoX")
+            geoy = row_struct.get("GeoY")
+            if not geox or not geoy:
+                return {"GeoX": "", "GeoY": ""}
+            try:
+                # PointDataType handles coordinate-system detection and
+                # conversion to canonical WGS84 point output.
+                geometry = point_dt.normalise(
+                    [str(geox), str(geoy)], issues=issues
                 )
-                .then(pl.col("GeoX").str.to_decimal().cast(pl.Utf8))
-                .otherwise(pl.lit(""))
-                .alias("GeoX"),
-                pl.when(
-                    (pl.col("GeoX").str.to_decimal().is_not_null())
-                    & (pl.col("GeoY").str.to_decimal().is_not_null())
+                if geometry:
+                    point_geom = _wkt.loads(geometry)
+                    # Store transformed lon/lat back into original fields,
+                    # matching the legacy phase contract.
+                    x, y = point_geom.coords[0]
+                    return {"GeoX": str(x), "GeoY": str(y)}
+                return {"GeoX": "", "GeoY": ""}
+            except Exception as e:
+                logger.error("Exception processing GeoX,GeoY: %s", e)
+                return {"GeoX": "", "GeoY": ""}
+
+        lf = (
+            lf.with_columns(
+                pl.struct(["GeoX", "GeoY"])
+                .map_elements(
+                    _normalise_point,
+                    return_dtype=pl.Struct(
+                        {"GeoX": pl.Utf8, "GeoY": pl.Utf8}
+                    ),
                 )
-                .then(pl.col("GeoY").str.to_decimal().cast(pl.Utf8))
-                .otherwise(pl.lit(""))
-                .alias("GeoY"),
-            ]
+                .alias("_point_result")
+            )
+            .with_columns(
+                pl.col("_point_result").struct.field("GeoX").alias("GeoX"),
+                pl.col("_point_result").struct.field("GeoY").alias("GeoY"),
+            )
+            .drop("_point_result")
         )
 
         return lf
