@@ -222,7 +222,9 @@ def _run_legacy_pipeline(
     pipeline = chain_phases(phases)
     rows = []
     for block in pipeline(None):
-        rows.append(dict(block["row"]))
+        row_dict = dict(block["row"])
+        # Preserve all fields including those not in the schema by keeping original attributes
+        rows.append(row_dict)
     return rows, issue_log
 
 
@@ -760,25 +762,36 @@ class TestHarmoniseDiagnostic:
     """
 
     def test_print_comparison(self, field_datatype_map, schema_three_fieldnames):
-        """Print legacy vs polars outputs for the e2e.csv data."""
-        csv_path = str(TEST_DATA / "resource_examples" / "e2e.csv")
+        """Print legacy vs polars outputs for the gml_to_csv_buckinghamshire.csv data."""
+        csv_path = str(TEST_DATA / "resource_examples" / "gml_to_csv_buckinghamshire.csv")
         config = _load_pipeline_config(PIPELINE_DIR, "pipeline-three")
+
+        # Read CSV headers to include all fields, not just schema-three
+        with open(csv_path, newline="") as f:
+            csv_headers = f.readline().strip().split(",")
+            all_fieldnames = [h.strip() for h in csv_headers]
+
+        # Extend field_datatype_map to include all fields, defaulting to "string" for those not in the map
+        extended_field_datatype_map = field_datatype_map.copy()
+        for fieldname in all_fieldnames:
+            if fieldname not in extended_field_datatype_map:
+                extended_field_datatype_map[fieldname] = "string"
 
         legacy_rows, issue_log = _run_legacy_pipeline(
             csv_path=csv_path,
-            fieldnames=schema_three_fieldnames,
+            fieldnames=all_fieldnames,  # Use all fieldnames from CSV instead of schema-three
             columns=config["columns"],
             concats=config["concats"],
             patches=config["patches"],
             filters=config["filters"],
             skip_patterns=config["skip_patterns"],
-            field_datatype_map=field_datatype_map,
+            field_datatype_map=extended_field_datatype_map,  # Extended map with all fields
             dataset="pipeline-three",
             valid_category_values={},
         )
         polars_rows = _run_polars_pipeline(
             csv_path=csv_path,
-            fieldnames=schema_three_fieldnames,
+            fieldnames=all_fieldnames,  # Use all fieldnames from CSV instead of schema-three
             columns=config["columns"],
             concats=config["concats"],
             patches=config["patches"],
@@ -792,7 +805,7 @@ class TestHarmoniseDiagnostic:
         print("\n" + "=" * 80)
         print("LEGACY → POLARS HARMONISE PHASE COMPARISON")
         print("=" * 80)
-        print(f"Input: e2e.csv  |  Dataset: pipeline-three")
+        print(f"Input: gml_to_csv_buckinghamshire.csv  |  Dataset: pipeline-three")
         print(f"Legacy rows: {len(legacy_rows)}  |  Polars rows: {len(polars_rows)}")
 
         report = compare_outputs(legacy_rows, polars_rows)
@@ -803,14 +816,18 @@ class TestHarmoniseDiagnostic:
             print(f"\n✗ DIFFERENCES FOUND")
             print(format_report(report))
 
-        # Also print a sample of rows
+        # Also print a sample of rows with full details
+        import json
+        
         print("\n--- Legacy output (first 3 rows) ---")
         for i, row in enumerate(legacy_rows[:3]):
-            print(f"  Row {i + 1}: {dict(row)}")
+            row_dict = dict(row)
+            print(f"  Row {i + 1}: {json.dumps(row_dict, indent=4, sort_keys=True)}")
 
         print("\n--- Polars output (first 3 rows) ---")
         for i, row in enumerate(polars_rows[:3]):
-            print(f"  Row {i + 1}: {dict(row)}")
+            row_dict = dict(row)
+            print(f"  Row {i + 1}: {json.dumps(row_dict, indent=4, sort_keys=True)}")
 
         # Print issues logged by legacy pipeline
         if issue_log.rows:
