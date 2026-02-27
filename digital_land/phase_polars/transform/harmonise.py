@@ -1,8 +1,9 @@
-import re
 import polars as pl
-from datetime import datetime, date
+from datetime import date
 from calendar import monthrange
 import logging
+import re
+import duckdb
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ MANDATORY_FIELDS_DICT = {
 }
 
 FAR_FUTURE_YEARS_AHEAD = 50
+FIRST_COORD_RE = re.compile(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
 
 
 class _NoOpIssues:
@@ -171,7 +173,6 @@ class HarmonisePhase:
             # Legacy behaviour: compare case-insensitively and treat spaces as
             # interchangeable with hyphens for matching only.
             value_map = {v.lower().replace(" ", "-"): v for v in valid_values}
-            valid_list = list(value_map.values())
 
             # Apply the categorical normalization
             lf = lf.with_columns(
@@ -214,6 +215,10 @@ class HarmonisePhase:
         """
         from digital_land.datatype.factory import datatype_factory
 
+        spatial_geometry_fields = []
+        spatial_point_fields = []
+        spatial_normalisers = {}
+
         for field in existing_columns:
             if field not in self.field_datatype_map:
                 continue
@@ -253,6 +258,15 @@ class HarmonisePhase:
 
             normaliser = _make_normaliser(datatype, field)
 
+            if datatype_name == "multipolygon":
+                spatial_geometry_fields.append(field)
+                spatial_normalisers[field] = normaliser
+                continue
+            if datatype_name == "point":
+                spatial_point_fields.append(field)
+                spatial_normalisers[field] = normaliser
+                continue
+
             # Cast to Utf8 first to match legacy, which normalises string input.
             lf = lf.with_columns(
                 pl.col(field)
@@ -261,7 +275,108 @@ class HarmonisePhase:
                 .alias(field)
             )
 
+        if spatial_geometry_fields or spatial_point_fields:
+            lf = self._normalise_spatial_fields_with_duckdb(
+                lf,
+                geometry_fields=spatial_geometry_fields,
+                point_fields=spatial_point_fields,
+            )
+            lf = self._canonicalise_spatial_fields(lf, spatial_normalisers)
+
         return lf
+
+    def _canonicalise_spatial_fields(
+        self, lf: pl.LazyFrame, normalisers: dict
+    ) -> pl.LazyFrame:
+        """Apply legacy datatype canonicalisation to DuckDB spatial output."""
+        if not normalisers:
+            return lf
+
+        df = lf.collect()
+        updates = []
+
+        for field, normaliser in normalisers.items():
+            values = df.get_column(field).to_list()
+            updates.append(
+                pl.Series(field, [normaliser(value) for value in values], dtype=pl.Utf8)
+            )
+
+        return df.with_columns(updates).lazy()
+
+    def _normalise_spatial_fields_with_duckdb(
+        self,
+        lf: pl.LazyFrame,
+        geometry_fields: list,
+        point_fields: list,
+    ) -> pl.LazyFrame:
+        """Normalise multipolygon/point fields via DuckDB Spatial as primary path."""
+        if not geometry_fields and not point_fields:
+            return lf
+
+        df = lf.collect().with_row_index("__dl_idx")
+
+        helper_cols = ["__dl_idx"]
+
+        for field in geometry_fields + point_fields:
+            values = df.get_column(field).to_list()
+            srids: list[str] = []
+            flips: list[bool] = []
+            for value in values:
+                srid, flip = self._classify_wkt_crs_with_flip(value)
+                srids.append(srid)
+                flips.append(flip)
+
+            srid_col = f"__dl_srid_{field}"
+            flip_col = f"__dl_flip_{field}"
+            helper_cols.extend([srid_col, flip_col])
+            df = df.with_columns(
+                pl.Series(srid_col, srids, dtype=pl.Utf8),
+                pl.Series(flip_col, flips, dtype=pl.Boolean),
+            )
+
+        con = self._duckdb_spatial_connection()
+        con.register("dl_spatial", df.to_arrow())
+
+        try:
+            select_parts = [
+                f'"{column}"'
+                for column in df.columns
+                if column not in helper_cols
+            ]
+
+            for field in geometry_fields:
+                srid_col = f"__dl_srid_{field}"
+                flip_col = f"__dl_flip_{field}"
+                geom_case = self._duckdb_geom_case(field, srid_col, flip_col)
+                expr = (
+                    f"CASE "
+                    f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
+                    f"ELSE coalesce(replace(ST_AsText(ST_Multi({geom_case})), ', ', ','), '') "
+                    f"END AS \"{field}\""
+                )
+                select_parts[select_parts.index(f'"{field}"')] = expr
+
+            for field in point_fields:
+                srid_col = f"__dl_srid_{field}"
+                flip_col = f"__dl_flip_{field}"
+                geom_case = self._duckdb_geom_case(field, srid_col, flip_col)
+                expr = (
+                    f"CASE "
+                    f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
+                    f"ELSE coalesce(ST_AsText({geom_case}), '') "
+                    f"END AS \"{field}\""
+                )
+                select_parts[select_parts.index(f'"{field}"')] = expr
+
+            query = (
+                "SELECT "
+                + ", ".join(select_parts)
+                + " FROM dl_spatial ORDER BY __dl_idx"
+            )
+
+            return pl.from_arrow(con.execute(query).arrow()).lazy()
+        finally:
+            con.close()
 
     def _remove_future_dates(
         self, lf: pl.LazyFrame, existing_columns: list
@@ -324,53 +439,140 @@ class HarmonisePhase:
         if "GeoX" not in existing_columns or "GeoY" not in existing_columns:
             return lf
 
-        import shapely.wkt as _wkt
-        from digital_land.datatype.point import PointDataType
+        return self._normalise_geoxy_with_duckdb(lf)
 
-        point_dt = PointDataType()
-        issues = _NoOpIssues("GeoX,GeoY")
+    def _normalise_geoxy_with_duckdb(self, lf: pl.LazyFrame) -> pl.LazyFrame:
+        """Normalise GeoX/GeoY via DuckDB Spatial as primary path."""
+        df = lf.collect().with_row_index("__dl_idx")
 
-        def _normalise_point(row_struct):
-            geox = row_struct.get("GeoX")
-            geoy = row_struct.get("GeoY")
-            if not geox or not geoy:
-                return {"GeoX": "", "GeoY": ""}
-            try:
-                # PointDataType handles coordinate-system detection and
-                # conversion to canonical WGS84 point output.
-                geometry = point_dt.normalise(
-                    [str(geox), str(geoy)], issues=issues
-                )
-                if geometry:
-                    point_geom = _wkt.loads(geometry)
-                    # Store transformed lon/lat back into original fields,
-                    # matching the legacy phase contract.
-                    x, y = point_geom.coords[0]
-                    return {"GeoX": str(x), "GeoY": str(y)}
-                return {"GeoX": "", "GeoY": ""}
-            except Exception as e:
-                logger.error("Exception processing GeoX,GeoY: %s", e)
-                return {"GeoX": "", "GeoY": ""}
+        geox_values = df.get_column("GeoX").to_list()
+        geoy_values = df.get_column("GeoY").to_list()
 
-        lf = (
-            lf.with_columns(
-                pl.struct(["GeoX", "GeoY"])
-                .map_elements(
-                    _normalise_point,
-                    return_dtype=pl.Struct(
-                        {"GeoX": pl.Utf8, "GeoY": pl.Utf8}
-                    ),
-                )
-                .alias("_point_result")
-            )
-            .with_columns(
-                pl.col("_point_result").struct.field("GeoX").alias("GeoX"),
-                pl.col("_point_result").struct.field("GeoY").alias("GeoY"),
-            )
-            .drop("_point_result")
+        srids: list[str] = []
+        flips: list[bool] = []
+        for geox, geoy in zip(geox_values, geoy_values):
+            srid, flip = self._classify_xy_crs(geox, geoy)
+            srids.append(srid)
+            flips.append(flip)
+
+        df = df.with_columns(
+            pl.Series("__dl_point_srid", srids, dtype=pl.Utf8),
+            pl.Series("__dl_point_flip", flips, dtype=pl.Boolean),
         )
 
-        return lf
+        con = self._duckdb_spatial_connection()
+        con.register("dl_points", df.to_arrow())
+
+        try:
+            point_case = (
+                "CASE "
+                "WHEN __dl_point_srid = '4326' AND __dl_point_flip = FALSE "
+                "THEN ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)) "
+                "WHEN __dl_point_srid = '4326' AND __dl_point_flip = TRUE "
+                "THEN ST_Point(TRY_CAST(\"GeoY\" AS DOUBLE), TRY_CAST(\"GeoX\" AS DOUBLE)) "
+                "WHEN __dl_point_srid = '27700' AND __dl_point_flip = FALSE "
+                "THEN ST_FlipCoordinates(ST_Transform(ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)), 'EPSG:27700', 'EPSG:4326')) "
+                "WHEN __dl_point_srid = '27700' AND __dl_point_flip = TRUE "
+                "THEN ST_FlipCoordinates(ST_Transform(ST_Point(TRY_CAST(\"GeoY\" AS DOUBLE), TRY_CAST(\"GeoX\" AS DOUBLE)), 'EPSG:27700', 'EPSG:4326')) "
+                "WHEN __dl_point_srid = '3857' AND __dl_point_flip = FALSE "
+                "THEN ST_FlipCoordinates(ST_Transform(ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)), 'EPSG:3857', 'EPSG:4326')) "
+                "WHEN __dl_point_srid = '3857' AND __dl_point_flip = TRUE "
+                "THEN ST_FlipCoordinates(ST_Transform(ST_Point(TRY_CAST(\"GeoY\" AS DOUBLE), TRY_CAST(\"GeoX\" AS DOUBLE)), 'EPSG:3857', 'EPSG:4326')) "
+                "ELSE NULL END"
+            )
+
+            query = (
+                "SELECT * EXCLUDE (__dl_idx, __dl_point_srid, __dl_point_flip), "
+                "CASE "
+                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                "THEN '' "
+                f"ELSE coalesce(CAST(round(ST_X({point_case}), 6) AS VARCHAR), '') END AS \"GeoX\", "
+                "CASE "
+                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                "THEN '' "
+                f"ELSE coalesce(CAST(round(ST_Y({point_case}), 6) AS VARCHAR), '') END AS \"GeoY\" "
+                "FROM dl_points ORDER BY __dl_idx"
+            )
+
+            return pl.from_arrow(con.execute(query).arrow()).lazy()
+        finally:
+            con.close()
+
+    @staticmethod
+    def _duckdb_spatial_connection():
+        """Create a DuckDB connection with spatial extension loaded."""
+        con = duckdb.connect(database=":memory:")
+        try:
+            con.execute("LOAD spatial")
+        except Exception:
+            con.execute("INSTALL spatial")
+            con.execute("LOAD spatial")
+        return con
+
+    @staticmethod
+    def _degrees_like(x, y):
+        return -60.0 < x < 60.0 and -60.0 < y < 60.0
+
+    @staticmethod
+    def _easting_northing_like(x, y):
+        return 1000.0 < x < 1000000.0 and 1000.0 < y < 1000000.0
+
+    @staticmethod
+    def _metres_like(x, y):
+        return 6000000.0 < y < 10000000.0
+
+    def _classify_xy_crs(self, x, y):
+        try:
+            x = float(str(x).strip())
+            y = float(str(y).strip())
+        except Exception:
+            return "", False
+
+        if self._degrees_like(x, y):
+            return "4326", False
+        if self._degrees_like(y, x):
+            return "4326", True
+        if self._easting_northing_like(x, y):
+            return "27700", False
+        if self._easting_northing_like(y, x):
+            return "27700", True
+        if self._metres_like(x, y):
+            return "3857", False
+        if self._metres_like(y, x):
+            return "3857", True
+        return "", False
+
+    def _classify_wkt_crs_with_flip(self, wkt_value):
+        if wkt_value is None:
+            return "", False
+        text = str(wkt_value).strip()
+        if not text:
+            return "", False
+
+        nums = FIRST_COORD_RE.findall(text)
+        if len(nums) < 2:
+            return "", False
+        try:
+            x = float(nums[0])
+            y = float(nums[1])
+        except Exception:
+            return "", False
+
+        return self._classify_xy_crs(x, y)
+
+    @staticmethod
+    def _duckdb_geom_case(field: str, srid_col: str, flip_col: str) -> str:
+        geom = f'TRY(ST_GeomFromText("{field}"))'
+        return (
+            "CASE "
+            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = FALSE THEN {geom} "
+            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates({geom}) "
+            f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:27700', 'EPSG:4326')) "
+            f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates(ST_Transform(ST_FlipCoordinates({geom}), 'EPSG:27700', 'EPSG:4326')) "
+            f"WHEN \"{srid_col}\" = '3857' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:3857', 'EPSG:4326')) "
+            f"WHEN \"{srid_col}\" = '3857' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates(ST_Transform(ST_FlipCoordinates({geom}), 'EPSG:3857', 'EPSG:4326')) "
+            "ELSE NULL END"
+        )
 
     def _add_typology_curies(
         self, lf: pl.LazyFrame, existing_columns: list
