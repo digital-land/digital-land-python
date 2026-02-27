@@ -37,3 +37,6 @@ docs/modules.rst
 # don't store data folder for use as storage for notebooks
 notebooks/data/
 notebooks/.ipynb_checkpoints
+
+# exclude test output files
+tests/data/output/
