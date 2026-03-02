@@ -40,4 +40,4 @@ notebooks/.ipynb_checkpoints
 
 # exclude test output files
 tests/data/output/
-tests/data/
+tests/integration/data/
