@@ -8,10 +8,8 @@ import duckdb
 logger = logging.getLogger(__name__)
 
 # NOTE: This module intentionally mirrors legacy stream harmonisation behaviour.
-# The acceptance tests compare legacy and polars outputs field-by-field, so
-# comments below call out parity-sensitive decisions.
-
-# Storing mandatory fields in dict per dataset
+# Acceptance tests compare legacy and polars outputs field-by-field; comments
+# below call out parity-sensitive decisions.
 MANDATORY_FIELDS_DICT = {
     "article-4-direction": [
         "reference",
@@ -68,12 +66,12 @@ FIRST_COORD_RE = re.compile(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
 
 
 class _NoOpIssues:
-    """Lightweight stand-in for IssueLog; discards all messages."""
+    """Stand-in for IssueLog that silently discards all messages.
 
-    # Datatype normalisers in ``digital_land.datatype`` expect an ``issues``
-    # object exposing ``log``/``log_issue``. In the polars path we currently
-    # normalise values without collecting per-row issue telemetry, so this
-    # adapter preserves compatibility without changing datatype code.
+    ``digital_land.datatype`` normalisers expect an ``issues`` object with
+    ``log`` / ``log_issue``.  The polars path does not collect per-row
+    telemetry yet, so this adapter preserves API compatibility.
+    """
 
     def __init__(self, fieldname=""):
         self.fieldname = fieldname
@@ -89,11 +87,12 @@ class _NoOpIssues:
 
 
 class HarmonisePhase:
-    """
-    Apply data harmonisation to Polars LazyFrame using datatype conversions.
-    
-    Handles field validation, categorical mapping, date normalization,
-    geometry processing, and mandatory field checks.
+    """Apply harmonisation transformations to a Polars LazyFrame.
+
+    Covers categorical normalisation, datatype conversion, future-date
+    removal, GeoX/GeoY CRS conversion, typology CURIE prefixing, mandatory
+    field checks, and Wikipedia URL stripping.  Mirrors the behaviour of the
+    legacy stream-based ``HarmonisePhase`` in ``digital_land.phase.harmonise``.
     """
 
     def __init__(
@@ -102,61 +101,32 @@ class HarmonisePhase:
         dataset=None,
         valid_category_values=None,
     ):
-        """
-        Initialize the HarmonisePhase.
-        
-        Args:
-            field_datatype_map: Dictionary mapping field names to datatype names
-            dataset: The dataset name (used for mandatory field checking)
-            valid_category_values: Dictionary mapping field names to lists of valid values
-        """
         self.field_datatype_map = field_datatype_map or {}
         self.dataset = dataset
         self.valid_category_values = valid_category_values or {}
 
     def process(self, lf: pl.LazyFrame) -> pl.LazyFrame:
+        """Apply all harmonisation transformations and return the result.
+
+        Steps run in the same order as the legacy stream-based phase; some
+        steps rely on earlier ones (e.g. future-date removal assumes dates are
+        already in ISO ``YYYY-MM-DD`` form after datatype harmonisation).
         """
-        Apply harmonisation transformations to LazyFrame.
-        
-        Args:
-            lf: Input Polars LazyFrame
-            
-        Returns:
-            pl.LazyFrame: Harmonised LazyFrame
-        """
-        # ── Collect schema ONCE and reuse throughout to avoid repeated
-        # round-trips to materialise the lazy plan for schema inspection.
-        schema = lf.collect_schema()
-        if schema.len() == 0:
+        if lf.collect_schema().len() == 0:
             return lf
 
-        existing_columns = schema.names()
+        existing_columns = lf.collect_schema().names()
 
-        # Keep ordering aligned with the legacy HarmonisePhase where possible.
-        # Some steps depend on prior normalisation (e.g. date checks run after
-        # datatype conversion has produced ISO-like values).
-
-        # Apply categorical field normalization
         lf = self._harmonise_categorical_fields(lf, existing_columns)
-
-        # Apply datatype-based field harmonisation
         lf = self._harmonise_field_values(lf, existing_columns)
-
-        # Remove future entry dates
         lf = self._remove_future_dates(lf, existing_columns)
-
-        # Process point geometry (GeoX, GeoY)
         lf = self._process_point_geometry(lf, existing_columns)
-
-        # Ensure typology fields have CURIE prefixes
         lf = self._add_typology_curies(lf, existing_columns)
-
-        # Process Wikipedia URLs
+        lf = self._check_mandatory_fields(lf, existing_columns)
         lf = self._process_wikipedia_urls(lf, existing_columns)
 
-        # Drop 'entry-number' if present — use the schema already in hand so
-        # we don't trigger a second collect_schema() round-trip.
-        if "entry-number" in existing_columns:
+        # entry-number is an internal processing column and must not propagate.
+        if "entry-number" in lf.collect_schema().names():
             lf = lf.drop("entry-number")
 
         return lf
@@ -164,55 +134,31 @@ class HarmonisePhase:
     def _harmonise_categorical_fields(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """
-        Normalize categorical fields by replacing spaces and validating against allowed values.
+        """Normalise categorical fields against their allowed values.
 
-        Fully vectorised: replaces the per-row ``map_elements`` call with a
-        Polars ``replace`` expression so the entire column is processed in one
-        pass without leaving the Polars engine.
-        
-        Args:
-            lf: Input LazyFrame
-            existing_columns: List of existing column names
-            
-        Returns:
-            pl.LazyFrame: LazyFrame with normalised categorical fields
+        Matching is case-insensitive and treats spaces as interchangeable with
+        hyphens (legacy parity).  Values not found in the allowed list are left
+        unchanged.
         """
         for field, valid_values in self.valid_category_values.items():
             if field not in existing_columns:
                 continue
 
-            # Legacy behaviour: compare case-insensitively and treat spaces as
-            # interchangeable with hyphens for matching only.
-            keys = [v.lower().replace(" ", "-") for v in valid_values]
-            vals = list(valid_values)
+            value_map = {v.lower().replace(" ", "-"): v for v in valid_values}
 
-            # Vectorised path (no Python UDF):
-            #   1. normalise value  →  spaces→hyphens, lowercase
-            #   2. replace mapped keys with canonical form
-            #   3. coalesce with original so unrecognised values are preserved
             lf = lf.with_columns(
-                pl.when(
-                    pl.col(field).is_not_null()
-                    & (pl.col(field).str.len_chars() > 0)
+                pl.col(field)
+                .map_elements(
+                    lambda x: self._normalize_categorical(x, value_map),
+                    return_dtype=pl.Utf8,
                 )
-                .then(
-                    pl.coalesce([
-                        pl.col(field)
-                        .str.replace_all(" ", "-")
-                        .str.to_lowercase()
-                        .replace(keys, vals, default=None),
-                        pl.col(field),  # fallback: keep original when unmapped
-                    ])
-                )
-                .otherwise(pl.col(field))
                 .alias(field)
             )
 
         return lf
 
     def _normalize_categorical(self, value, value_map):
-        """Normalize a categorical value against allowed values."""
+        """Return the canonical form of *value* from *value_map*, or *value* unchanged."""
         if not value or (isinstance(value, str) and not value.strip()):
             return value
 
@@ -222,47 +168,18 @@ class HarmonisePhase:
     def _harmonise_field_values(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """
-        Apply datatype-based harmonisation to field values.
+        """Apply datatype-based normalisation to every mapped field.
 
-        Delegates to the same ``datatype.normalise()`` functions used by the
-        legacy stream-based HarmonisePhase so that both pipelines produce
-        identical output for every datatype (datetime → ISO dates,
-        multipolygon → WGS84 MULTIPOLYGON WKT, decimal → normalised string,
-        etc.).
-
-        Performance notes
-        ─────────────────
-        * Datetime bounds are computed ONCE before the field loop instead of
-          once per datetime field.
-        * ``curie`` maps to the identity DataType (``normalise`` returns the
-          value unchanged) so we skip it entirely.
-        * ``string`` / ``text`` fields are normalised with vectorised Polars
-          expressions instead of per-row ``map_elements`` calls.
-        * ``datetime`` fields use a vectorised multi-format ``strptime`` chain
-          with a ``map_elements`` fallback only for unusual formats, keeping
-          full parity while avoiding Python-per-row overhead for ISO dates.
-        * ALL non-spatial column expressions are collected into a single
-          ``with_columns`` call so Polars plans and executes them in one pass.
-
-        Args:
-            lf: Input LazyFrame
-            existing_columns: List of existing column names
-
-        Returns:
-            pl.LazyFrame: LazyFrame with harmonised field values
+        Uses the same ``datatype.normalise()`` functions as the legacy phase
+        to ensure identical output (datetime → ISO date, multipolygon → WGS84
+        WKT, decimal → normalised string, etc.).  Spatial fields (multipolygon,
+        point) are batched through DuckDB Spatial for performance.
         """
         from digital_land.datatype.factory import datatype_factory
-
-        # ── Pre-compute datetime bounds ONCE outside the inner loop ──────────
-        far_past_date = date(1799, 12, 31)
-        far_future_date = self._get_far_future_date(FAR_FUTURE_YEARS_AHEAD)
 
         spatial_geometry_fields = []
         spatial_point_fields = []
         spatial_normalisers = {}
-        # Collect all non-spatial column expressions for a single with_columns call
-        non_spatial_exprs: list[pl.Expr] = []
 
         for field in existing_columns:
             if field not in self.field_datatype_map:
@@ -270,79 +187,20 @@ class HarmonisePhase:
 
             datatype_name = self.field_datatype_map[field]
 
-            # ── Spatial fields – handled separately via DuckDB ────────────────
-            if datatype_name in ("multipolygon", "point"):
+            # Match legacy datetime bounds exactly.
+            if datatype_name == "datetime":
+                far_past_date = date(1799, 12, 31)
+                far_future_date = self._get_far_future_date(FAR_FUTURE_YEARS_AHEAD)
+                datatype = datatype_factory(
+                    datatype_name=datatype_name,
+                    far_past_date=far_past_date,
+                    far_future_date=far_future_date,
+                )
+            else:
                 datatype = datatype_factory(datatype_name=datatype_name)
 
-                def _make_spatial_normaliser(dt, fname):
-                    issues = _NoOpIssues(fname)
-
-                    def _normalise(value):
-                        if value is None or (
-                            isinstance(value, str) and not value.strip()
-                        ):
-                            return ""
-                        try:
-                            result = dt.normalise(str(value), issues=issues)
-                            return result if result is not None else ""
-                        except Exception as e:
-                            logger.debug("harmonise error for %s: %s", fname, e)
-                            return ""
-
-                    return _normalise
-
-                normaliser = _make_spatial_normaliser(datatype, field)
-                if datatype_name == "multipolygon":
-                    spatial_geometry_fields.append(field)
-                else:
-                    spatial_point_fields.append(field)
-                spatial_normalisers[field] = normaliser
-                continue
-
-            # ── curie: base DataType.normalise() is the identity function ─────
-            # No transformation needed, skip entirely to avoid map_elements
-            # overhead on a no-op.
-            if datatype_name == "curie":
-                continue
-
-            # ── string / text: fully vectorised Polars expression ─────────────
-            # StringDataType.normalise() does: strip → collapse whitespace →
-            # remove curly/straight double-quotes.
-            if datatype_name in ("string", "text"):
-                non_spatial_exprs.append(
-                    pl.col(field)
-                    .cast(pl.Utf8)
-                    .str.strip_chars()
-                    .str.replace_all(r'["\u201c\u201d]', "")
-                    .str.replace_all(r"\s+", " ")
-                    .alias(field)
-                )
-                continue
-
-            # ── datetime: vectorised multi-format strptime fast path ──────────
-            # Covers the vast majority of real-world date formats without
-            # leaving the Polars engine.  Rows that don't match any vectorised
-            # pattern fall back to the legacy Python normaliser via
-            # map_elements so full format parity is maintained.
-            if datatype_name == "datetime":
-                non_spatial_exprs.append(
-                    self._build_datetime_expr(
-                        field, far_past_date, far_future_date
-                    )
-                )
-                continue
-
-            # ── generic fallback: map_elements ────────────────────────────────
-            # Build datatype exactly as legacy does.
-            datatype = datatype_factory(
-                datatype_name=datatype_name,
-                **(
-                    {"far_past_date": far_past_date, "far_future_date": far_future_date}
-                    if datatype_name == "datetime"
-                    else {}
-                ),
-            )
-
+            # Closure factory: each column gets its own datatype instance and
+            # _NoOpIssues so lambda capture is stable across loop iterations.
             def _make_normaliser(dt, fname):
                 issues = _NoOpIssues(fname)
 
@@ -360,28 +218,32 @@ class HarmonisePhase:
 
                 return _normalise
 
-            # Use map_batches: one Python call for the whole column instead of
-            # N per-row map_elements calls, reducing Python-call overhead.
             normaliser = _make_normaliser(datatype, field)
-            non_spatial_exprs.append(
+
+            # Spatial fields cannot be normalised row-by-row via map_elements
+            # because CRS detection needs the raw WKT string before any
+            # conversion.  Collect them here and process in bulk via DuckDB.
+            if datatype_name == "multipolygon":
+                spatial_geometry_fields.append(field)
+                spatial_normalisers[field] = normaliser
+                continue
+            if datatype_name == "point":
+                spatial_point_fields.append(field)
+                spatial_normalisers[field] = normaliser
+                continue
+
+            # Cast to Utf8 first — legacy always normalises from a string.
+            lf = lf.with_columns(
                 pl.col(field)
                 .cast(pl.Utf8)
-                .map_batches(
-                    lambda s, _n=normaliser: pl.Series(
-                        [_n(v) for v in s.to_list()], dtype=pl.Utf8
-                    ),
-                    return_dtype=pl.Utf8,
-                )
+                .map_elements(normaliser, return_dtype=pl.Utf8)
                 .alias(field)
             )
 
-        # ── Apply ALL non-spatial normalizations in ONE with_columns call ─────
-        # This reduces the number of lazy-plan nodes from N (one per field) to
-        # 1, letting Polars execute all column transforms in a single data pass.
-        if non_spatial_exprs:
-            lf = lf.with_columns(non_spatial_exprs)
-
         if spatial_geometry_fields or spatial_point_fields:
+            # DuckDB Spatial reprojects / validates geometry in bulk, then the
+            # legacy datatype normaliser runs a final canonicalisation pass
+            # (e.g. WKT whitespace normalisation) on the DuckDB output.
             lf = self._normalise_spatial_fields_with_duckdb(
                 lf,
                 geometry_fields=spatial_geometry_fields,
@@ -391,286 +253,23 @@ class HarmonisePhase:
 
         return lf
 
-    # ── Vectorised datetime parsing ───────────────────────────────────────────
-
-    # Common date formats tried in vectorised order (most frequent first).
-    # Each is tried with strict=False so unmatched rows return null and fall
-    # through to the next candidate.
-    _FAST_DATE_FORMATS: list[tuple[str, str]] = [
-        # (polars_type, format_string)
-        ("date",     "%Y-%m-%d"),
-        ("date",     "%Y%m%d"),
-        ("date",     "%Y/%m/%d"),
-        ("date",     "%d/%m/%Y"),
-        ("date",     "%d-%m-%Y"),
-        ("date",     "%d.%m.%Y"),
-        ("date",     "%d/%m/%y"),
-        ("date",     "%d-%m-%y"),
-        ("date",     "%d.%m.%y"),
-        ("date",     "%Y-%d-%m"),  # legacy "risky" format
-        ("date",     "%Y"),
-        ("datetime", "%Y-%m-%dT%H:%M:%SZ"),
-        ("datetime", "%Y-%m-%dT%H:%M:%S"),
-        ("datetime", "%Y-%m-%d %H:%M:%S"),
-        ("datetime", "%Y/%m/%d %H:%M:%S"),
-        ("datetime", "%d/%m/%Y %H:%M:%S"),
-        ("datetime", "%d/%m/%Y %H:%M"),
-    ]
-
-    def _build_datetime_expr(
-        self,
-        field: str,
-        far_past_date: date,
-        far_future_date: date,
-    ) -> pl.Expr:
-        """
-        Return a fully-vectorised Polars expression for one datetime field.
-
-        Strategy
-        ────────
-        1. Strip leading/trailing whitespace and quote chars (vectorised).
-        2. Try each format in ``_FAST_DATE_FORMATS`` with ``strict=False``;
-           ``pl.coalesce`` picks the first successful parse.
-        3. Apply far-past / far-future date-range guards (vectorised – no
-           Python-per-row overhead).
-        4. Return empty string for null / unparseable values.
-
-        Parity note: the 17 formats in ``_FAST_DATE_FORMATS`` cover all date
-        patterns observed in production.  Values that don't match any format
-        produce "" (same as legacy for truly unrecognised input).
-        """
-        col = pl.col(field).cast(pl.Utf8).str.strip_chars().str.strip_chars('",')
-
-        # Build one strptime expression per fast-format, all returning pl.Date.
-        date_exprs: list[pl.Expr] = []
-        for kind, fmt in self._FAST_DATE_FORMATS:
-            if kind == "date":
-                date_exprs.append(col.str.strptime(pl.Date, fmt, strict=False))
-            else:  # datetime → extract date part
-                date_exprs.append(
-                    col.str.strptime(pl.Datetime, fmt, strict=False).dt.date()
-                )
-
-        parsed: pl.Expr = pl.coalesce(date_exprs)   # first non-null wins
-        parsed_str: pl.Expr = parsed.cast(pl.Utf8)  # → YYYY-MM-DD or null
-
-        # Apply date-range guards (vectorised)
-        if far_past_date:
-            parsed_str = (
-                pl.when(
-                    parsed_str.is_not_null()
-                    & (parsed_str < pl.lit(far_past_date.isoformat()))
-                )
-                .then(pl.lit(""))
-                .otherwise(parsed_str)
-            )
-        if far_future_date:
-            parsed_str = (
-                pl.when(
-                    parsed_str.is_not_null()
-                    & (parsed_str.str.len_chars() > 0)
-                    & (parsed_str > pl.lit(far_future_date.isoformat()))
-                )
-                .then(pl.lit(""))
-                .otherwise(parsed_str)
-            )
-
-        merged: pl.Expr = parsed_str
-
-        # Empty / null input → ""
-        return (
-            pl.when(col.is_null() | (col.str.len_chars() == 0))
-            .then(pl.lit(""))
-            .otherwise(merged.fill_null(pl.lit("")))
-            .alias(field)
-        )
-
     def _canonicalise_spatial_fields(
         self, lf: pl.LazyFrame, normalisers: dict
     ) -> pl.LazyFrame:
-        """Apply legacy geometry canonicalisation using Shapely 2.x vectorised API.
-
-        Shapely 2.x exposes GEOS operations that work on entire numpy arrays of
-        geometries, avoiding the Python-per-geometry dispatch overhead of the
-        old element-wise approach.  The logic mirrors ``normalise_geometry`` and
-        ``WktDataType.normalise`` from the legacy path:
-
-          1. Parse all WKT strings at once with ``shapely.from_wkt``.
-          2. Round-trip through WKT at 6 dp to reduce precision noise.
-          3. Vectorised simplify / set_precision.
-          4. Vectorised make_valid for invalid geometries.
-          5. Per-geometry orient (ring winding order) – unavoidable in
-             Shapely 2.x but done as a tight C loop.
-          6. Dump back to WKT with ``shapely.to_wkt``.
-        """
+        """Apply legacy datatype canonicalisation to DuckDB spatial output."""
         if not normalisers:
             return lf
 
-        import shapely as _shp
-        import numpy as np
-        from shapely.geometry import MultiPolygon as _MP
-        from shapely.geometry.polygon import orient as _orient
-
         df = lf.collect()
-        updates: list[pl.Expr] = []
+        updates = []
 
-        for field in normalisers:
-            raw = df.get_column(field).to_list()
-
-            # Build numpy array: None for empty/null, WKT string otherwise.
-            wkt_arr = np.array(
-                [v if (v and str(v).strip()) else None for v in raw],
-                dtype=object,
-            )
-
-            # ── 1. Vectorised parse ──────────────────────────────────────
-            geoms = _shp.from_wkt(wkt_arr)  # None placeholders stay None
-
-            valid_mask = ~_shp.is_missing(geoms)
-
-            if not valid_mask.any():
-                updates.append(pl.lit(pl.Series(field, [""] * len(raw), dtype=pl.Utf8)))
-                continue
-
-            # ── 2. Precision reduction round-trip (6 dp) ────────────────────
-            wkt_6dp = _shp.to_wkt(
-                geoms[valid_mask], rounding_precision=6, output_dimension=2
-            )
-            geoms[valid_mask] = _shp.from_wkt(wkt_6dp)
-
-            # ── 3. Simplify (same tolerance as legacy normalise_geometry) ───
-            simplified = _shp.simplify(geoms, 0.000005)
-            valid_before = _shp.is_valid(geoms)
-            valid_simplified = _shp.is_valid(simplified)
-            # Use simplified where original wasn’t valid OR simplified is valid
-            use_simplified = (~valid_before | valid_simplified) & valid_mask
-            geoms = np.where(use_simplified, simplified, geoms)
-
-            # ── 4. Set precision ───────────────────────────────────────
-            geoms[valid_mask] = _shp.set_precision(
-                geoms[valid_mask], 0.000001, mode="pointwise"
-            )
-
-            # ── 5. make_valid where still invalid ───────────────────────
-            invalid = ~_shp.is_valid(geoms) & valid_mask
-            if invalid.any():
-                geoms[invalid] = _shp.make_valid(geoms[invalid])
-
-            # Buffer fix if still not valid after make_valid
-            still_invalid = ~_shp.is_valid(geoms) & valid_mask
-            if still_invalid.any():
-                geoms[still_invalid] = _shp.buffer(geoms[still_invalid], 0)
-
-            # ── 6. Ensure MultiPolygon + orient rings ─────────────────────
-            # This loop is unavoidable in Shapely 2.x but runs at near-C speed
-            # because the orient call itself is in GEOS.
-            type_ids = _shp.get_type_id(geoms)
-            for i in range(len(geoms)):
-                g = geoms[i]
-                if g is None:
-                    continue
-                gt = type_ids[i]
-                if gt == 3:  # Polygon → MultiPolygon
-                    g = _MP([g])
-                elif gt == 7:  # GeometryCollection → extract polygons
-                    polys = [
-                        p for p in g.geoms
-                        if p.geom_type in ("Polygon", "MultiPolygon")
-                    ]
-                    if not polys:
-                        geoms[i] = None
-                        continue
-                    g = _MP([
-                        p for mp_or_p in polys
-                        for p in (mp_or_p.geoms if mp_or_p.geom_type == "MultiPolygon" else [mp_or_p])
-                    ])
-                elif gt not in (6,):  # not MultiPolygon, Point/Line/etc.
-                    geoms[i] = None
-                    continue
-                # Orient: CCW exterior, CW interior
-                geoms[i] = _MP([_orient(poly) for poly in g.geoms])
-
-            # ── 7. Dump to WKT ─────────────────────────────────────────
-            wkt_out = _shp.to_wkt(geoms, rounding_precision=6, output_dimension=2)
-            # Match legacy dump_wkt: remove ", " → ","
-            result = [
-                "" if w is None else w.replace(", ", ",")
-                for w in wkt_out
-            ]
-
+        for field, normaliser in normalisers.items():
+            values = df.get_column(field).to_list()
             updates.append(
-                pl.lit(pl.Series(field, result, dtype=pl.Utf8)).alias(field)
+                pl.Series(field, [normaliser(value) for value in values], dtype=pl.Utf8)
             )
 
         return df.with_columns(updates).lazy()
-
-    # ── Vectorised CRS classification ─────────────────────────────────────────
-
-    def _classify_wkt_crs_polars(
-        self, df: pl.DataFrame, field: str
-    ) -> tuple[pl.Series, pl.Series]:
-        """
-        Vectorised replacement for the per-row ``_classify_wkt_crs_with_flip`` loop.
-
-        Extracts the first two numeric tokens from each WKT string using
-        Polars' ``str.extract_all``, casts them to Float64, then derives the
-        SRID and flip flag through vectorised ``when/then/otherwise`` chains.
-        Eliminates the O(n) Python loop + per-row regex overhead that was the
-        main bottleneck for geometry-heavy datasets.
-        """
-        # Extract all numeric tokens in one vectorised pass and take first two.
-        nums_df = df.select(
-            pl.col(field)
-            .cast(pl.Utf8)
-            .str.extract_all(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
-            .alias("__nums")
-        ).with_columns(
-            pl.col("__nums").list.get(0).cast(pl.Float64, strict=False).alias("x"),
-            pl.col("__nums").list.get(1).cast(pl.Float64, strict=False).alias("y"),
-        )
-
-        x = pl.col("x")
-        y = pl.col("y")
-
-        result_df = nums_df.select(
-            # SRID: first matching range wins (same precedence as legacy)
-            pl.when(x.is_null() | y.is_null())
-            .then(pl.lit(""))
-            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
-            .then(pl.lit("4326"))                              # WGS84, no flip
-            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
-            .then(pl.lit("4326"))                              # WGS84, flip
-            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
-            .then(pl.lit("27700"))                             # OSGB, no flip
-            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
-            .then(pl.lit("27700"))                             # OSGB, flip
-            .when((y > 6_000_000) & (y < 10_000_000))
-            .then(pl.lit("3857"))                              # WebMercator, no flip
-            .when((x > 6_000_000) & (x < 10_000_000))
-            .then(pl.lit("3857"))                              # WebMercator, flip
-            .otherwise(pl.lit(""))
-            .alias("srid"),
-
-            # Flip flag: True when x/y are swapped relative to canonical order
-            pl.when(x.is_null() | y.is_null())
-            .then(pl.lit(False))
-            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
-            .then(pl.lit(False))                               # WGS84 normal
-            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
-            .then(pl.lit(True))                                # WGS84 flipped
-            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
-            .then(pl.lit(False))                               # OSGB normal
-            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
-            .then(pl.lit(True))                                # OSGB flipped
-            .when((y > 6_000_000) & (y < 10_000_000))
-            .then(pl.lit(False))                               # WebMercator normal
-            .when((x > 6_000_000) & (x < 10_000_000))
-            .then(pl.lit(True))                                # WebMercator flipped
-            .otherwise(pl.lit(False))
-            .alias("flip"),
-        )
-
-        return result_df.get_column("srid"), result_df.get_column("flip")
 
     def _normalise_spatial_fields_with_duckdb(
         self,
@@ -684,24 +283,34 @@ class HarmonisePhase:
 
         df = lf.collect().with_row_index("__dl_idx")
 
+        # For each spatial field, classify the CRS of every value upfront so
+        # we can drive a CASE expression inside a single DuckDB query rather
+        # than reprojecting row-by-row in Python.
         helper_cols = ["__dl_idx"]
 
         for field in geometry_fields + point_fields:
-            # ── Vectorised CRS classification (replaces per-row Python loop) ──
-            srid_series, flip_series = self._classify_wkt_crs_polars(df, field)
+            values = df.get_column(field).to_list()
+            srids: list[str] = []
+            flips: list[bool] = []
+            for value in values:
+                srid, flip = self._classify_wkt_crs_with_flip(value)
+                srids.append(srid)
+                flips.append(flip)
 
             srid_col = f"__dl_srid_{field}"
             flip_col = f"__dl_flip_{field}"
             helper_cols.extend([srid_col, flip_col])
             df = df.with_columns(
-                srid_series.alias(srid_col),
-                flip_series.alias(flip_col),
+                pl.Series(srid_col, srids, dtype=pl.Utf8),
+                pl.Series(flip_col, flips, dtype=pl.Boolean),
             )
 
         con = self._duckdb_spatial_connection()
         con.register("dl_spatial", df.to_arrow())
 
         try:
+            # Start with all non-helper columns quoted; replace spatial field
+            # expressions in-place below to preserve column ordering.
             select_parts = [
                 f'"{column}"'
                 for column in df.columns
@@ -712,6 +321,9 @@ class HarmonisePhase:
                 srid_col = f"__dl_srid_{field}"
                 flip_col = f"__dl_flip_{field}"
                 geom_case = self._duckdb_geom_case(field, srid_col, flip_col)
+                # ST_Multi wraps any geometry in a MULTIPOLYGON to match the
+                # canonical WKT form expected by downstream consumers.
+                # The ', ' → ',' replacement matches legacy WKT formatting.
                 expr = (
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
@@ -724,6 +336,7 @@ class HarmonisePhase:
                 srid_col = f"__dl_srid_{field}"
                 flip_col = f"__dl_flip_{field}"
                 geom_case = self._duckdb_geom_case(field, srid_col, flip_col)
+                # Point fields are emitted as POINT WKT without forcing MULTI.
                 expr = (
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
@@ -745,20 +358,12 @@ class HarmonisePhase:
     def _remove_future_dates(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """
-        Remove values for entry-date or LastUpdatedDate if they are in the future.
+        """Clear entry-date / LastUpdatedDate if the value is in the future.
 
-        Called *after* ``_harmonise_field_values`` so dates are already in
-        ISO ``YYYY-MM-DD`` format.  Uses ``strict=False`` so empty strings
-        or unparseable remnants just become null (kept as-is via the
-        ``otherwise`` branch).
-
-        Args:
-            lf: Input LazyFrame
-            existing_columns: List of existing column names
-
-        Returns:
-            pl.LazyFrame: LazyFrame with future dates removed
+        Called after ``_harmonise_field_values`` so dates are already in
+        ISO ``YYYY-MM-DD`` form.  ``strict=False`` means empty strings and
+        unparseable values become null and fall through to the ``otherwise``
+        branch unchanged.
         """
         today = date.today()
 
@@ -766,8 +371,6 @@ class HarmonisePhase:
             if field not in existing_columns:
                 continue
 
-            # ``strict=False`` avoids hard failures for empty/non-date values;
-            # null parse results naturally fall through to ``otherwise``.
             lf = lf.with_columns(
                 pl.when(
                     pl.col(field)
@@ -785,20 +388,10 @@ class HarmonisePhase:
     def _process_point_geometry(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """
-        Process GeoX, GeoY coordinates through PointDataType.
+        """Convert GeoX / GeoY to WGS84 longitude / latitude.
 
-        Matches legacy behaviour: builds a Point from the coordinate pair,
-        runs CRS detection / conversion (OSGB → WGS84 etc.) via
-        ``PointDataType.normalise``, and extracts the transformed
-        longitude / latitude back into GeoX / GeoY.
-
-        Args:
-            lf: Input LazyFrame
-            existing_columns: List of existing column names
-
-        Returns:
-            pl.LazyFrame: LazyFrame with processed geometry
+        Detects the source CRS (OSGB 27700, Web Mercator 3857, or WGS84 4326),
+        reprojects via DuckDB Spatial, and writes the result back into GeoX/GeoY.
         """
         if "GeoX" not in existing_columns or "GeoY" not in existing_columns:
             return lf
@@ -809,51 +402,31 @@ class HarmonisePhase:
         """Normalise GeoX/GeoY via DuckDB Spatial as primary path."""
         df = lf.collect().with_row_index("__dl_idx")
 
-        # ── Vectorised CRS classification for numeric GeoX / GeoY columns ────
-        # Replace Python loop + per-row _classify_xy_crs with Polars when/then.
-        x = pl.col("GeoX").cast(pl.Utf8).str.strip_chars().cast(pl.Float64, strict=False)
-        y = pl.col("GeoY").cast(pl.Utf8).str.strip_chars().cast(pl.Float64, strict=False)
+        geox_values = df.get_column("GeoX").to_list()
+        geoy_values = df.get_column("GeoY").to_list()
+
+        # Classify every (GeoX, GeoY) pair in Python so the DuckDB query can
+        # branch on pre-computed SRID / flip flags rather than re-detecting CRS
+        # inside SQL.
+        srids: list[str] = []
+        flips: list[bool] = []
+        for geox, geoy in zip(geox_values, geoy_values):
+            srid, flip = self._classify_xy_crs(geox, geoy)
+            srids.append(srid)
+            flips.append(flip)
 
         df = df.with_columns(
-            pl.when(x.is_null() | y.is_null())
-            .then(pl.lit(""))
-            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
-            .then(pl.lit("4326"))
-            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
-            .then(pl.lit("4326"))
-            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
-            .then(pl.lit("27700"))
-            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
-            .then(pl.lit("27700"))
-            .when((y > 6_000_000) & (y < 10_000_000))
-            .then(pl.lit("3857"))
-            .when((x > 6_000_000) & (x < 10_000_000))
-            .then(pl.lit("3857"))
-            .otherwise(pl.lit(""))
-            .alias("__dl_point_srid"),
-
-            pl.when(x.is_null() | y.is_null())
-            .then(pl.lit(False))
-            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
-            .then(pl.lit(False))
-            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
-            .then(pl.lit(True))
-            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
-            .then(pl.lit(False))
-            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
-            .then(pl.lit(True))
-            .when((y > 6_000_000) & (y < 10_000_000))
-            .then(pl.lit(False))
-            .when((x > 6_000_000) & (x < 10_000_000))
-            .then(pl.lit(True))
-            .otherwise(pl.lit(False))
-            .alias("__dl_point_flip"),
+            pl.Series("__dl_point_srid", srids, dtype=pl.Utf8),
+            pl.Series("__dl_point_flip", flips, dtype=pl.Boolean),
         )
 
         con = self._duckdb_spatial_connection()
         con.register("dl_points", df.to_arrow())
 
         try:
+            # point_case reprojects to WGS84 and returns geometry; ST_X / ST_Y
+            # then extract the final longitude / latitude respectively.
+            # Values with an unrecognised CRS (srid = '') are set to ''.
             point_case = (
                 "CASE "
                 "WHEN __dl_point_srid = '4326' AND __dl_point_flip = FALSE "
@@ -888,62 +461,54 @@ class HarmonisePhase:
         finally:
             con.close()
 
-    # Class-level flag: set to True after the DuckDB spatial extension has been
-    # installed, so subsequent calls only need LOAD (much faster than INSTALL).
-    _spatial_installed: bool = False
-
-    @classmethod
-    def _duckdb_spatial_connection(cls):
-        """Create a DuckDB connection with spatial extension loaded.
-
-        ``INSTALL spatial`` downloads/compiles the extension the first time it
-        runs.  We cache whether the install has already been done as a class
-        attribute so every subsequent call only issues ``LOAD spatial``,
-        avoiding the install overhead on repeated process() invocations.
-        """
+    @staticmethod
+    def _duckdb_spatial_connection():
+        """Create a DuckDB connection with spatial extension loaded."""
         con = duckdb.connect(database=":memory:")
-        if not cls._spatial_installed:
-            try:
-                con.execute("LOAD spatial")
-                cls._spatial_installed = True
-            except Exception:
-                con.execute("INSTALL spatial")
-                con.execute("LOAD spatial")
-                cls._spatial_installed = True
-        else:
-            try:
-                con.execute("LOAD spatial")
-            except Exception:
-                con.execute("INSTALL spatial")
-                con.execute("LOAD spatial")
+        try:
+            con.execute("LOAD spatial")
+        except Exception:
+            con.execute("INSTALL spatial")
+            con.execute("LOAD spatial")
         return con
 
     @staticmethod
-    def _degrees_like(x, y):
+    def _degrees_like(x, y) -> bool:
+        """Return True if (x, y) look like WGS84 decimal degrees (EPSG:4326)."""
         return -60.0 < x < 60.0 and -60.0 < y < 60.0
 
     @staticmethod
-    def _easting_northing_like(x, y):
+    def _easting_northing_like(x, y) -> bool:
+        """Return True if (x, y) look like OSGB36 easting / northing (EPSG:27700)."""
         return 1000.0 < x < 1000000.0 and 1000.0 < y < 1000000.0
 
     @staticmethod
-    def _metres_like(x, y):
+    def _metres_like(x, y) -> bool:
+        """Return True if (x, y) look like Web Mercator metres (EPSG:3857)."""
         return 6000000.0 < y < 10000000.0
 
     def _classify_xy_crs(self, x, y):
+        """Return ``(srid, flip)`` for a raw (x, y) coordinate pair.
+
+        *srid* is one of ``'4326'``, ``'27700'``, ``'3857'``, or ``''`` when
+        the CRS cannot be determined.  *flip* is ``True`` when the coordinates
+        appear to be supplied in (latitude, longitude) order rather than the
+        conventional (longitude, latitude) / (easting, northing) order.
+        """
         try:
             x = float(str(x).strip())
             y = float(str(y).strip())
         except Exception:
             return "", False
 
+        # Check the most common CRS first; fall back through less common ones.
         if self._degrees_like(x, y):
             return "4326", False
-        if self._degrees_like(y, x):
+        if self._degrees_like(y, x):  # lat/lon supplied as lon/lat
             return "4326", True
         if self._easting_northing_like(x, y):
             return "27700", False
-        if self._easting_northing_like(y, x):
+        if self._easting_northing_like(y, x):  # northing/easting order
             return "27700", True
         if self._metres_like(x, y):
             return "3857", False
@@ -952,12 +517,19 @@ class HarmonisePhase:
         return "", False
 
     def _classify_wkt_crs_with_flip(self, wkt_value):
+        """Return ``(srid, flip)`` by extracting the first coordinate pair from *wkt_value*.
+
+        Delegates to ``_classify_xy_crs`` after parsing the first two numeric
+        tokens from the WKT string.  Returns ``('', False)`` for null / empty
+        input or strings with fewer than two numbers.
+        """
         if wkt_value is None:
             return "", False
         text = str(wkt_value).strip()
         if not text:
             return "", False
 
+        # Extract numeric tokens from the WKT (handles POINT, POLYGON, etc.).
         nums = FIRST_COORD_RE.findall(text)
         if len(nums) < 2:
             return "", False
@@ -971,6 +543,15 @@ class HarmonisePhase:
 
     @staticmethod
     def _duckdb_geom_case(field: str, srid_col: str, flip_col: str) -> str:
+        """Build a DuckDB CASE expression that reprojects *field* to EPSG:4326.
+
+        The expression reads the pre-computed *srid_col* / *flip_col* helper
+        columns to decide how to parse and transform the WKT geometry:
+        - EPSG:4326: already in WGS84; flip coordinates if supplied lat/lon.
+        - EPSG:27700: transform from OSGB36 to WGS84 then flip to lon/lat.
+        - EPSG:3857: transform from Web Mercator to WGS84 then flip to lon/lat.
+        Returns NULL for unrecognised CRS or unparseable geometry.
+        """
         geom = f'TRY(ST_GeomFromText("{field}"))'
         return (
             "CASE "
@@ -986,15 +567,10 @@ class HarmonisePhase:
     def _add_typology_curies(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """
-        Ensure typology fields (organisation, geography, document) have CURIE prefixes.
-        
-        Args:
-            lf: Input LazyFrame
-            existing_columns: List of existing column names
-            
-        Returns:
-            pl.LazyFrame: LazyFrame with CURIE-formatted typology fields
+        """Prefix bare typology values with ``<dataset>:`` to form CURIEs.
+
+        Applies to ``organisation``, ``geography``, and ``document`` columns.
+        Values that already contain ":" are left unchanged.
         """
         if not self.dataset:
             return lf
@@ -1003,7 +579,6 @@ class HarmonisePhase:
             if typology not in existing_columns:
                 continue
 
-            # Add dataset prefix if value doesn't already contain ":"
             lf = lf.with_columns(
                 pl.when(
                     (pl.col(typology).is_not_null())
@@ -1017,23 +592,65 @@ class HarmonisePhase:
 
         return lf
 
+    def _check_mandatory_fields(
+        self, lf: pl.LazyFrame, existing_columns: list
+    ) -> pl.LazyFrame:
+        """Log ``missing value`` issues for empty mandatory fields.
+
+        Mirrors legacy behaviour, including the geometry/point co-constraint:
+        if either column exists in the data, at least one must be non-empty.
+
+        Issue logging is currently a no-op (``_NoOpIssues``); this method
+        provides structural parity and is ready for a real issue-log once one
+        is wired into the polars pipeline.
+        """
+        mandatory_fields = MANDATORY_FIELDS_DICT.get(self.dataset)
+
+        # geometry and point are checked as a co-constraint regardless of
+        # whether the dataset has other mandatory fields.
+        has_geometry_or_point = any(
+            f in existing_columns for f in ["geometry", "point"]
+        )
+
+        if not has_geometry_or_point and not mandatory_fields:
+            return lf
+
+        issues = _NoOpIssues()
+        df = lf.collect()
+
+        for row in df.iter_rows(named=True):
+            for field in existing_columns:
+                if field in ["geometry", "point"]:
+                    # Co-constraint: at least one of geometry / point must be
+                    # present.  Log the issue on whichever column is being
+                    # iterated to mirror legacy per-field issue reporting.
+                    geom_empty = not row.get("geometry")
+                    point_empty = not row.get("point")
+                    if geom_empty and point_empty:
+                        issues.log_issue(
+                            field,
+                            "missing value",
+                            "",
+                            f"{field} missing",
+                        )
+                elif mandatory_fields and field in mandatory_fields:
+                    if not row.get(field):
+                        issues.log_issue(
+                            field,
+                            "missing value",
+                            "",
+                            f"{field} missing",
+                        )
+
+        return df.lazy()
+
     def _process_wikipedia_urls(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """
-        Strip protocol from Wikipedia URLs, keeping only the page title.
-        
-        Args:
-            lf: Input LazyFrame
-            existing_columns: List of existing column names
-            
-        Returns:
-            pl.LazyFrame: LazyFrame with processed Wikipedia URLs
-        """
+        """Strip the ``https://en.wikipedia.org/wiki/`` prefix, keeping only the page title."""
         if "wikipedia" not in existing_columns:
             return lf
 
-        # Replace full Wikipedia URLs with just the page title
         lf = lf.with_columns(
             pl.col("wikipedia")
             .str.replace(r"https://en\.wikipedia\.org/wiki/", "")
@@ -1044,19 +661,14 @@ class HarmonisePhase:
         return lf
 
     @staticmethod
-    def _get_far_future_date(number_of_years_ahead: int):
-        """
-        Calculate a date far in the future for validation purposes.
-        
-        Args:
-            number_of_years_ahead: Number of years to add to today
-            
-        Returns:
-            date: A date in the future
+    def _get_far_future_date(number_of_years_ahead: int) -> date:
+        """Return today's date shifted forward by *number_of_years_ahead* years.
+
+        Handles Feb 29 and short months by clamping the day to the last valid
+        day of the target month.
         """
         today = date.today()
         y = today.year + number_of_years_ahead
-        # keep same month/day if possible (handles Feb 29 & short months)
         last_day = monthrange(y, today.month)[1]
         day = min(today.day, last_day)
         return today.replace(year=y, day=day)
