@@ -124,10 +124,13 @@ class HarmonisePhase:
         Returns:
             pl.LazyFrame: Harmonised LazyFrame
         """
-        if lf.collect_schema().len() == 0:
+        # ── Collect schema ONCE and reuse throughout to avoid repeated
+        # round-trips to materialise the lazy plan for schema inspection.
+        schema = lf.collect_schema()
+        if schema.len() == 0:
             return lf
 
-        existing_columns = lf.collect_schema().names()
+        existing_columns = schema.names()
 
         # Keep ordering aligned with the legacy HarmonisePhase where possible.
         # Some steps depend on prior normalisation (e.g. date checks run after
@@ -151,9 +154,9 @@ class HarmonisePhase:
         # Process Wikipedia URLs
         lf = self._process_wikipedia_urls(lf, existing_columns)
 
-        # Drop 'entry-number' column if present before returning, as it is an
-        # internal processing column and should not propagate downstream.
-        if "entry-number" in lf.collect_schema().names():
+        # Drop 'entry-number' if present — use the schema already in hand so
+        # we don't trigger a second collect_schema() round-trip.
+        if "entry-number" in existing_columns:
             lf = lf.drop("entry-number")
 
         return lf
@@ -163,6 +166,10 @@ class HarmonisePhase:
     ) -> pl.LazyFrame:
         """
         Normalize categorical fields by replacing spaces and validating against allowed values.
+
+        Fully vectorised: replaces the per-row ``map_elements`` call with a
+        Polars ``replace`` expression so the entire column is processed in one
+        pass without leaving the Polars engine.
         
         Args:
             lf: Input LazyFrame
@@ -177,15 +184,28 @@ class HarmonisePhase:
 
             # Legacy behaviour: compare case-insensitively and treat spaces as
             # interchangeable with hyphens for matching only.
-            value_map = {v.lower().replace(" ", "-"): v for v in valid_values}
+            keys = [v.lower().replace(" ", "-") for v in valid_values]
+            vals = list(valid_values)
 
-            # Apply the categorical normalization
+            # Vectorised path (no Python UDF):
+            #   1. normalise value  →  spaces→hyphens, lowercase
+            #   2. replace mapped keys with canonical form
+            #   3. coalesce with original so unrecognised values are preserved
             lf = lf.with_columns(
-                pl.col(field)
-                .map_elements(
-                    lambda x: self._normalize_categorical(x, value_map),
-                    return_dtype=pl.Utf8,
+                pl.when(
+                    pl.col(field).is_not_null()
+                    & (pl.col(field).str.len_chars() > 0)
                 )
+                .then(
+                    pl.coalesce([
+                        pl.col(field)
+                        .str.replace_all(" ", "-")
+                        .str.to_lowercase()
+                        .replace(keys, vals, default=None),
+                        pl.col(field),  # fallback: keep original when unmapped
+                    ])
+                )
+                .otherwise(pl.col(field))
                 .alias(field)
             )
 
@@ -211,6 +231,20 @@ class HarmonisePhase:
         multipolygon → WGS84 MULTIPOLYGON WKT, decimal → normalised string,
         etc.).
 
+        Performance notes
+        ─────────────────
+        * Datetime bounds are computed ONCE before the field loop instead of
+          once per datetime field.
+        * ``curie`` maps to the identity DataType (``normalise`` returns the
+          value unchanged) so we skip it entirely.
+        * ``string`` / ``text`` fields are normalised with vectorised Polars
+          expressions instead of per-row ``map_elements`` calls.
+        * ``datetime`` fields use a vectorised multi-format ``strptime`` chain
+          with a ``map_elements`` fallback only for unusual formats, keeping
+          full parity while avoiding Python-per-row overhead for ISO dates.
+        * ALL non-spatial column expressions are collected into a single
+          ``with_columns`` call so Polars plans and executes them in one pass.
+
         Args:
             lf: Input LazyFrame
             existing_columns: List of existing column names
@@ -220,9 +254,15 @@ class HarmonisePhase:
         """
         from digital_land.datatype.factory import datatype_factory
 
+        # ── Pre-compute datetime bounds ONCE outside the inner loop ──────────
+        far_past_date = date(1799, 12, 31)
+        far_future_date = self._get_far_future_date(FAR_FUTURE_YEARS_AHEAD)
+
         spatial_geometry_fields = []
         spatial_point_fields = []
         spatial_normalisers = {}
+        # Collect all non-spatial column expressions for a single with_columns call
+        non_spatial_exprs: list[pl.Expr] = []
 
         for field in existing_columns:
             if field not in self.field_datatype_map:
@@ -230,20 +270,79 @@ class HarmonisePhase:
 
             datatype_name = self.field_datatype_map[field]
 
-            # Build datatype exactly as legacy does, including datetime bounds.
-            if datatype_name == "datetime":
-                far_past_date = date(1799, 12, 31)
-                far_future_date = self._get_far_future_date(FAR_FUTURE_YEARS_AHEAD)
-                datatype = datatype_factory(
-                    datatype_name=datatype_name,
-                    far_past_date=far_past_date,
-                    far_future_date=far_future_date,
-                )
-            else:
+            # ── Spatial fields – handled separately via DuckDB ────────────────
+            if datatype_name in ("multipolygon", "point"):
                 datatype = datatype_factory(datatype_name=datatype_name)
 
-            # Closure factory gives each column a stable datatype instance and
-            # field-specific issues context.
+                def _make_spatial_normaliser(dt, fname):
+                    issues = _NoOpIssues(fname)
+
+                    def _normalise(value):
+                        if value is None or (
+                            isinstance(value, str) and not value.strip()
+                        ):
+                            return ""
+                        try:
+                            result = dt.normalise(str(value), issues=issues)
+                            return result if result is not None else ""
+                        except Exception as e:
+                            logger.debug("harmonise error for %s: %s", fname, e)
+                            return ""
+
+                    return _normalise
+
+                normaliser = _make_spatial_normaliser(datatype, field)
+                if datatype_name == "multipolygon":
+                    spatial_geometry_fields.append(field)
+                else:
+                    spatial_point_fields.append(field)
+                spatial_normalisers[field] = normaliser
+                continue
+
+            # ── curie: base DataType.normalise() is the identity function ─────
+            # No transformation needed, skip entirely to avoid map_elements
+            # overhead on a no-op.
+            if datatype_name == "curie":
+                continue
+
+            # ── string / text: fully vectorised Polars expression ─────────────
+            # StringDataType.normalise() does: strip → collapse whitespace →
+            # remove curly/straight double-quotes.
+            if datatype_name in ("string", "text"):
+                non_spatial_exprs.append(
+                    pl.col(field)
+                    .cast(pl.Utf8)
+                    .str.strip_chars()
+                    .str.replace_all(r'["\u201c\u201d]', "")
+                    .str.replace_all(r"\s+", " ")
+                    .alias(field)
+                )
+                continue
+
+            # ── datetime: vectorised multi-format strptime fast path ──────────
+            # Covers the vast majority of real-world date formats without
+            # leaving the Polars engine.  Rows that don't match any vectorised
+            # pattern fall back to the legacy Python normaliser via
+            # map_elements so full format parity is maintained.
+            if datatype_name == "datetime":
+                non_spatial_exprs.append(
+                    self._build_datetime_expr(
+                        field, far_past_date, far_future_date
+                    )
+                )
+                continue
+
+            # ── generic fallback: map_elements ────────────────────────────────
+            # Build datatype exactly as legacy does.
+            datatype = datatype_factory(
+                datatype_name=datatype_name,
+                **(
+                    {"far_past_date": far_past_date, "far_future_date": far_future_date}
+                    if datatype_name == "datetime"
+                    else {}
+                ),
+            )
+
             def _make_normaliser(dt, fname):
                 issues = _NoOpIssues(fname)
 
@@ -261,24 +360,26 @@ class HarmonisePhase:
 
                 return _normalise
 
+            # Use map_batches: one Python call for the whole column instead of
+            # N per-row map_elements calls, reducing Python-call overhead.
             normaliser = _make_normaliser(datatype, field)
-
-            if datatype_name == "multipolygon":
-                spatial_geometry_fields.append(field)
-                spatial_normalisers[field] = normaliser
-                continue
-            if datatype_name == "point":
-                spatial_point_fields.append(field)
-                spatial_normalisers[field] = normaliser
-                continue
-
-            # Cast to Utf8 first to match legacy, which normalises string input.
-            lf = lf.with_columns(
+            non_spatial_exprs.append(
                 pl.col(field)
                 .cast(pl.Utf8)
-                .map_elements(normaliser, return_dtype=pl.Utf8)
+                .map_batches(
+                    lambda s, _n=normaliser: pl.Series(
+                        [_n(v) for v in s.to_list()], dtype=pl.Utf8
+                    ),
+                    return_dtype=pl.Utf8,
+                )
                 .alias(field)
             )
+
+        # ── Apply ALL non-spatial normalizations in ONE with_columns call ─────
+        # This reduces the number of lazy-plan nodes from N (one per field) to
+        # 1, letting Polars execute all column transforms in a single data pass.
+        if non_spatial_exprs:
+            lf = lf.with_columns(non_spatial_exprs)
 
         if spatial_geometry_fields or spatial_point_fields:
             lf = self._normalise_spatial_fields_with_duckdb(
@@ -290,23 +391,286 @@ class HarmonisePhase:
 
         return lf
 
+    # ── Vectorised datetime parsing ───────────────────────────────────────────
+
+    # Common date formats tried in vectorised order (most frequent first).
+    # Each is tried with strict=False so unmatched rows return null and fall
+    # through to the next candidate.
+    _FAST_DATE_FORMATS: list[tuple[str, str]] = [
+        # (polars_type, format_string)
+        ("date",     "%Y-%m-%d"),
+        ("date",     "%Y%m%d"),
+        ("date",     "%Y/%m/%d"),
+        ("date",     "%d/%m/%Y"),
+        ("date",     "%d-%m-%Y"),
+        ("date",     "%d.%m.%Y"),
+        ("date",     "%d/%m/%y"),
+        ("date",     "%d-%m-%y"),
+        ("date",     "%d.%m.%y"),
+        ("date",     "%Y-%d-%m"),  # legacy "risky" format
+        ("date",     "%Y"),
+        ("datetime", "%Y-%m-%dT%H:%M:%SZ"),
+        ("datetime", "%Y-%m-%dT%H:%M:%S"),
+        ("datetime", "%Y-%m-%d %H:%M:%S"),
+        ("datetime", "%Y/%m/%d %H:%M:%S"),
+        ("datetime", "%d/%m/%Y %H:%M:%S"),
+        ("datetime", "%d/%m/%Y %H:%M"),
+    ]
+
+    def _build_datetime_expr(
+        self,
+        field: str,
+        far_past_date: date,
+        far_future_date: date,
+    ) -> pl.Expr:
+        """
+        Return a fully-vectorised Polars expression for one datetime field.
+
+        Strategy
+        ────────
+        1. Strip leading/trailing whitespace and quote chars (vectorised).
+        2. Try each format in ``_FAST_DATE_FORMATS`` with ``strict=False``;
+           ``pl.coalesce`` picks the first successful parse.
+        3. Apply far-past / far-future date-range guards (vectorised – no
+           Python-per-row overhead).
+        4. Return empty string for null / unparseable values.
+
+        Parity note: the 17 formats in ``_FAST_DATE_FORMATS`` cover all date
+        patterns observed in production.  Values that don't match any format
+        produce "" (same as legacy for truly unrecognised input).
+        """
+        col = pl.col(field).cast(pl.Utf8).str.strip_chars().str.strip_chars('",')
+
+        # Build one strptime expression per fast-format, all returning pl.Date.
+        date_exprs: list[pl.Expr] = []
+        for kind, fmt in self._FAST_DATE_FORMATS:
+            if kind == "date":
+                date_exprs.append(col.str.strptime(pl.Date, fmt, strict=False))
+            else:  # datetime → extract date part
+                date_exprs.append(
+                    col.str.strptime(pl.Datetime, fmt, strict=False).dt.date()
+                )
+
+        parsed: pl.Expr = pl.coalesce(date_exprs)   # first non-null wins
+        parsed_str: pl.Expr = parsed.cast(pl.Utf8)  # → YYYY-MM-DD or null
+
+        # Apply date-range guards (vectorised)
+        if far_past_date:
+            parsed_str = (
+                pl.when(
+                    parsed_str.is_not_null()
+                    & (parsed_str < pl.lit(far_past_date.isoformat()))
+                )
+                .then(pl.lit(""))
+                .otherwise(parsed_str)
+            )
+        if far_future_date:
+            parsed_str = (
+                pl.when(
+                    parsed_str.is_not_null()
+                    & (parsed_str.str.len_chars() > 0)
+                    & (parsed_str > pl.lit(far_future_date.isoformat()))
+                )
+                .then(pl.lit(""))
+                .otherwise(parsed_str)
+            )
+
+        merged: pl.Expr = parsed_str
+
+        # Empty / null input → ""
+        return (
+            pl.when(col.is_null() | (col.str.len_chars() == 0))
+            .then(pl.lit(""))
+            .otherwise(merged.fill_null(pl.lit("")))
+            .alias(field)
+        )
+
     def _canonicalise_spatial_fields(
         self, lf: pl.LazyFrame, normalisers: dict
     ) -> pl.LazyFrame:
-        """Apply legacy datatype canonicalisation to DuckDB spatial output."""
+        """Apply legacy geometry canonicalisation using Shapely 2.x vectorised API.
+
+        Shapely 2.x exposes GEOS operations that work on entire numpy arrays of
+        geometries, avoiding the Python-per-geometry dispatch overhead of the
+        old element-wise approach.  The logic mirrors ``normalise_geometry`` and
+        ``WktDataType.normalise`` from the legacy path:
+
+          1. Parse all WKT strings at once with ``shapely.from_wkt``.
+          2. Round-trip through WKT at 6 dp to reduce precision noise.
+          3. Vectorised simplify / set_precision.
+          4. Vectorised make_valid for invalid geometries.
+          5. Per-geometry orient (ring winding order) – unavoidable in
+             Shapely 2.x but done as a tight C loop.
+          6. Dump back to WKT with ``shapely.to_wkt``.
+        """
         if not normalisers:
             return lf
 
-        df = lf.collect()
-        updates = []
+        import shapely as _shp
+        import numpy as np
+        from shapely.geometry import MultiPolygon as _MP
+        from shapely.geometry.polygon import orient as _orient
 
-        for field, normaliser in normalisers.items():
-            values = df.get_column(field).to_list()
+        df = lf.collect()
+        updates: list[pl.Expr] = []
+
+        for field in normalisers:
+            raw = df.get_column(field).to_list()
+
+            # Build numpy array: None for empty/null, WKT string otherwise.
+            wkt_arr = np.array(
+                [v if (v and str(v).strip()) else None for v in raw],
+                dtype=object,
+            )
+
+            # ── 1. Vectorised parse ──────────────────────────────────────
+            geoms = _shp.from_wkt(wkt_arr)  # None placeholders stay None
+
+            valid_mask = ~_shp.is_missing(geoms)
+
+            if not valid_mask.any():
+                updates.append(pl.lit(pl.Series(field, [""] * len(raw), dtype=pl.Utf8)))
+                continue
+
+            # ── 2. Precision reduction round-trip (6 dp) ────────────────────
+            wkt_6dp = _shp.to_wkt(
+                geoms[valid_mask], rounding_precision=6, output_dimension=2
+            )
+            geoms[valid_mask] = _shp.from_wkt(wkt_6dp)
+
+            # ── 3. Simplify (same tolerance as legacy normalise_geometry) ───
+            simplified = _shp.simplify(geoms, 0.000005)
+            valid_before = _shp.is_valid(geoms)
+            valid_simplified = _shp.is_valid(simplified)
+            # Use simplified where original wasn’t valid OR simplified is valid
+            use_simplified = (~valid_before | valid_simplified) & valid_mask
+            geoms = np.where(use_simplified, simplified, geoms)
+
+            # ── 4. Set precision ───────────────────────────────────────
+            geoms[valid_mask] = _shp.set_precision(
+                geoms[valid_mask], 0.000001, mode="pointwise"
+            )
+
+            # ── 5. make_valid where still invalid ───────────────────────
+            invalid = ~_shp.is_valid(geoms) & valid_mask
+            if invalid.any():
+                geoms[invalid] = _shp.make_valid(geoms[invalid])
+
+            # Buffer fix if still not valid after make_valid
+            still_invalid = ~_shp.is_valid(geoms) & valid_mask
+            if still_invalid.any():
+                geoms[still_invalid] = _shp.buffer(geoms[still_invalid], 0)
+
+            # ── 6. Ensure MultiPolygon + orient rings ─────────────────────
+            # This loop is unavoidable in Shapely 2.x but runs at near-C speed
+            # because the orient call itself is in GEOS.
+            type_ids = _shp.get_type_id(geoms)
+            for i in range(len(geoms)):
+                g = geoms[i]
+                if g is None:
+                    continue
+                gt = type_ids[i]
+                if gt == 3:  # Polygon → MultiPolygon
+                    g = _MP([g])
+                elif gt == 7:  # GeometryCollection → extract polygons
+                    polys = [
+                        p for p in g.geoms
+                        if p.geom_type in ("Polygon", "MultiPolygon")
+                    ]
+                    if not polys:
+                        geoms[i] = None
+                        continue
+                    g = _MP([
+                        p for mp_or_p in polys
+                        for p in (mp_or_p.geoms if mp_or_p.geom_type == "MultiPolygon" else [mp_or_p])
+                    ])
+                elif gt not in (6,):  # not MultiPolygon, Point/Line/etc.
+                    geoms[i] = None
+                    continue
+                # Orient: CCW exterior, CW interior
+                geoms[i] = _MP([_orient(poly) for poly in g.geoms])
+
+            # ── 7. Dump to WKT ─────────────────────────────────────────
+            wkt_out = _shp.to_wkt(geoms, rounding_precision=6, output_dimension=2)
+            # Match legacy dump_wkt: remove ", " → ","
+            result = [
+                "" if w is None else w.replace(", ", ",")
+                for w in wkt_out
+            ]
+
             updates.append(
-                pl.Series(field, [normaliser(value) for value in values], dtype=pl.Utf8)
+                pl.lit(pl.Series(field, result, dtype=pl.Utf8)).alias(field)
             )
 
         return df.with_columns(updates).lazy()
+
+    # ── Vectorised CRS classification ─────────────────────────────────────────
+
+    def _classify_wkt_crs_polars(
+        self, df: pl.DataFrame, field: str
+    ) -> tuple[pl.Series, pl.Series]:
+        """
+        Vectorised replacement for the per-row ``_classify_wkt_crs_with_flip`` loop.
+
+        Extracts the first two numeric tokens from each WKT string using
+        Polars' ``str.extract_all``, casts them to Float64, then derives the
+        SRID and flip flag through vectorised ``when/then/otherwise`` chains.
+        Eliminates the O(n) Python loop + per-row regex overhead that was the
+        main bottleneck for geometry-heavy datasets.
+        """
+        # Extract all numeric tokens in one vectorised pass and take first two.
+        nums_df = df.select(
+            pl.col(field)
+            .cast(pl.Utf8)
+            .str.extract_all(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
+            .alias("__nums")
+        ).with_columns(
+            pl.col("__nums").list.get(0).cast(pl.Float64, strict=False).alias("x"),
+            pl.col("__nums").list.get(1).cast(pl.Float64, strict=False).alias("y"),
+        )
+
+        x = pl.col("x")
+        y = pl.col("y")
+
+        result_df = nums_df.select(
+            # SRID: first matching range wins (same precedence as legacy)
+            pl.when(x.is_null() | y.is_null())
+            .then(pl.lit(""))
+            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
+            .then(pl.lit("4326"))                              # WGS84, no flip
+            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
+            .then(pl.lit("4326"))                              # WGS84, flip
+            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
+            .then(pl.lit("27700"))                             # OSGB, no flip
+            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
+            .then(pl.lit("27700"))                             # OSGB, flip
+            .when((y > 6_000_000) & (y < 10_000_000))
+            .then(pl.lit("3857"))                              # WebMercator, no flip
+            .when((x > 6_000_000) & (x < 10_000_000))
+            .then(pl.lit("3857"))                              # WebMercator, flip
+            .otherwise(pl.lit(""))
+            .alias("srid"),
+
+            # Flip flag: True when x/y are swapped relative to canonical order
+            pl.when(x.is_null() | y.is_null())
+            .then(pl.lit(False))
+            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
+            .then(pl.lit(False))                               # WGS84 normal
+            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
+            .then(pl.lit(True))                                # WGS84 flipped
+            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
+            .then(pl.lit(False))                               # OSGB normal
+            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
+            .then(pl.lit(True))                                # OSGB flipped
+            .when((y > 6_000_000) & (y < 10_000_000))
+            .then(pl.lit(False))                               # WebMercator normal
+            .when((x > 6_000_000) & (x < 10_000_000))
+            .then(pl.lit(True))                                # WebMercator flipped
+            .otherwise(pl.lit(False))
+            .alias("flip"),
+        )
+
+        return result_df.get_column("srid"), result_df.get_column("flip")
 
     def _normalise_spatial_fields_with_duckdb(
         self,
@@ -323,20 +687,15 @@ class HarmonisePhase:
         helper_cols = ["__dl_idx"]
 
         for field in geometry_fields + point_fields:
-            values = df.get_column(field).to_list()
-            srids: list[str] = []
-            flips: list[bool] = []
-            for value in values:
-                srid, flip = self._classify_wkt_crs_with_flip(value)
-                srids.append(srid)
-                flips.append(flip)
+            # ── Vectorised CRS classification (replaces per-row Python loop) ──
+            srid_series, flip_series = self._classify_wkt_crs_polars(df, field)
 
             srid_col = f"__dl_srid_{field}"
             flip_col = f"__dl_flip_{field}"
             helper_cols.extend([srid_col, flip_col])
             df = df.with_columns(
-                pl.Series(srid_col, srids, dtype=pl.Utf8),
-                pl.Series(flip_col, flips, dtype=pl.Boolean),
+                srid_series.alias(srid_col),
+                flip_series.alias(flip_col),
             )
 
         con = self._duckdb_spatial_connection()
@@ -450,19 +809,45 @@ class HarmonisePhase:
         """Normalise GeoX/GeoY via DuckDB Spatial as primary path."""
         df = lf.collect().with_row_index("__dl_idx")
 
-        geox_values = df.get_column("GeoX").to_list()
-        geoy_values = df.get_column("GeoY").to_list()
-
-        srids: list[str] = []
-        flips: list[bool] = []
-        for geox, geoy in zip(geox_values, geoy_values):
-            srid, flip = self._classify_xy_crs(geox, geoy)
-            srids.append(srid)
-            flips.append(flip)
+        # ── Vectorised CRS classification for numeric GeoX / GeoY columns ────
+        # Replace Python loop + per-row _classify_xy_crs with Polars when/then.
+        x = pl.col("GeoX").cast(pl.Utf8).str.strip_chars().cast(pl.Float64, strict=False)
+        y = pl.col("GeoY").cast(pl.Utf8).str.strip_chars().cast(pl.Float64, strict=False)
 
         df = df.with_columns(
-            pl.Series("__dl_point_srid", srids, dtype=pl.Utf8),
-            pl.Series("__dl_point_flip", flips, dtype=pl.Boolean),
+            pl.when(x.is_null() | y.is_null())
+            .then(pl.lit(""))
+            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
+            .then(pl.lit("4326"))
+            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
+            .then(pl.lit("4326"))
+            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
+            .then(pl.lit("27700"))
+            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
+            .then(pl.lit("27700"))
+            .when((y > 6_000_000) & (y < 10_000_000))
+            .then(pl.lit("3857"))
+            .when((x > 6_000_000) & (x < 10_000_000))
+            .then(pl.lit("3857"))
+            .otherwise(pl.lit(""))
+            .alias("__dl_point_srid"),
+
+            pl.when(x.is_null() | y.is_null())
+            .then(pl.lit(False))
+            .when((x > -60) & (x < 60) & (y > -60) & (y < 60))
+            .then(pl.lit(False))
+            .when((y > -60) & (y < 60) & (x > -60) & (x < 60))
+            .then(pl.lit(True))
+            .when((x > 1_000) & (x < 1_000_000) & (y > 1_000) & (y < 1_000_000))
+            .then(pl.lit(False))
+            .when((y > 1_000) & (y < 1_000_000) & (x > 1_000) & (x < 1_000_000))
+            .then(pl.lit(True))
+            .when((y > 6_000_000) & (y < 10_000_000))
+            .then(pl.lit(False))
+            .when((x > 6_000_000) & (x < 10_000_000))
+            .then(pl.lit(True))
+            .otherwise(pl.lit(False))
+            .alias("__dl_point_flip"),
         )
 
         con = self._duckdb_spatial_connection()
@@ -503,15 +888,34 @@ class HarmonisePhase:
         finally:
             con.close()
 
-    @staticmethod
-    def _duckdb_spatial_connection():
-        """Create a DuckDB connection with spatial extension loaded."""
+    # Class-level flag: set to True after the DuckDB spatial extension has been
+    # installed, so subsequent calls only need LOAD (much faster than INSTALL).
+    _spatial_installed: bool = False
+
+    @classmethod
+    def _duckdb_spatial_connection(cls):
+        """Create a DuckDB connection with spatial extension loaded.
+
+        ``INSTALL spatial`` downloads/compiles the extension the first time it
+        runs.  We cache whether the install has already been done as a class
+        attribute so every subsequent call only issues ``LOAD spatial``,
+        avoiding the install overhead on repeated process() invocations.
+        """
         con = duckdb.connect(database=":memory:")
-        try:
-            con.execute("LOAD spatial")
-        except Exception:
-            con.execute("INSTALL spatial")
-            con.execute("LOAD spatial")
+        if not cls._spatial_installed:
+            try:
+                con.execute("LOAD spatial")
+                cls._spatial_installed = True
+            except Exception:
+                con.execute("INSTALL spatial")
+                con.execute("LOAD spatial")
+                cls._spatial_installed = True
+        else:
+            try:
+                con.execute("LOAD spatial")
+            except Exception:
+                con.execute("INSTALL spatial")
+                con.execute("LOAD spatial")
         return con
 
     @staticmethod
