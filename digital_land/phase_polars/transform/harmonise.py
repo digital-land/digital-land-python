@@ -151,6 +151,11 @@ class HarmonisePhase:
         # Process Wikipedia URLs
         lf = self._process_wikipedia_urls(lf, existing_columns)
 
+        # Drop 'entry-number' column if present before returning, as it is an
+        # internal processing column and should not propagate downstream.
+        if "entry-number" in lf.collect_schema().names():
+            lf = lf.drop("entry-number")
+
         return lf
 
     def _harmonise_categorical_fields(
