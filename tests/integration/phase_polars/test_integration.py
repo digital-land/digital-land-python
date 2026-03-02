@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Integration test: Convert phase stream -> LazyFrame -> Normalise phase -> Stream
+Integration test: Convert phase stream -> LazyFrame -> polars phases -> Stream -> DefaultPhase (phase 10)
+
+Verifies that HarmonisePhase (polars) can pass its LazyFrame output to the
+polars_to_stream utility, which converts it back to a parsed stream, allowing
+the legacy DefaultPhase (phase 10) to continue processing.
 """
 import sys
 from pathlib import Path
@@ -20,6 +24,7 @@ sys.modules['cchardet'] = type(sys)('cchardet')
 sys.modules['cchardet'].UniversalDetector = MockUniversalDetector
 
 from digital_land.phase.convert import ConvertPhase
+from digital_land.phase.default import DefaultPhase
 from digital_land.phase_polars.transform.normalise import NormalisePhase
 from digital_land.phase_polars.transform.parse import ParsePhase
 from digital_land.phase_polars.transform.concat import ConcatPhase
@@ -127,53 +132,49 @@ class IntegrationTest:
                 f.write(str(df))
         print(f"LazyFrame output written to: {lazyframe_output_file}")
         
-        # Convert LazyFrame back to stream
-        converted_stream = polars_to_stream(
+        # ── Phase 10: Convert LazyFrame → parsed stream → DefaultPhase ──────────
+        # polars_to_stream with parsed=True emits blocks containing a 'row' dict,
+        # which is the format expected by every legacy stream-based phase.
+        harmonised_stream = polars_to_stream(
             lf_harmonised,
             dataset="test",
             resource="Buckinghamshire_Council",
             path=str(self.csv_path),
-            parsed=False
+            parsed=True,
         )
-        converted_blocks = list(converted_stream)
-        
-        # Write converted stream output
-        converted_stream_file = self.output_dir / "converted_stream_output.txt"
-        with open(converted_stream_file, 'w') as f:
-            for block in converted_blocks:
+
+        # DefaultPhase (phase 10) applies default field values and default values
+        # to any empty fields in each row.  For this integration test we run it
+        # with empty defaults so it passes every row through unchanged, confirming
+        # the stream handoff works correctly.
+        default_phase = DefaultPhase(
+            default_fields={},
+            default_values={},
+        )
+        default_stream = default_phase.process(harmonised_stream)
+        default_blocks = list(default_stream)
+
+        # Write DefaultPhase output
+        default_output_file = self.output_dir / "default_phase_output.txt"
+        with open(default_output_file, 'w') as f:
+            f.write(f"DefaultPhase (phase 10) output\n")
+            f.write(f"Blocks processed: {len(default_blocks)}\n\n")
+            for block in default_blocks:
                 f.write(str(block) + '\n')
-        print(f"Converted stream output written to: {converted_stream_file}")
-        
-        # Compare streams
-        comparison_file = self.output_dir / "stream_comparison.txt"
-        with open(comparison_file, 'w') as f:
-            f.write(f"Original stream blocks: {len(original_blocks)}\n")
-            f.write(f"Converted stream blocks: {len(converted_blocks)}\n\n")
-            
-            if len(original_blocks) == len(converted_blocks):
-                f.write("Block count matches!\n\n")
-                
-                # Compare first 3 blocks
-                for i in range(min(3, len(original_blocks))):
-                    f.write(f"Block {i}:\n")
-                    f.write(f"  Original keys: {list(original_blocks[i].keys())}\n")
-                    f.write(f"  Converted keys: {list(converted_blocks[i].keys())}\n")
-                    
-                    if 'line' in original_blocks[i] and 'line' in converted_blocks[i]:
-                        orig_line = original_blocks[i]['line']
-                        conv_line = converted_blocks[i]['line']
-                        f.write(f"  Lines match: {orig_line == conv_line}\n")
-                    f.write("\n")
-            else:
-                f.write("Block count DOES NOT match!\n")
-        
-        print(f"Stream comparison written to: {comparison_file}")
-        
-        # Write CSV
+        print(f"DefaultPhase output written to: {default_output_file}")
+
+        # Verify the handoff: every block must have the expected stream keys
+        assert len(default_blocks) > 0, "DefaultPhase produced no output blocks"
+        for block in default_blocks:
+            assert "row" in block, f"Missing 'row' key in block: {block}"
+            assert "entry-number" in block, f"Missing 'entry-number' key in block: {block}"
+        print(f"\nVerification passed: {len(default_blocks)} blocks processed by DefaultPhase")
+
+        # Write CSV (from the harmonised LazyFrame collected earlier)
         csv_output_file = self.output_dir / "normalised_output.csv"
         df.write_csv(csv_output_file)
         print(f"CSV output written to: {csv_output_file}")
-        
+
         print(f"\nProcessed {len(df)} rows with {len(df.columns)} columns")
 
 
