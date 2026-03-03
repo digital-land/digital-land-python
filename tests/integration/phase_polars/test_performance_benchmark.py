@@ -303,7 +303,7 @@ def run_benchmarks() -> tuple[dict, int]:
             pt = time.perf_counter() - t0
             polars_times.append(pt)
 
-            print(f"    run {run}/{N_RUNS}  legacy={lt:.3f}s  polars={pt:.3f}s")
+            print(f"    run {run}/{N_RUNS}  legacy={lt:.6f}s  polars={pt:.6f}s")
 
         results[label] = {
             "phase":  phase_num,
@@ -319,8 +319,8 @@ def run_benchmarks() -> tuple[dict, int]:
 # ── report formatter ──────────────────────────────────────────────────────────
 
 def render_report(results: dict, row_count: int) -> str:  # noqa: C901
-    SEP  = "─" * 96
-    DSEP = "═" * 96
+    SEP  = "─" * 114
+    DSEP = "═" * 114
 
     lines: list[str] = []
 
@@ -345,8 +345,8 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
     lines += [
         "Summary Table  (all times in seconds, averaged over runs)",
         SEP,
-        f"  {'Ph':>3}  {'Phase':<22}  {'Leg avg':>8}  {'Leg min':>8}  {'Leg max':>8}  "
-        f"{'Pol avg':>8}  {'Pol min':>8}  {'Pol max':>8}  {'Speedup':>8}  Status",
+        f"  {'Ph':>3}  {'Phase':<22}  {'Leg avg':>11}  {'Leg min':>11}  {'Leg max':>11}  "
+        f"{'Pol avg':>11}  {'Pol min':>11}  {'Pol max':>11}  {'Speedup':>8}  Status",
         SEP,
     ]
 
@@ -372,15 +372,15 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
             status = "~  SIMILAR"
 
         lines.append(
-            f"  {data['phase']:>3}  {label:<22}  {leg_avg:>8.3f}  {min(lt):>8.3f}  {max(lt):>8.3f}  "
-            f"{pol_avg:>8.3f}  {min(pt):>8.3f}  {max(pt):>8.3f}  {speedup:>7.2f}×  {status}"
+            f"  {data['phase']:>3}  {label:<22}  {leg_avg:>11.6f}  {min(lt):>11.6f}  {max(lt):>11.6f}  "
+            f"{pol_avg:>11.6f}  {min(pt):>11.6f}  {max(pt):>11.6f}  {speedup:>7.2f}×  {status}"
         )
 
     lines.append(SEP)
     total_speedup = total_leg / total_pol if total_pol > 0 else float("inf")
     lines.append(
-        f"  {'':>3}  {'TOTAL  (phases 2–9)':<22}  {total_leg:>8.3f}  {'':>8}  {'':>8}  "
-        f"{total_pol:>8.3f}  {'':>8}  {'':>8}  {total_speedup:>7.2f}×"
+        f"  {'':>3}  {'TOTAL  (phases 2–9)':<22}  {total_leg:>11.6f}  {'':>11}  {'':>11}  "
+        f"{total_pol:>11.6f}  {'':>11}  {'':>11}  {total_speedup:>7.2f}×"
     )
     lines.append(SEP)
 
@@ -392,14 +392,14 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
     ]
     run_header = f"  {'Phase':<22}"
     for r in range(1, N_RUNS + 1):
-        run_header += f"   Leg {r}   Pol {r}"
+        run_header += f"  {'Leg ' + str(r):>10}  {'Pol ' + str(r):>10}"
     lines.append(run_header)
     lines.append(SEP)
 
     for label, data in results.items():
         row = f"  {label:<22}"
         for lt, pt in zip(data["legacy"], data["polars"]):
-            row += f"  {lt:7.3f}  {pt:7.3f}"
+            row += f"  {lt:10.6f}  {pt:10.6f}"
         lines.append(row)
     lines.append(SEP)
 
@@ -418,20 +418,20 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
         if speedup < 0.90:
             entry = (
                 f"  ⚠  Phase {data['phase']} {label}: Polars is {1/speedup:.2f}× SLOWER than legacy "
-                f"[polars={pol_avg:.3f}s  legacy={leg_avg:.3f}s]. Investigate further – "
+                f"[polars={pol_avg:.6f}s  legacy={leg_avg:.6f}s]. Investigate further – "
                 f"possible overhead from LazyFrame materialisation or DuckDB usage in this phase."
             )
             regressions.append(entry)
         elif speedup >= 2.0:
             entry = (
                 f"  ✓  Phase {data['phase']} {label}: Polars is {speedup:.2f}× faster "
-                f"[polars={pol_avg:.3f}s  legacy={leg_avg:.3f}s]."
+                f"[polars={pol_avg:.6f}s  legacy={leg_avg:.6f}s]."
             )
             improvements.append(entry)
         else:
             entry = (
                 f"  ~  Phase {data['phase']} {label}: Performance similar ({speedup:.2f}× speedup). "
-                f"[polars={pol_avg:.3f}s  legacy={leg_avg:.3f}s]."
+                f"[polars={pol_avg:.6f}s  legacy={leg_avg:.6f}s]."
             )
             similar.append(entry)
 
@@ -449,7 +449,7 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
         SEP,
         "",
         f"  Overall pipeline speedup (phases 2–9): {total_speedup:.2f}×",
-        f"  Legacy total: {total_leg:.3f}s  |  Polars total: {total_pol:.3f}s",
+        f"  Legacy total: {total_leg:.6f}s  |  Polars total: {total_pol:.6f}s",
         "",
         DSEP,
         "",
