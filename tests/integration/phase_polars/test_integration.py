@@ -36,18 +36,18 @@ class MockUniversalDetector:
 sys.modules["cchardet"] = type(sys)("cchardet")
 sys.modules["cchardet"].UniversalDetector = MockUniversalDetector
 
-from digital_land.phase.convert import ConvertPhase
-from digital_land.phase.default import DefaultPhase
-from digital_land.phase_polars.transform.normalise import NormalisePhase
-from digital_land.phase_polars.transform.parse import ParsePhase
-from digital_land.phase_polars.transform.concat import ConcatPhase
-from digital_land.phase_polars.transform.filter import FilterPhase
-from digital_land.phase_polars.transform.map import MapPhase
-from digital_land.phase_polars.transform.patch import PatchPhase
-from digital_land.phase_polars.transform.harmonise import HarmonisePhase
-from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
-from digital_land.utils.convert_polarsdf_stream import polars_to_stream
-import polars as pl
+from digital_land.phase.convert import ConvertPhase  # noqa: E402
+from digital_land.phase.default import DefaultPhase  # noqa: E402
+from digital_land.phase_polars.transform.normalise import NormalisePhase  # noqa: E402
+from digital_land.phase_polars.transform.parse import ParsePhase  # noqa: E402
+from digital_land.phase_polars.transform.concat import ConcatPhase  # noqa: E402
+from digital_land.phase_polars.transform.filter import FilterPhase  # noqa: E402
+from digital_land.phase_polars.transform.map import MapPhase  # noqa: E402
+from digital_land.phase_polars.transform.patch import PatchPhase  # noqa: E402
+from digital_land.phase_polars.transform.harmonise import HarmonisePhase  # noqa: E402
+from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter  # noqa: E402
+from digital_land.utils.convert_polarsdf_stream import polars_to_stream  # noqa: E402
+import polars as pl  # noqa: E402
 
 
 class IntegrationTest:
@@ -130,11 +130,11 @@ class IntegrationTest:
         lazyframe_output_file = self.output_dir / "lazyframe_output.txt"
         df = lf_harmonised.collect()
         with open(lazyframe_output_file, "w") as f:
-            f.write(f"\nPolars DataFrame:\n")
-            f.write(f"Shape: {df.shape}\n")
-            f.write(f"Columns: {df.columns}\n")
-            f.write(f"Schema: {df.schema}\n")
-            f.write(f"\nAll columns data:\n")
+            f.write("\nPolars DataFrame:\n")
+            f.write("Shape: {}\n".format(df.shape))
+            f.write("Columns: {}\n".format(df.columns))
+            f.write("Schema: {}\n".format(df.schema))
+            f.write("\nAll columns data:\n")
             with pl.Config(set_tbl_cols=-1, set_tbl_rows=-1, set_tbl_width_chars=1000):
                 f.write(str(df))
         print(f"LazyFrame output written to: {lazyframe_output_file}")
@@ -164,8 +164,8 @@ class IntegrationTest:
         # Write DefaultPhase output
         default_output_file = self.output_dir / "default_phase_output.txt"
         with open(default_output_file, "w") as f:
-            f.write(f"DefaultPhase (phase 10) output\n")
-            f.write(f"Blocks processed: {len(default_blocks)}\n\n")
+            f.write("DefaultPhase (phase 10) output\n")
+            f.write("Blocks processed: {}\n\n".format(len(default_blocks)))
             for block in default_blocks:
                 f.write(str(block) + "\n")
         print(f"DefaultPhase output written to: {default_output_file}")
@@ -178,7 +178,9 @@ class IntegrationTest:
                 "entry-number" in block
             ), f"Missing 'entry-number' key in block: {block}"
         print(
-            f"\nVerification passed: {len(default_blocks)} blocks processed by DefaultPhase"
+            "\nVerification passed: {} blocks processed by DefaultPhase".format(
+                len(default_blocks)
+            )
         )
 
         # Write CSV (from the harmonised LazyFrame collected earlier)
