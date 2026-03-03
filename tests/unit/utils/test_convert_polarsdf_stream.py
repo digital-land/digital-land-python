@@ -37,9 +37,9 @@ class TestPolarsToStream:
 
         assert len(blocks) == 2
         assert blocks[0]["entry-number"] == 1
-        assert blocks[0]["row"] == {"name": "test1", "value": 100}
+        assert blocks[0]["row"] == {"name": "test1", "value": "100"}
         assert blocks[1]["entry-number"] == 2
-        assert blocks[1]["row"] == {"name": "test2", "value": 200}
+        assert blocks[1]["row"] == {"name": "test2", "value": "200"}
 
     def test_polars_to_stream_empty(self):
         """Test empty LazyFrame conversion."""
