@@ -48,7 +48,12 @@ def _blocks_to_dataframe(blocks):
 
 def test_legacy_harmonise_phases(tmp_path: Path):
     # copy the sample file into the temp directory so the phases can work
-    input_src = Path(__file__).parent / "data" / "resource_examples" / "gml_to_csv_buckinghamshire.csv"
+    input_src = (
+        Path(__file__).parent
+        / "data"
+        / "resource_examples"
+        / "gml_to_csv_buckinghamshire.csv"
+    )
     assert input_src.exists(), "example data not found"
 
     input_file = tmp_path / "input.csv"
@@ -91,7 +96,11 @@ def test_legacy_harmonise_phases(tmp_path: Path):
             dataset="test",
             valid_category_values=valid_category_values,
         ),
-        DefaultPhase(default_fields=default_fields, default_values=default_values, issues=issue_log),
+        DefaultPhase(
+            default_fields=default_fields,
+            default_values=default_values,
+            issues=issue_log,
+        ),
     ]
 
     stream = None

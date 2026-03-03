@@ -463,9 +463,9 @@ class TestHarmoniseComparison_E2E:
             valid_category_values={},
         )
 
-        assert len(legacy_rows) == len(polars_rows), (
-            f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
-        )
+        assert len(legacy_rows) == len(
+            polars_rows
+        ), f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
 
     def test_field_values_match(
         self,
@@ -501,9 +501,9 @@ class TestHarmoniseComparison_E2E:
         )
 
         report = compare_outputs(legacy_rows, polars_rows)
-        assert report["all_match"], (
-            f"Legacy vs Polars output mismatch:\n{format_report(report)}"
-        )
+        assert report[
+            "all_match"
+        ], f"Legacy vs Polars output mismatch:\n{format_report(report)}"
 
 
 # ===========================================================================
@@ -575,9 +575,9 @@ class TestHarmoniseComparison_Buckinghamshire:
             valid_category_values={},
         )
 
-        assert len(legacy_rows) == len(polars_rows), (
-            f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
-        )
+        assert len(legacy_rows) == len(
+            polars_rows
+        ), f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
 
     def test_field_values_match(
         self,
@@ -612,9 +612,9 @@ class TestHarmoniseComparison_Buckinghamshire:
         )
 
         report = compare_outputs(legacy_rows, polars_rows)
-        assert report["all_match"], (
-            f"Legacy vs Polars output mismatch:\n{format_report(report)}"
-        )
+        assert report[
+            "all_match"
+        ], f"Legacy vs Polars output mismatch:\n{format_report(report)}"
 
 
 # ===========================================================================
@@ -704,9 +704,9 @@ class TestHarmoniseComparison_Synthetic:
             valid_category_values={},
         )
 
-        assert len(legacy_rows) == len(polars_rows), (
-            f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
-        )
+        assert len(legacy_rows) == len(
+            polars_rows
+        ), f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
 
     def test_field_values_match(
         self,
@@ -744,9 +744,9 @@ class TestHarmoniseComparison_Synthetic:
         )
 
         report = compare_outputs(legacy_rows, polars_rows)
-        assert report["all_match"], (
-            f"Legacy vs Polars output mismatch:\n{format_report(report)}"
-        )
+        assert report[
+            "all_match"
+        ], f"Legacy vs Polars output mismatch:\n{format_report(report)}"
 
 
 # ===========================================================================
@@ -763,7 +763,9 @@ class TestHarmoniseDiagnostic:
 
     def test_print_comparison(self, field_datatype_map, schema_three_fieldnames):
         """Print legacy vs polars outputs for the gml_to_csv_buckinghamshire.csv data."""
-        csv_path = str(TEST_DATA / "resource_examples" / "gml_to_csv_buckinghamshire.csv")
+        csv_path = str(
+            TEST_DATA / "resource_examples" / "gml_to_csv_buckinghamshire.csv"
+        )
         config = _load_pipeline_config(PIPELINE_DIR, "pipeline-three")
 
         # Read CSV headers to include all fields, not just schema-three
@@ -818,7 +820,7 @@ class TestHarmoniseDiagnostic:
 
         # Also print a sample of rows with full details
         import json
-        
+
         print("\n--- Legacy output (first 3 rows) ---")
         for i, row in enumerate(legacy_rows[:3]):
             row_dict = dict(row)
@@ -833,8 +835,6 @@ class TestHarmoniseDiagnostic:
         if issue_log.rows:
             print(f"\n--- Legacy issues ({len(issue_log.rows)}) ---")
             for issue in issue_log.rows[:10]:
-                print(
-                    f"  [{issue['issue-type']}] {issue['field']}: {issue['value']!r}"
-                )
+                print(f"  [{issue['issue-type']}] {issue['field']}: {issue['value']!r}")
 
         print("=" * 80)

@@ -91,7 +91,7 @@ class _NoOpIssues:
 class HarmonisePhase:
     """
     Apply data harmonisation to Polars LazyFrame using datatype conversions.
-    
+
     Handles field validation, categorical mapping, date normalization,
     geometry processing, and mandatory field checks.
     """
@@ -104,7 +104,7 @@ class HarmonisePhase:
     ):
         """
         Initialize the HarmonisePhase.
-        
+
         Args:
             field_datatype_map: Dictionary mapping field names to datatype names
             dataset: The dataset name (used for mandatory field checking)
@@ -117,10 +117,10 @@ class HarmonisePhase:
     def process(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """
         Apply harmonisation transformations to LazyFrame.
-        
+
         Args:
             lf: Input Polars LazyFrame
-            
+
         Returns:
             pl.LazyFrame: Harmonised LazyFrame
         """
@@ -163,11 +163,11 @@ class HarmonisePhase:
     ) -> pl.LazyFrame:
         """
         Normalize categorical fields by replacing spaces and validating against allowed values.
-        
+
         Args:
             lf: Input LazyFrame
             existing_columns: List of existing column names
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with normalised categorical fields
         """
@@ -248,9 +248,7 @@ class HarmonisePhase:
                 issues = _NoOpIssues(fname)
 
                 def _normalise(value):
-                    if value is None or (
-                        isinstance(value, str) and not value.strip()
-                    ):
+                    if value is None or (isinstance(value, str) and not value.strip()):
                         return ""
                     try:
                         result = dt.normalise(str(value), issues=issues)
@@ -344,9 +342,7 @@ class HarmonisePhase:
 
         try:
             select_parts = [
-                f'"{column}"'
-                for column in df.columns
-                if column not in helper_cols
+                f'"{column}"' for column in df.columns if column not in helper_cols
             ]
 
             for field in geometry_fields:
@@ -357,7 +353,7 @@ class HarmonisePhase:
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
                     f"ELSE coalesce(replace(ST_AsText(ST_Multi({geom_case})), ', ', ','), '') "
-                    f"END AS \"{field}\""
+                    f'END AS "{field}"'
                 )
                 select_parts[select_parts.index(f'"{field}"')] = expr
 
@@ -369,7 +365,7 @@ class HarmonisePhase:
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
                     f"ELSE coalesce(ST_AsText({geom_case}), '') "
-                    f"END AS \"{field}\""
+                    f'END AS "{field}"'
                 )
                 select_parts[select_parts.index(f'"{field}"')] = expr
 
@@ -472,9 +468,9 @@ class HarmonisePhase:
             point_case = (
                 "CASE "
                 "WHEN __dl_point_srid = '4326' AND __dl_point_flip = FALSE "
-                "THEN ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)) "
+                'THEN ST_Point(TRY_CAST("GeoX" AS DOUBLE), TRY_CAST("GeoY" AS DOUBLE)) '
                 "WHEN __dl_point_srid = '4326' AND __dl_point_flip = TRUE "
-                "THEN ST_Point(TRY_CAST(\"GeoY\" AS DOUBLE), TRY_CAST(\"GeoX\" AS DOUBLE)) "
+                'THEN ST_Point(TRY_CAST("GeoY" AS DOUBLE), TRY_CAST("GeoX" AS DOUBLE)) '
                 "WHEN __dl_point_srid = '27700' AND __dl_point_flip = FALSE "
                 "THEN ST_FlipCoordinates(ST_Transform(ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)), 'EPSG:27700', 'EPSG:4326')) "
                 "WHEN __dl_point_srid = '27700' AND __dl_point_flip = TRUE "
@@ -489,11 +485,11 @@ class HarmonisePhase:
             query = (
                 "SELECT * EXCLUDE (__dl_idx, __dl_point_srid, __dl_point_flip), "
                 "CASE "
-                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                'WHEN "GeoX" IS NULL OR "GeoY" IS NULL OR trim(CAST("GeoX" AS VARCHAR)) = \'\' OR trim(CAST("GeoY" AS VARCHAR)) = \'\' OR __dl_point_srid = \'\' '
                 "THEN '' "
                 f"ELSE coalesce(CAST(round(ST_X({point_case}), 6) AS VARCHAR), '') END AS \"GeoX\", "
                 "CASE "
-                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                'WHEN "GeoX" IS NULL OR "GeoY" IS NULL OR trim(CAST("GeoX" AS VARCHAR)) = \'\' OR trim(CAST("GeoY" AS VARCHAR)) = \'\' OR __dl_point_srid = \'\' '
                 "THEN '' "
                 f"ELSE coalesce(CAST(round(ST_Y({point_case}), 6) AS VARCHAR), '') END AS \"GeoY\" "
                 "FROM dl_points ORDER BY __dl_idx"
@@ -570,8 +566,8 @@ class HarmonisePhase:
         geom = f'TRY(ST_GeomFromText("{field}"))'
         return (
             "CASE "
-            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = FALSE THEN {geom} "
-            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates({geom}) "
+            f'WHEN "{srid_col}" = \'4326\' AND "{flip_col}" = FALSE THEN {geom} '
+            f'WHEN "{srid_col}" = \'4326\' AND "{flip_col}" = TRUE THEN ST_FlipCoordinates({geom}) '
             f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:27700', 'EPSG:4326')) "
             f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates(ST_Transform(ST_FlipCoordinates({geom}), 'EPSG:27700', 'EPSG:4326')) "
             f"WHEN \"{srid_col}\" = '3857' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:3857', 'EPSG:4326')) "
@@ -584,11 +580,11 @@ class HarmonisePhase:
     ) -> pl.LazyFrame:
         """
         Ensure typology fields (organisation, geography, document) have CURIE prefixes.
-        
+
         Args:
             lf: Input LazyFrame
             existing_columns: List of existing column names
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with CURIE-formatted typology fields
         """
@@ -618,11 +614,11 @@ class HarmonisePhase:
     ) -> pl.LazyFrame:
         """
         Strip protocol from Wikipedia URLs, keeping only the page title.
-        
+
         Args:
             lf: Input LazyFrame
             existing_columns: List of existing column names
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with processed Wikipedia URLs
         """
@@ -643,10 +639,10 @@ class HarmonisePhase:
     def _get_far_future_date(number_of_years_ahead: int):
         """
         Calculate a date far in the future for validation purposes.
-        
+
         Args:
             number_of_years_ahead: Number of years to add to today
-            
+
         Returns:
             date: A date in the future
         """
