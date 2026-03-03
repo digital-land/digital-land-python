@@ -1,7 +1,6 @@
 """
 Acceptance test: Compare legacy (stream-based) and polars pipeline outputs
 up to and including the harmonise phase.
-from typing import List
 
 Both implementations receive the SAME input CSV and the SAME pipeline
 configuration.  After running:
@@ -21,6 +20,7 @@ Run with:
 
 import csv
 from pathlib import Path
+from typing import List
 
 import pytest
 
