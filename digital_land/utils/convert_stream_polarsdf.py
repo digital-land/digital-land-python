@@ -1,5 +1,5 @@
 import polars as pl
-from typing import Dict, List, Any, Iterator
+from typing import Dict, Any, Iterator
 import io
 
 
@@ -36,7 +36,7 @@ class StreamToPolarsConverter:
 
         for block in blocks[1:]:
             if "row" in block and block["row"]:
-                row = [str(block["row"].get(field, '')) for field in fieldnames]
+                row = [str(block["row"].get(field, "")) for field in fieldnames]
             elif "line" in block:
                 row = [str(val) for val in block["line"]]
             else:

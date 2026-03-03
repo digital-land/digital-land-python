@@ -21,6 +21,7 @@ dependencies = [
     "cchardet>=2.1.8",
     "esridump",
     "pandas",
+    "polars",
     "pyproj",
     "requests",
     "validators",
