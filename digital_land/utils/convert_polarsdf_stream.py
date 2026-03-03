@@ -52,6 +52,7 @@ def polars_to_stream(
                 "path": path,
                 "resource": resource,
                 "entry-number": entry_number,
+                "line-number": entry_number,
                 "row": {k: _stringify_value(v) for k, v in row_dict.items()},
             }
     else:
