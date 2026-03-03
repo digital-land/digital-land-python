@@ -28,7 +28,7 @@ dependencies = [
     "xlrd==1.2.0",
     "openpyxl",
     "numpy<2",
-    "Shapely>=2.1.0",
+    "Shapely>=2.0.0",
     "SPARQLWrapper",
     "geojson",
     "spatialite",
