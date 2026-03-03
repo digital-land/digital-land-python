@@ -3,7 +3,7 @@ import sqlite3
 import pytest
 import pandas as pd
 
-from digital_land.expectations.operation import (
+from digital_land.expectations.operations.dataset import (
     check_columns,
     count_lpa_boundary,
     count_deleted_entities,
