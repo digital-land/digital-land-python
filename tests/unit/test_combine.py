@@ -1,4 +1,5 @@
 #!/usr/bin/env -S pytest -svv
+import pytest
 import shapely
 
 from digital_land.log import IssueLog
