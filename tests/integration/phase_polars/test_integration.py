@@ -45,7 +45,9 @@ from digital_land.phase_polars.transform.filter import FilterPhase  # noqa: E402
 from digital_land.phase_polars.transform.map import MapPhase  # noqa: E402
 from digital_land.phase_polars.transform.patch import PatchPhase  # noqa: E402
 from digital_land.phase_polars.transform.harmonise import HarmonisePhase  # noqa: E402
-from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter  # noqa: E402
+from digital_land.utils.convert_stream_polarsdf import (
+    StreamToPolarsConverter,
+)  # noqa: E402
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream  # noqa: E402
 import polars as pl  # noqa: E402
 
