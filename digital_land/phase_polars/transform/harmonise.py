@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import polars as pl
 from datetime import date
 from calendar import monthrange
