@@ -1,6 +1,7 @@
 """
 Acceptance test: Compare legacy (stream-based) and polars pipeline outputs
 up to and including the harmonise phase.
+from typing import List
 
 Both implementations receive the SAME input CSV and the SAME pipeline
 configuration.  After running:
@@ -185,7 +186,7 @@ def _run_legacy_pipeline(
     field_datatype_map: dict,
     dataset: str,
     valid_category_values: dict,
-) -> list[dict]:
+) -> List[dict]:
     """Run the legacy stream pipeline up to & including harmonise.
 
     Returns a list of row dicts.
@@ -234,7 +235,7 @@ def _run_polars_pipeline(
     field_datatype_map: dict,
     dataset: str,
     valid_category_values: dict,
-) -> list[dict]:
+) -> List[dict]:
     """Run the polars pipeline up to & including harmonise.
 
     Uses the legacy ConvertPhase to produce a stream, converts it to a
