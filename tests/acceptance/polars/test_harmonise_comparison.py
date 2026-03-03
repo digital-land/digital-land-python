@@ -19,10 +19,6 @@ Run with:
 """
 
 import csv
-import io
-import os
-import tempfile
-from collections import OrderedDict
 from pathlib import Path
 
 import pytest
@@ -46,7 +42,6 @@ from digital_land.log import IssueLog, ColumnFieldLog
 # Polars-based phases
 # ---------------------------------------------------------------------------
 try:
-    import polars as pl
     from digital_land.phase_polars.transform.normalise import (
         NormalisePhase as PolarsNormalisePhase,
     )
@@ -807,15 +802,19 @@ class TestHarmoniseDiagnostic:
         print("\n" + "=" * 80)
         print("LEGACY → POLARS HARMONISE PHASE COMPARISON")
         print("=" * 80)
-        print(f"Input: gml_to_csv_buckinghamshire.csv  |  Dataset: pipeline-three")
-        print(f"Legacy rows: {len(legacy_rows)}  |  Polars rows: {len(polars_rows)}")
+        print("Input: gml_to_csv_buckinghamshire.csv  |  Dataset: pipeline-three")
+        print(
+            "Legacy rows: {}  |  Polars rows: {}".format(
+                len(legacy_rows), len(polars_rows)
+            )
+        )
 
         report = compare_outputs(legacy_rows, polars_rows)
 
         if report["all_match"]:
             print("\n✓ ALL ROWS MATCH")
         else:
-            print(f"\n✗ DIFFERENCES FOUND")
+            print("\n✗ DIFFERENCES FOUND")
             print(format_report(report))
 
         # Also print a sample of rows with full details
@@ -824,17 +823,29 @@ class TestHarmoniseDiagnostic:
         print("\n--- Legacy output (first 3 rows) ---")
         for i, row in enumerate(legacy_rows[:3]):
             row_dict = dict(row)
-            print(f"  Row {i + 1}: {json.dumps(row_dict, indent=4, sort_keys=True)}")
+            print(
+                "  Row {}: {}".format(
+                    i + 1, json.dumps(row_dict, indent=4, sort_keys=True)
+                )
+            )
 
         print("\n--- Polars output (first 3 rows) ---")
         for i, row in enumerate(polars_rows[:3]):
             row_dict = dict(row)
-            print(f"  Row {i + 1}: {json.dumps(row_dict, indent=4, sort_keys=True)}")
+            print(
+                "  Row {}: {}".format(
+                    i + 1, json.dumps(row_dict, indent=4, sort_keys=True)
+                )
+            )
 
         # Print issues logged by legacy pipeline
         if issue_log.rows:
-            print(f"\n--- Legacy issues ({len(issue_log.rows)}) ---")
+            print("\n--- Legacy issues ({}) ---".format(len(issue_log.rows)))
             for issue in issue_log.rows[:10]:
-                print(f"  [{issue['issue-type']}] {issue['field']}: {issue['value']!r}")
+                print(
+                    "  [{}] {}: {!r}".format(
+                        issue["issue-type"], issue["field"], issue["value"]
+                    )
+                )
 
         print("=" * 80)
