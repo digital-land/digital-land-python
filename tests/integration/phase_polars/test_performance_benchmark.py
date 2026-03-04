@@ -127,6 +127,11 @@ class _NoOpIssues:
 
 PHASE_DESCRIPTORS = [
     (
+        1, "ConvertPhase",
+        lambda: ConvertPhase(path=str(CSV_PATH)),
+        None,  # not yet refactored to Polars
+    ),
+    (
         2, "NormalisePhase",
         lambda: LNormalise(),
         lambda: PNormalise(),
@@ -278,12 +283,32 @@ def run_benchmarks() -> tuple[dict, int]:
     for phase_num, label, legacy_factory, polars_factory in PHASE_DESCRIPTORS:
         print(f"  ── Phase {phase_num}: {label} ──")
 
+        legacy_times: list[float] = []
+        polars_times: list[float] = []
+
+        if polars_factory is None:
+            # Legacy-only phase (no Polars equivalent yet); reads from CSV directly.
+            for run in range(1, N_RUNS + 1):
+                phase_inst = legacy_factory()
+                t0 = time.perf_counter()
+                for _ in phase_inst.process():
+                    pass
+                lt = time.perf_counter() - t0
+                legacy_times.append(lt)
+                print(f"    run {run}/{N_RUNS}  legacy={lt:.6f}s  polars=N/A")
+
+            results[label] = {
+                "phase":      phase_num,
+                "legacy":     legacy_times,
+                "polars":     None,
+                "input_rows": data_row_count,
+            }
+            print()
+            continue
+
         # Pre-materialise inputs (excluded from timing)
         leg_input    = _run_legacy_phases_up_to(phase_num, raw_blocks)
         polars_input = _run_polars_phases_up_to(phase_num, raw_lf)
-
-        legacy_times: list[float] = []
-        polars_times: list[float] = []
 
         for run in range(1, N_RUNS + 1):
             # Legacy: exhaust the generator
@@ -328,7 +353,7 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
         "",
         DSEP,
         "  PERFORMANCE BENCHMARK REPORT",
-        "  Legacy Stream Phases (2–9)  vs  Polars LazyFrame Phases (2–9)",
+        "  Legacy Stream Phases (1–9)  vs  Polars LazyFrame Phases (2–9)",
         DSEP,
         "",
         f"  Dataset   : {CSV_PATH.name}",
@@ -357,6 +382,15 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
         lt = data["legacy"]
         pt = data["polars"]
         leg_avg = statistics.mean(lt)
+
+        if pt is None:
+            # Legacy-only phase – show N/A for all Polars columns.
+            lines.append(
+                f"  {data['phase']:>3}  {label:<22}  {leg_avg:>11.6f}  {min(lt):>11.6f}  {max(lt):>11.6f}  "
+                f"{'N/A':>11}  {'N/A':>11}  {'N/A':>11}  {'N/A':>7}   legacy only"
+            )
+            continue
+
         pol_avg = statistics.mean(pt)
         speedup = leg_avg / pol_avg if pol_avg > 0 else float("inf")
         total_leg += leg_avg
@@ -398,8 +432,12 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
 
     for label, data in results.items():
         row = f"  {label:<22}"
-        for lt, pt in zip(data["legacy"], data["polars"]):
-            row += f"  {lt:10.6f}  {pt:10.6f}"
+        if data["polars"] is None:
+            for lt in data["legacy"]:
+                row += f"  {lt:10.6f}  {'N/A':>10}"
+        else:
+            for lt, pt in zip(data["legacy"], data["polars"]):
+                row += f"  {lt:10.6f}  {pt:10.6f}"
         lines.append(row)
     lines.append(SEP)
 
@@ -411,6 +449,8 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
     similar = []
 
     for label, data in results.items():
+        if data["polars"] is None:
+            continue  # legacy-only phase – excluded from speedup observations
         leg_avg = statistics.mean(data["legacy"])
         pol_avg = statistics.mean(data["polars"])
         speedup = leg_avg / pol_avg if pol_avg > 0 else float("inf")
@@ -462,7 +502,7 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
 
 def main():
     print("\n" + "═" * 60)
-    print("  Phase Performance Benchmark (2–9)")
+    print("  Phase Performance Benchmark (1–9)")
     print("═" * 60)
 
     results, row_count = run_benchmarks()
