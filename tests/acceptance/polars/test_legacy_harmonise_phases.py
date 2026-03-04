@@ -49,7 +49,7 @@ def _blocks_to_dataframe(blocks):
 def test_legacy_harmonise_phases(tmp_path: Path):
     # copy the sample file into the temp directory so the phases can work
     input_src = (
-        Path(__file__).parent
+        Path(__file__).parent.parent.parent
         / "data"
         / "resource_examples"
         / "gml_to_csv_buckinghamshire.csv"
@@ -60,7 +60,7 @@ def test_legacy_harmonise_phases(tmp_path: Path):
     shutil.copy(input_src, input_file)
 
     # output directory for phase results
-    output_dir = Path(__file__).parent / "data" / "output"
+    output_dir = Path(__file__).parent.parent.parent / "data" / "output"
     output_dir.mkdir(exist_ok=True, parents=True)
 
     # read column names early so we can build simple "identity" maps later

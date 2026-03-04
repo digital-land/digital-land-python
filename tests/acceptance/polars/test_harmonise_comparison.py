@@ -75,7 +75,7 @@ pytestmark = pytest.mark.skipif(not HAS_POLARS, reason="polars not installed")
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 TEST_DATA = REPO_ROOT / "tests" / "data"
 SPECIFICATION_DIR = TEST_DATA / "specification"
 PIPELINE_DIR = TEST_DATA / "pipeline"
