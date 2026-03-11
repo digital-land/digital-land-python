@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import polars as pl
-from typing import Dict, List, Any, Iterator
+from typing import Dict, Any, Iterator
 import io
 
 
@@ -34,21 +34,21 @@ class StreamToPolarsConverter:
         fieldnames = blocks[0].get("line", [])
 
         # Build CSV string for Polars to parse
-        csv_lines = [','.join(f'"{field}"' for field in fieldnames)]
+        csv_lines = [",".join(f'"{field}"' for field in fieldnames)]
 
         for block in blocks[1:]:
             if "row" in block and block["row"]:
-                row = [str(block["row"].get(field, '')) for field in fieldnames]
+                row = [str(block["row"].get(field, "")) for field in fieldnames]
             elif "line" in block:
                 row = [str(val) for val in block["line"]]
             else:
                 continue
-            csv_lines.append(','.join(f'"{val}"' for val in row))
+            csv_lines.append(",".join(f'"{val}"' for val in row))
 
         if len(csv_lines) <= 1:
             return pl.DataFrame().lazy()
 
-        csv_string = '\n'.join(csv_lines)
+        csv_string = "\n".join(csv_lines)
 
         # Enable numeric inference but DISABLE date parsing.
         # Dates must stay as strings so the harmonise phase can apply

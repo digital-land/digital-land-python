@@ -57,32 +57,32 @@ class MapPhase:
     def process(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """
         Apply column mapping to LazyFrame.
-        
+
         Args:
             lf: Input Polars LazyFrame
-            
+
         Returns:
             pl.LazyFrame: LazyFrame with renamed columns
         """
         existing_columns = lf.collect_schema().names()
         headers = self.headers(existing_columns)
-        
+
         # Log the mappings
         self.log_headers(headers)
-        
+
         rename_map = {}
         columns_to_drop = []
-        
+
         for old_name, new_name in headers.items():
             if new_name == "IGNORE":
                 columns_to_drop.append(old_name)
             else:
                 rename_map[old_name] = new_name
-        
+
         if columns_to_drop:
             lf = lf.drop(columns_to_drop)
-        
+
         if rename_map:
             lf = lf.rename(rename_map)
-        
+
         return lf
