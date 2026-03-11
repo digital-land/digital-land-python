@@ -19,11 +19,8 @@ Run with:
 """
 
 import csv
-import io
-import os
-import tempfile
-from collections import OrderedDict
 from pathlib import Path
+from typing import List
 
 import pytest
 
@@ -46,7 +43,6 @@ from digital_land.log import IssueLog, ColumnFieldLog
 # Polars-based phases
 # ---------------------------------------------------------------------------
 try:
-    import polars as pl
     from digital_land.phase_polars.transform.normalise import (
         NormalisePhase as PolarsNormalisePhase,
     )
@@ -79,7 +75,7 @@ pytestmark = pytest.mark.skipif(not HAS_POLARS, reason="polars not installed")
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 TEST_DATA = REPO_ROOT / "tests" / "data"
 SPECIFICATION_DIR = TEST_DATA / "specification"
 PIPELINE_DIR = TEST_DATA / "pipeline"
@@ -190,7 +186,7 @@ def _run_legacy_pipeline(
     field_datatype_map: dict,
     dataset: str,
     valid_category_values: dict,
-) -> list[dict]:
+) -> List[dict]:
     """Run the legacy stream pipeline up to & including harmonise.
 
     Returns a list of row dicts.
@@ -239,7 +235,7 @@ def _run_polars_pipeline(
     field_datatype_map: dict,
     dataset: str,
     valid_category_values: dict,
-) -> list[dict]:
+) -> List[dict]:
     """Run the polars pipeline up to & including harmonise.
 
     Uses the legacy ConvertPhase to produce a stream, converts it to a
@@ -463,9 +459,9 @@ class TestHarmoniseComparison_E2E:
             valid_category_values={},
         )
 
-        assert len(legacy_rows) == len(polars_rows), (
-            f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
-        )
+        assert len(legacy_rows) == len(
+            polars_rows
+        ), f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
 
     def test_field_values_match(
         self,
@@ -501,9 +497,9 @@ class TestHarmoniseComparison_E2E:
         )
 
         report = compare_outputs(legacy_rows, polars_rows)
-        assert report["all_match"], (
-            f"Legacy vs Polars output mismatch:\n{format_report(report)}"
-        )
+        assert report[
+            "all_match"
+        ], f"Legacy vs Polars output mismatch:\n{format_report(report)}"
 
 
 # ===========================================================================
@@ -575,9 +571,9 @@ class TestHarmoniseComparison_Buckinghamshire:
             valid_category_values={},
         )
 
-        assert len(legacy_rows) == len(polars_rows), (
-            f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
-        )
+        assert len(legacy_rows) == len(
+            polars_rows
+        ), f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
 
     def test_field_values_match(
         self,
@@ -612,9 +608,9 @@ class TestHarmoniseComparison_Buckinghamshire:
         )
 
         report = compare_outputs(legacy_rows, polars_rows)
-        assert report["all_match"], (
-            f"Legacy vs Polars output mismatch:\n{format_report(report)}"
-        )
+        assert report[
+            "all_match"
+        ], f"Legacy vs Polars output mismatch:\n{format_report(report)}"
 
 
 # ===========================================================================
@@ -704,9 +700,9 @@ class TestHarmoniseComparison_Synthetic:
             valid_category_values={},
         )
 
-        assert len(legacy_rows) == len(polars_rows), (
-            f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
-        )
+        assert len(legacy_rows) == len(
+            polars_rows
+        ), f"Row count mismatch: legacy={len(legacy_rows)}, polars={len(polars_rows)}"
 
     def test_field_values_match(
         self,
@@ -744,9 +740,9 @@ class TestHarmoniseComparison_Synthetic:
         )
 
         report = compare_outputs(legacy_rows, polars_rows)
-        assert report["all_match"], (
-            f"Legacy vs Polars output mismatch:\n{format_report(report)}"
-        )
+        assert report[
+            "all_match"
+        ], f"Legacy vs Polars output mismatch:\n{format_report(report)}"
 
 
 # ===========================================================================
@@ -763,7 +759,9 @@ class TestHarmoniseDiagnostic:
 
     def test_print_comparison(self, field_datatype_map, schema_three_fieldnames):
         """Print legacy vs polars outputs for the gml_to_csv_buckinghamshire.csv data."""
-        csv_path = str(TEST_DATA / "resource_examples" / "gml_to_csv_buckinghamshire.csv")
+        csv_path = str(
+            TEST_DATA / "resource_examples" / "gml_to_csv_buckinghamshire.csv"
+        )
         config = _load_pipeline_config(PIPELINE_DIR, "pipeline-three")
 
         # Read CSV headers to include all fields, not just schema-three
@@ -805,36 +803,50 @@ class TestHarmoniseDiagnostic:
         print("\n" + "=" * 80)
         print("LEGACY → POLARS HARMONISE PHASE COMPARISON")
         print("=" * 80)
-        print(f"Input: gml_to_csv_buckinghamshire.csv  |  Dataset: pipeline-three")
-        print(f"Legacy rows: {len(legacy_rows)}  |  Polars rows: {len(polars_rows)}")
+        print("Input: gml_to_csv_buckinghamshire.csv  |  Dataset: pipeline-three")
+        print(
+            "Legacy rows: {}  |  Polars rows: {}".format(
+                len(legacy_rows), len(polars_rows)
+            )
+        )
 
         report = compare_outputs(legacy_rows, polars_rows)
 
         if report["all_match"]:
             print("\n✓ ALL ROWS MATCH")
         else:
-            print(f"\n✗ DIFFERENCES FOUND")
+            print("\n✗ DIFFERENCES FOUND")
             print(format_report(report))
 
         # Also print a sample of rows with full details
         import json
-        
+
         print("\n--- Legacy output (first 3 rows) ---")
         for i, row in enumerate(legacy_rows[:3]):
             row_dict = dict(row)
-            print(f"  Row {i + 1}: {json.dumps(row_dict, indent=4, sort_keys=True)}")
+            print(
+                "  Row {}: {}".format(
+                    i + 1, json.dumps(row_dict, indent=4, sort_keys=True)
+                )
+            )
 
         print("\n--- Polars output (first 3 rows) ---")
         for i, row in enumerate(polars_rows[:3]):
             row_dict = dict(row)
-            print(f"  Row {i + 1}: {json.dumps(row_dict, indent=4, sort_keys=True)}")
+            print(
+                "  Row {}: {}".format(
+                    i + 1, json.dumps(row_dict, indent=4, sort_keys=True)
+                )
+            )
 
         # Print issues logged by legacy pipeline
         if issue_log.rows:
-            print(f"\n--- Legacy issues ({len(issue_log.rows)}) ---")
+            print("\n--- Legacy issues ({}) ---".format(len(issue_log.rows)))
             for issue in issue_log.rows[:10]:
                 print(
-                    f"  [{issue['issue-type']}] {issue['field']}: {issue['value']!r}"
+                    "  [{}] {}: {!r}".format(
+                        issue["issue-type"], issue["field"], issue["value"]
+                    )
                 )
 
         print("=" * 80)

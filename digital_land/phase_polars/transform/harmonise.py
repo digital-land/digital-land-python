@@ -96,44 +96,11 @@ class HarmonisePhase:
     field checks, and Wikipedia URL stripping.  Mirrors the behaviour of the
     legacy stream-based ``HarmonisePhase`` in ``digital_land.phase.harmonise``.
     """
+    Apply data harmonisation to Polars LazyFrame using datatype conversions.
 
-    # Polars chrono-compatible date/datetime formats, most common first.
-    # ``pl.coalesce`` picks the first successful parse for each row.
-    _DATETIME_FORMATS: list[tuple[str, str]] = [
-        ("date", "%Y-%m-%d"),
-        ("date", "%Y%m%d"),
-        ("datetime", "%Y-%m-%dT%H:%M:%S%.fZ"),
-        ("datetime", "%Y-%m-%dT%H:%M:%S%.f%:z"),
-        ("datetime", "%Y-%m-%dT%H:%M:%S%.f"),
-        ("datetime", "%Y-%m-%dT%H:%M:%SZ"),
-        ("datetime", "%Y-%m-%dT%H:%M:%S"),
-        ("datetime", "%Y-%m-%d %H:%M:%S"),
-        ("datetime", "%Y/%m/%dT%H:%M:%S%.fZ"),
-        ("datetime", "%Y/%m/%dT%H:%M:%S%.f%:z"),
-        ("datetime", "%Y/%m/%dT%H:%M:%S%.f"),
-        ("datetime", "%Y/%m/%dT%H:%M:%SZ"),
-        ("datetime", "%Y/%m/%dT%H:%M:%S"),
-        ("datetime", "%Y/%m/%d %H:%M:%S%:z"),
-        ("datetime", "%Y/%m/%d %H:%M:%S"),
-        ("datetime", "%Y/%m/%d %H:%M"),
-        ("date", "%Y/%m/%d"),
-        ("date", "%Y.%m.%d"),
-        ("date", "%Y %m %d"),
-        ("datetime", "%d/%m/%Y %H:%M:%S"),
-        ("datetime", "%d/%m/%Y %H:%M"),
-        ("date", "%d/%m/%Y"),
-        ("date", "%d-%m-%Y"),
-        ("date", "%d.%m.%Y"),
-        ("date", "%d/%m/%y"),
-        ("date", "%d-%m-%y"),
-        ("date", "%d.%m.%y"),
-        ("date", "%d-%b-%Y"),
-        ("date", "%d-%b-%y"),
-        ("date", "%d %B %Y"),
-        ("date", "%b %d, %Y"),
-        ("date", "%b %d, %y"),
-        ("date", "%m/%d/%Y"),
-    ]
+    Handles field validation, categorical mapping, date normalization,
+    geometry processing, and mandatory field checks.
+    """
 
     def __init__(
         self,
@@ -141,16 +108,27 @@ class HarmonisePhase:
         dataset=None,
         valid_category_values=None,
     ):
+        """
+        Initialize the HarmonisePhase.
+
+        Args:
+            field_datatype_map: Dictionary mapping field names to datatype names
+            dataset: The dataset name (used for mandatory field checking)
+            valid_category_values: Dictionary mapping field names to lists of valid values
+        """
         self.field_datatype_map = field_datatype_map or {}
         self.dataset = dataset
         self.valid_category_values = valid_category_values or {}
 
     def process(self, lf: pl.LazyFrame) -> pl.LazyFrame:
-        """Apply all harmonisation transformations and return the result.
+        """
+        Apply harmonisation transformations to LazyFrame.
 
-        Steps run in the same order as the legacy stream-based phase; some
-        steps rely on earlier ones (e.g. future-date removal assumes dates are
-        already in ISO ``YYYY-MM-DD`` form after datatype harmonisation).
+        Args:
+            lf: Input Polars LazyFrame
+
+        Returns:
+            pl.LazyFrame: Harmonised LazyFrame
         """
         if lf.collect_schema().len() == 0:
             return lf
@@ -182,7 +160,15 @@ class HarmonisePhase:
         hyphens (legacy parity).  Values not found in the allowed list are left
         unchanged.
         """
-        exprs: list[pl.Expr] = []
+        Normalize categorical fields by replacing spaces and validating against allowed values.
+
+        Args:
+            lf: Input LazyFrame
+            existing_columns: List of existing column names
+
+        Returns:
+            pl.LazyFrame: LazyFrame with normalised categorical fields
+        """
         for field, valid_values in self.valid_category_values.items():
             if field not in existing_columns:
                 continue
@@ -449,8 +435,24 @@ class HarmonisePhase:
                 )
                 continue
 
-            datatype = datatype_factory(datatype_name=datatype_name)
-            normaliser = self._make_normaliser(datatype, field)
+            # Closure factory gives each column a stable datatype instance and
+            # field-specific issues context.
+            def _make_normaliser(dt, fname):
+                issues = _NoOpIssues(fname)
+
+                def _normalise(value):
+                    if value is None or (isinstance(value, str) and not value.strip()):
+                        return ""
+                    try:
+                        result = dt.normalise(str(value), issues=issues)
+                        return result if result is not None else ""
+                    except Exception as e:
+                        logger.debug("harmonise error for %s: %s", fname, e)
+                        return ""
+
+                return _normalise
+
+            normaliser = _make_normaliser(datatype, field)
 
             # Spatial fields are batched through DuckDB for CRS reprojection.
             if datatype_name == "multipolygon":
@@ -681,9 +683,7 @@ class HarmonisePhase:
             # Start with all non-helper columns quoted; replace spatial field
             # expressions in-place below to preserve column ordering.
             select_parts = [
-                f'"{column}"'
-                for column in df.columns
-                if column not in helper_cols
+                f'"{column}"' for column in df.columns if column not in helper_cols
             ]
 
             for field in geometry_fields:
@@ -697,7 +697,7 @@ class HarmonisePhase:
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
                     f"ELSE coalesce(replace(ST_AsText(ST_Multi({geom_case})), ', ', ','), '') "
-                    f"END AS \"{field}\""
+                    f'END AS "{field}"'
                 )
                 select_parts[select_parts.index(f'"{field}"')] = expr
 
@@ -710,7 +710,7 @@ class HarmonisePhase:
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
                     f"ELSE coalesce(ST_AsText({geom_case}), '') "
-                    f"END AS \"{field}\""
+                    f'END AS "{field}"'
                 )
                 select_parts[select_parts.index(f'"{field}"')] = expr
 
@@ -825,9 +825,9 @@ class HarmonisePhase:
             point_case = (
                 "CASE "
                 "WHEN __dl_point_srid = '4326' AND __dl_point_flip = FALSE "
-                "THEN ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)) "
+                'THEN ST_Point(TRY_CAST("GeoX" AS DOUBLE), TRY_CAST("GeoY" AS DOUBLE)) '
                 "WHEN __dl_point_srid = '4326' AND __dl_point_flip = TRUE "
-                "THEN ST_Point(TRY_CAST(\"GeoY\" AS DOUBLE), TRY_CAST(\"GeoX\" AS DOUBLE)) "
+                'THEN ST_Point(TRY_CAST("GeoY" AS DOUBLE), TRY_CAST("GeoX" AS DOUBLE)) '
                 "WHEN __dl_point_srid = '27700' AND __dl_point_flip = FALSE "
                 "THEN ST_FlipCoordinates(ST_Transform(ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)), 'EPSG:27700', 'EPSG:4326')) "
                 "WHEN __dl_point_srid = '27700' AND __dl_point_flip = TRUE "
@@ -842,11 +842,11 @@ class HarmonisePhase:
             query = (
                 "SELECT * EXCLUDE (__dl_idx, __dl_point_srid, __dl_point_flip), "
                 "CASE "
-                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                'WHEN "GeoX" IS NULL OR "GeoY" IS NULL OR trim(CAST("GeoX" AS VARCHAR)) = \'\' OR trim(CAST("GeoY" AS VARCHAR)) = \'\' OR __dl_point_srid = \'\' '
                 "THEN '' "
                 f"ELSE coalesce(CAST(round(ST_X({point_case}), 6) AS VARCHAR), '') END AS \"GeoX\", "
                 "CASE "
-                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                'WHEN "GeoX" IS NULL OR "GeoY" IS NULL OR trim(CAST("GeoX" AS VARCHAR)) = \'\' OR trim(CAST("GeoY" AS VARCHAR)) = \'\' OR __dl_point_srid = \'\' '
                 "THEN '' "
                 f"ELSE coalesce(CAST(round(ST_Y({point_case}), 6) AS VARCHAR), '') END AS \"GeoY\" "
                 "FROM dl_points ORDER BY __dl_idx"
@@ -950,8 +950,8 @@ class HarmonisePhase:
         geom = f'TRY(ST_GeomFromText("{field}"))'
         return (
             "CASE "
-            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = FALSE THEN {geom} "
-            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates({geom}) "
+            f'WHEN "{srid_col}" = \'4326\' AND "{flip_col}" = FALSE THEN {geom} '
+            f'WHEN "{srid_col}" = \'4326\' AND "{flip_col}" = TRUE THEN ST_FlipCoordinates({geom}) '
             f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:27700', 'EPSG:4326')) "
             f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates(ST_Transform(ST_FlipCoordinates({geom}), 'EPSG:27700', 'EPSG:4326')) "
             f"WHEN \"{srid_col}\" = '3857' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:3857', 'EPSG:4326')) "
@@ -962,10 +962,15 @@ class HarmonisePhase:
     def _add_typology_curies(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """Prefix bare typology values with ``<dataset>:`` to form CURIEs.
+        """
+        Ensure typology fields (organisation, geography, document) have CURIE prefixes.
 
-        Applies to ``organisation``, ``geography``, and ``document`` columns.
-        Values that already contain ":" are left unchanged.
+        Args:
+            lf: Input LazyFrame
+            existing_columns: List of existing column names
+
+        Returns:
+            pl.LazyFrame: LazyFrame with CURIE-formatted typology fields
         """
         if not self.dataset:
             return lf
@@ -1005,7 +1010,16 @@ class HarmonisePhase:
     def _process_wikipedia_urls(
         self, lf: pl.LazyFrame, existing_columns: list
     ) -> pl.LazyFrame:
-        """Strip the ``https://en.wikipedia.org/wiki/`` prefix, keeping only the page title."""
+        """
+        Strip protocol from Wikipedia URLs, keeping only the page title.
+
+        Args:
+            lf: Input LazyFrame
+            existing_columns: List of existing column names
+
+        Returns:
+            pl.LazyFrame: LazyFrame with processed Wikipedia URLs
+        """
         if "wikipedia" not in existing_columns:
             return lf
 
@@ -1019,11 +1033,15 @@ class HarmonisePhase:
         return lf
 
     @staticmethod
-    def _get_far_future_date(number_of_years_ahead: int) -> date:
-        """Return today's date shifted forward by *number_of_years_ahead* years.
+    def _get_far_future_date(number_of_years_ahead: int):
+        """
+        Calculate a date far in the future for validation purposes.
 
-        Handles Feb 29 and short months by clamping the day to the last valid
-        day of the target month.
+        Args:
+            number_of_years_ahead: Number of years to add to today
+
+        Returns:
+            date: A date in the future
         """
         today = date.today()
         y = today.year + number_of_years_ahead

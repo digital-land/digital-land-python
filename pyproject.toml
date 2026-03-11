@@ -19,6 +19,7 @@ dependencies = [
     "canonicaljson",
     "click",
     "faust-cchardet",
+    "cchardet>=2.1.7",
     "esridump",
     "pandas",
     "pyproj",
