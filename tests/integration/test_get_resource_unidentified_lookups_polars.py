@@ -7,9 +7,7 @@ produces correct lookup entries.
 """
 
 import csv
-import os
 import urllib.request
-from pathlib import Path
 
 import pytest
 
