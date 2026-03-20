@@ -31,46 +31,59 @@ import statistics
 from copy import deepcopy
 from pathlib import Path
 
+
 # ── mock cchardet so ConvertPhase can be imported ─────────────────────────────
 class _MockUniversalDetector:
-    def __init__(self): pass
-    def reset(self): pass
-    def feed(self, _): pass
-    def close(self): pass
+    def __init__(self):
+        pass
+
+    def reset(self):
+        pass
+
+    def feed(self, _):
+        pass
+
+    def close(self):
+        pass
+
     @property
-    def done(self): return True
+    def done(self):
+        return True
+
     @property
-    def result(self): return {"encoding": "utf-8"}
+    def result(self):
+        return {"encoding": "utf-8"}
+
 
 sys.modules["cchardet"] = type(sys)("cchardet")
 sys.modules["cchardet"].UniversalDetector = _MockUniversalDetector
 
 import polars as pl
 
-from digital_land.phase.convert   import ConvertPhase
-from digital_land.phase.normalise import NormalisePhase   as LNormalise
-from digital_land.phase.parse     import ParsePhase       as LParse
-from digital_land.phase.concat    import ConcatFieldPhase as LConcat
-from digital_land.phase.filter    import FilterPhase      as LFilter
-from digital_land.phase.map       import MapPhase         as LMap
-from digital_land.phase.patch     import PatchPhase       as LPatch
-from digital_land.phase.harmonise import HarmonisePhase   as LHarmonise
+from digital_land.phase.convert import ConvertPhase
+from digital_land.phase.normalise import NormalisePhase as LNormalise
+from digital_land.phase.parse import ParsePhase as LParse
+from digital_land.phase.concat import ConcatFieldPhase as LConcat
+from digital_land.phase.filter import FilterPhase as LFilter
+from digital_land.phase.map import MapPhase as LMap
+from digital_land.phase.patch import PatchPhase as LPatch
+from digital_land.phase.harmonise import HarmonisePhase as LHarmonise
 
-from digital_land.phase_polars.transform.normalise  import NormalisePhase  as PNormalise
-from digital_land.phase_polars.transform.parse      import ParsePhase      as PParse
-from digital_land.phase_polars.transform.concat     import ConcatPhase     as PConcat
-from digital_land.phase_polars.transform.filter     import FilterPhase     as PFilter
-from digital_land.phase_polars.transform.map        import MapPhase        as PMap
-from digital_land.phase_polars.transform.patch      import PatchPhase      as PPatch
-from digital_land.phase_polars.transform.harmonise  import HarmonisePhase  as PHarmonise
-from digital_land.utils.convert_stream_polarsdf     import StreamToPolarsConverter
+from digital_land.phase_polars.transform.normalise import NormalisePhase as PNormalise
+from digital_land.phase_polars.transform.parse import ParsePhase as PParse
+from digital_land.phase_polars.transform.concat import ConcatPhase as PConcat
+from digital_land.phase_polars.transform.filter import FilterPhase as PFilter
+from digital_land.phase_polars.transform.map import MapPhase as PMap
+from digital_land.phase_polars.transform.patch import PatchPhase as PPatch
+from digital_land.phase_polars.transform.harmonise import HarmonisePhase as PHarmonise
+from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 
 # ── configuration ─────────────────────────────────────────────────────────────
-N_RUNS   = 5
+N_RUNS = 5
 DATA_DIR = Path(__file__).parent.parent / "data"
 FULL_CSV = DATA_DIR / "Buckinghamshire_Council.csv"
 SAMPLE_CSV = DATA_DIR / "Buckinghamshire_Council_sample.csv"
-DATASET  = "title-boundary"
+DATASET = "title-boundary"
 
 CONCAT_CONFIG = {
     "full-reference": {
@@ -82,23 +95,31 @@ CONCAT_CONFIG = {
 }
 FILTER_CONFIG = {}
 FIELDNAMES = [
-    "reference", "name", "national-cadastral-reference", "geometry",
-    "start-date", "entry-date", "end-date", "prefix", "organisation", "notes",
+    "reference",
+    "name",
+    "national-cadastral-reference",
+    "geometry",
+    "start-date",
+    "entry-date",
+    "end-date",
+    "prefix",
+    "organisation",
+    "notes",
 ]
 COLUMN_MAP = {}
 PATCH_CONFIG = {}
 FIELD_DATATYPE_MAP = {
-    "reference":                    "string",
-    "name":                         "string",
+    "reference": "string",
+    "name": "string",
     "national-cadastral-reference": "string",
-    "geometry":                     "multipolygon",
-    "start-date":                   "datetime",
-    "entry-date":                   "datetime",
-    "end-date":                     "datetime",
-    "prefix":                       "string",
-    "organisation":                 "curie",
-    "notes":                        "string",
-    "full-reference":               "string",
+    "geometry": "multipolygon",
+    "start-date": "datetime",
+    "entry-date": "datetime",
+    "end-date": "datetime",
+    "prefix": "string",
+    "organisation": "curie",
+    "notes": "string",
+    "full-reference": "string",
 }
 
 
@@ -107,11 +128,16 @@ class _NoOpIssues:
     line_number = 0
     entry_number = 0
     fieldname = ""
-    def log_issue(self, *_a, **_k): pass
-    def log(self, *_a, **_k): pass
+
+    def log_issue(self, *_a, **_k):
+        pass
+
+    def log(self, *_a, **_k):
+        pass
 
 
 # ── data preparation (run phases 2-7 to produce harmonise input) ──────────────
+
 
 def _prepare_legacy_input(csv_path: Path) -> list:
     """Run legacy phases 2–7 and return materialised blocks for HarmonisePhase."""
@@ -121,7 +147,9 @@ def _prepare_legacy_input(csv_path: Path) -> list:
     blocks = list(LConcat(concats=CONCAT_CONFIG).process(iter(blocks)))
     blocks = list(LFilter(filters=FILTER_CONFIG).process(iter(blocks)))
     blocks = list(LMap(fieldnames=FIELDNAMES, columns=COLUMN_MAP).process(iter(blocks)))
-    blocks = list(LPatch(issues=_NoOpIssues(), patches=PATCH_CONFIG).process(iter(blocks)))
+    blocks = list(
+        LPatch(issues=_NoOpIssues(), patches=PATCH_CONFIG).process(iter(blocks))
+    )
     return blocks
 
 
@@ -143,12 +171,12 @@ def _prepare_polars_input(csv_path: Path) -> pl.LazyFrame:
 
 STEP_METHODS = [
     ("_harmonise_categorical_fields", "Categorical normalisation"),
-    ("_harmonise_field_values",       "Datatype normalisation"),
-    ("_remove_future_dates",          "Future date removal"),
-    ("_process_point_geometry",       "GeoX/GeoY CRS conversion"),
-    ("_add_typology_curies",          "Typology CURIE prefixing"),
-    ("_check_mandatory_fields",       "Mandatory field checks"),
-    ("_process_wikipedia_urls",       "Wikipedia URL stripping"),
+    ("_harmonise_field_values", "Datatype normalisation"),
+    ("_remove_future_dates", "Future date removal"),
+    ("_process_point_geometry", "GeoX/GeoY CRS conversion"),
+    ("_add_typology_curies", "Typology CURIE prefixing"),
+    ("_check_mandatory_fields", "Mandatory field checks"),
+    ("_process_wikipedia_urls", "Wikipedia URL stripping"),
 ]
 
 
@@ -187,13 +215,15 @@ def profile_polars_steps(polars_input: pl.LazyFrame, n_runs: int) -> dict:
 
         results[label] = {
             "method": method_name,
-            "times":  times,
+            "times": times,
         }
 
     return results
 
 
-def benchmark_full_phase(legacy_input: list, polars_input: pl.LazyFrame, n_runs: int) -> dict:
+def benchmark_full_phase(
+    legacy_input: list, polars_input: pl.LazyFrame, n_runs: int
+) -> dict:
     """Time the full process() for both legacy and polars."""
     legacy_times: list[float] = []
     polars_times: list[float] = []
@@ -227,8 +257,11 @@ def benchmark_full_phase(legacy_input: list, polars_input: pl.LazyFrame, n_runs:
 
 # ── report ────────────────────────────────────────────────────────────────────
 
-def render_report(step_results: dict, full_results: dict, row_count: int, csv_name: str) -> str:
-    SEP  = "─" * 90
+
+def render_report(
+    step_results: dict, full_results: dict, row_count: int, csv_name: str
+) -> str:
+    SEP = "─" * 90
     DSEP = "═" * 90
 
     lines: list[str] = [
@@ -254,7 +287,9 @@ def render_report(step_results: dict, full_results: dict, row_count: int, csv_na
         SEP,
     ]
 
-    step_avgs = {label: statistics.mean(d["times"]) for label, d in step_results.items()}
+    step_avgs = {
+        label: statistics.mean(d["times"]) for label, d in step_results.items()
+    }
     total_step_avg = sum(step_avgs.values())
 
     for i, (label, data) in enumerate(step_results.items(), 1):
@@ -316,6 +351,7 @@ def render_report(step_results: dict, full_results: dict, row_count: int, csv_na
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
+
 
 def main():
     use_sample = "--sample" in sys.argv

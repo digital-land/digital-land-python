@@ -95,7 +95,7 @@ class HarmonisePhase:
     removal, GeoX/GeoY CRS conversion, typology CURIE prefixing, mandatory
     field checks, and Wikipedia URL stripping.  Mirrors the behaviour of the
     legacy stream-based ``HarmonisePhase`` in ``digital_land.phase.harmonise``.
-    """
+
     Apply data harmonisation to Polars LazyFrame using datatype conversions.
 
     Handles field validation, categorical mapping, date normalization,
@@ -159,7 +159,7 @@ class HarmonisePhase:
         Matching is case-insensitive and treats spaces as interchangeable with
         hyphens (legacy parity).  Values not found in the allowed list are left
         unchanged.
-        """
+
         Normalize categorical fields by replacing spaces and validating against allowed values.
 
         Args:
@@ -178,10 +178,7 @@ class HarmonisePhase:
 
             # Normalised key: lowercase + spaces→hyphens
             normalized = (
-                pl.col(field)
-                .cast(pl.Utf8)
-                .str.replace_all(" ", "-")
-                .str.to_lowercase()
+                pl.col(field).cast(pl.Utf8).str.replace_all(" ", "-").str.to_lowercase()
             )
             # Look up canonical value; null when key not in map
             looked_up = normalized.replace_strict(
@@ -191,10 +188,7 @@ class HarmonisePhase:
                 pl.when(
                     pl.col(field).is_null()
                     | (
-                        pl.col(field)
-                        .cast(pl.Utf8)
-                        .str.strip_chars()
-                        .str.len_chars()
+                        pl.col(field).cast(pl.Utf8).str.strip_chars().str.len_chars()
                         == 0
                     )
                 )
@@ -223,13 +217,7 @@ class HarmonisePhase:
         return (
             pl.when(
                 pl.col(field).is_null()
-                | (
-                    pl.col(field)
-                    .cast(pl.Utf8)
-                    .str.strip_chars()
-                    .str.len_chars()
-                    == 0
-                )
+                | (pl.col(field).cast(pl.Utf8).str.strip_chars().str.len_chars() == 0)
             )
             .then(pl.lit(""))
             .otherwise(pl.col(field).cast(pl.Utf8))
@@ -247,13 +235,7 @@ class HarmonisePhase:
         return (
             pl.when(
                 pl.col(field).is_null()
-                | (
-                    pl.col(field)
-                    .cast(pl.Utf8)
-                    .str.strip_chars()
-                    .str.len_chars()
-                    == 0
-                )
+                | (pl.col(field).cast(pl.Utf8).str.strip_chars().str.len_chars() == 0)
             )
             .then(pl.lit(""))
             .otherwise(
@@ -277,7 +259,9 @@ class HarmonisePhase:
         bounds are applied as vectorised ``pl.when`` guards.  Null, blank, and
         unparseable values become empty strings.
         """
-        col = pl.col(field).cast(pl.Utf8).str.strip_chars().str.strip_chars('",')  # noqa: E501
+        col = (
+            pl.col(field).cast(pl.Utf8).str.strip_chars().str.strip_chars('",')
+        )  # noqa: E501
 
         date_exprs: list[pl.Expr] = []
         for kind, fmt in self._DATETIME_FORMATS:
@@ -573,9 +557,7 @@ class HarmonisePhase:
                         for sub in g.geoms
                         if sub.geom_type in ("Polygon", "MultiPolygon")
                         for p in (
-                            sub.geoms
-                            if sub.geom_type == "MultiPolygon"
-                            else [sub]
+                            sub.geoms if sub.geom_type == "MultiPolygon" else [sub]
                         )
                     ]
                     g = _MP(polys) if polys else None
@@ -594,12 +576,8 @@ class HarmonisePhase:
                 geoms[i] = g
 
             # 7. Dump WKT – matching legacy comma formatting
-            wkt_out = _shp.to_wkt(
-                geoms, rounding_precision=6, output_dimension=2
-            )
-            result = [
-                "" if w is None else w.replace(", ", ",") for w in wkt_out
-            ]
+            wkt_out = _shp.to_wkt(geoms, rounding_precision=6, output_dimension=2)
+            result = ["" if w is None else w.replace(", ", ",") for w in wkt_out]
             updates.append(pl.Series(field, result, dtype=pl.Utf8))
 
         return df.with_columns(updates).lazy()
@@ -657,9 +635,7 @@ class HarmonisePhase:
                 & (y < 1_000_000)
             )
             is_m = has & ~is_deg & ~is_en & (y > 6_000_000) & (y < 10_000_000)
-            is_mf = (
-                has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
-            )
+            is_mf = has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
 
             df = df.with_columns(
                 pl.when(is_deg)
@@ -788,17 +764,10 @@ class HarmonisePhase:
 
         is_deg = has & (x > -60) & (x < 60) & (y > -60) & (y < 60)
         is_en = (
-            has
-            & ~is_deg
-            & (x > 1000)
-            & (x < 1_000_000)
-            & (y > 1000)
-            & (y < 1_000_000)
+            has & ~is_deg & (x > 1000) & (x < 1_000_000) & (y > 1000) & (y < 1_000_000)
         )
         is_m = has & ~is_deg & ~is_en & (y > 6_000_000) & (y < 10_000_000)
-        is_mf = (
-            has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
-        )
+        is_mf = has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
 
         df = df.with_columns(
             pl.when(is_deg)

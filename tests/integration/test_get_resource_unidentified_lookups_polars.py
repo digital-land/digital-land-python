@@ -5,6 +5,7 @@ Verifies that the polars bridge (StreamToPolarsConverter → Polars phases →
 polars_to_stream) inside get_resource_unidentified_lookups runs end-to-end and
 produces correct lookup entries.
 """
+
 import csv
 import os
 import urllib.request
@@ -55,7 +56,14 @@ def pipeline_dir(tmp_path):
     with open(p / "lookup.csv", "w", newline="") as f:
         csv.DictWriter(
             f,
-            fieldnames=["prefix", "resource", "entry-number", "organisation", "reference", "entity"],
+            fieldnames=[
+                "prefix",
+                "resource",
+                "entry-number",
+                "organisation",
+                "reference",
+                "entity",
+            ],
         ).writeheader()
 
     return p
