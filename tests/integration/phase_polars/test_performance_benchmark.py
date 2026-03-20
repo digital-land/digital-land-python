@@ -36,6 +36,23 @@ import platform
 import statistics
 from copy import deepcopy
 from pathlib import Path
+import polars as pl
+from digital_land.phase.convert import ConvertPhase
+from digital_land.phase.normalise import NormalisePhase as LNormalise
+from digital_land.phase.parse import ParsePhase as LParse
+from digital_land.phase.concat import ConcatFieldPhase as LConcat
+from digital_land.phase.filter import FilterPhase as LFilter
+from digital_land.phase.map import MapPhase as LMap
+from digital_land.phase.patch import PatchPhase as LPatch
+from digital_land.phase.harmonise import HarmonisePhase as LHarmonise
+from digital_land.phase_polars.transform.normalise import NormalisePhase as PNormalise
+from digital_land.phase_polars.transform.parse import ParsePhase as PParse
+from digital_land.phase_polars.transform.concat import ConcatPhase as PConcat
+from digital_land.phase_polars.transform.filter import FilterPhase as PFilter
+from digital_land.phase_polars.transform.map import MapPhase as PMap
+from digital_land.phase_polars.transform.patch import PatchPhase as PPatch
+from digital_land.phase_polars.transform.harmonise import HarmonisePhase as PHarmonise
+from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 
 
 # ── mock cchardet (not installed in this env) so ConvertPhase can be imported ─
@@ -64,28 +81,6 @@ class _MockUniversalDetector:
 sys.modules["cchardet"] = type(sys)("cchardet")
 sys.modules["cchardet"].UniversalDetector = _MockUniversalDetector
 
-# ── polars ─────────────────────────────────────────────────────────────────────
-import polars as pl
-
-# ── legacy (stream-based) phases ──────────────────────────────────────────────
-from digital_land.phase.convert import ConvertPhase
-from digital_land.phase.normalise import NormalisePhase as LNormalise
-from digital_land.phase.parse import ParsePhase as LParse
-from digital_land.phase.concat import ConcatFieldPhase as LConcat
-from digital_land.phase.filter import FilterPhase as LFilter
-from digital_land.phase.map import MapPhase as LMap
-from digital_land.phase.patch import PatchPhase as LPatch
-from digital_land.phase.harmonise import HarmonisePhase as LHarmonise
-
-# ── polars phases ──────────────────────────────────────────────────────────────
-from digital_land.phase_polars.transform.normalise import NormalisePhase as PNormalise
-from digital_land.phase_polars.transform.parse import ParsePhase as PParse
-from digital_land.phase_polars.transform.concat import ConcatPhase as PConcat
-from digital_land.phase_polars.transform.filter import FilterPhase as PFilter
-from digital_land.phase_polars.transform.map import MapPhase as PMap
-from digital_land.phase_polars.transform.patch import PatchPhase as PPatch
-from digital_land.phase_polars.transform.harmonise import HarmonisePhase as PHarmonise
-from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 
 # ── benchmark configuration ────────────────────────────────────────────────────
 N_RUNS = 3

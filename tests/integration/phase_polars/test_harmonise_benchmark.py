@@ -321,13 +321,15 @@ def render_report(
     ]
 
     if speedup < 0.90:
-        lines.append(f"  Status      : ⚠  REGRESSION ({1/speedup:.2f}× slower)")
+        lines.append(
+            "  Status      : ⚠  REGRESSION ({:.2f}× slower)".format(1 / speedup)
+        )
     elif speedup >= 5.0:
-        lines.append(f"  Status      : 🚀 FAST")
+        lines.append("  Status      : 🚀 FAST")
     elif speedup >= 2.0:
-        lines.append(f"  Status      : ✓  IMPROVED")
+        lines.append("  Status      : ✓  IMPROVED")
     else:
-        lines.append(f"  Status      : ~  SIMILAR")
+        lines.append("  Status      : ~  SIMILAR")
 
     lines.append(SEP)
 
@@ -343,7 +345,7 @@ def render_report(
     overhead = pol_avg - total_step_avg
     if overhead > 0:
         lines.append(f"\n  Overhead (process() - sum of steps): {overhead:.4f}s")
-        lines.append(f"  This includes schema checks, entry-number drop, etc.")
+        lines.append("  This includes schema checks, entry-number drop, etc.")
 
     lines += [SEP, ""]
 
