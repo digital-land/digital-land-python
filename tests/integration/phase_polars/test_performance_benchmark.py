@@ -36,6 +36,7 @@ import platform
 import statistics
 from copy import deepcopy
 from pathlib import Path
+from typing import Dict, Tuple
 import polars as pl
 from digital_land.phase.convert import ConvertPhase
 from digital_land.phase.normalise import NormalisePhase as LNormalise
@@ -288,7 +289,7 @@ def _run_polars_phases_up_to(phase_index: int, raw_lf: pl.LazyFrame) -> pl.LazyF
 # ── benchmark runner ──────────────────────────────────────────────────────────
 
 
-def run_benchmarks() -> tuple[dict, int]:
+def run_benchmarks() -> Tuple[Dict, int]:
     """Run all phase benchmarks, return (results_dict, data_row_count)."""
 
     print(f"\n  Dataset : {CSV_PATH.name}")
