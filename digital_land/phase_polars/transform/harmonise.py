@@ -437,6 +437,7 @@ class HarmonisePhase:
 
                 return _normalise
 
+            datatype = datatype_factory(datatype_name)
             normaliser = _make_normaliser(datatype, field)
 
             # Spatial fields are batched through DuckDB for CRS reprojection.
