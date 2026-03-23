@@ -110,7 +110,9 @@ def organisation_csv(tmp_path_factory):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(reason="Fails due to syntax errors in harmonise.py (undefined 'exprs' variable)")
+@pytest.mark.xfail(
+    reason="Fails due to syntax errors in harmonise.py (undefined 'exprs' variable)"
+)
 def test_get_resource_unidentified_lookups_polars_bridge(
     resource_csv,
     pipeline_dir,
