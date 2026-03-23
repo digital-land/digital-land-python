@@ -413,6 +413,59 @@ class TestPipeLine:
         filters = pipeline.filters()
         assert filters["field2"] == "default_pattern"
 
+    def test_init_logs_sets_code_version(self, mocker):
+        from digital_land import __version__
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", lambda self, f: [])
+        mocker.patch("digital_land.pipeline.main.hash_directory", return_value="abc123")
+
+        p = Pipeline("any_path", "test-dataset")
+        p.specification = None
+        p.init_logs("test-dataset", "test-resource")
+
+        assert p.dataset_resource_log.code_version == __version__
+
+    def test_init_logs_sets_config_hash(self, mocker):
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", lambda self, f: [])
+        mocker.patch(
+            "digital_land.pipeline.main.hash_directory",
+            return_value="config-hash-value",
+        )
+
+        p = Pipeline("any_path", "test-dataset")
+        p.specification = None
+        p.init_logs("test-dataset", "test-resource")
+
+        assert p.dataset_resource_log.config_hash == "config-hash-value"
+
+    def test_init_logs_sets_specification_hash(self, mocker):
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", lambda self, f: [])
+        mocker.patch(
+            "digital_land.pipeline.main.hash_directory", return_value="spec-hash-value"
+        )
+
+        spec = mocker.MagicMock()
+        spec.path = "/some/spec/path"
+
+        p = Pipeline("any_path", "test-dataset")
+        p.specification = spec
+        p.init_logs("test-dataset", "test-resource")
+
+        assert p.dataset_resource_log.specification_hash == "spec-hash-value"
+
+    def test_init_logs_handles_hash_error_gracefully(self, mocker):
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", lambda self, f: [])
+        mocker.patch(
+            "digital_land.pipeline.main.hash_directory",
+            side_effect=RuntimeError("dir not found"),
+        )
+
+        p = Pipeline("any_path", "test-dataset")
+        p.specification = None
+        p.init_logs("test-dataset", "test-resource")  # should not raise
+
+        assert p.dataset_resource_log.config_hash == ""
+
 
 if __name__ == "__main__":
     pytest.main()

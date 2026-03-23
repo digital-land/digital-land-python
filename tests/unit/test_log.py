@@ -1,5 +1,5 @@
 import pytest
-from digital_land.log import IssueLog, OperationalIssueLog
+from digital_land.log import DatasetResourceLog, IssueLog, OperationalIssueLog
 from unittest.mock import patch, mock_open
 import pandas as pd
 
@@ -105,3 +105,27 @@ def test_IssueLog_entity_map():
     assert issue_log.rows[1]["entity"] == "100002"
     assert issue_log.rows[2]["entity"] == "100100"
     assert issue_log.rows[3]["entity"] is None
+
+
+def test_dataset_resource_log_new_fields_in_fieldnames():
+    assert "code-version" in DatasetResourceLog.fieldnames
+    assert "config-hash" in DatasetResourceLog.fieldnames
+    assert "specification-hash" in DatasetResourceLog.fieldnames
+
+
+def test_dataset_resource_log_new_fields_default_empty():
+    log = DatasetResourceLog(dataset="test-dataset", resource="test-resource")
+    assert log.code_version == ""
+    assert log.config_hash == ""
+    assert log.specification_hash == ""
+
+
+def test_dataset_resource_log_new_fields_included_in_add():
+    log = DatasetResourceLog(dataset="test-dataset", resource="test-resource")
+    log.code_version = "1.2.3"
+    log.config_hash = "abc123"
+    log.specification_hash = "def456"
+    log.add()
+    assert log.rows[0]["code-version"] == "1.2.3"
+    assert log.rows[0]["config-hash"] == "abc123"
+    assert log.rows[0]["specification-hash"] == "def456"
