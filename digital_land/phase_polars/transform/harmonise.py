@@ -120,6 +120,59 @@ class HarmonisePhase:
         self.dataset = dataset
         self.valid_category_values = valid_category_values or {}
 
+        # Polars datetime formats mirror legacy datetime parsing order from
+        # digital_land.datatype.date.DateDataType.normalise.
+        self._DATETIME_FORMATS = [
+            ("date", "%Y-%m-%d"),
+            ("date", "%Y%m%d"),
+            ("datetime", "%Y/%m/%d %H:%M:%S%z"),
+            ("datetime", "%Y/%m/%d %H:%M:%S+00"),
+            ("datetime", "%Y/%m/%d %H:%M:%S"),
+            ("datetime", "%Y/%m/%d %H:%M"),
+            ("datetime", "%Y/%m/%dT%H:%M:%S"),
+            ("datetime", "%Y/%m/%dT%H:%M:%S.000Z"),
+            ("datetime", "%Y/%m/%dT%H:%M:%S.000"),
+            ("datetime", "%Y/%m/%dT%H:%M:%S.%fZ"),
+            ("datetime", "%Y/%m/%dT%H:%M:%S.%f%z"),
+            ("datetime", "%Y/%m/%dT%H:%M:%S.%f"),
+            ("datetime", "%Y/%m/%dT%H:%M:%SZ"),
+            ("datetime", "%Y-%m-%dT%H:%M:%S.000Z"),
+            ("datetime", "%Y-%m-%dT%H:%M:%S.000"),
+            ("datetime", "%Y-%m-%dT%H:%M:%S.%fZ"),
+            ("datetime", "%Y-%m-%dT%H:%M:%S.%f%z"),
+            ("datetime", "%Y-%m-%dT%H:%M:%S.%f"),
+            ("datetime", "%Y-%m-%dT%H:%M:%SZ"),
+            ("datetime", "%Y-%m-%dT%H:%M:%S"),
+            ("datetime", "%Y-%m-%d %H:%M:%S"),
+            ("date", "%Y/%m/%d"),
+            ("date", "%Y %m %d"),
+            ("date", "%Y.%m.%d"),
+            ("date", "%Y-%d-%m"),
+            ("date", "%Y-%m"),
+            ("date", "%Y.%m"),
+            ("date", "%Y/%m"),
+            ("date", "%Y %m"),
+            ("date", "%Y"),
+            ("date", "%Y.0"),
+            ("datetime", "%d/%m/%Y %H:%M:%S"),
+            ("datetime", "%d/%m/%Y %H:%M"),
+            ("date", "%d-%m-%Y"),
+            ("date", "%d-%m-%y"),
+            ("date", "%d.%m.%Y"),
+            ("date", "%d.%m.%y"),
+            ("date", "%d/%m/%Y"),
+            ("date", "%d/%m/%y"),
+            ("date", "%d-%b-%Y"),
+            ("date", "%d-%b-%y"),
+            ("date", "%d %B %Y"),
+            ("date", "%b %d, %Y"),
+            ("date", "%b %d, %y"),
+            ("date", "%b-%y"),
+            ("date", "%B %Y"),
+            ("date", "%m/%d/%Y"),
+            ("datetime", "%s"),
+        ]
+
     def process(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """
         Apply harmonisation transformations to LazyFrame.
