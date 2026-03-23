@@ -169,6 +169,7 @@ class HarmonisePhase:
         Returns:
             pl.LazyFrame: LazyFrame with normalised categorical fields
         """
+        exprs = []
         for field, valid_values in self.valid_category_values.items():
             if field not in existing_columns:
                 continue
