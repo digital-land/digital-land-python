@@ -574,25 +574,24 @@ class HarmonisePhase:
                 updates.append(pl.Series(field, [""] * len(raw), dtype=pl.Utf8))
                 continue
 
-            # 2. Precision round-trip (6 dp)
-            wkt_6dp = _shp.to_wkt(
-                geoms[valid_mask], rounding_precision=6, output_dimension=2
-            )
-            geoms[valid_mask] = _shp.from_wkt(wkt_6dp)
-
-            # 3. Simplify
+            # 2. Simplify
             simplified = _shp.simplify(geoms, 0.000005)
             was_valid = _shp.is_valid(geoms)
             simp_valid = _shp.is_valid(simplified)
             use_simp = (~was_valid | simp_valid) & valid_mask
             geoms = np.where(use_simp, simplified, geoms)
 
-            # 4. Set precision
+            # 3. Set precision
             geoms[valid_mask] = _shp.set_precision(
                 geoms[valid_mask], 0.000001, mode="pointwise"
             )
 
-            # 5. make_valid
+            # 4. make_valid
+            bad = ~_shp.is_valid(geoms) & valid_mask
+            if bad.any():
+                geoms[bad] = _shp.make_valid(geoms[bad])
+
+            # 5. MultiPolygon + orient + buffer fix
             bad = ~_shp.is_valid(geoms) & valid_mask
             if bad.any():
                 geoms[bad] = _shp.make_valid(geoms[bad])
