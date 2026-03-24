@@ -43,7 +43,7 @@ import platform
 import statistics
 from copy import deepcopy
 from pathlib import Path
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 
 # ── mock cchardet (not installed in this env) so ConvertPhase can be imported ─
@@ -430,7 +430,7 @@ def _phase_summary_table(results: dict, file_label: str) -> List[str]:
 
 
 def render_report(
-    all_results: list[tuple[str, dict, int]], csv_dir: Path
+    all_results: List[Tuple[str, Dict, int]], csv_dir: Path
 ) -> str:  # noqa: C901
     SEP = "─" * 114
     DSEP = "═" * 114
