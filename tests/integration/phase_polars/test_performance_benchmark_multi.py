@@ -43,7 +43,7 @@ import platform
 import statistics
 from copy import deepcopy
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, List
 
 
 # ── mock cchardet (not installed in this env) so ConvertPhase can be imported ─
@@ -371,7 +371,7 @@ def run_benchmarks_for_file(
 # ── report formatter ──────────────────────────────────────────────────────────
 
 
-def _phase_summary_table(results: dict, file_label: str) -> list[str]:
+def _phase_summary_table(results: dict, file_label: str) -> List[str]:
     """Return lines for a per-file summary table."""
     SEP = "─" * 114
     lines = [
