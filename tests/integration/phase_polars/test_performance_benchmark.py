@@ -490,7 +490,7 @@ def render_report(results: dict, row_count: int) -> str:  # noqa: C901
 
         if speedup < 0.90:
             entry = (
-                f"  ⚠  Phase {data['phase']} {label}: Polars is {1/speedup:.2f}× SLOWER than legacy "
+                f"  ⚠  Phase {data['phase']} {label}: Polars is {1 / speedup:.2f}× SLOWER than legacy "
                 f"[polars={pol_avg:.6f}s  legacy={leg_avg:.6f}s]. Investigate further – "
                 f"possible overhead from LazyFrame materialisation or DuckDB usage in this phase."
             )

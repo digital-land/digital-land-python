@@ -531,13 +531,13 @@ def render_report(
     if grand_pol > 0:
         grand_speedup = grand_leg / grand_pol
         lines += [
-            f"  {'':>3}  {'GRAND TOTAL (ph 2–8)':<22}  {grand_leg:>11.6f}  {grand_leg/n_files:>11.6f}  "
-            f"{grand_pol:>11.6f}  {grand_pol/n_files:>11.6f}  {grand_speedup:>7.2f}×",
+            f"  {'':>3}  {'GRAND TOTAL (ph 2–8)':<22}  {grand_leg:>11.6f}  {grand_leg / n_files:>11.6f}  "
+            f"{grand_pol:>11.6f}  {grand_pol / n_files:>11.6f}  {grand_speedup:>7.2f}×",
             SEP,
             "",
             f"  Overall pipeline speedup (phases 2–8): {grand_speedup:.2f}×",
             f"  Legacy total: {grand_leg:.6f}s  |  Polars total: {grand_pol:.6f}s",
-            f"  Avg per file: legacy={grand_leg/n_files:.6f}s  polars={grand_pol/n_files:.6f}s",
+            f"  Avg per file: legacy={grand_leg / n_files:.6f}s  polars={grand_pol / n_files:.6f}s",
         ]
 
     lines += ["", DSEP, ""]
