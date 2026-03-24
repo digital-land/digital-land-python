@@ -39,9 +39,7 @@ BASE_URL = "https://use-land-property-data.service.gov.uk"
 DOWNLOAD_PAGE = f"{BASE_URL}/datasets/inspire/download"
 
 DEFAULT_OUTPUT_DIR = (
-    Path(__file__).resolve().parents[2]  # tests/integration/
-    / "data"
-    / "gml"
+    Path(__file__).resolve().parents[2] / "data" / "gml"  # tests/integration/
 )
 
 logging.basicConfig(
@@ -55,6 +53,7 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Page parsing
 # ---------------------------------------------------------------------------
+
 
 def _get_download_links(session: requests.Session) -> list[tuple[str, str]]:
     """Return a list of (council_name, absolute_url) pairs from the download page.
@@ -110,9 +109,12 @@ def _get_download_links(session: requests.Session) -> list[tuple[str, str]]:
 # Download + extract
 # ---------------------------------------------------------------------------
 
+
 def _safe_filename(council_name: str) -> str:
     """Convert a council name to a safe filesystem-friendly filename stem."""
-    return "".join(c if c.isalnum() or c in " -_()" else "_" for c in council_name).strip()
+    return "".join(
+        c if c.isalnum() or c in " -_()" else "_" for c in council_name
+    ).strip()
 
 
 def _download_one(
@@ -150,7 +152,11 @@ def _download_one(
                     if member.lower().endswith(".gml"):
                         (output_dir / dest_name).write_bytes(zf.read(member))
                         break
-        elif "gml" in content_type or "xml" in content_type or url.lower().endswith(".gml"):
+        elif (
+            "gml" in content_type
+            or "xml" in content_type
+            or url.lower().endswith(".gml")
+        ):
             (output_dir / dest_name).write_bytes(resp.content)
         else:
             # Attempt ZIP extraction as a fallback for unknown content types.
@@ -173,6 +179,7 @@ def _download_one(
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

@@ -44,16 +44,29 @@ import statistics
 from copy import deepcopy
 from pathlib import Path
 
+
 # ── mock cchardet (not installed in this env) so ConvertPhase can be imported ─
 class _MockUniversalDetector:
-    def __init__(self): pass
-    def reset(self): pass
-    def feed(self, _): pass
-    def close(self): pass
+    def __init__(self):
+        pass
+
+    def reset(self):
+        pass
+
+    def feed(self, _):
+        pass
+
+    def close(self):
+        pass
+
     @property
-    def done(self): return True
+    def done(self):
+        return True
+
     @property
-    def result(self): return {"encoding": "utf-8"}
+    def result(self):
+        return {"encoding": "utf-8"}
+
 
 sys.modules["cchardet"] = type(sys)("cchardet")
 sys.modules["cchardet"].UniversalDetector = _MockUniversalDetector
@@ -62,35 +75,35 @@ sys.modules["cchardet"].UniversalDetector = _MockUniversalDetector
 import polars as pl
 
 # ── legacy (stream-based) phases ──────────────────────────────────────────────
-from digital_land.phase.convert   import ConvertPhase
-from digital_land.phase.normalise import NormalisePhase   as LNormalise
-from digital_land.phase.parse     import ParsePhase       as LParse
-from digital_land.phase.concat    import ConcatFieldPhase as LConcat
-from digital_land.phase.filter    import FilterPhase      as LFilter
-from digital_land.phase.map       import MapPhase         as LMap
-from digital_land.phase.patch     import PatchPhase       as LPatch
-from digital_land.phase.harmonise import HarmonisePhase   as LHarmonise
+from digital_land.phase.convert import ConvertPhase
+from digital_land.phase.normalise import NormalisePhase as LNormalise
+from digital_land.phase.parse import ParsePhase as LParse
+from digital_land.phase.concat import ConcatFieldPhase as LConcat
+from digital_land.phase.filter import FilterPhase as LFilter
+from digital_land.phase.map import MapPhase as LMap
+from digital_land.phase.patch import PatchPhase as LPatch
+from digital_land.phase.harmonise import HarmonisePhase as LHarmonise
 
 # ── polars phases ──────────────────────────────────────────────────────────────
-from digital_land.phase_polars.transform.normalise  import NormalisePhase  as PNormalise
-from digital_land.phase_polars.transform.parse      import ParsePhase      as PParse
-from digital_land.phase_polars.transform.concat     import ConcatPhase     as PConcat
-from digital_land.phase_polars.transform.filter     import FilterPhase     as PFilter
-from digital_land.phase_polars.transform.map        import MapPhase        as PMap
-from digital_land.phase_polars.transform.patch      import PatchPhase      as PPatch
-from digital_land.phase_polars.transform.harmonise  import HarmonisePhase  as PHarmonise
-from digital_land.utils.convert_stream_polarsdf     import StreamToPolarsConverter
+from digital_land.phase_polars.transform.normalise import NormalisePhase as PNormalise
+from digital_land.phase_polars.transform.parse import ParsePhase as PParse
+from digital_land.phase_polars.transform.concat import ConcatPhase as PConcat
+from digital_land.phase_polars.transform.filter import FilterPhase as PFilter
+from digital_land.phase_polars.transform.map import MapPhase as PMap
+from digital_land.phase_polars.transform.patch import PatchPhase as PPatch
+from digital_land.phase_polars.transform.harmonise import HarmonisePhase as PHarmonise
+from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 
 # ── benchmark configuration ────────────────────────────────────────────────────
-N_RUNS   = 3
+N_RUNS = 3
 DATA_DIR = Path(__file__).parent.parent / "data"
-CSV_DIR  = DATA_DIR / "csv"
-DATASET  = "title-boundary"
+CSV_DIR = DATA_DIR / "csv"
+DATASET = "title-boundary"
 
-CONCAT_CONFIG = {}   # INSPIRE GML schema has no compound reference fields to concatenate
-FILTER_CONFIG = {}   # no row filtering — full dataset passes through
-COLUMN_MAP    = {}   # identity column mapping
-PATCH_CONFIG  = {}   # no patches (phase still iterates every row)
+CONCAT_CONFIG = {}  # INSPIRE GML schema has no compound reference fields to concatenate
+FILTER_CONFIG = {}  # no row filtering — full dataset passes through
+COLUMN_MAP = {}  # identity column mapping
+PATCH_CONFIG = {}  # no patches (phase still iterates every row)
 
 # INSPIRE GML CSV column names (output of ogr2ogr conversion)
 FIELDNAMES = [
@@ -105,13 +118,13 @@ FIELDNAMES = [
 
 # Datatypes for INSPIRE GML fields
 FIELD_DATATYPE_MAP = {
-    "WKT":                        "multipolygon",
-    "gml_id":                     "string",
-    "INSPIREID":                  "string",
-    "LABEL":                      "string",
+    "WKT": "multipolygon",
+    "gml_id": "string",
+    "INSPIREID": "string",
+    "LABEL": "string",
     "NATIONALCADASTRALREFERENCE": "string",
-    "VALIDFROM":                  "datetime",
-    "BEGINLIFESPANVERSION":       "datetime",
+    "VALIDFROM": "datetime",
+    "BEGINLIFESPANVERSION": "datetime",
 }
 
 
@@ -121,8 +134,12 @@ class _NoOpIssues:
     line_number = 0
     entry_number = 0
     fieldname = ""
-    def log_issue(self, *_a, **_k): pass
-    def log(self, *_a, **_k): pass
+
+    def log_issue(self, *_a, **_k):
+        pass
+
+    def log(self, *_a, **_k):
+        pass
 
 
 # ── phase descriptor factory ──────────────────────────────────────────────────
@@ -130,45 +147,54 @@ class _NoOpIssues:
 # Factories are zero-arg callables that return a ready phase instance.
 # polars_factory is None for phases without a Polars equivalent yet.
 
+
 def _make_phase_descriptors(csv_path: Path) -> list:
     return [
         (
-            1, "ConvertPhase",
+            1,
+            "ConvertPhase",
             lambda p=csv_path: ConvertPhase(path=str(p)),
             None,  # not yet refactored to Polars
         ),
         (
-            2, "NormalisePhase",
+            2,
+            "NormalisePhase",
             lambda: LNormalise(),
             lambda: PNormalise(),
         ),
         (
-            3, "ParsePhase",
+            3,
+            "ParsePhase",
             lambda: LParse(),
             lambda: PParse(),
         ),
         (
-            4, "ConcatFieldPhase",
+            4,
+            "ConcatFieldPhase",
             lambda: LConcat(concats=CONCAT_CONFIG),
             lambda: PConcat(concats=CONCAT_CONFIG),
         ),
         (
-            5, "FilterPhase",
+            5,
+            "FilterPhase",
             lambda: LFilter(filters=FILTER_CONFIG),
             lambda: PFilter(filters=FILTER_CONFIG),
         ),
         (
-            6, "MapPhase",
+            6,
+            "MapPhase",
             lambda: LMap(fieldnames=FIELDNAMES, columns=COLUMN_MAP),
             lambda: PMap(fieldnames=FIELDNAMES, columns=COLUMN_MAP),
         ),
         (
-            7, "PatchPhase",
+            7,
+            "PatchPhase",
             lambda: LPatch(issues=_NoOpIssues(), patches=PATCH_CONFIG),
             lambda: PPatch(patches=PATCH_CONFIG),
         ),
         (
-            8, "HarmonisePhase",
+            8,
+            "HarmonisePhase",
             lambda: LHarmonise(
                 field_datatype_map=FIELD_DATATYPE_MAP,
                 issues=_NoOpIssues(),
@@ -185,6 +211,7 @@ def _make_phase_descriptors(csv_path: Path) -> list:
 
 
 # ── pre-materialise helpers ───────────────────────────────────────────────────
+
 
 def _run_legacy_phases_up_to(phase_index: int, raw_blocks: list) -> list:
     """
@@ -218,7 +245,9 @@ def _run_legacy_phases_up_to(phase_index: int, raw_blocks: list) -> list:
     if phase_index == 7:
         return blocks
 
-    blocks = list(LPatch(issues=_NoOpIssues(), patches=PATCH_CONFIG).process(iter(blocks)))
+    blocks = list(
+        LPatch(issues=_NoOpIssues(), patches=PATCH_CONFIG).process(iter(blocks))
+    )
     return blocks  # input for HarmonisePhase
 
 
@@ -253,6 +282,7 @@ def _run_polars_phases_up_to(phase_index: int, raw_lf: pl.LazyFrame) -> pl.LazyF
 
 # ── single-file benchmark runner ──────────────────────────────────────────────
 
+
 def run_benchmarks_for_file(
     csv_path: Path, file_index: int, total_files: int
 ) -> tuple[dict, int]:
@@ -266,8 +296,7 @@ def run_benchmarks_for_file(
     print("  Loading raw stream blocks …")
     raw_blocks = list(ConvertPhase(path=str(csv_path)).process())
     data_row_count = sum(
-        1 for b in raw_blocks
-        if "line" in b and b.get("line-number", 1) > 0
+        1 for b in raw_blocks if "line" in b and b.get("line-number", 1) > 0
     )
     print(f"  {len(raw_blocks):,} blocks loaded  (~{data_row_count:,} data rows)\n")
 
@@ -297,16 +326,16 @@ def run_benchmarks_for_file(
                 print(f"    run {run}/{N_RUNS}  legacy={lt:.6f}s  polars=N/A")
 
             results[label] = {
-                "phase":      phase_num,
-                "legacy":     legacy_times,
-                "polars":     None,
+                "phase": phase_num,
+                "legacy": legacy_times,
+                "polars": None,
                 "input_rows": data_row_count,
             }
             print()
             continue
 
         # Pre-materialise inputs (excluded from timing)
-        leg_input    = _run_legacy_phases_up_to(phase_num, raw_blocks)
+        leg_input = _run_legacy_phases_up_to(phase_num, raw_blocks)
         polars_input = _run_polars_phases_up_to(phase_num, raw_lf)
 
         for run in range(1, N_RUNS + 1):
@@ -328,7 +357,7 @@ def run_benchmarks_for_file(
             print(f"    run {run}/{N_RUNS}  legacy={lt:.6f}s  polars={pt:.6f}s")
 
         results[label] = {
-            "phase":  phase_num,
+            "phase": phase_num,
             "legacy": legacy_times,
             "polars": polars_times,
             "input_rows": len(leg_input),
@@ -339,6 +368,7 @@ def run_benchmarks_for_file(
 
 
 # ── report formatter ──────────────────────────────────────────────────────────
+
 
 def _phase_summary_table(results: dict, file_label: str) -> list[str]:
     """Return lines for a per-file summary table."""
@@ -401,7 +431,7 @@ def _phase_summary_table(results: dict, file_label: str) -> list[str]:
 def render_report(
     all_results: list[tuple[str, dict, int]], csv_dir: Path
 ) -> str:  # noqa: C901
-    SEP  = "─" * 114
+    SEP = "─" * 114
     DSEP = "═" * 114
 
     total_rows = sum(rc for _, _, rc in all_results)
@@ -444,7 +474,7 @@ def render_report(
                     "phase": data["phase"],
                     "legacy_sum": 0.0,
                     "polars_sum": 0.0 if data["polars"] is not None else None,
-                    "files":      0,
+                    "files": 0,
                 }
             entry = phase_totals[label]
             entry["legacy_sum"] += statistics.mean(data["legacy"])
@@ -516,6 +546,7 @@ def render_report(
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(

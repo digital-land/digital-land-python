@@ -192,10 +192,7 @@ class HarmonisePhase:
 
             # Normalised key: lowercase + spaces→hyphens
             normalized = (
-                pl.col(field)
-                .cast(pl.Utf8)
-                .str.replace_all(" ", "-")
-                .str.to_lowercase()
+                pl.col(field).cast(pl.Utf8).str.replace_all(" ", "-").str.to_lowercase()
             )
             # Look up canonical value; null when key not in map
             looked_up = normalized.replace_strict(
@@ -205,10 +202,7 @@ class HarmonisePhase:
                 pl.when(
                     pl.col(field).is_null()
                     | (
-                        pl.col(field)
-                        .cast(pl.Utf8)
-                        .str.strip_chars()
-                        .str.len_chars()
+                        pl.col(field).cast(pl.Utf8).str.strip_chars().str.len_chars()
                         == 0
                     )
                 )
@@ -237,13 +231,7 @@ class HarmonisePhase:
         return (
             pl.when(
                 pl.col(field).is_null()
-                | (
-                    pl.col(field)
-                    .cast(pl.Utf8)
-                    .str.strip_chars()
-                    .str.len_chars()
-                    == 0
-                )
+                | (pl.col(field).cast(pl.Utf8).str.strip_chars().str.len_chars() == 0)
             )
             .then(pl.lit(""))
             .otherwise(pl.col(field).cast(pl.Utf8))
@@ -261,13 +249,7 @@ class HarmonisePhase:
         return (
             pl.when(
                 pl.col(field).is_null()
-                | (
-                    pl.col(field)
-                    .cast(pl.Utf8)
-                    .str.strip_chars()
-                    .str.len_chars()
-                    == 0
-                )
+                | (pl.col(field).cast(pl.Utf8).str.strip_chars().str.len_chars() == 0)
             )
             .then(pl.lit(""))
             .otherwise(
@@ -291,7 +273,9 @@ class HarmonisePhase:
         bounds are applied as vectorised ``pl.when`` guards.  Null, blank, and
         unparseable values become empty strings.
         """
-        col = pl.col(field).cast(pl.Utf8).str.strip_chars().str.strip_chars('",')  # noqa: E501
+        col = (
+            pl.col(field).cast(pl.Utf8).str.strip_chars().str.strip_chars('",')
+        )  # noqa: E501
 
         date_exprs: list[pl.Expr] = []
         for kind, fmt in self._DATETIME_FORMATS:
@@ -571,9 +555,7 @@ class HarmonisePhase:
                         for sub in g.geoms
                         if sub.geom_type in ("Polygon", "MultiPolygon")
                         for p in (
-                            sub.geoms
-                            if sub.geom_type == "MultiPolygon"
-                            else [sub]
+                            sub.geoms if sub.geom_type == "MultiPolygon" else [sub]
                         )
                     ]
                     g = _MP(polys) if polys else None
@@ -592,12 +574,8 @@ class HarmonisePhase:
                 geoms[i] = g
 
             # 7. Dump WKT – matching legacy comma formatting
-            wkt_out = _shp.to_wkt(
-                geoms, rounding_precision=6, output_dimension=2
-            )
-            result = [
-                "" if w is None else w.replace(", ", ",") for w in wkt_out
-            ]
+            wkt_out = _shp.to_wkt(geoms, rounding_precision=6, output_dimension=2)
+            result = ["" if w is None else w.replace(", ", ",") for w in wkt_out]
             updates.append(pl.Series(field, result, dtype=pl.Utf8))
 
         return df.with_columns(updates).lazy()
@@ -655,9 +633,7 @@ class HarmonisePhase:
                 & (y < 1_000_000)
             )
             is_m = has & ~is_deg & ~is_en & (y > 6_000_000) & (y < 10_000_000)
-            is_mf = (
-                has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
-            )
+            is_mf = has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
 
             df = df.with_columns(
                 pl.when(is_deg)
@@ -681,9 +657,7 @@ class HarmonisePhase:
             # Start with all non-helper columns quoted; replace spatial field
             # expressions in-place below to preserve column ordering.
             select_parts = [
-                f'"{column}"'
-                for column in df.columns
-                if column not in helper_cols
+                f'"{column}"' for column in df.columns if column not in helper_cols
             ]
 
             for field in geometry_fields:
@@ -697,7 +671,7 @@ class HarmonisePhase:
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
                     f"ELSE coalesce(replace(ST_AsText(ST_Multi({geom_case})), ', ', ','), '') "
-                    f"END AS \"{field}\""
+                    f'END AS "{field}"'
                 )
                 select_parts[select_parts.index(f'"{field}"')] = expr
 
@@ -710,7 +684,7 @@ class HarmonisePhase:
                     f"CASE "
                     f"WHEN \"{field}\" IS NULL OR trim(\"{field}\") = '' THEN '' "
                     f"ELSE coalesce(ST_AsText({geom_case}), '') "
-                    f"END AS \"{field}\""
+                    f'END AS "{field}"'
                 )
                 select_parts[select_parts.index(f'"{field}"')] = expr
 
@@ -788,17 +762,10 @@ class HarmonisePhase:
 
         is_deg = has & (x > -60) & (x < 60) & (y > -60) & (y < 60)
         is_en = (
-            has
-            & ~is_deg
-            & (x > 1000)
-            & (x < 1_000_000)
-            & (y > 1000)
-            & (y < 1_000_000)
+            has & ~is_deg & (x > 1000) & (x < 1_000_000) & (y > 1000) & (y < 1_000_000)
         )
         is_m = has & ~is_deg & ~is_en & (y > 6_000_000) & (y < 10_000_000)
-        is_mf = (
-            has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
-        )
+        is_mf = has & ~is_deg & ~is_en & ~is_m & (x > 6_000_000) & (x < 10_000_000)
 
         df = df.with_columns(
             pl.when(is_deg)
@@ -825,9 +792,9 @@ class HarmonisePhase:
             point_case = (
                 "CASE "
                 "WHEN __dl_point_srid = '4326' AND __dl_point_flip = FALSE "
-                "THEN ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)) "
+                'THEN ST_Point(TRY_CAST("GeoX" AS DOUBLE), TRY_CAST("GeoY" AS DOUBLE)) '
                 "WHEN __dl_point_srid = '4326' AND __dl_point_flip = TRUE "
-                "THEN ST_Point(TRY_CAST(\"GeoY\" AS DOUBLE), TRY_CAST(\"GeoX\" AS DOUBLE)) "
+                'THEN ST_Point(TRY_CAST("GeoY" AS DOUBLE), TRY_CAST("GeoX" AS DOUBLE)) '
                 "WHEN __dl_point_srid = '27700' AND __dl_point_flip = FALSE "
                 "THEN ST_FlipCoordinates(ST_Transform(ST_Point(TRY_CAST(\"GeoX\" AS DOUBLE), TRY_CAST(\"GeoY\" AS DOUBLE)), 'EPSG:27700', 'EPSG:4326')) "
                 "WHEN __dl_point_srid = '27700' AND __dl_point_flip = TRUE "
@@ -842,11 +809,11 @@ class HarmonisePhase:
             query = (
                 "SELECT * EXCLUDE (__dl_idx, __dl_point_srid, __dl_point_flip), "
                 "CASE "
-                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                'WHEN "GeoX" IS NULL OR "GeoY" IS NULL OR trim(CAST("GeoX" AS VARCHAR)) = \'\' OR trim(CAST("GeoY" AS VARCHAR)) = \'\' OR __dl_point_srid = \'\' '
                 "THEN '' "
                 f"ELSE coalesce(CAST(round(ST_X({point_case}), 6) AS VARCHAR), '') END AS \"GeoX\", "
                 "CASE "
-                "WHEN \"GeoX\" IS NULL OR \"GeoY\" IS NULL OR trim(CAST(\"GeoX\" AS VARCHAR)) = '' OR trim(CAST(\"GeoY\" AS VARCHAR)) = '' OR __dl_point_srid = '' "
+                'WHEN "GeoX" IS NULL OR "GeoY" IS NULL OR trim(CAST("GeoX" AS VARCHAR)) = \'\' OR trim(CAST("GeoY" AS VARCHAR)) = \'\' OR __dl_point_srid = \'\' '
                 "THEN '' "
                 f"ELSE coalesce(CAST(round(ST_Y({point_case}), 6) AS VARCHAR), '') END AS \"GeoY\" "
                 "FROM dl_points ORDER BY __dl_idx"
@@ -950,8 +917,8 @@ class HarmonisePhase:
         geom = f'TRY(ST_GeomFromText("{field}"))'
         return (
             "CASE "
-            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = FALSE THEN {geom} "
-            f"WHEN \"{srid_col}\" = '4326' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates({geom}) "
+            f'WHEN "{srid_col}" = \'4326\' AND "{flip_col}" = FALSE THEN {geom} '
+            f'WHEN "{srid_col}" = \'4326\' AND "{flip_col}" = TRUE THEN ST_FlipCoordinates({geom}) '
             f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:27700', 'EPSG:4326')) "
             f"WHEN \"{srid_col}\" = '27700' AND \"{flip_col}\" = TRUE THEN ST_FlipCoordinates(ST_Transform(ST_FlipCoordinates({geom}), 'EPSG:27700', 'EPSG:4326')) "
             f"WHEN \"{srid_col}\" = '3857' AND \"{flip_col}\" = FALSE THEN ST_FlipCoordinates(ST_Transform({geom}, 'EPSG:3857', 'EPSG:4326')) "

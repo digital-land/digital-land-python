@@ -41,14 +41,10 @@ from packaging.version import Version
 # Defaults
 # ---------------------------------------------------------------------------
 DEFAULT_INPUT_DIR = (
-    Path(__file__).resolve().parents[2]  # tests/integration/
-    / "data"
-    / "gml"
+    Path(__file__).resolve().parents[2] / "data" / "gml"  # tests/integration/
 )
 DEFAULT_OUTPUT_DIR = (
-    Path(__file__).resolve().parents[2]  # tests/integration/
-    / "data"
-    / "csv"
+    Path(__file__).resolve().parents[2] / "data" / "csv"  # tests/integration/
 )
 
 logging.basicConfig(
@@ -62,6 +58,7 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # ogr2ogr helpers  (mirrors digital_land/phase/convert.py)
 # ---------------------------------------------------------------------------
+
 
 def _get_gdal_version() -> Version:
     try:
@@ -131,7 +128,10 @@ def _convert_one(
             text=True,
         )
         if result.returncode != 0:
-            return stem, f"ERROR: ogr2ogr exited {result.returncode}: {result.stderr.strip()}"
+            return (
+                stem,
+                f"ERROR: ogr2ogr exited {result.returncode}: {result.stderr.strip()}",
+            )
         if not dest.exists():
             return stem, "ERROR: ogr2ogr succeeded but output file not found"
         return stem, "ok"
@@ -144,6 +144,7 @@ def _convert_one(
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

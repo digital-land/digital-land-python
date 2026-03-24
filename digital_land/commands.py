@@ -50,13 +50,17 @@ from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.prune import FieldPrunePhase
 from digital_land.phase.reference import EntityReferencePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
-from digital_land.phase_polars.transform.normalise import NormalisePhase as PolarsNormalisePhase
+from digital_land.phase_polars.transform.normalise import (
+    NormalisePhase as PolarsNormalisePhase,
+)
 from digital_land.phase_polars.transform.parse import ParsePhase as PolarsParsePhase
 from digital_land.phase_polars.transform.concat import ConcatPhase as PolarsConcatPhase
 from digital_land.phase_polars.transform.filter import FilterPhase as PolarsFilterPhase
 from digital_land.phase_polars.transform.map import MapPhase as PolarsMapPhase
 from digital_land.phase_polars.transform.patch import PatchPhase as PolarsPatchPhase
-from digital_land.phase_polars.transform.harmonise import HarmonisePhase as PolarsHarmonisePhase
+from digital_land.phase_polars.transform.harmonise import (
+    HarmonisePhase as PolarsHarmonisePhase,
+)
 from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
 from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 from digital_land.pipeline.process import convert_tranformed_csv_to_pq
@@ -1493,7 +1497,9 @@ def get_resource_unidentified_lookups(
                 columns=columns,
                 log=column_field_log,
             ).process(lf)
-            lf = PolarsFilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)).process(lf)
+            lf = PolarsFilterPhase(
+                filters=pipeline.filters(resource, endpoints=endpoints)
+            ).process(lf)
             lf = PolarsPatchPhase(patches=patches).process(lf)
             lf = PolarsHarmonisePhase(
                 field_datatype_map=specification.get_field_datatype_map(),
