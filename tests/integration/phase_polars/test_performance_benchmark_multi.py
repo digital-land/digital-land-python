@@ -43,6 +43,7 @@ import platform
 import statistics
 from copy import deepcopy
 from pathlib import Path
+from typing import Tuple
 
 
 # ── mock cchardet (not installed in this env) so ConvertPhase can be imported ─
@@ -285,7 +286,7 @@ def _run_polars_phases_up_to(phase_index: int, raw_lf: pl.LazyFrame) -> pl.LazyF
 
 def run_benchmarks_for_file(
     csv_path: Path, file_index: int, total_files: int
-) -> tuple[dict, int]:
+) -> Tuple[dict, int]:
     """Run all phase benchmarks for one CSV file. Returns (results_dict, data_row_count)."""
 
     print(f"\n  [{file_index}/{total_files}] {csv_path.name}")
