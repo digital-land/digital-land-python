@@ -859,6 +859,7 @@ def validate_and_add_data_input(
             plugin=endpoint["plugin"],
             refill_todays_logs=True,
         )
+        '''
         try:
             # log is already returned from fetch, but read from file if needed for verification
             log_path = collector.log_path(datetime.utcnow(), endpoint["endpoint"])
@@ -870,6 +871,7 @@ def validate_and_add_data_input(
                 f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
             )
             break
+        '''
         log_status = log.get("status", None)
         exception = log.get("exception", None)
         if fetch_status not in [FetchStatus.OK, FetchStatus.ALREADY_FETCHED]:
