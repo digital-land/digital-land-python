@@ -3,7 +3,7 @@ name: Deploy Documentation
 on:
   push:
     branches:
-      - main  # Adjust to your main branch
+      - main
   workflow_dispatch: null
 
 # Set permissions of GITHUB_TOKEN
@@ -30,7 +30,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'  # Choose your version
+        python-version: '3.9'
 
     - name: Install dependencies
       run: |

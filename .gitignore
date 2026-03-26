@@ -14,6 +14,7 @@ demodata/
 .eggs
 *.gfs
 .venv
+venv*/
 .direnv
 var/cache
 /collection

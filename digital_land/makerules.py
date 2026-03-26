@@ -8,6 +8,10 @@
 
 from enum import Enum
 
+from digital_land import __version__
+from digital_land.utils.hash_utils import hash_directory
+from digital_land.utils.dataset_resource_utils import resource_needs_processing
+
 
 class ProcessingOption(Enum):
     PROCESS_ALL = "all"
@@ -73,8 +77,42 @@ def pipeline_makerules(
     resource_dir,
     incremental_loading_override,
     state_path=None,
+    dataset_resource_dir=None,
 ):
     dataset_resource = collection.dataset_resource_map()
+
+    if dataset_resource_dir is not None:
+        current_code_version = __version__
+        try:
+            current_config_hash = hash_directory(pipeline_dir)
+        except Exception:
+            current_config_hash = ""
+        try:
+            current_specification_hash = hash_directory(specification_dir)
+        except Exception:
+            current_specification_hash = ""
+
+        dataset_resource = {
+            dataset: {
+                resource
+                for resource in resources
+                if resource_needs_processing(
+                    dataset_resource_dir,
+                    dataset,
+                    resource,
+                    current_code_version,
+                    current_config_hash,
+                    current_specification_hash,
+                )
+            }
+            for dataset, resources in dataset_resource.items()
+        }
+        # Drop datasets with nothing left to process
+        dataset_resource = {
+            dataset: resources
+            for dataset, resources in dataset_resource.items()
+            if resources
+        }
     # process = get_processing_option(
     #     collection,
     #     specification_dir,

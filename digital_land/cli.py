@@ -143,6 +143,12 @@ def collection_list_resources_cmd(collection_dir):
     default=None,
     help="path of the output state file",
 )
+@click.option(
+    "--dataset-resource-dir",
+    type=click.Path(),
+    default=None,
+    help="directory of existing dataset resource logs; when provided only resources with changed config, specification, or code version are included",
+)
 def collection_pipeline_makerules_cmd(
     collection_dir,
     specification_dir,
@@ -150,6 +156,7 @@ def collection_pipeline_makerules_cmd(
     resource_dir,
     incremental_loading_override,
     state_path,
+    dataset_resource_dir,
 ):
     return collection_pipeline_makerules(
         collection_dir,
@@ -158,6 +165,7 @@ def collection_pipeline_makerules_cmd(
         resource_dir,
         incremental_loading_override,
         state_path=state_path,
+        dataset_resource_dir=dataset_resource_dir,
     )
 
 
@@ -462,6 +470,49 @@ def expectations_run_dataset_checkpoint(
     run_dataset_checkpoint(dataset, file_path, output_dir, config, organisations)
 
 
+@cli.command(
+    "expectations-csv-checkpoint",
+    short_help="runs data quality expectations against a CSV file using duckdb",
+)
+@click.option(
+    "--dataset",
+    type=click.STRING,
+    help="the dataset name for logging purposes",
+    required=True,
+)
+@click.option(
+    "--file-path",
+    type=click.Path(),
+    help="path to the CSV file to run expectations against",
+    required=True,
+)
+@click.option(
+    "--log-dir",
+    type=click.Path(),
+    help="directory to store expectation logs",
+    required=True,
+)
+@click.option(
+    "--rules",
+    type=click.STRING,
+    help="JSON string containing the list of expectation rules",
+    required=True,
+)
+def expectations_run_csv_checkpoint(
+    dataset,
+    file_path,
+    log_dir,
+    rules,
+):
+    import json
+
+    from digital_land.expectations.commands import run_csv_checkpoint
+
+    output_dir = Path(log_dir) / "expectation"
+    parsed_rules = json.loads(rules)
+    run_csv_checkpoint(dataset, file_path, output_dir, parsed_rules)
+
+
 @cli.command("retire-endpoints-and-sources")
 @config_collections_dir
 @click.argument("csv-path", nargs=1, type=click.Path())
@@ -751,6 +802,12 @@ def config_load_cmd(ctx, config_path):
     default="state.json",
     help="path of the output state file",
 )
+@click.option(
+    "--dataset-resource-dir",
+    type=click.Path(),
+    default=None,
+    help="directory of existing dataset resource logs; when provided only resources with changed config, specification, or code version are counted",
+)
 def save_state_cmd(
     specification_dir,
     collection_dir,
@@ -758,6 +815,7 @@ def save_state_cmd(
     resource_dir,
     incremental_loading_override,
     output_path,
+    dataset_resource_dir,
 ):
     save_state(
         specification_dir,
@@ -766,6 +824,7 @@ def save_state_cmd(
         resource_dir,
         incremental_loading_override,
         output_path,
+        dataset_resource_dir=dataset_resource_dir,
     )
 
 

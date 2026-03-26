@@ -1,5 +1,8 @@
 PACKAGE=digital_land
 
+# Variablles to overide for testing
+# MAKERULES_URL=https://raw.githubusercontent.com/digital-land/makerules/<branch-name>/
+
 include makerules/makerules.mk
 include makerules/python.mk
 

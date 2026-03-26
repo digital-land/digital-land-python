@@ -1,12 +1,21 @@
 name: Continuous Integration
 on:
   push:
+    branches:
+      - main
+  pull_request:
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
 
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10']
@@ -19,12 +28,16 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
     - name: Make Init
       run: |
         make init
-    - name: Lint, Test, Coverage
-      run: |
-        make
+    - name: Lint
+      run: make lint
+    - name: Test
+      run: make test
+    - name: Coverage
+      run: make coverage
     - name: Publish Test Report
       uses: mikepenz/action-junit-report@v4
       if: always() # always run even if the previous step fails

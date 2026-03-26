@@ -4,6 +4,8 @@ import json
 import hashlib
 from datetime import date
 from digital_land.collection import Collection
+from digital_land import __version__
+from digital_land.utils.dataset_resource_utils import resource_needs_processing
 
 # Read the file in 32MB chunks
 _chunk_size = 32 * 1024 * 1024
@@ -20,6 +22,7 @@ class State(dict):
         pipeline_dir,
         resource_dir,
         incremental_loading_override,
+        dataset_resource_dir=None,
     ):
         """Build a state object from the current configuration and code"""
 
@@ -27,20 +30,34 @@ class State(dict):
         collection = Collection(directory=collection_dir)
         collection.load(directory=collection_dir)
 
+        # Pre-compute once so counts and state dict share the same values
+        specification_hash = State.get_dir_hash(specification_dir)
+        pipeline_hash = State.get_dir_hash(pipeline_dir)
+
         return State(
             {
                 "code": State.get_code_hash(),
-                "specification": State.get_dir_hash(specification_dir),
+                "specification": specification_hash,
                 "collection": State.get_dir_hash(
                     collection_dir, ["log/", "log.csv", "pipeline.mk", "resource/"]
                 ),
                 "resource": State.get_dir_hash(resource_dir),
-                "pipeline": State.get_dir_hash(pipeline_dir),
+                "pipeline": pipeline_hash,
                 "incremental_loading_override": incremental_loading_override,
                 "last_updated_date": date.today().isoformat(),  # date in YYYY-MM-DD format
-                "transform_count": State.get_transform_count(collection),
+                "transform_count": State.get_transform_count(
+                    collection,
+                    dataset_resource_dir=dataset_resource_dir,
+                    current_code_version=__version__,
+                    current_config_hash=pipeline_hash,
+                    current_specification_hash=specification_hash,
+                ),
                 "transform_count_by_dataset": State.get_transform_count_by_dataset(
-                    collection
+                    collection,
+                    dataset_resource_dir=dataset_resource_dir,
+                    current_code_version=__version__,
+                    current_config_hash=pipeline_hash,
+                    current_specification_hash=specification_hash,
                 ),
             }
         )
@@ -92,23 +109,70 @@ class State(dict):
         commit = repo.revparse_single("HEAD")
         return str(commit.id)
 
-    def get_transform_count(collection: Collection):
-        """Calculate the number of transformations that need to be completed"""
+    def get_transform_count(
+        collection: Collection,
+        dataset_resource_dir=None,
+        current_code_version=None,
+        current_config_hash=None,
+        current_specification_hash=None,
+    ):
+        """Calculate the number of transformations that need to be completed.
+
+        When dataset_resource_dir is provided, only resources whose existing log
+        differs from the current code version, config hash, or specification hash
+        are counted. If None, all resources are counted.
+        """
         dataset_resource = collection.dataset_resource_map()
 
-        # Count total number of transformations (resources across all datasets)
-        return sum(len(resources) for resources in dataset_resource.values())
+        if dataset_resource_dir is None:
+            return sum(len(resources) for resources in dataset_resource.values())
 
-    def get_transform_count_by_dataset(collection: Collection):
-        """Calculate the number of transformations that need to be completed"""
+        return sum(
+            1
+            for dataset, resources in dataset_resource.items()
+            for resource in resources
+            if resource_needs_processing(
+                dataset_resource_dir,
+                dataset,
+                resource,
+                current_code_version,
+                current_config_hash,
+                current_specification_hash,
+            )
+        )
 
+    def get_transform_count_by_dataset(
+        collection: Collection,
+        dataset_resource_dir=None,
+        current_code_version=None,
+        current_config_hash=None,
+        current_specification_hash=None,
+    ):
+        """Calculate the number of transformations needed per dataset.
+
+        When dataset_resource_dir is provided, only resources whose existing log
+        differs from the current code version, config hash, or specification hash
+        are counted. If None, all resources are counted.
+        """
         dataset_resource = collection.dataset_resource_map()
-        tranform_count_by_dataset = {}
+        transform_count_by_dataset = {}
         for dataset, resources in dataset_resource.items():
-            tranform_count_by_dataset[dataset] = len(resources)
-
-        # Count total number of transformations (resources across all datasets)
-        return tranform_count_by_dataset
+            if dataset_resource_dir is None:
+                transform_count_by_dataset[dataset] = len(resources)
+            else:
+                transform_count_by_dataset[dataset] = sum(
+                    1
+                    for resource in resources
+                    if resource_needs_processing(
+                        dataset_resource_dir,
+                        dataset,
+                        resource,
+                        current_code_version,
+                        current_config_hash,
+                        current_specification_hash,
+                    )
+                )
+        return transform_count_by_dataset
 
 
 def compare_state(

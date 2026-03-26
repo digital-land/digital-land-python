@@ -265,6 +265,9 @@ class DatasetResourceLog(Log):
         "mime-type",
         "internal-path",
         "internal-mime-type",
+        "code-version",
+        "config-hash",
+        "specification-hash",
     ]
 
     def __init__(self, *args, **kwargs):
@@ -274,6 +277,9 @@ class DatasetResourceLog(Log):
         self.mime_type = ""
         self.internal_path = ""
         self.internal_mime_type = ""
+        self.code_version = ""
+        self.config_hash = ""
+        self.specification_hash = ""
 
     def add(self):
         self.rows.append(
@@ -285,6 +291,9 @@ class DatasetResourceLog(Log):
                 "mime-type": self.mime_type,
                 "internal-path": self.internal_path,
                 "internal-mime-type": self.internal_mime_type,
+                "code-version": self.code_version,
+                "config-hash": self.config_hash,
+                "specification-hash": self.specification_hash,
             }
         )
 
