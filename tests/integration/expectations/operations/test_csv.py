@@ -7,6 +7,8 @@ from digital_land.expectations.operations.csv import (
     check_unique,
     check_no_shared_values,
     check_no_overlapping_ranges,
+    check_allowed_values,
+    check_lookup_entities_are_within_organisation_ranges,
 )
 
 
@@ -201,3 +203,101 @@ def test_check_no_overlapping_ranges_adjacent_fails(tmp_path):
     )
     assert passed is False
     assert len(details["overlaps"]) == 1
+
+
+def test_check_lookup_entities_are_within_organisation_ranges_fails(tmp_path):
+    lookup_file = tmp_path / "lookup.csv"
+    with open(lookup_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "organisation", "reference"])
+        writer.writerow(["150", "org-1", "ok-ref"])
+        writer.writerow(["999", "org-2", "bad-ref"])
+
+    organisation_file = tmp_path / "entity-organisation.csv"
+    with open(organisation_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity-minimum", "entity-maximum", "organisation"])
+        writer.writerow(["100", "200", "org-1"])
+        writer.writerow(["300", "400", "org-2"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_lookup_entities_are_within_organisation_ranges(
+        conn, file_path=lookup_file, organisation_file=organisation_file
+    )
+
+    assert passed is False
+    assert "out-of-range" in message
+    assert len(details["invalid_rows"]) == 1
+    assert details["invalid_rows"][0]["entity"] == 999
+    assert details["invalid_rows"][0]["organisation"] == "org-2"
+
+
+def test_check_lookup_entities_are_within_organisation_ranges_ignores_org(tmp_path):
+    lookup_file = tmp_path / "lookup.csv"
+    with open(lookup_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "organisation", "reference"])
+        writer.writerow(["150", "org-1", "ok-ref"])
+        writer.writerow(["999", "org-2", "ignored-ref"])
+
+    organisation_file = tmp_path / "entity-organisation.csv"
+    with open(organisation_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity-minimum", "entity-maximum", "organisation"])
+        writer.writerow(["100", "200", "org-1"])
+        writer.writerow(["300", "400", "org-2"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_lookup_entities_are_within_organisation_ranges(
+        conn,
+        file_path=lookup_file,
+        organisation_file=organisation_file,
+        ignored_organisations=["org-2"],
+    )
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_allowed_values_fails_for_old_entity_status(tmp_path):
+    file_path = tmp_path / "old-entity.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["old-entity", "status", "entity"])
+        writer.writerow(["1001", "301", "2001"])
+        writer.writerow(["1002", "410", "2002"])
+        writer.writerow(["1003", "302", "2003"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_allowed_values(
+        conn,
+        file_path=file_path,
+        field="status",
+        allowed_values=["301", "410"],
+    )
+
+    assert passed is False
+    assert "invalid values" in message
+    assert details["invalid_values"] == ["302"]
+    assert len(details["invalid_rows"]) == 1
+    assert details["invalid_rows"][0]["value"] == "302"
+
+
+def test_check_allowed_values_passes_for_old_entity_status(tmp_path):
+    file_path = tmp_path / "old-entity.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["old-entity", "status", "entity"])
+        writer.writerow(["1001", "301", "2001"])
+        writer.writerow(["1002", "410", "2002"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_allowed_values(
+        conn,
+        file_path=file_path,
+        field="status",
+        allowed_values=["301", "410"],
+    )
+
+    assert passed is True
+    assert details["invalid_rows"] == []

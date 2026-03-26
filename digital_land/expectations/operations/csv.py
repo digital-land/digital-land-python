@@ -157,3 +157,132 @@ def check_no_overlapping_ranges(conn, file_path: Path, min_field: str, max_field
     }
 
     return passed, message, details
+
+
+def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list):
+    """
+    Checks that a field contains only values from an allowed set.
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file
+        field: the column name to validate
+        allowed_values: allowed values for the field
+    """
+    cleaned_allowed_values = [
+        str(value).strip().replace("'", "''")
+        for value in (allowed_values or [])
+        if str(value).strip() != ""
+    ]
+
+    if not cleaned_allowed_values:
+        raise ValueError("allowed_values must contain at least one non-empty value")
+
+    allowed_values_sql = ",".join("'" + value + "'" for value in cleaned_allowed_values)
+
+    result = conn.execute(
+        f"""
+        SELECT
+            ROW_NUMBER() OVER () + 1 AS line_number,
+            TRIM(COALESCE("{field}", '')) AS value
+        FROM {_read_csv(file_path)}
+        WHERE TRIM(COALESCE("{field}", '')) NOT IN ({allowed_values_sql})
+        """
+    ).fetchall()
+
+    invalid_rows = [{"line_number": row[0], "value": row[1]} for row in result]
+    invalid_values = sorted({row["value"] for row in invalid_rows})
+
+    if len(invalid_rows) == 0:
+        passed = True
+        message = f"all values in '{field}' are allowed"
+    else:
+        passed = False
+        message = (
+            f"there were {len(invalid_rows)} invalid values in '{field}'"
+        )
+
+    details = {
+        "field": field,
+        "allowed_values": sorted({value for value in cleaned_allowed_values}),
+        "invalid_values": invalid_values,
+        "invalid_rows": invalid_rows,
+    }
+
+    return passed, message, details
+
+
+def check_lookup_entities_are_within_organisation_ranges(
+    conn, file_path: Path, organisation_file: Path, ignored_organisations: list = None
+):
+    """
+    Checks that lookup entities are within any valid range from an organisation file.
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the lookup CSV file
+        organisation_file: path to the entity-organisation CSV file
+        ignored_organisations: list of organisations to ignore (i.e. not check that their entities are within a valid range)
+    """
+    ignored_values = [
+        org.replace("'", "''")
+        for org in (ignored_organisations or [])
+        if isinstance(org, str) and org.strip()
+    ]
+    ignored_clause = ""
+    if ignored_values:
+        ignored_values_sql = ",".join("'" + org + "'" for org in ignored_values)
+        ignored_clause = (
+            " AND TRIM(COALESCE(\"organisation\", '')) NOT IN "
+            + f"({ignored_values_sql})"
+        )
+
+    result = conn.execute(
+        f"""
+        WITH ranges AS (
+            SELECT
+                TRY_CAST("entity-minimum" AS BIGINT) AS min_entity,
+                TRY_CAST("entity-maximum" AS BIGINT) AS max_entity
+            FROM {_read_csv(organisation_file)}
+            WHERE TRY_CAST("entity-minimum" AS BIGINT) IS NOT NULL
+              AND TRY_CAST("entity-maximum" AS BIGINT) IS NOT NULL
+        ),
+        lookup_rows AS (
+            SELECT
+                TRY_CAST("entity" AS BIGINT) AS entity,
+                TRIM(COALESCE("organisation", '')) AS organisation,
+                COALESCE("reference", '') AS reference
+            FROM {_read_csv(file_path)}
+            WHERE TRIM(COALESCE("organisation", '')) != ''
+            {ignored_clause}
+        )
+        SELECT entity, organisation, reference
+        FROM lookup_rows l
+        WHERE organisation != ''
+          AND entity IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1
+              FROM ranges r
+              WHERE l.entity BETWEEN r.min_entity AND r.max_entity
+          )
+        """
+    ).fetchall()
+
+    out_of_range_rows = [
+        {"entity": row[0], "organisation": row[1], "reference": row[2]}
+        for row in result
+    ]
+
+    if len(out_of_range_rows) == 0:
+        passed = True
+        message = "all lookup entities are within allowed ranges"
+    else:
+        passed = False
+        message = f"there were {len(out_of_range_rows)} out-of-range rows found"
+
+    details = {
+        "invalid_rows": out_of_range_rows,
+    }
+
+    return passed, message, details
+
