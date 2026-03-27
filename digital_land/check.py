@@ -20,7 +20,7 @@ def duplicate_reference_check(issues=None, csv_path=None):
             "value",
             "entry-date",
             COUNT(*) AS count,
-            STRING_AGG("entry_number"::TEXT, ',') AS entry_numbers
+            STRING_AGG("entry-number"::TEXT, ',') AS entry_numbers
         FROM filtered_table
         GROUP BY "field", "value", "entry-date"
         HAVING COUNT(*) > 1;
