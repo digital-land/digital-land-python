@@ -79,37 +79,7 @@ Phases 2–9 are the current scope of `phase_polars`. Everything else remains on
 
 ## Usage Example
 
-Full working example is in [tests/acceptance/polars/test_harmonise_comparison.py](../../tests/acceptance/polars/test_harmonise_comparison.py). The pattern:
-
-```python
-from digital_land.phase.convert import ConvertPhase
-from digital_land.pipeline.main import StreamToPolarsConverter
-from digital_land.phase_polars.transform.normalise import NormalisePhase
-from digital_land.phase_polars.transform.parse import ParsePhase
-from digital_land.phase_polars.transform.concat import ConcatPhase
-from digital_land.phase_polars.transform.filter import FilterPhase
-from digital_land.phase_polars.transform.map import MapPhase
-from digital_land.phase_polars.transform.patch import PatchPhase
-from digital_land.phase_polars.transform.harmonise import HarmonisePhase
-
-stream = ConvertPhase(path="input.csv").process(None)
-lf = StreamToPolarsConverter.from_stream(stream)
-
-lf = NormalisePhase(skip_patterns=[]).process(lf)
-lf = ParsePhase().process(lf)
-lf = ConcatPhase(concats={"address": {"fields": ["street", "town"], "separator": ", "}}).process(lf)
-lf = FilterPhase(filters={"organisation": "^active"}).process(lf)
-lf = MapPhase(fieldnames=fieldnames, columns=column_map).process(lf)
-lf = FilterPhase(filters=endpoint_filters).process(lf)
-lf = PatchPhase(patches={"": {"N/A": ""}}).process(lf)  # "" applies to all fields
-lf = HarmonisePhase(
-    field_datatype_map={"start-date": "date", "geometry": "geometry"},
-    dataset="conservation-area",
-    valid_category_values={"category": ["A", "B"]},
-).process(lf)
-
-df = lf.collect()  # triggers Rust execution
-```
+Full working example is in [tests/acceptance/polars/test_harmonise_comparison.py](../../tests/acceptance/polars/test_harmonise_comparison.py). Phases are instantiated from `digital_land.phase_polars.transform.*` and chained in order: normalise, parse, concat, filter (pre-map), map, filter (post-map), patch, and harmonise. The final `.collect()` call triggers Rust execution.
 
 **Constructor reference:**
 
@@ -210,7 +180,7 @@ Unit-test each phase with a small constructed `LazyFrame`. Cross-validate agains
 
 ---
 
-## Design Principles
+## Developer Guide: Picking This Up for Further Development
 
 - **Modular** — phases can be used independently or composed in sequence.
 - **Lazy** — phases operate on `LazyFrame`s; execution is deferred until `.collect()`.
@@ -234,9 +204,12 @@ Unit-test each phase with a small constructed `LazyFrame`. Cross-validate agains
   - [Understand the execution model before writing any phase logic](#understand-the-execution-model-before-writing-any-phase-logic)
   - [Always ensure `"entry-number"` is present before issue logging](#always-ensure-entry-number-is-present-before-issue-logging)
   - [Implementing a stub phase](#implementing-a-stub-phase)
+  - [Reinstating stub phases: Full vs. Partial vectorisation](#reinstating-stub-phases-full-vs-partial-vectorisation)
+    - [Full vectorisation (pure Polars expressions) — recommended](#full-vectorisation-pure-polars-expressions--recommended)
+    - [Partial vectorisation (expressions + Python fallback) — when necessary](#partial-vectorisation-expressions--python-fallback--when-necessary)
+    - [Avoiding `map_elements()` — pitfall to avoid](#avoiding-map_elements--pitfall-to-avoid)
   - [Issue logging must be added explicitly](#issue-logging-must-be-added-explicitly--it-will-not-happen-automatically)
   - [Do not break output schema compatibility with the legacy phases](#do-not-break-output-schema-compatibility-with-the-legacy-phases)
-  - [Avoid `map_elements` unless there is no alternative](#avoid-map_elements-unless-there-is-no-alternative)
   - [Load phases are entirely unimplemented](#load-phases-are-entirely-unimplemented)
   - [Testing approach](#testing-approach)
   - [Infrastructure prerequisite before benchmarking](#infrastructure-prerequisite-before-benchmarking)
@@ -318,43 +291,7 @@ Phases 2–9 are the current scope of `phase_polars`. All phases outside that ra
 
 ## Usage Example
 
-The following illustrates how to instantiate and chain the implemented Polars phases. This mirrors the pattern used in [tests/acceptance/polars/test_harmonise_comparison.py](../../tests/acceptance/polars/test_harmonise_comparison.py) and `_PolarsPhases` in `digital_land/commands.py`.
-
-```python
-import polars as pl
-from digital_land.phase.convert import ConvertPhase
-from digital_land.phase_polars.transform.normalise import NormalisePhase
-from digital_land.phase_polars.transform.parse import ParsePhase
-from digital_land.phase_polars.transform.concat import ConcatPhase
-from digital_land.phase_polars.transform.filter import FilterPhase
-from digital_land.phase_polars.transform.map import MapPhase
-from digital_land.phase_polars.transform.patch import PatchPhase
-from digital_land.phase_polars.transform.harmonise import HarmonisePhase
-
-# Phase 1: legacy convert — produces a stream from the source file
-stream = ConvertPhase(path="input.csv").process(None)
-
-# Bridge: convert the stream to a LazyFrame
-from digital_land.pipeline.main import StreamToPolarsConverter
-lf = StreamToPolarsConverter.from_stream(stream)
-
-# Phases 2–9: Polars transform chain
-lf = NormalisePhase(skip_patterns=[]).process(lf)
-lf = ParsePhase().process(lf)
-lf = ConcatPhase(concats={"address": {"fields": ["street", "town"], "separator": ", "}}).process(lf)
-lf = FilterPhase(filters={"organisation": "^(active|relevant)"}).process(lf)
-lf = MapPhase(fieldnames=fieldnames, columns=column_map).process(lf)
-lf = FilterPhase(filters=endpoint_filters).process(lf)
-lf = PatchPhase(patches={"": {"N/A": ""}}).process(lf)  # "" key applies to all fields
-lf = HarmonisePhase(
-    field_datatype_map={"start-date": "date", "geometry": "geometry"},
-    dataset="conservation-area",
-    valid_category_values={"category": ["A", "B"]},
-).process(lf)
-
-# Collect — triggers Rust execution across all queued expressions
-df = lf.collect()
-```
+The following pattern is used in [tests/acceptance/polars/test_harmonise_comparison.py](../../tests/acceptance/polars/test_harmonise_comparison.py) and `_PolarsPhases` in `digital_land/commands.py`. Phases are instantiated and chained in order from 1–9: convert (legacy), normalise, parse, concat, filter (pre-map), map, filter (post-map), patch, and harmonise. The final `.collect()` call triggers Rust execution across all queued expressions.
 
 **Constructor reference:**
 
@@ -372,16 +309,7 @@ df = lf.collect()
 
 ## Comparison with the Legacy Phase Pipeline
 
-The legacy phases in `digital_land/phase/` are built on a Python generator chain. Every phase subclasses `Phase` and overrides `process(stream)`, consuming and yielding one `block` dict at a time:
-
-```python
-class Phase:
-    def process(self, stream):
-        for block in stream:
-            yield block
-```
-
-Each `block` is a plain dict carrying the raw line, a `row` dict of field→value pairs, the source `resource`, `line-number`, and `entry-number`. Phases are composed by passing one phase's output generator directly as the next phase's input — the entire pipeline is a single-threaded Python iteration.
+The legacy phases in `digital_land/phase/` are built on a Python generator chain. Every phase subclasses `Phase` and overrides `process(stream)`, consuming and yielding one `block` dict at a time. Each `block` is a plain dict carrying the raw line, a `row` dict of field→value pairs, the source `resource`, `line-number`, and `entry-number`. Phases are composed by passing one phase's output generator directly as the next phase's input — the entire pipeline is a single-threaded Python iteration.
 
 The Polars phases have no base class. Each phase accepts a `pl.LazyFrame`, adds or mutates columns using Polars expressions, and returns a new `pl.LazyFrame`. Execution is deferred until `.collect()` is called, at which point Polars runs all transformations simultaneously in Rust, optionally across multiple threads and CPU cores.
 
@@ -400,15 +328,7 @@ The Polars phases have no base class. Each phase accepts a `pl.LazyFrame`, adds 
 
 ### How the legacy pipeline logs issues
 
-The legacy pipeline uses `IssueLog` (in `digital_land/log.py`) as a shared, mutable accumulator. Before processing any field in a block, phases such as `HarmonisePhase` and `PatchPhase` stamp the current row's identity onto the log object:
-
-```python
-self.issues.resource = block["resource"]
-self.issues.line_number = block["line-number"]
-self.issues.entry_number = block["entry-number"]
-```
-
-Any subsequent call to `self.issues.log_issue(field, issue_type, value)` is automatically tagged with that row's coordinates and appended to an in-memory list. At the end of the pipeline run the accumulated rows are written to CSV or Parquet.
+The legacy pipeline uses `IssueLog` (in `digital_land/log.py`) as a shared, mutable accumulator. Before processing any field in a block, phases such as `HarmonisePhase` and `PatchPhase` stamp the current row's identity onto the log object. Any subsequent call to `self.issues.log_issue(field, issue_type, value)` is automatically tagged with that row's coordinates and appended to an in-memory list. At the end of the pipeline run the accumulated rows are written to CSV or Parquet.
 
 Phases that use this pattern include:
 - **`harmonise.py`** — logs invalid category values, future entry-dates, missing mandatory fields, removed URI prefixes.
@@ -431,57 +351,11 @@ The current `harmonise.py` in this package makes this explicit via a `_NoOpIssue
 
 #### Option A — Post-collect diff (recommended, fully vectorised)
 
-Collect the relevant columns before and after applying the phase, then compute which cells changed using vectorised operations. This keeps all transformation logic in Rust; Python only processes the diff.
-
-```python
-def process(self, lf: pl.LazyFrame):
-    before = lf.select(relevant_cols).collect()
-    lf_out = self._apply_expressions(lf)
-    after = lf_out.select(relevant_cols).collect()
-
-    issue_frames = []
-    for col in relevant_cols:
-        mask = before[col] != after[col]
-        changed = before.filter(mask).select(
-            pl.col("entry-number"),
-            pl.lit(col).alias("field"),
-            pl.col(col).alias("value"),
-            pl.lit("patch").alias("issue-type"),
-        )
-        issue_frames.append(changed)
-
-    issues = pl.concat(issue_frames) if issue_frames else pl.DataFrame()
-    return lf_out, issues
-```
-
-The `"entry-number"` column added by `parse.py` provides the row identity needed to trace each issue back to its source record — equivalent to `self.issues.entry_number` in the legacy path.
+Collect the relevant columns before and after applying the phase, then compute which cells changed using vectorised operations. This keeps all transformation logic in Rust; Python only processes the diff. The `"entry-number"` column added by `parse.py` provides the row identity needed to trace each issue back to its source record — equivalent to `self.issues.entry_number` in the legacy path.
 
 #### Option B — Sentinel columns (single collect, zero extra passes)
 
-During the transformation, add a temporary boolean or value column that marks affected rows. Strip those columns after collecting and convert them into issue rows. This avoids collecting the data twice.
-
-```python
-# Inside process():
-lf = lf.with_columns(
-    replacement_expr.alias(field),
-    pl.when(matches).then(pl.col(field)).otherwise(pl.lit(None)).alias(f"_issue_{field}"),
-)
-
-# After collect():
-df = lf.collect()
-issues = (
-    df.filter(pl.col(f"_issue_{field}").is_not_null())
-    .select(
-        pl.col("entry-number"),
-        pl.lit(field).alias("field"),
-        pl.col(f"_issue_{field}").alias("value"),
-        pl.lit("patch").alias("issue-type"),
-    )
-)
-df = df.drop([c for c in df.columns if c.startswith("_issue_")])
-```
-
-Sentinel columns add minimal overhead to the query plan and ride through the single Rust execution pass.
+During the transformation, add a temporary boolean or value column that marks affected rows. Strip those columns after collecting and convert them into issue rows. This avoids collecting the data twice. Sentinel columns add minimal overhead to the query plan and ride through the single Rust execution pass.
 
 #### Option C — Column-level batch list comprehension (fallback for complex datatypes)
 
@@ -528,20 +402,49 @@ The single most important thing to internalise before adding or modifying a phas
 
 ### Always ensure `"entry-number"` is present before issue logging
 
-The `parse.py` phase adds an `"entry-number"` column via `lf.with_row_index()`. Every downstream phase that needs to attribute issues to source rows depends on this column existing. When writing a new phase that produces issue output, verify the column is present in the schema before attempting to select it:
-
-```python
-schema = lf.collect_schema()
-assert "entry-number" in schema.names(), "parse phase must run before this phase"
-```
-
-Do not add `entry-number` yourself inside another phase — always rely on `parse.py` having run upstream.
+The `parse.py` phase adds an `"entry-number"` column via `lf.with_row_index()`. Every downstream phase that needs to attribute issues to source rows depends on this column existing. Before attempting to select it, verify the column is present in the schema. Do not add `entry-number` yourself inside another phase — always rely on `parse.py` having run upstream.
 
 ### Implementing a stub phase
 
 Each stub file is an empty module. The convention established by implemented phases is a single class with a `process(self, lf: pl.LazyFrame) -> pl.LazyFrame` method. Start by reading the equivalent legacy phase in `digital_land/phase/` to understand the expected semantics, then translate the per-row logic into Polars expressions. The implemented phases (`normalise.py`, `patch.py`, `filter.py`, `harmonise.py`) are the best reference for tone and structure.
 
 When the legacy phase uses `yield` to conditionally drop rows, the Polars equivalent is `.filter()`. When it mutates a field value, the Polars equivalent is `.with_columns(pl.when(...).then(...).otherwise(pl.col(field)))`.
+
+### Reinstating stub phases: Full vs. Partial vectorisation
+
+When reinstating a stub phase, you must choose between implementing it using **full vectorisation** (pure Polars expressions only) or **partial vectorisation** (combining Polars expressions with Python fallbacks). This choice affects both performance and code complexity.
+
+#### Full vectorisation (pure Polars expressions) — recommended
+
+Implement the phase using only Polars operations: expressions, conditional operations, string methods, type coercions, etc. No data is collected until `.collect()` is called. This is the ideal approach because:
+
+- **Performance is maximised** — all transformations run in Rust with automatic parallelisation.
+- **Memory is contiguous** — Polars manages buffering and spills internally.
+- **Optimisation applies** — predicate pushdown and lazy evaluation cull unnecessary work.
+
+No data is inspected during `process()` — the transformation expression is simply added to the plan.
+
+#### Partial vectorisation (expressions + Python fallback) — when necessary
+
+If a transformation cannot be expressed as a Polars expression (e.g. calling an external library, complex multi-row business logic), collect the column as a Python list, apply your logic, and convert back to a Polars Series or expression. This incurs a Python callback per cell but preserves vectorisation at the column level rather than losing it entirely.
+
+`harmonise.py` already demonstrates this pattern for datatype normalisers.
+
+**When to use this approach:**
+
+- The transformation depends on external libraries (e.g. geometry processing, entity lookups).
+- The logic is stateful or context-dependent (e.g. priority resolution across rows).
+- Performance is acceptable because the phase processes only a small subset of fields or rows.
+
+#### Avoiding `map_elements()` — pitfall to avoid
+
+Do **not** use `map_elements()` or `apply()` across entire tables unless absolutely unavoidable. It forces Python to be called for every cell in the table, which:
+
+- Disables predicate pushdown and type inference.
+- Becomes 2+ million Python calls for a 100k-row dataset with 20 fields.
+- Negates most Polars performance gains.
+
+If you find yourself reaching for `map_elements()`, first check whether the transformation can be expressed as a Polars expression or column-level Python function (the approaches above). The only legitimate use case for `map_elements()` is a complex datatype normaliser that cannot be vectorised at all — and that should be treated as technical debt, not a pattern to copy.
 
 ### Issue logging must be added explicitly — it will not happen automatically
 
@@ -556,10 +459,6 @@ The primary goal of this package is to produce outputs that are equivalent to th
 - Null/empty handling — Polars distinguishes `null` from empty string; the legacy pipeline uses empty string as the canonical "no value" representation.
 - Column order — downstream consumers may rely on column ordering; use `.select()` to enforce a stable output schema if needed.
 - String types — Polars defaults to `Utf8`; coerce explicitly where schema contracts require it.
-
-### Avoid `map_elements` unless there is no alternative
-
-`map_elements()` (formerly `apply()`) forces Python to be called for each cell, disabling Polars' query optimiser, type inference, and parallelism. It should only be used for logic that genuinely cannot be expressed as a Polars expression (e.g. calling a third-party library that has no vectorised equivalent). `harmonise.py` already uses it as a fallback for certain datatype normalisers — treat those usages as a known cost, not a pattern to replicate where avoidable.
 
 ### Load phases are entirely unimplemented
 
