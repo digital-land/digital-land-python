@@ -45,7 +45,7 @@ from digital_land.log import (
     ConvertedResourceLog,
 )
 
-from digital_land.check import duplicate_reference_check  # noqa F401
+from digital_land.check import duplicate_reference_check
 
 
 class PipelineStatus(Enum):
@@ -689,10 +689,10 @@ class Pipeline:
         # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
         # If we have done this then we will not call duplicate_reference_check as we have already carried out a
         # duplicate check and stop messages appearing in issues about reference values not being unique
-        # if combine_fields == {}:
-        #     self.issue_log = duplicate_reference_check(
-        #         issues=self.issue_log, csv_path=output_path
-        #     )
+        if combine_fields == {}:
+            self.issue_log = duplicate_reference_check(
+                issues=self.issue_log, csv_path=output_path
+            )
 
         self._status = PipelineStatus.COMPLETE
 
