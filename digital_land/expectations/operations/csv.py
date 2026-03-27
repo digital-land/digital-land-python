@@ -17,6 +17,10 @@ def _sql_string(value) -> str:
     return f"'{cleaned}'"
 
 
+def _sql_identifier(name: str) -> str:
+    return '"' + str(name).replace('"', '""') + '"'
+
+
 def _normalize_condition_groups(conditions, name: str) -> list:
     if conditions is None:
         return []
@@ -80,23 +84,61 @@ def _build_filter_clause(filter_spec, file_columns: list, name: str) -> str:
     return f" AND ({' OR '.join(clauses)})"
 
 
-def _build_match_column_sql_parts(columns: list, alias_prefix: str) -> tuple:
-    """Build SQL fragments for match-key columns.
+def _normalize_fields_for_validation(field_spec, file_columns: list) -> list:
+    """Normalize a field spec into a list of column names to validate."""
+    if isinstance(field_spec, str):
+        fields = [item.strip() for item in field_spec.split(",") if item.strip()]
+    elif isinstance(field_spec, (list, tuple, set)):
+        fields = [str(item).strip() for item in field_spec if str(item).strip()]
+    else:
+        raise ValueError("field must be a string, comma-separated string, or list of strings")
 
-    Returns:
-        tuple[str, str]:
-            - SELECT projection fragment with normalized key aliases.
-            - WHERE fragment ensuring key columns are non-empty.
-    """
-    select_fragment = ",\n                ".join(
-        f'TRIM(COALESCE("{column}", \'\')) AS {alias_prefix}_key_{i}'
-        for i, column in enumerate(columns)
-    )
-    non_empty_filter_fragment = "\n              AND ".join(
-        f'TRIM(COALESCE("{column}", \'\')) != \'\''
-        for column in columns
-    )
-    return select_fragment, non_empty_filter_fragment
+    if not fields:
+        raise ValueError("field must include at least one column name")
+
+    seen = set()
+    normalized_fields = []
+    for field_name in fields:
+        if field_name not in seen:
+            seen.add(field_name)
+            normalized_fields.append(field_name)
+
+    missing_fields = [field_name for field_name in normalized_fields if field_name not in file_columns]
+    if missing_fields:
+        raise ValueError(
+            f"Column(s) {missing_fields} not found in file. Available columns: {file_columns}"
+        )
+
+    return normalized_fields
+
+
+def _build_range_invalid_rows(
+    result: list,
+    validating_multiple_fields: bool,
+    has_match_columns: bool,
+    lookup_match_columns: list = None,
+) -> list:
+    """Format query rows into expectation invalid_rows shape."""
+    out_of_range_rows = []
+
+    for row in result:
+        field_name = row[1]
+
+        if has_match_columns:
+            if validating_multiple_fields:
+                invalid_row = {"line_number": row[0], "field": field_name, "value": row[2]}
+            else:
+                invalid_row = {"line_number": row[0], field_name: row[2]}
+            for i, col_name in enumerate(lookup_match_columns):
+                invalid_row[col_name] = row[i + 3]
+        else:
+            invalid_row = {"line_number": row[0], "value": row[2]}
+            if validating_multiple_fields:
+                invalid_row["field"] = field_name
+
+        out_of_range_rows.append(invalid_row)
+
+    return out_of_range_rows
 
 
 def count_rows(
@@ -306,7 +348,7 @@ def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list
     return passed, message, details
 
 
-def check_field_is_within_range(
+def check_fields_are_within_range(
     conn,
     file_path: Path,
     field: str,
@@ -316,154 +358,222 @@ def check_field_is_within_range(
     rules: dict = None,
 ):
     """
-    Checks that a field's values are within any valid range from an external file.
+    Check that one or more lookup fields are within ranges from an external file.
 
     Args:
         conn: duckdb connection
-        file_path: path to the CSV file containing the field to validate
-        external_file: path to the CSV file containing the ranges
+        file_path: path to the CSV file containing fields to validate
+        field: column name(s) to validate.
+               You can pass a single name ("entity") or a comma-separated list
+               ("entity, end-entity"). All specified fields must be within range.
+        external_file: path to the CSV file containing valid ranges
         min_field: the column name for the range minimum
         max_field: the column name for the range maximum
-        field: the column name to validate
-        rules: optional dict that controls subset selection and key matching.
-                 Supported keys:
-                 - lookup_rules: dict or list[dict] of structured conditions for file_path rows.
-                 - match_columns: dict with keys {"lookup": [...], "range": [...]} specifying columns to match.
-                   lookup columns come from file_path (the rows being validated).
-                   range columns come from external_file (the rows providing valid ranges).
-                 Examples:
-                 {"lookup_rules": {"prefix": "conservationarea"}}
-                 {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
-                 {"match_columns": {"lookup": ["prefix", "organisation"], "range": ["dataset", "organisation"]}}
-                 Use operators like != and not in when you want to exclude rows.
+        rules: optional dict controlling subset selection on lookup rows.
+               Supported keys:
+               - lookup_rules: dict or list[dict] of structured conditions.
+                 Fields in one dict are AND'ed; multiple dicts are OR'ed.
+               Examples:
+               {"lookup_rules": {"prefix": "conservationarea"}}
+               {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+               Use operators like != and not in when you want to exclude rows.
     """
-    file_cols_list = _get_csv_columns(conn, file_path)
-    external_cols_list = _get_csv_columns(conn, external_file)
+    file_columns = _get_csv_columns(conn, file_path)
     rules = rules or {}
     if not isinstance(rules, dict):
         raise ValueError("rules must be a dictionary or None")
 
     lookup_clause = _build_filter_clause(
         rules.get("lookup_rules"),
-        file_cols_list,
+        file_columns,
         "rules.lookup_rules",
     )
 
-    # Validate and extract match_columns
-    file_cols = external_cols = None
-    match_columns = rules.get("match_columns")
-    if match_columns is not None:
-        if not isinstance(match_columns, dict):
-            raise ValueError("rules.match_columns must be a dictionary")
-        file_cols = match_columns.get("lookup")
-        external_cols = match_columns.get("range")
-        if file_cols is None or external_cols is None:
-            raise ValueError(
-                'rules.match_columns must have keys "lookup" and "range" with column lists'
-            )
-        if not file_cols or not external_cols:
-            raise ValueError(
-                'rules.match_columns "lookup" and "range" lists must be non-empty'
-            )
-        if len(file_cols) != len(external_cols):
-            raise ValueError(
-                'rules.match_columns "lookup" and "range" lists must have the same length'
-            )
-        for col in file_cols:
-            if col not in file_cols_list:
-                raise ValueError(
-                    f"Column '{col}' not found in file. Available columns: {file_cols_list}"
-                )
-        for col in external_cols:
-            if col not in external_cols_list:
-                raise ValueError(
-                    f"Column '{col}' not found in external file. Available columns: {external_cols_list}"
-                )
+    fields_to_validate = _normalize_fields_for_validation(field, file_columns)
+    validating_multiple_fields = len(fields_to_validate) > 1
+    lookup_values_sql = ",\n                    ".join(
+        f"({i}, {_sql_string(field_name)}, TRY_CAST(src.{_sql_identifier(field_name)} AS BIGINT))"
+        for i, field_name in enumerate(fields_to_validate)
+    )
 
-    # Simple range check without key matching
-    if match_columns is None:
-        result = conn.execute(
-            f"""
-            WITH ranges AS (
-                SELECT
-                    TRY_CAST("{min_field}" AS BIGINT) AS min_value,
-                    TRY_CAST("{max_field}" AS BIGINT) AS max_value
-                FROM {_read_csv(external_file)}
-                WHERE TRY_CAST("{min_field}" AS BIGINT) IS NOT NULL
-                  AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
-            ),
-            lookup_rows AS (
-                SELECT
-                    ROW_NUMBER() OVER () + 1 AS line_number,
-                    TRY_CAST("{field}" AS BIGINT) AS value
-                FROM {_read_csv(file_path)}
-                WHERE TRY_CAST("{field}" AS BIGINT) IS NOT NULL{lookup_clause}
-            )
-            SELECT line_number, value
-            FROM lookup_rows l
-            WHERE value IS NOT NULL
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM ranges r
-                  WHERE l.value BETWEEN r.min_value AND r.max_value
-              )
-            """
-        ).fetchall()
-        out_of_range_rows = [{"line_number": row[0], "value": row[1]} for row in result]
+    result = conn.execute(
+        f"""
+        WITH ranges AS (
+            SELECT
+                TRY_CAST("{min_field}" AS BIGINT) AS min_value,
+                TRY_CAST("{max_field}" AS BIGINT) AS max_value
+            FROM {_read_csv(external_file)}
+            WHERE TRY_CAST("{min_field}" AS BIGINT) IS NOT NULL
+              AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
+        ),
+        source_rows AS (
+            SELECT
+                ROW_NUMBER() OVER () + 1 AS line_number,
+                *
+            FROM {_read_csv(file_path)}
+        ),
+        lookup_rows AS (
+            SELECT
+                src.line_number,
+                fields.field_order,
+                fields.field_name,
+                fields.value
+            FROM source_rows src
+            CROSS JOIN LATERAL (
+                VALUES
+                    {lookup_values_sql}
+            ) AS fields(field_order, field_name, value)
+            WHERE fields.value IS NOT NULL{lookup_clause}
+        )
+        SELECT
+            line_number,
+            field_name,
+            value
+        FROM lookup_rows l
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM ranges r
+            WHERE l.value BETWEEN r.min_value AND r.max_value
+        )
+        ORDER BY field_order, line_number
+        """
+    ).fetchall()
+
+    out_of_range_rows = _build_range_invalid_rows(
+        result=result,
+        validating_multiple_fields=validating_multiple_fields,
+        has_match_columns=False,
+    )
+
+    if len(out_of_range_rows) == 0:
+        passed = True
+        message = f"all values in '{field}' are within allowed ranges"
     else:
-        # Key-matched range check
-        range_key_select_sql, range_keys_non_empty_sql = _build_match_column_sql_parts(
-            external_cols, "range"
-        )
-        lookup_key_select_sql, lookup_keys_non_empty_sql = _build_match_column_sql_parts(
-            file_cols, "lookup"
-        )
-        key_match_condition_sql = "\n                AND ".join(
-            f"l.lookup_key_{i} = r.range_key_{i}"
-            for i in range(len(file_cols))
-        )
-        key_projection_sql = ", ".join(
-            f"lookup_key_{i}" for i in range(len(file_cols))
-        )
+        passed = False
+        message = f"there were {len(out_of_range_rows)} out-of-range rows found"
 
-        result = conn.execute(
-            f"""
-            WITH ranges AS (
-                SELECT
-                                        {range_key_select_sql},
-                    TRY_CAST("{min_field}" AS BIGINT) AS min_value,
-                    TRY_CAST("{max_field}" AS BIGINT) AS max_value
-                FROM {_read_csv(external_file)}
-                WHERE TRY_CAST("{min_field}" AS BIGINT) IS NOT NULL
-                                    AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
-                                    AND {range_keys_non_empty_sql}
-            ),
-            lookup_rows AS (
-                SELECT
-                    ROW_NUMBER() OVER () + 1 AS line_number,
-                    TRY_CAST("{field}" AS BIGINT) AS value,
-                                        {lookup_key_select_sql}
-                FROM {_read_csv(file_path)}
-                                WHERE {lookup_keys_non_empty_sql} AND TRY_CAST("{field}" AS BIGINT) IS NOT NULL{lookup_clause}
-            )
-                        SELECT line_number, value, {key_projection_sql}
-            FROM lookup_rows l
-            WHERE value IS NOT NULL
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM ranges r
-                                    WHERE {key_match_condition_sql}
-                    AND l.value BETWEEN r.min_value AND r.max_value
-              )
-            """
-        ).fetchall()
+    details = {"invalid_rows": out_of_range_rows}
+    return passed, message, details
 
-        out_of_range_rows = []
-        for row in result:
-            invalid_row = {"line_number": row[0], field: row[1]}
-            for i, col_name in enumerate(file_cols):
-                invalid_row[col_name] = row[i + 2]
-            out_of_range_rows.append(invalid_row)
+
+def check_field_is_within_range_by_dataset_org(
+    conn,
+    file_path: Path,
+    field: str,
+    external_file: Path,
+    min_field: str,
+    max_field: str,
+    lookup_dataset_field: str,
+    range_dataset_field: str,
+    rules: dict = None,
+):
+    """
+    Check field values are within ranges matched by dataset field and organisation.
+
+    Matching is fixed to two keys:
+    1. lookup_dataset_field -> range_dataset_field
+    2. organisation -> organisation
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file containing fields to validate
+        field: single column name to validate (for example: "entity").
+        external_file: path to the CSV file containing valid ranges
+        min_field: the column name for the range minimum
+        max_field: the column name for the range maximum
+        lookup_dataset_field: dataset column name in file_path
+        range_dataset_field: dataset column name in external_file
+        rules: optional dict controlling subset selection on lookup rows.
+               Supported keys:
+               - lookup_rules: dict or list[dict] of structured conditions.
+                 Fields in one dict are AND'ed; multiple dicts are OR'ed.
+               Examples:
+               {"lookup_rules": {"prefix": "conservationarea"}}
+               {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+               Use operators like != and not in when you want to exclude rows.
+    """
+    file_columns = _get_csv_columns(conn, file_path)
+    rules = rules or {}
+    if not isinstance(rules, dict):
+        raise ValueError("rules must be a dictionary or None")
+
+    lookup_clause = _build_filter_clause(
+        rules.get("lookup_rules"),
+        file_columns,
+        "rules.lookup_rules",
+    )
+
+    fields_to_validate = _normalize_fields_for_validation(field, file_columns)
+    if len(fields_to_validate) != 1:
+        raise ValueError("field must be a single column name")
+    field_name = fields_to_validate[0]
+
+    lookup_dataset_name = str(lookup_dataset_field).strip()
+    range_dataset_name = str(range_dataset_field).strip()
+    lookup_match_columns = [lookup_dataset_name, "organisation"]
+
+    lookup_dataset_col = _sql_identifier(lookup_dataset_name)
+    lookup_org_col = _sql_identifier("organisation")
+    range_dataset_col = _sql_identifier(range_dataset_name)
+    range_org_col = _sql_identifier("organisation")
+    min_col = _sql_identifier(min_field)
+    max_col = _sql_identifier(max_field)
+    value_col = _sql_identifier(field_name)
+
+    result = conn.execute(
+        f"""
+        WITH ranges AS (
+            SELECT
+                TRY_CAST({min_col} AS BIGINT) AS min_value,
+                TRY_CAST({max_col} AS BIGINT) AS max_value,
+                TRIM(COALESCE({range_dataset_col}, '')) AS range_key_0,
+                                TRIM(COALESCE({range_org_col}, '')) AS range_key_1
+            FROM {_read_csv(external_file)}
+            WHERE TRY_CAST({min_col} AS BIGINT) IS NOT NULL
+              AND TRY_CAST({max_col} AS BIGINT) IS NOT NULL
+              AND TRIM(COALESCE({range_dataset_col}, '')) != ''
+                            AND TRIM(COALESCE({range_org_col}, '')) != ''
+        ),
+        source_rows AS (
+            SELECT
+                ROW_NUMBER() OVER () + 1 AS line_number,
+                *
+            FROM {_read_csv(file_path)}
+        ),
+        lookup_rows AS (
+            SELECT
+                src.line_number,
+                TRY_CAST(src.{value_col} AS BIGINT) AS value,
+                TRIM(COALESCE(src.{lookup_dataset_col}, '')) AS lookup_key_0,
+                TRIM(COALESCE(src.{lookup_org_col}, '')) AS lookup_key_1
+            FROM source_rows src
+            WHERE TRY_CAST(src.{value_col} AS BIGINT) IS NOT NULL
+              AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
+              AND TRIM(COALESCE(src.{lookup_org_col}, '')) != ''{lookup_clause}
+        )
+        SELECT
+            line_number,
+            value,
+            lookup_key_0,
+            lookup_key_1
+        FROM lookup_rows l
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM ranges r
+            WHERE l.value BETWEEN r.min_value AND r.max_value
+                  AND l.lookup_key_0 = r.range_key_0
+                  AND l.lookup_key_1 = r.range_key_1
+        )
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    out_of_range_rows = []
+    for row in result:
+        invalid_row = {"line_number": row[0], field_name: row[1]}
+        for i, col_name in enumerate(lookup_match_columns):
+            invalid_row[col_name] = row[i + 2]
+        out_of_range_rows.append(invalid_row)
 
     if len(out_of_range_rows) == 0:
         passed = True
