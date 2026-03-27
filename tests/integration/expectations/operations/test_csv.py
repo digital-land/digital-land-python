@@ -8,6 +8,7 @@ from digital_land.expectations.operations.csv import (
     check_no_shared_values,
     check_no_overlapping_ranges,
     check_allowed_values,
+    check_no_blank_rows,
     check_fields_are_within_range,
     check_field_is_within_range_by_dataset_org,
 )
@@ -312,6 +313,41 @@ def test_check_allowed_values_passes_for_old_entity_status(tmp_path):
 
     assert passed is True
     assert details["invalid_rows"] == []
+
+
+def test_check_no_blank_rows_passes(tmp_path):
+    file_path = tmp_path / "no-blank-rows.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "name", "reference"])
+        writer.writerow(["1", "foo", "ref1"])
+        writer.writerow(["2", "bar", "ref2"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_no_blank_rows(conn, file_path=file_path)
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_no_blank_rows_fails(tmp_path):
+    file_path = tmp_path / "has-blank-rows.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "name", "reference"])
+        writer.writerow(["1", "foo", "ref1"])
+        writer.writerow(["", "", ""])
+        writer.writerow([" ", "", "   "])
+        writer.writerow(["2", "bar", "ref2"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_no_blank_rows(conn, file_path=file_path)
+
+    assert passed is False
+    assert "blank rows" in message
+    assert len(details["invalid_rows"]) == 2
+    assert details["invalid_rows"][0]["line_number"] == 3
+    assert details["invalid_rows"][1]["line_number"] == 4
 
 
 def test_check_field_is_within_ranges_by_dataset_org_matches_prefix_and_organisation_fails(tmp_path):

@@ -348,6 +348,56 @@ def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list
     return passed, message, details
 
 
+def check_no_blank_rows(conn, file_path: Path):
+    """
+    Checks that the CSV does not contain fully blank rows.
+
+    A row is considered blank when every column is empty after trimming whitespace.
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file
+    """
+    file_columns = _get_csv_columns(conn, file_path)
+    if not file_columns:
+        return True, "no blank rows found", {"invalid_rows": []}
+
+    blank_conditions = " AND ".join(
+        f"TRIM(COALESCE({_sql_identifier(column_name)}, '')) = ''"
+        for column_name in file_columns
+    )
+
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT
+                ROW_NUMBER() OVER () + 1 AS line_number,
+                *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT
+            line_number
+        FROM source_rows
+        WHERE {blank_conditions}
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    invalid_rows = [{"line_number": row[0]} for row in result]
+
+    if len(invalid_rows) == 0:
+        passed = True
+        message = "no blank rows found"
+    else:
+        passed = False
+        message = f"there were {len(invalid_rows)} blank rows found"
+
+    details = {
+        "invalid_rows": invalid_rows,
+    }
+    return passed, message, details
+
+
 def check_fields_are_within_range(
     conn,
     file_path: Path,

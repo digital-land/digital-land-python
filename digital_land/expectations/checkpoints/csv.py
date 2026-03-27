@@ -11,7 +11,8 @@ from ..operations.csv import (
     check_no_overlapping_ranges,
     check_fields_are_within_range,
     check_field_is_within_range_by_dataset_org,
-    check_allowed_values
+    check_allowed_values,
+    check_no_blank_rows,
 )
 
 
@@ -29,7 +30,8 @@ class CsvCheckpoint(BaseCheckpoint):
             "check_no_overlapping_ranges": check_no_overlapping_ranges,
             "check_fields_are_within_range": check_fields_are_within_range,
             "check_field_is_within_range_by_dataset_org": check_field_is_within_range_by_dataset_org,
-            "check_allowed_values":check_allowed_values
+            "check_allowed_values": check_allowed_values,
+            "check_no_blank_rows": check_no_blank_rows,
         }
         if operation_string not in operation_map:
             raise ValueError(
