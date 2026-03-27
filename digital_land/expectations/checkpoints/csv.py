@@ -9,7 +9,7 @@ from ..operations.csv import (
     check_unique,
     check_no_shared_values,
     check_no_overlapping_ranges,
-    check_lookup_entities_are_within_organisation_ranges,
+    check_field_is_within_range,
     check_allowed_values
 )
 
@@ -26,7 +26,7 @@ class CsvCheckpoint(BaseCheckpoint):
             "check_unique": check_unique,
             "check_no_shared_values": check_no_shared_values,
             "check_no_overlapping_ranges": check_no_overlapping_ranges,
-            "check_lookup_entities_are_within_organisation_ranges":check_lookup_entities_are_within_organisation_ranges,
+            "check_field_is_within_range":check_field_is_within_range,
             "check_allowed_values":check_allowed_values
         }
         if operation_string not in operation_map:

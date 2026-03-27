@@ -5,6 +5,41 @@ def _read_csv(file_path: Path) -> str:
     return f"read_csv_auto('{str(file_path)}',all_varchar=true,delim=',',quote='\"',escape='\"')"
 
 
+def _get_csv_columns(conn, file_path: Path) -> list:
+    """Get column names from CSV file."""
+    return [col[0] for col in conn.execute(
+        f"SELECT * FROM {_read_csv(file_path)} LIMIT 0"
+    ).description]
+
+
+def _build_exclude_clause(exclude: list) -> str:
+    """Build SQL NOT clause from exclude conditions. Each dict is AND group; list is OR between groups."""
+    if not exclude:
+        return ""
+    exclude_conditions = []
+    for exclude_dict in exclude:
+        and_parts = []
+        for k, v in exclude_dict.items():
+            cleaned = str(v).strip().replace("'", "''")
+            and_parts.append(f'"{k}" = \'{cleaned}\'')
+        if and_parts:
+            exclude_conditions.append(f"({' AND '.join(and_parts)})")
+    return f" AND NOT ({' OR '.join(exclude_conditions)})" if exclude_conditions else ""
+
+
+def _build_key_sql(cols: list, prefix: str) -> tuple:
+    """Build SQL key SELECT and WHERE fragments. Returns (select, where_not_empty)."""
+    select = ",\n                ".join(
+        f'TRIM(COALESCE("{col}", \'\')) AS {prefix}_key_{i}'
+        for i, col in enumerate(cols)
+    )
+    where = "\n              AND ".join(
+        f'TRIM(COALESCE("{col}", \'\')) != \'\''
+        for col in cols
+    )
+    return select, where
+
+
 def count_rows(
     conn, file_path: Path, expected: int, comparison_rule: str = "greater_than"
 ):
@@ -212,77 +247,150 @@ def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list
     return passed, message, details
 
 
-def check_lookup_entities_are_within_organisation_ranges(
-    conn, file_path: Path, organisation_file: Path, ignored_organisations: list = None
+def check_field_is_within_range(
+    conn,
+    file_path: Path,
+    field: str,
+    external_file: Path,
+    min_field: str,
+    max_field: str,
+    join_on: dict = None,
+    exclude: list = None,
 ):
     """
-    Checks that lookup entities are within any valid range from an organisation file.
+    Checks that a field's values are within any valid range from an external file.
 
     Args:
         conn: duckdb connection
-        file_path: path to the lookup CSV file
-        organisation_file: path to the entity-organisation CSV file
-        ignored_organisations: list of organisations to ignore (i.e. not check that their entities are within a valid range)
+        file_path: path to the CSV file containing the field to validate
+        external_file: path to the CSV file containing the ranges
+        min_field: the column name for the range minimum
+        max_field: the column name for the range maximum
+        field: the column name to validate
+        join_on: optional dict with keys {"file": [...], "external": [...]} specifying columns to match for range validation
+        exclude: optional list of dicts specifying row conditions to exclude from validation. Each dict is an AND group; the list is OR between groups.
+                 Example: [{"prefix": "conservationarea", "organisation": "orgA"}, {"prefix": "conservationarea", "organisation": "orgB"}]
     """
-    ignored_values = [
-        org.replace("'", "''")
-        for org in (ignored_organisations or [])
-        if isinstance(org, str) and org.strip()
-    ]
-    ignored_clause = ""
-    if ignored_values:
-        ignored_values_sql = ",".join("'" + org + "'" for org in ignored_values)
-        ignored_clause = (
-            " AND TRIM(COALESCE(\"organisation\", '')) NOT IN "
-            + f"({ignored_values_sql})"
-        )
+    file_cols_list = _get_csv_columns(conn, file_path)
+    external_cols_list = _get_csv_columns(conn, external_file)
+    exclude_clause = _build_exclude_clause(exclude)
 
-    result = conn.execute(
-        f"""
-        WITH ranges AS (
-            SELECT
-                TRY_CAST("entity-minimum" AS BIGINT) AS min_entity,
-                TRY_CAST("entity-maximum" AS BIGINT) AS max_entity
-            FROM {_read_csv(organisation_file)}
-            WHERE TRY_CAST("entity-minimum" AS BIGINT) IS NOT NULL
-              AND TRY_CAST("entity-maximum" AS BIGINT) IS NOT NULL
-        ),
-        lookup_rows AS (
-            SELECT
-                TRY_CAST("entity" AS BIGINT) AS entity,
-                TRIM(COALESCE("organisation", '')) AS organisation,
-                COALESCE("reference", '') AS reference
-            FROM {_read_csv(file_path)}
-            WHERE TRIM(COALESCE("organisation", '')) != ''
-            {ignored_clause}
-        )
-        SELECT entity, organisation, reference
-        FROM lookup_rows l
-        WHERE organisation != ''
-          AND entity IS NOT NULL
-          AND NOT EXISTS (
-              SELECT 1
-              FROM ranges r
-              WHERE l.entity BETWEEN r.min_entity AND r.max_entity
-          )
-        """
-    ).fetchall()
+    # Validate and extract join_on
+    file_cols = external_cols = None
+    if join_on is not None:
+        if not isinstance(join_on, dict):
+            raise ValueError("join_on must be a dictionary")
+        file_cols = join_on.get("file")
+        external_cols = join_on.get("external")
+        if file_cols is None or external_cols is None:
+            raise ValueError(
+                'join_on must have keys "file" and "external" with column lists'
+            )
+        if not file_cols or not external_cols:
+            raise ValueError(
+                'join_on "file" and "external" lists must be non-empty'
+            )
+        if len(file_cols) != len(external_cols):
+            raise ValueError(
+                'join_on "file" and "external" lists must have the same length'
+            )
+        for col in file_cols:
+            if col not in file_cols_list:
+                raise ValueError(
+                    f"Column '{col}' not found in file. Available columns: {file_cols_list}"
+                )
+        for col in external_cols:
+            if col not in external_cols_list:
+                raise ValueError(
+                    f"Column '{col}' not found in external file. Available columns: {external_cols_list}"
+                )
 
-    out_of_range_rows = [
-        {"entity": row[0], "organisation": row[1], "reference": row[2]}
-        for row in result
-    ]
+    # Simple range check without key matching
+    if join_on is None:
+        result = conn.execute(
+            f"""
+            WITH ranges AS (
+                SELECT
+                    TRY_CAST("{min_field}" AS BIGINT) AS min_value,
+                    TRY_CAST("{max_field}" AS BIGINT) AS max_value
+                FROM {_read_csv(external_file)}
+                WHERE TRY_CAST("{min_field}" AS BIGINT) IS NOT NULL
+                  AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
+            ),
+            lookup_rows AS (
+                SELECT
+                    ROW_NUMBER() OVER () + 1 AS line_number,
+                    TRY_CAST("{field}" AS BIGINT) AS value
+                FROM {_read_csv(file_path)}
+                WHERE TRY_CAST("{field}" AS BIGINT) IS NOT NULL{exclude_clause}
+            )
+            SELECT line_number, value
+            FROM lookup_rows l
+            WHERE value IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM ranges r
+                  WHERE l.value BETWEEN r.min_value AND r.max_value
+              )
+            """
+        ).fetchall()
+        out_of_range_rows = [{"line_number": row[0], "value": row[1]} for row in result]
+    else:
+        # Key-matched range check
+        range_keys, range_empty = _build_key_sql(external_cols, "range")
+        lookup_keys, lookup_empty = _build_key_sql(file_cols, "lookup")
+        key_join = "\n                AND ".join(
+            f"l.lookup_key_{i} = r.range_key_{i}"
+            for i in range(len(file_cols))
+        )
+        key_proj = ", ".join(f"lookup_key_{i}" for i in range(len(file_cols)))
+
+        result = conn.execute(
+            f"""
+            WITH ranges AS (
+                SELECT
+                    {range_keys},
+                    TRY_CAST("{min_field}" AS BIGINT) AS min_value,
+                    TRY_CAST("{max_field}" AS BIGINT) AS max_value
+                FROM {_read_csv(external_file)}
+                WHERE TRY_CAST("{min_field}" AS BIGINT) IS NOT NULL
+                  AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
+                  AND {range_empty}
+            ),
+            lookup_rows AS (
+                SELECT
+                    ROW_NUMBER() OVER () + 1 AS line_number,
+                    TRY_CAST("{field}" AS BIGINT) AS value,
+                    {lookup_keys}
+                FROM {_read_csv(file_path)}
+                WHERE {lookup_empty} AND TRY_CAST("{field}" AS BIGINT) IS NOT NULL{exclude_clause}
+            )
+            SELECT line_number, value, {key_proj}
+            FROM lookup_rows l
+            WHERE value IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM ranges r
+                  WHERE {key_join}
+                    AND l.value BETWEEN r.min_value AND r.max_value
+              )
+            """
+        ).fetchall()
+
+        out_of_range_rows = []
+        for row in result:
+            invalid_row = {"line_number": row[0], field: row[1]}
+            for i, col_name in enumerate(file_cols):
+                invalid_row[col_name] = row[i + 2]
+            out_of_range_rows.append(invalid_row)
 
     if len(out_of_range_rows) == 0:
         passed = True
-        message = "all lookup entities are within allowed ranges"
+        message = f"all values in '{field}' are within allowed ranges"
     else:
         passed = False
         message = f"there were {len(out_of_range_rows)} out-of-range rows found"
 
-    details = {
-        "invalid_rows": out_of_range_rows,
-    }
-
+    details = {"invalid_rows": out_of_range_rows}
     return passed, message, details
 
