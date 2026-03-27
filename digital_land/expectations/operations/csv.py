@@ -12,32 +12,91 @@ def _get_csv_columns(conn, file_path: Path) -> list:
     ).description]
 
 
-def _build_exclude_clause(exclude: list) -> str:
-    """Build SQL NOT clause from exclude conditions. Each dict is AND group; list is OR between groups."""
-    if not exclude:
+def _sql_string(value) -> str:
+    cleaned = str(value).strip().replace("'", "''")
+    return f"'{cleaned}'"
+
+
+def _normalize_condition_groups(conditions, name: str) -> list:
+    if conditions is None:
+        return []
+    if isinstance(conditions, dict):
+        return [conditions]
+    if isinstance(conditions, list):
+        return conditions
+    raise ValueError(f"{name} must be a dict, list of dicts, or None")
+
+
+def _build_field_condition(field_name: str, spec) -> str:
+    if isinstance(spec, dict):
+        op = str(spec.get("op", spec.get("operation", ""))).strip().lower()
+        value = spec.get("value")
+        if not op:
+            raise ValueError(
+                f"Condition for '{field_name}' must include 'op' when using dict format"
+            )
+    else:
+        op = "="
+        value = spec
+
+    if op in ("=", "=="):
+        return f'"{field_name}" = {_sql_string(value)}'
+    if op in ("!=", "<>"):
+        return f'"{field_name}" != {_sql_string(value)}'
+    if op in ("in", "not in"):
+        if not isinstance(value, (list, tuple, set)) or len(value) == 0:
+            raise ValueError(
+                f"Condition for '{field_name}' with op '{op}' must use a non-empty list"
+            )
+        values_sql = ", ".join(_sql_string(item) for item in value)
+        return f'"{field_name}" {op.upper()} ({values_sql})'
+
+    raise ValueError(
+        f"Unsupported operator '{op}' for field '{field_name}'. Supported: =, !=, in, not in"
+    )
+
+
+def _build_condition_group(group: dict, file_columns: list) -> str:
+    if not isinstance(group, dict) or not group:
+        raise ValueError("Each condition group must be a non-empty dict")
+
+    parts = []
+    for field_name, spec in group.items():
+        if field_name not in file_columns:
+            raise ValueError(
+                f"Column '{field_name}' not found in file. Available columns: {file_columns}"
+            )
+        parts.append(_build_field_condition(field_name, spec))
+
+    return f"({' AND '.join(parts)})"
+
+
+def _build_filter_clause(filter_spec, file_columns: list, name: str) -> str:
+    """Build SQL clause that keeps rows matching structured conditions."""
+    groups = _normalize_condition_groups(filter_spec, name)
+    if not groups:
         return ""
-    exclude_conditions = []
-    for exclude_dict in exclude:
-        and_parts = []
-        for k, v in exclude_dict.items():
-            cleaned = str(v).strip().replace("'", "''")
-            and_parts.append(f'"{k}" = \'{cleaned}\'')
-        if and_parts:
-            exclude_conditions.append(f"({' AND '.join(and_parts)})")
-    return f" AND NOT ({' OR '.join(exclude_conditions)})" if exclude_conditions else ""
+    clauses = [_build_condition_group(group, file_columns) for group in groups]
+    return f" AND ({' OR '.join(clauses)})"
 
 
-def _build_key_sql(cols: list, prefix: str) -> tuple:
-    """Build SQL key SELECT and WHERE fragments. Returns (select, where_not_empty)."""
-    select = ",\n                ".join(
-        f'TRIM(COALESCE("{col}", \'\')) AS {prefix}_key_{i}'
-        for i, col in enumerate(cols)
+def _build_match_column_sql_parts(columns: list, alias_prefix: str) -> tuple:
+    """Build SQL fragments for match-key columns.
+
+    Returns:
+        tuple[str, str]:
+            - SELECT projection fragment with normalized key aliases.
+            - WHERE fragment ensuring key columns are non-empty.
+    """
+    select_fragment = ",\n                ".join(
+        f'TRIM(COALESCE("{column}", \'\')) AS {alias_prefix}_key_{i}'
+        for i, column in enumerate(columns)
     )
-    where = "\n              AND ".join(
-        f'TRIM(COALESCE("{col}", \'\')) != \'\''
-        for col in cols
+    non_empty_filter_fragment = "\n              AND ".join(
+        f'TRIM(COALESCE("{column}", \'\')) != \'\''
+        for column in columns
     )
-    return select, where
+    return select_fragment, non_empty_filter_fragment
 
 
 def count_rows(
@@ -254,8 +313,7 @@ def check_field_is_within_range(
     external_file: Path,
     min_field: str,
     max_field: str,
-    join_on: dict = None,
-    exclude: list = None,
+    rules: dict = None,
 ):
     """
     Checks that a field's values are within any valid range from an external file.
@@ -267,32 +325,49 @@ def check_field_is_within_range(
         min_field: the column name for the range minimum
         max_field: the column name for the range maximum
         field: the column name to validate
-        join_on: optional dict with keys {"file": [...], "external": [...]} specifying columns to match for range validation
-        exclude: optional list of dicts specifying row conditions to exclude from validation. Each dict is an AND group; the list is OR between groups.
-                 Example: [{"prefix": "conservationarea", "organisation": "orgA"}, {"prefix": "conservationarea", "organisation": "orgB"}]
+        rules: optional dict that controls subset selection and key matching.
+                 Supported keys:
+                 - lookup_rules: dict or list[dict] of structured conditions for file_path rows.
+                 - match_columns: dict with keys {"lookup": [...], "range": [...]} specifying columns to match.
+                   lookup columns come from file_path (the rows being validated).
+                   range columns come from external_file (the rows providing valid ranges).
+                 Examples:
+                 {"lookup_rules": {"prefix": "conservationarea"}}
+                 {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+                 {"match_columns": {"lookup": ["prefix", "organisation"], "range": ["dataset", "organisation"]}}
+                 Use operators like != and not in when you want to exclude rows.
     """
     file_cols_list = _get_csv_columns(conn, file_path)
     external_cols_list = _get_csv_columns(conn, external_file)
-    exclude_clause = _build_exclude_clause(exclude)
+    rules = rules or {}
+    if not isinstance(rules, dict):
+        raise ValueError("rules must be a dictionary or None")
 
-    # Validate and extract join_on
+    lookup_clause = _build_filter_clause(
+        rules.get("lookup_rules"),
+        file_cols_list,
+        "rules.lookup_rules",
+    )
+
+    # Validate and extract match_columns
     file_cols = external_cols = None
-    if join_on is not None:
-        if not isinstance(join_on, dict):
-            raise ValueError("join_on must be a dictionary")
-        file_cols = join_on.get("file")
-        external_cols = join_on.get("external")
+    match_columns = rules.get("match_columns")
+    if match_columns is not None:
+        if not isinstance(match_columns, dict):
+            raise ValueError("rules.match_columns must be a dictionary")
+        file_cols = match_columns.get("lookup")
+        external_cols = match_columns.get("range")
         if file_cols is None or external_cols is None:
             raise ValueError(
-                'join_on must have keys "file" and "external" with column lists'
+                'rules.match_columns must have keys "lookup" and "range" with column lists'
             )
         if not file_cols or not external_cols:
             raise ValueError(
-                'join_on "file" and "external" lists must be non-empty'
+                'rules.match_columns "lookup" and "range" lists must be non-empty'
             )
         if len(file_cols) != len(external_cols):
             raise ValueError(
-                'join_on "file" and "external" lists must have the same length'
+                'rules.match_columns "lookup" and "range" lists must have the same length'
             )
         for col in file_cols:
             if col not in file_cols_list:
@@ -306,7 +381,7 @@ def check_field_is_within_range(
                 )
 
     # Simple range check without key matching
-    if join_on is None:
+    if match_columns is None:
         result = conn.execute(
             f"""
             WITH ranges AS (
@@ -322,7 +397,7 @@ def check_field_is_within_range(
                     ROW_NUMBER() OVER () + 1 AS line_number,
                     TRY_CAST("{field}" AS BIGINT) AS value
                 FROM {_read_csv(file_path)}
-                WHERE TRY_CAST("{field}" AS BIGINT) IS NOT NULL{exclude_clause}
+                WHERE TRY_CAST("{field}" AS BIGINT) IS NOT NULL{lookup_clause}
             )
             SELECT line_number, value
             FROM lookup_rows l
@@ -337,41 +412,47 @@ def check_field_is_within_range(
         out_of_range_rows = [{"line_number": row[0], "value": row[1]} for row in result]
     else:
         # Key-matched range check
-        range_keys, range_empty = _build_key_sql(external_cols, "range")
-        lookup_keys, lookup_empty = _build_key_sql(file_cols, "lookup")
-        key_join = "\n                AND ".join(
+        range_key_select_sql, range_keys_non_empty_sql = _build_match_column_sql_parts(
+            external_cols, "range"
+        )
+        lookup_key_select_sql, lookup_keys_non_empty_sql = _build_match_column_sql_parts(
+            file_cols, "lookup"
+        )
+        key_match_condition_sql = "\n                AND ".join(
             f"l.lookup_key_{i} = r.range_key_{i}"
             for i in range(len(file_cols))
         )
-        key_proj = ", ".join(f"lookup_key_{i}" for i in range(len(file_cols)))
+        key_projection_sql = ", ".join(
+            f"lookup_key_{i}" for i in range(len(file_cols))
+        )
 
         result = conn.execute(
             f"""
             WITH ranges AS (
                 SELECT
-                    {range_keys},
+                                        {range_key_select_sql},
                     TRY_CAST("{min_field}" AS BIGINT) AS min_value,
                     TRY_CAST("{max_field}" AS BIGINT) AS max_value
                 FROM {_read_csv(external_file)}
                 WHERE TRY_CAST("{min_field}" AS BIGINT) IS NOT NULL
-                  AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
-                  AND {range_empty}
+                                    AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
+                                    AND {range_keys_non_empty_sql}
             ),
             lookup_rows AS (
                 SELECT
                     ROW_NUMBER() OVER () + 1 AS line_number,
                     TRY_CAST("{field}" AS BIGINT) AS value,
-                    {lookup_keys}
+                                        {lookup_key_select_sql}
                 FROM {_read_csv(file_path)}
-                WHERE {lookup_empty} AND TRY_CAST("{field}" AS BIGINT) IS NOT NULL{exclude_clause}
+                                WHERE {lookup_keys_non_empty_sql} AND TRY_CAST("{field}" AS BIGINT) IS NOT NULL{lookup_clause}
             )
-            SELECT line_number, value, {key_proj}
+                        SELECT line_number, value, {key_projection_sql}
             FROM lookup_rows l
             WHERE value IS NOT NULL
               AND NOT EXISTS (
                   SELECT 1
                   FROM ranges r
-                  WHERE {key_join}
+                                    WHERE {key_match_condition_sql}
                     AND l.value BETWEEN r.min_value AND r.max_value
               )
             """

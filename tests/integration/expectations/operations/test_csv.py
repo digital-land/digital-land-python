@@ -337,7 +337,7 @@ def test_check_field_is_within_ranges_matches_prefix_and_organisation_fails(tmp_
         min_field="entity-minimum",
         max_field="entity-maximum",
         field="entity",
-        join_on={"file": ["prefix", "organisation"], "external": ["dataset", "organisation"]},
+        rules={"match_columns": {"lookup": ["prefix", "organisation"], "range": ["dataset", "organisation"]}},
     )
 
     assert passed is False
@@ -372,7 +372,7 @@ def test_check_field_is_within_ranges_matches_prefix_and_organisation_passes(tmp
         min_field="entity-minimum",
         max_field="entity-maximum",
         field="entity",
-        join_on={"file": ["prefix", "organisation"], "external": ["dataset", "organisation"]},
+        rules={"match_columns": {"lookup": ["prefix", "organisation"], "range": ["dataset", "organisation"]}},
     )
 
 
@@ -398,7 +398,7 @@ def test_check_field_is_within_ranges_supports_custom_column_names(tmp_path):
         min_field="entity-minimum",
         max_field="entity-maximum",
         field="entity_value",
-        join_on={"file": ["dataset_key", "org_key"], "external": ["dataset_name", "org_name"]},
+        rules={"match_columns": {"lookup": ["dataset_key", "org_key"], "range": ["dataset_name", "org_name"]}},
     )
 
     assert passed is False
@@ -409,15 +409,15 @@ def test_check_field_is_within_ranges_supports_custom_column_names(tmp_path):
     assert details["invalid_rows"][0]["org_key"] == "org-a"
 
 
-def test_check_field_is_within_ranges_excludes_rows(tmp_path):
-    """Test that exclude skips rows matching specified field conditions during validation."""
+def test_check_field_is_within_ranges_filters_rows_with_lookup_rules(tmp_path):
+    """Test filtering rows with lookup_rules during validation."""
     file_path = tmp_path / "lookup.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["entity", "status"])
         writer.writerow(["150", "active"])
-        writer.writerow(["250", "active"])  # out of range but not excluded
-        writer.writerow(["350", "inactive"])  # out of range but excluded
+        writer.writerow(["250", "active"])  
+        writer.writerow(["350", "inactive"])
 
     external_file = tmp_path / "ranges.csv"
     with open(external_file, "w", newline="") as f:
@@ -433,11 +433,130 @@ def test_check_field_is_within_ranges_excludes_rows(tmp_path):
         min_field="entity-minimum",
         max_field="entity-maximum",
         field="entity",
-        exclude=[{"status": "inactive"}],
+        rules={"lookup_rules": {"status": "active"}},
     )
-
-    # Should fail due to entity 250 which is out of range and not excluded
     assert passed is False
     assert len(details["invalid_rows"]) == 1
     assert details["invalid_rows"][0]["value"] == 250
     assert details["invalid_rows"][0]["line_number"] == 3
+
+
+def test_check_field_is_within_ranges_lookup_rules_operator_eq_shape(tmp_path):
+    file_path = tmp_path / "lookup.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "prefix"])
+        writer.writerow(["150", "conservationarea"]) 
+        writer.writerow(["350", "other"]) 
+
+    external_file = tmp_path / "ranges.csv"
+    with open(external_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity-minimum", "entity-maximum"])
+        writer.writerow(["100", "200"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_field_is_within_range(
+        conn,
+        file_path=file_path,
+        external_file=external_file,
+        min_field="entity-minimum",
+        max_field="entity-maximum",
+        field="entity",
+        rules={"lookup_rules": {"prefix": {"op": "=", "value": "conservationarea"}}},
+    )
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_field_is_within_ranges_lookup_rules_exact_match(tmp_path):
+    file_path = tmp_path / "lookup.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "prefix"])
+        writer.writerow(["150", "conservationarea"])  
+        writer.writerow(["350", "other"]) 
+
+    external_file = tmp_path / "ranges.csv"
+    with open(external_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity-minimum", "entity-maximum"])
+        writer.writerow(["100", "200"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_field_is_within_range(
+        conn,
+        file_path=file_path,
+        external_file=external_file,
+        min_field="entity-minimum",
+        max_field="entity-maximum",
+        field="entity",
+        rules={"lookup_rules": {"prefix": "conservationarea"}},
+    )
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_field_is_within_ranges_lookup_rules_operator_in(tmp_path):
+    file_path = tmp_path / "lookup.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "organisation"])
+        writer.writerow(["150", "org-a"])  
+        writer.writerow(["350", "org-b"])  
+        writer.writerow(["350", "org-c"])  
+
+    external_file = tmp_path / "ranges.csv"
+    with open(external_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity-minimum", "entity-maximum"])
+        writer.writerow(["100", "200"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_field_is_within_range(
+        conn,
+        file_path=file_path,
+        external_file=external_file,
+        min_field="entity-minimum",
+        max_field="entity-maximum",
+        field="entity",
+        rules={"lookup_rules": {"organisation": {"op": "in", "value": ["org-a", "org-b"]}}},
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 1
+    assert details["invalid_rows"][0]["line_number"] == 3
+    assert details["invalid_rows"][0]["value"] == 350
+
+def test_check_field_is_within_ranges_for_only_staus_301(tmp_path):
+    file_path = tmp_path / "lookup.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "status"])
+        writer.writerow(["150", "301"]) 
+        writer.writerow(["250", "301"]) 
+        writer.writerow(["350", "410"])
+
+    external_file = tmp_path / "ranges.csv"
+    with open(external_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity-minimum", "entity-maximum"])
+        writer.writerow(["100", "200"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_field_is_within_range(
+        conn,
+        file_path=file_path,
+        external_file=external_file,
+        min_field="entity-minimum",
+        max_field="entity-maximum",
+        field="entity",
+        rules={"lookup_rules": {"status": {"op": "=", "value": "301"}}},
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 1
+    assert details["invalid_rows"][0]["line_number"] == 3
+    assert details["invalid_rows"][0]["value"] == 250
