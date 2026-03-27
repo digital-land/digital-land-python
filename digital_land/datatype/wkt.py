@@ -163,7 +163,7 @@ def make_multipolygon(geometry):
                 temp_polygons = make_multipolygon(geom)
                 polygons.extend(temp_polygons.geoms)
             else:
-                logging.info(f"skipping {geom.geom_type}")
+                logging.debug(f"skipping {geom.geom_type}")
         return MultiPolygon(polygons)
 
     raise ValueError(f"unexpected geometry {geometry.geom_type}")

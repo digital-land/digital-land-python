@@ -1,6 +1,5 @@
 import duckdb
 import logging
-import dask.dataframe as dd
 
 
 # TODO This might need to move into expectations as it is a form of data checking
@@ -8,11 +7,9 @@ def duplicate_reference_check(issues=None, csv_path=None):
     try:
         conn = duckdb.connect()
 
-        ddf = dd.read_csv(csv_path, dtype={"entry-date": "string"})
-        ddf.columns = ddf.columns.str.replace("-", "_")
-
-        filtered_df = ddf[ddf["field"] == "reference"].compute()  # noqa
-        conn.execute("CREATE TABLE filtered_table AS SELECT * FROM filtered_df")
+        conn.execute(
+            f"CREATE TABLE filtered_table AS SELECT * FROM read_csv_auto('{csv_path}') WHERE \"field\" = 'reference'"
+        )
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, entry_date);"
         )
