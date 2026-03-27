@@ -221,8 +221,6 @@ def dump_wkt(geometry, precision=6, dimensions=2):
         geometry, rounding_precision=precision, output_dimension=dimensions
     )
 
-    wkt = shapely.wkt.dumps(geometry)
-
     return wkt.replace(", ", ",")
 
 
