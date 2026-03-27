@@ -11,18 +11,18 @@ def duplicate_reference_check(issues=None, csv_path=None):
             f"CREATE TABLE filtered_table AS SELECT * FROM read_csv_auto('{csv_path}') WHERE \"field\" = 'reference'"
         )
         conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, entry_date);"
+            'CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, "entry-date");'
         )
         # SQL query to identify duplicate references
         sql = """
         SELECT
             "field",
             "value",
-            "entry_date",
+            "entry-date",
             COUNT(*) AS count,
             STRING_AGG("entry_number"::TEXT, ',') AS entry_numbers
         FROM filtered_table
-        GROUP BY "field", "value", "entry_date"
+        GROUP BY "field", "value", "entry-date"
         HAVING COUNT(*) > 1;
         """
 
