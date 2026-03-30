@@ -18,7 +18,7 @@ dependencies = [
     "datasette",
     "canonicaljson",
     "click",
-    "cchardet",
+    "charset-normalizer",
     "esridump",
     "pandas",
     "pyproj",
