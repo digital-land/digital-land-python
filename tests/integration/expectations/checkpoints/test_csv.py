@@ -1,5 +1,4 @@
 import csv
-import json
 import pytest
 
 from digital_land.expectations.checkpoints.csv import CsvCheckpoint

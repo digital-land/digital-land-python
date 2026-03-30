@@ -40,16 +40,6 @@ def _sql_string(value) -> str:
     return f"'{cleaned}'"
 
 
-def _normalize_condition_groups(conditions, name: str) -> list:
-    if conditions is None:
-        return []
-    if isinstance(conditions, dict):
-        return [conditions]
-    if isinstance(conditions, list):
-        return conditions
-    raise ValueError(f"{name} must be a dict, list of dicts, or None")
-
-
 def _build_field_condition(field_name: str, spec) -> str:
     if isinstance(spec, dict):
         op = str(spec.get("op", spec.get("operation", ""))).strip().lower()
@@ -79,27 +69,35 @@ def _build_field_condition(field_name: str, spec) -> str:
     )
 
 
-def _build_condition_group(group: dict, file_columns: list) -> str:
-    if not isinstance(group, dict) or not group:
-        raise ValueError("Each condition group must be a non-empty dict")
-
-    parts = []
-    for field_name, spec in group.items():
-        if field_name not in file_columns:
-            raise ValueError(
-                f"Column '{field_name}' not found in file. Available columns: {file_columns}"
-            )
-        parts.append(_build_field_condition(field_name, spec))
-
-    return f"({' AND '.join(parts)})"
-
-
 def _build_filter_clause(filter_spec, file_columns: list, name: str) -> str:
     """Build SQL clause that keeps rows matching structured conditions."""
-    groups = _normalize_condition_groups(filter_spec, name)
+    if filter_spec is None:
+        groups = []
+    elif isinstance(filter_spec, dict):
+        groups = [filter_spec]
+    elif isinstance(filter_spec, list):
+        groups = filter_spec
+    else:
+        raise ValueError(f"{name} must be a dict, list of dicts, or None")
+
     if not groups:
         return ""
-    clauses = [_build_condition_group(group, file_columns) for group in groups]
+
+    clauses = []
+    for group in groups:
+        if not isinstance(group, dict) or not group:
+            raise ValueError("Each condition group must be a non-empty dict")
+
+        parts = []
+        for field_name, spec in group.items():
+            if field_name not in file_columns:
+                raise ValueError(
+                    f"Column '{field_name}' not found in file. Available columns: {file_columns}"
+                )
+            parts.append(_build_field_condition(field_name, spec))
+
+        clauses.append(f"({' AND '.join(parts)})")
+
     return f" AND ({' OR '.join(clauses)})"
 
 
@@ -647,12 +645,10 @@ def check_values_have_the_correct_datatype(file_path, field_datatype, conn=None)
     """
     Validates that CSV column values have correct datatypes.
 
-    This function uses pandas to read and validate the CSV using datatype validators.
-    The conn parameter is accepted for consistency with other operations but not used.
-
     Args:
         file_path: path to the CSV file to validate
         field_datatype: dict mapping column name to datatype string
+        conn: duckdb connection not used but required by caller
     """
     validators = {
         "address": _is_valid_address_value,
@@ -674,13 +670,11 @@ def check_values_have_the_correct_datatype(file_path, field_datatype, conn=None)
         "url": _is_valid_url_value,
     }
 
-    # Read CSV with pandas (keep_default_na=False preserves empty strings)
     df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
 
     if df.empty or len(df.columns) == 0:
         return True, "no invalid values found", {"invalid_rows": []}
 
-    # Identify applicable fields for validation
     applicable_fields = [
         (field, field_datatype.get(field), validators[field_datatype.get(field)])
         for field in df.columns
@@ -690,7 +684,6 @@ def check_values_have_the_correct_datatype(file_path, field_datatype, conn=None)
     if not applicable_fields:
         return True, "no invalid values found", {"invalid_rows": []}
 
-    # Validate values
     invalid_values = []
     for line_number, (_, row) in enumerate(df.iterrows(), start=2):
         for field, datatype, validator in applicable_fields:
