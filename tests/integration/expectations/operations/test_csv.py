@@ -11,6 +11,7 @@ from digital_land.expectations.operations.csv import (
     check_no_blank_rows,
     check_fields_are_within_range,
     check_field_is_within_range_by_dataset_org,
+    check_values_have_the_correct_datatype,
 )
 
 
@@ -636,3 +637,131 @@ def test_check_field_is_within_ranges_for_only_staus_301(tmp_path):
     assert details["invalid_rows"][0]["line_number"] == 3
     assert details["invalid_rows"][0]["field"] == "entity"
     assert details["invalid_rows"][0]["value"] == 250
+
+
+def test_check_values_have_the_correct_datatype_passes(tmp_path):
+    """Test datatype validation with all valid values."""
+    file_path = tmp_path / "valid_datatypes.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "count", "enabled"])
+        writer.writerow(["entity-1", "100", "true"])
+        writer.writerow(["entity-2", "200", "false"])
+
+    field_datatype = {
+        "entity": "reference",
+        "count": "integer",
+        "enabled": "flag",
+    }
+
+    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_values_have_the_correct_datatype_fails(tmp_path):
+    """Test datatype validation with invalid values."""
+    file_path = tmp_path / "invalid_datatypes.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "count", "enabled"])
+        writer.writerow(["entity-1", "100", "true"])
+        writer.writerow(["entity-2", "not_a_number", "false"])
+        writer.writerow(["entity-3", "300", "maybe"])
+
+    field_datatype = {
+        "entity": "reference",
+        "count": "integer",
+        "enabled": "flag",
+    }
+
+    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+    assert details["invalid_rows"][0]["line_number"] == 3
+    assert details["invalid_rows"][0]["field"] == "count"
+    assert details["invalid_rows"][0]["value"] == "not_a_number"
+    assert details["invalid_rows"][0]["datatype"] == "integer"
+    assert details["invalid_rows"][1]["line_number"] == 4
+    assert details["invalid_rows"][1]["field"] == "enabled"
+    assert details["invalid_rows"][1]["value"] == "maybe"
+    assert "invalid datatype value(s)" in message
+
+
+def test_check_values_have_the_correct_datatype_ignores_empty_values(tmp_path):
+    """Test that empty values are skipped during validation."""
+    file_path = tmp_path / "with_empty_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "count"])
+        writer.writerow(["entity-1", "100"])
+        writer.writerow(["entity-2", ""])
+        writer.writerow(["entity-3", "300"])
+
+    field_datatype = {
+        "entity": "reference",
+        "count": "integer",
+    }
+
+    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_values_have_the_correct_datatype_skips_unmapped_fields(tmp_path):
+    """Test that fields not in field_datatype map are not validated."""
+    file_path = tmp_path / "unmapped_fields.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "count", "description"])
+        writer.writerow(["entity-1", "100", "invalid_but_ignored"])
+
+    field_datatype = {
+        "entity": "reference",
+        "count": "integer",
+    }
+
+    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_values_have_the_correct_datatype_empty_file(tmp_path):
+    """Test behavior with empty CSV file."""
+    file_path = tmp_path / "empty.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "count"])
+
+    field_datatype = {
+        "entity": "reference",
+        "count": "integer",
+    }
+
+    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
+def test_check_values_have_the_correct_datatype_no_applicable_fields(tmp_path):
+    """Test when no fields have datatype validators."""
+    file_path = tmp_path / "no_applicable.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["name", "description"])
+        writer.writerow(["field1", "some value"])
+
+    field_datatype = {
+        "name": "string",
+        "description": "string",
+    }
+
+    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+
+    assert passed is True
+    assert details["invalid_rows"] == []

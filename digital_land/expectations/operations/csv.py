@@ -1,4 +1,7 @@
 from pathlib import Path
+import pandas as pd
+
+from digital_land.expectations.operations.datatype_validators import _is_valid_address_value, _is_valid_curie_list_value, _is_valid_curie_value, _is_valid_datetime_value, _is_valid_decimal_value, _is_valid_flag_value, _is_valid_hash_value, _is_valid_integer_value, _is_valid_json_value, _is_valid_latitude_value, _is_valid_longitude_value, _is_valid_multipolygon_value, _is_valid_pattern_value, _is_valid_point_value, _is_valid_reference_value, _is_valid_url_value
 
 
 def _read_csv(file_path: Path) -> str:
@@ -633,5 +636,80 @@ def check_field_is_within_range_by_dataset_org(
         message = f"there were {len(out_of_range_rows)} out-of-range rows found"
 
     details = {"invalid_rows": out_of_range_rows}
+    return passed, message, details
+
+
+def check_values_have_the_correct_datatype(conn,file_path, field_datatype):
+    """
+    Validates that CSV column values have correct datatypes.
+
+    This function uses pandas to read and validate the CSV using datatype validators.
+    The conn parameter is accepted for consistency with other operations but not used.
+
+    Args:
+        file_path: path to the CSV file to validate
+        field_datatype: dict mapping column name to datatype string
+    """
+    validators = {
+        "address": _is_valid_address_value,
+        "curie-list": _is_valid_curie_list_value,
+        "curie": _is_valid_curie_value,
+        "date": _is_valid_datetime_value,
+        "datetime": _is_valid_datetime_value,
+        "decimal": _is_valid_decimal_value,
+        "flag": _is_valid_flag_value,
+        "hash": _is_valid_hash_value,
+        "integer": _is_valid_integer_value,
+        "json": _is_valid_json_value,
+        "latitude": _is_valid_latitude_value,
+        "longitude": _is_valid_longitude_value,
+        "multipolygon": _is_valid_multipolygon_value,
+        "pattern": _is_valid_pattern_value,
+        "point": _is_valid_point_value,
+        "reference": _is_valid_reference_value,
+        "url": _is_valid_url_value,
+    }
+
+    # Read CSV with pandas (keep_default_na=False preserves empty strings)
+    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
+
+    if df.empty or len(df.columns) == 0:
+        return True, "no invalid values found", {"invalid_rows": []}
+
+    # Identify applicable fields for validation
+    applicable_fields = [
+        (field, field_datatype.get(field), validators[field_datatype.get(field)])
+        for field in df.columns
+        if field in field_datatype and field_datatype.get(field) in validators
+    ]
+
+    if not applicable_fields:
+        return True, "no invalid values found", {"invalid_rows": []}
+
+    # Validate values
+    invalid_values = []
+    for line_number, (idx, row) in enumerate(df.iterrows(), start=2):
+        for field, datatype, validator in applicable_fields:
+            value = str(row.get(field, "")).strip()
+            if not value:
+                continue
+
+            if not validator(value):
+                invalid_values.append({
+                    "line_number": line_number,
+                    "field": field,
+                    "datatype": datatype,
+                    "value": value,
+                })
+
+    if len(invalid_values) == 0:
+        passed = True
+        message = "all values have valid datatypes"
+        details = {"invalid_rows": []}
+    else:
+        passed = False
+        message = f"there were {len(invalid_values)} invalid datatype value(s) found"
+        details = {"invalid_rows": invalid_values}
+
     return passed, message, details
 

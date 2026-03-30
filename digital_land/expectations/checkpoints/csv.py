@@ -13,6 +13,7 @@ from ..operations.csv import (
     check_field_is_within_range_by_dataset_org,
     check_allowed_values,
     check_no_blank_rows,
+    check_values_have_the_correct_datatype,
 )
 
 
@@ -32,6 +33,7 @@ class CsvCheckpoint(BaseCheckpoint):
             "check_field_is_within_range_by_dataset_org": check_field_is_within_range_by_dataset_org,
             "check_allowed_values": check_allowed_values,
             "check_no_blank_rows": check_no_blank_rows,
+            "check_values_have_the_correct_datatype": check_values_have_the_correct_datatype,
         }
         if operation_string not in operation_map:
             raise ValueError(

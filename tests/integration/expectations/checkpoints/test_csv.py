@@ -1,4 +1,5 @@
 import csv
+import json
 import pytest
 
 from digital_land.expectations.checkpoints.csv import CsvCheckpoint
@@ -73,3 +74,36 @@ class TestCsvCheckpoint:
             checkpoint.load(
                 [{"operation": "nonexistent", "name": "test", "parameters": "{}"}]
             )
+
+    def test_check_values_have_the_correct_datatype_rule(self, tmp_path):
+        file_path = tmp_path / "test_datatypes.csv"
+        with open(file_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["entity", "count"])
+            writer.writerow(["entity-1", "100"])
+            writer.writerow(["entity-2", "invalid_int"])
+
+        checkpoint = CsvCheckpoint("test-dataset", file_path)
+        rules = [
+            {
+                "operation": "check_values_have_the_correct_datatype",
+                "name": "Datatype validation",
+                "parameters": {
+                    "field_datatype": {
+                        "entity": "reference",
+                        "count": "integer",
+                    }
+                },
+            }
+        ]
+
+        checkpoint.load(rules)
+        checkpoint.run()
+
+        assert len(checkpoint.log.entries) == 1
+        assert checkpoint.log.entries[0]["operation"] == "check_values_have_the_correct_datatype"
+        assert checkpoint.log.entries[0]["passed"] is False
+        details = json.loads(checkpoint.log.entries[0]["details"])
+        assert len(details["invalid_rows"]) == 1
+        assert details["invalid_rows"][0]["line_number"] == 3
+        assert details["invalid_rows"][0]["field"] == "count"
