@@ -20,10 +20,6 @@ def _sql_string(value) -> str:
     return f"'{cleaned}'"
 
 
-def _sql_identifier(name: str) -> str:
-    return '"' + str(name).replace('"', '""') + '"'
-
-
 def _normalize_condition_groups(conditions, name: str) -> list:
     if conditions is None:
         return []
@@ -118,8 +114,6 @@ def _normalize_fields_for_validation(field_spec, file_columns: list) -> list:
 def _build_range_invalid_rows(
     result: list,
     validating_multiple_fields: bool,
-    has_match_columns: bool,
-    lookup_match_columns: list = None,
 ) -> list:
     """Format query rows into expectation invalid_rows shape."""
     out_of_range_rows = []
@@ -127,17 +121,9 @@ def _build_range_invalid_rows(
     for row in result:
         field_name = row[1]
 
-        if has_match_columns:
-            if validating_multiple_fields:
-                invalid_row = {"line_number": row[0], "field": field_name, "value": row[2]}
-            else:
-                invalid_row = {"line_number": row[0], field_name: row[2]}
-            for i, col_name in enumerate(lookup_match_columns):
-                invalid_row[col_name] = row[i + 3]
-        else:
-            invalid_row = {"line_number": row[0], "value": row[2]}
-            if validating_multiple_fields:
-                invalid_row["field"] = field_name
+        invalid_row = {"line_number": row[0], "value": row[2]}
+        if validating_multiple_fields:
+            invalid_row["field"] = field_name
 
         out_of_range_rows.append(invalid_row)
 
@@ -366,7 +352,7 @@ def check_no_blank_rows(conn, file_path: Path):
         return True, "no blank rows found", {"invalid_rows": []}
 
     blank_conditions = " AND ".join(
-        f"TRIM(COALESCE({_sql_identifier(column_name)}, '')) = ''"
+        f'TRIM(COALESCE("{column_name}", \'\')) = \'\''
         for column_name in file_columns
     )
 
@@ -445,7 +431,7 @@ def check_fields_are_within_range(
     fields_to_validate = _normalize_fields_for_validation(field, file_columns)
     validating_multiple_fields = len(fields_to_validate) > 1
     lookup_values_sql = ",\n                    ".join(
-        f"({i}, {_sql_string(field_name)}, TRY_CAST(src.{_sql_identifier(field_name)} AS BIGINT))"
+        f'({i}, {_sql_string(field_name)}, TRY_CAST(src."{field_name}" AS BIGINT))'
         for i, field_name in enumerate(fields_to_validate)
     )
 
@@ -495,7 +481,6 @@ def check_fields_are_within_range(
     out_of_range_rows = _build_range_invalid_rows(
         result=result,
         validating_multiple_fields=validating_multiple_fields,
-        has_match_columns=False,
     )
 
     if len(out_of_range_rows) == 0:
@@ -565,13 +550,11 @@ def check_field_is_within_range_by_dataset_org(
     range_dataset_name = str(range_dataset_field).strip()
     lookup_match_columns = [lookup_dataset_name, "organisation"]
 
-    lookup_dataset_col = _sql_identifier(lookup_dataset_name)
-    lookup_org_col = _sql_identifier("organisation")
-    range_dataset_col = _sql_identifier(range_dataset_name)
-    range_org_col = _sql_identifier("organisation")
-    min_col = _sql_identifier(min_field)
-    max_col = _sql_identifier(max_field)
-    value_col = _sql_identifier(field_name)
+    lookup_dataset_col = f'"{lookup_dataset_name}"'
+    range_dataset_col = f'"{range_dataset_name}"'
+    min_col = f'"{min_field}"'
+    max_col = f'"{max_field}"'
+    value_col = f'"{field_name}"'
 
     result = conn.execute(
         f"""
@@ -580,12 +563,12 @@ def check_field_is_within_range_by_dataset_org(
                 TRY_CAST({min_col} AS BIGINT) AS min_value,
                 TRY_CAST({max_col} AS BIGINT) AS max_value,
                 TRIM(COALESCE({range_dataset_col}, '')) AS range_key_0,
-                                TRIM(COALESCE({range_org_col}, '')) AS range_key_1
+                                TRIM(COALESCE("organisation", '')) AS range_key_1
             FROM {_read_csv(external_file)}
             WHERE TRY_CAST({min_col} AS BIGINT) IS NOT NULL
               AND TRY_CAST({max_col} AS BIGINT) IS NOT NULL
               AND TRIM(COALESCE({range_dataset_col}, '')) != ''
-                            AND TRIM(COALESCE({range_org_col}, '')) != ''
+                            AND TRIM(COALESCE("organisation", '')) != ''
         ),
         source_rows AS (
             SELECT
@@ -598,11 +581,11 @@ def check_field_is_within_range_by_dataset_org(
                 src.line_number,
                 TRY_CAST(src.{value_col} AS BIGINT) AS value,
                 TRIM(COALESCE(src.{lookup_dataset_col}, '')) AS lookup_key_0,
-                TRIM(COALESCE(src.{lookup_org_col}, '')) AS lookup_key_1
+                TRIM(COALESCE(src."organisation", '')) AS lookup_key_1
             FROM source_rows src
             WHERE TRY_CAST(src.{value_col} AS BIGINT) IS NOT NULL
               AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
-              AND TRIM(COALESCE(src.{lookup_org_col}, '')) != ''{lookup_clause}
+              AND TRIM(COALESCE(src."organisation", '')) != ''{lookup_clause}
         )
         SELECT
             line_number,
@@ -639,7 +622,7 @@ def check_field_is_within_range_by_dataset_org(
     return passed, message, details
 
 
-def check_values_have_the_correct_datatype(conn,file_path, field_datatype):
+def check_values_have_the_correct_datatype(file_path, field_datatype):
     """
     Validates that CSV column values have correct datatypes.
 
@@ -688,7 +671,7 @@ def check_values_have_the_correct_datatype(conn,file_path, field_datatype):
 
     # Validate values
     invalid_values = []
-    for line_number, (idx, row) in enumerate(df.iterrows(), start=2):
+    for line_number, (_, row) in enumerate(df.iterrows(), start=2):
         for field, datatype, validator in applicable_fields:
             value = str(row.get(field, "")).strip()
             if not value:
