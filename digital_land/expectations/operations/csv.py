@@ -622,7 +622,7 @@ def check_field_is_within_range_by_dataset_org(
     return passed, message, details
 
 
-def check_values_have_the_correct_datatype(file_path, field_datatype):
+def check_values_have_the_correct_datatype(file_path, field_datatype,conn=None):
     """
     Validates that CSV column values have correct datatypes.
 
