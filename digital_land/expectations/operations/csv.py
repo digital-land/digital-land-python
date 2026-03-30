@@ -1,7 +1,24 @@
 from pathlib import Path
 import pandas as pd
 
-from digital_land.expectations.operations.datatype_validators import _is_valid_address_value, _is_valid_curie_list_value, _is_valid_curie_value, _is_valid_datetime_value, _is_valid_decimal_value, _is_valid_flag_value, _is_valid_hash_value, _is_valid_integer_value, _is_valid_json_value, _is_valid_latitude_value, _is_valid_longitude_value, _is_valid_multipolygon_value, _is_valid_pattern_value, _is_valid_point_value, _is_valid_reference_value, _is_valid_url_value
+from digital_land.expectations.operations.datatype_validators import (
+    _is_valid_address_value,
+    _is_valid_curie_list_value,
+    _is_valid_curie_value,
+    _is_valid_datetime_value,
+    _is_valid_decimal_value,
+    _is_valid_flag_value,
+    _is_valid_hash_value,
+    _is_valid_integer_value,
+    _is_valid_json_value,
+    _is_valid_latitude_value,
+    _is_valid_longitude_value,
+    _is_valid_multipolygon_value,
+    _is_valid_pattern_value,
+    _is_valid_point_value,
+    _is_valid_reference_value,
+    _is_valid_url_value,
+)
 
 
 def _read_csv(file_path: Path) -> str:
@@ -10,9 +27,12 @@ def _read_csv(file_path: Path) -> str:
 
 def _get_csv_columns(conn, file_path: Path) -> list:
     """Get column names from CSV file."""
-    return [col[0] for col in conn.execute(
-        f"SELECT * FROM {_read_csv(file_path)} LIMIT 0"
-    ).description]
+    return [
+        col[0]
+        for col in conn.execute(
+            f"SELECT * FROM {_read_csv(file_path)} LIMIT 0"
+        ).description
+    ]
 
 
 def _sql_string(value) -> str:
@@ -90,7 +110,9 @@ def _normalize_fields_for_validation(field_spec, file_columns: list) -> list:
     elif isinstance(field_spec, (list, tuple, set)):
         fields = [str(item).strip() for item in field_spec if str(item).strip()]
     else:
-        raise ValueError("field must be a string, comma-separated string, or list of strings")
+        raise ValueError(
+            "field must be a string, comma-separated string, or list of strings"
+        )
 
     if not fields:
         raise ValueError("field must include at least one column name")
@@ -102,7 +124,9 @@ def _normalize_fields_for_validation(field_spec, file_columns: list) -> list:
             seen.add(field_name)
             normalized_fields.append(field_name)
 
-    missing_fields = [field_name for field_name in normalized_fields if field_name not in file_columns]
+    missing_fields = [
+        field_name for field_name in normalized_fields if field_name not in file_columns
+    ]
     if missing_fields:
         raise ValueError(
             f"Column(s) {missing_fields} not found in file. Available columns: {file_columns}"
@@ -323,9 +347,7 @@ def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list
         message = f"all values in '{field}' are allowed"
     else:
         passed = False
-        message = (
-            f"there were {len(invalid_rows)} invalid values in '{field}'"
-        )
+        message = f"there were {len(invalid_rows)} invalid values in '{field}'"
 
     details = {
         "field": field,
@@ -352,8 +374,7 @@ def check_no_blank_rows(conn, file_path: Path):
         return True, "no blank rows found", {"invalid_rows": []}
 
     blank_conditions = " AND ".join(
-        f'TRIM(COALESCE("{column_name}", \'\')) = \'\''
-        for column_name in file_columns
+        f"TRIM(COALESCE(\"{column_name}\", '')) = ''" for column_name in file_columns
     )
 
     result = conn.execute(
@@ -622,7 +643,7 @@ def check_field_is_within_range_by_dataset_org(
     return passed, message, details
 
 
-def check_values_have_the_correct_datatype(file_path, field_datatype,conn=None):
+def check_values_have_the_correct_datatype(file_path, field_datatype, conn=None):
     """
     Validates that CSV column values have correct datatypes.
 
@@ -678,12 +699,14 @@ def check_values_have_the_correct_datatype(file_path, field_datatype,conn=None):
                 continue
 
             if not validator(value):
-                invalid_values.append({
-                    "line_number": line_number,
-                    "field": field,
-                    "datatype": datatype,
-                    "value": value,
-                })
+                invalid_values.append(
+                    {
+                        "line_number": line_number,
+                        "field": field,
+                        "datatype": datatype,
+                        "value": value,
+                    }
+                )
 
     if len(invalid_values) == 0:
         passed = True
@@ -695,4 +718,3 @@ def check_values_have_the_correct_datatype(file_path, field_datatype,conn=None):
         details = {"invalid_rows": invalid_values}
 
     return passed, message, details
-

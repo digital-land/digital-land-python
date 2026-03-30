@@ -245,7 +245,9 @@ def _is_valid_point_value(value):
 
     # Try WKT first.
     try:
-        point = shapely.wkt.loads(candidate if isinstance(candidate, str) else str(candidate))
+        point = shapely.wkt.loads(
+            candidate if isinstance(candidate, str) else str(candidate)
+        )
         if not isinstance(point, Point):
             return False
         return bool(getattr(point, "is_valid", True))

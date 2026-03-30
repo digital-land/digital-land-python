@@ -351,7 +351,9 @@ def test_check_no_blank_rows_fails(tmp_path):
     assert details["invalid_rows"][1]["line_number"] == 4
 
 
-def test_check_field_is_within_ranges_by_dataset_org_matches_prefix_and_organisation_fails(tmp_path):
+def test_check_field_is_within_ranges_by_dataset_org_matches_prefix_and_organisation_fails(
+    tmp_path,
+):
     file_path = tmp_path / "lookup.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -388,7 +390,9 @@ def test_check_field_is_within_ranges_by_dataset_org_matches_prefix_and_organisa
     assert details["invalid_rows"][0]["organisation"] == "org-1"
 
 
-def test_check_field_is_within_ranges_by_dataset_org_matches_prefix_and_organisation_passes(tmp_path):
+def test_check_field_is_within_ranges_by_dataset_org_matches_prefix_and_organisation_passes(
+    tmp_path,
+):
     file_path = tmp_path / "lookup.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -416,7 +420,9 @@ def test_check_field_is_within_ranges_by_dataset_org_matches_prefix_and_organisa
     )
 
 
-def test_check_field_is_within_ranges_by_dataset_org_supports_custom_column_names(tmp_path):
+def test_check_field_is_within_ranges_by_dataset_org_supports_custom_column_names(
+    tmp_path,
+):
     file_path = tmp_path / "lookup_custom.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -427,7 +433,9 @@ def test_check_field_is_within_ranges_by_dataset_org_supports_custom_column_name
     external_file = tmp_path / "ranges_custom.csv"
     with open(external_file, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["dataset_name", "organisation", "entity-minimum", "entity-maximum"])
+        writer.writerow(
+            ["dataset_name", "organisation", "entity-minimum", "entity-maximum"]
+        )
         writer.writerow(["dataset-x", "org-a", "50", "100"])
 
     conn = duckdb.connect()
@@ -457,7 +465,7 @@ def test_check_field_is_within_ranges_filters_rows_with_lookup_rules(tmp_path):
         writer = csv.writer(f)
         writer.writerow(["entity", "status"])
         writer.writerow(["150", "active"])
-        writer.writerow(["250", "active"])  
+        writer.writerow(["250", "active"])
         writer.writerow(["350", "inactive"])
 
     external_file = tmp_path / "ranges.csv"
@@ -487,8 +495,8 @@ def test_check_field_is_within_ranges_lookup_rules_operator_eq_shape(tmp_path):
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["entity", "prefix"])
-        writer.writerow(["150", "conservationarea"]) 
-        writer.writerow(["350", "other"]) 
+        writer.writerow(["150", "conservationarea"])
+        writer.writerow(["350", "other"])
 
     external_file = tmp_path / "ranges.csv"
     with open(external_file, "w", newline="") as f:
@@ -516,8 +524,8 @@ def test_check_field_is_within_ranges_lookup_rules_exact_match(tmp_path):
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["entity", "prefix"])
-        writer.writerow(["150", "conservationarea"])  
-        writer.writerow(["350", "other"]) 
+        writer.writerow(["150", "conservationarea"])
+        writer.writerow(["350", "other"])
 
     external_file = tmp_path / "ranges.csv"
     with open(external_file, "w", newline="") as f:
@@ -545,9 +553,9 @@ def test_check_field_is_within_ranges_lookup_rules_operator_in(tmp_path):
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["entity", "organisation"])
-        writer.writerow(["150", "org-a"])  
-        writer.writerow(["350", "org-b"])  
-        writer.writerow(["350", "org-c"])  
+        writer.writerow(["150", "org-a"])
+        writer.writerow(["350", "org-b"])
+        writer.writerow(["350", "org-c"])
 
     external_file = tmp_path / "ranges.csv"
     with open(external_file, "w", newline="") as f:
@@ -563,7 +571,9 @@ def test_check_field_is_within_ranges_lookup_rules_operator_in(tmp_path):
         min_field="entity-minimum",
         max_field="entity-maximum",
         field="entity",
-        rules={"lookup_rules": {"organisation": {"op": "in", "value": ["org-a", "org-b"]}}},
+        rules={
+            "lookup_rules": {"organisation": {"op": "in", "value": ["org-a", "org-b"]}}
+        },
     )
 
     assert passed is False
@@ -577,9 +587,9 @@ def test_check_field_is_within_ranges_comma_separated_fields(tmp_path):
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["entity", "end-entity"])
-        writer.writerow(["150", "160"])  
-        writer.writerow(["150", "350"])  
-        writer.writerow(["350", "150"])  
+        writer.writerow(["150", "160"])
+        writer.writerow(["150", "350"])
+        writer.writerow(["350", "150"])
 
     external_file = tmp_path / "ranges.csv"
     with open(external_file, "w", newline="") as f:
@@ -606,13 +616,14 @@ def test_check_field_is_within_ranges_comma_separated_fields(tmp_path):
     assert details["invalid_rows"][1]["field"] == "end-entity"
     assert details["invalid_rows"][1]["value"] == 350
 
+
 def test_check_field_is_within_ranges_for_only_staus_301(tmp_path):
     file_path = tmp_path / "lookup.csv"
     with open(file_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["entity", "status","old-entity"])
-        writer.writerow(["150", "301", "140"]) 
-        writer.writerow(["250", "301", "150"]) 
+        writer.writerow(["entity", "status", "old-entity"])
+        writer.writerow(["150", "301", "140"])
+        writer.writerow(["250", "301", "150"])
         writer.writerow(["350", "410", "340"])
 
     external_file = tmp_path / "ranges.csv"
@@ -654,7 +665,9 @@ def test_check_values_have_the_correct_datatype_passes(tmp_path):
         "enabled": "flag",
     }
 
-    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+    passed, message, details = check_values_have_the_correct_datatype(
+        file_path, field_datatype
+    )
 
     assert passed is True
     assert details["invalid_rows"] == []
@@ -676,7 +689,9 @@ def test_check_values_have_the_correct_datatype_fails(tmp_path):
         "enabled": "flag",
     }
 
-    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+    passed, message, details = check_values_have_the_correct_datatype(
+        file_path, field_datatype
+    )
 
     assert passed is False
     assert len(details["invalid_rows"]) == 2
@@ -705,7 +720,9 @@ def test_check_values_have_the_correct_datatype_ignores_empty_values(tmp_path):
         "count": "integer",
     }
 
-    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+    passed, message, details = check_values_have_the_correct_datatype(
+        file_path, field_datatype
+    )
 
     assert passed is True
     assert details["invalid_rows"] == []
@@ -724,7 +741,9 @@ def test_check_values_have_the_correct_datatype_skips_unmapped_fields(tmp_path):
         "count": "integer",
     }
 
-    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+    passed, message, details = check_values_have_the_correct_datatype(
+        file_path, field_datatype
+    )
 
     assert passed is True
     assert details["invalid_rows"] == []
@@ -742,7 +761,9 @@ def test_check_values_have_the_correct_datatype_empty_file(tmp_path):
         "count": "integer",
     }
 
-    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+    passed, message, details = check_values_have_the_correct_datatype(
+        file_path, field_datatype
+    )
 
     assert passed is True
     assert details["invalid_rows"] == []
@@ -761,7 +782,9 @@ def test_check_values_have_the_correct_datatype_no_applicable_fields(tmp_path):
         "description": "string",
     }
 
-    passed, message, details = check_values_have_the_correct_datatype(file_path, field_datatype)
+    passed, message, details = check_values_have_the_correct_datatype(
+        file_path, field_datatype
+    )
 
     assert passed is True
     assert details["invalid_rows"] == []
