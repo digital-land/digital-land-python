@@ -26,8 +26,12 @@ def detect_file_encoding(path: str) -> Optional[str]:
     """Detect the character encoding of a file on disk.
 
     Returns the best-guess encoding name (e.g. "utf-8", "cp1252"), or None if
-    the file is empty or the encoding cannot be determined.
+    the file is empty or the encoding cannot be determined. UTF-8 BOM files are
+    returned as "utf-8-sig" so callers open them with automatic BOM stripping.
     """
+    with open(path, "rb") as f:
+        if f.read(3) == b"\xef\xbb\xbf":
+            return "utf-8-sig"
     result = from_path(path).best()
     return result.encoding if result else None
 
