@@ -102,6 +102,22 @@ def collection_with_transforms(tmp_path):
     return collection_dir, 4  # Return directory and expected count
 
 
+@pytest.fixture
+def collection_with_retired_resource(collection_with_transforms):
+    """Extends collection_with_transforms with a retired resource (no replacement).
+
+    resource1 is marked as retired with no replacement in old-resource.csv,
+    so it should be excluded from transform_resources even though it still
+    appears in dataset_resource_map().
+    """
+    collection_dir, _ = collection_with_transforms
+    old_resource_file = collection_dir / "old-resource.csv"
+    with open(old_resource_file, "w", newline="") as f:
+        f.write("old-resource,resource\n")
+        f.write("resource1,\n")  # retired, no replacement
+    return collection_dir
+
+
 def test_get_code_hash():
     proc = subprocess.run(
         "git log -n 1".split(), cwd=os.path.dirname(__file__), stdout=subprocess.PIPE
@@ -252,6 +268,20 @@ class TestState:
 
         for resources in result.values():
             assert resources == sorted(resources)
+
+    def test_get_transform_resources_by_dataset_excludes_retired_resources(
+        self, collection_with_retired_resource
+    ):
+        collection_dir = collection_with_retired_resource
+        collection = Collection(directory=str(collection_dir))
+        collection.load()
+
+        result = State.get_transform_resources_by_dataset(collection)
+
+        # resource1 is retired with no replacement — must not appear
+        assert "resource1" not in result["dataset1"]
+        # resource2 is still active
+        assert "resource2" in result["dataset1"]
 
     def test_build_includes_transform_resources(
         self, collection_with_transforms, tmp_path
