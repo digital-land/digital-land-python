@@ -2,22 +2,9 @@ from pathlib import Path
 import pandas as pd
 
 from digital_land.expectations.operations.datatype_validators import (
-    _is_valid_address_value,
-    _is_valid_curie_list_value,
-    _is_valid_curie_value,
-    _is_valid_datetime_value,
-    _is_valid_decimal_value,
-    _is_valid_flag_value,
-    _is_valid_hash_value,
-    _is_valid_integer_value,
-    _is_valid_json_value,
-    _is_valid_latitude_value,
-    _is_valid_longitude_value,
     _is_valid_multipolygon_value,
     _is_valid_pattern_value,
     _is_valid_point_value,
-    _is_valid_reference_value,
-    _is_valid_url_value,
 )
 
 
@@ -316,16 +303,8 @@ def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list
         field: the column name to validate
         allowed_values: allowed values for the field
     """
-    cleaned_allowed_values = [
-        str(value).strip().replace("'", "''")
-        for value in (allowed_values or [])
-        if str(value).strip() != ""
-    ]
 
-    if not cleaned_allowed_values:
-        raise ValueError("allowed_values must contain at least one non-empty value")
-
-    allowed_values_sql = ",".join("'" + value + "'" for value in cleaned_allowed_values)
+    allowed_values_sql = ",".join("'" + value + "'" for value in allowed_values)
 
     result = conn.execute(
         f"""
@@ -349,7 +328,7 @@ def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list
 
     details = {
         "field": field,
-        "allowed_values": sorted({value for value in cleaned_allowed_values}),
+        "allowed_values": sorted({value for value in allowed_values}),
         "invalid_values": invalid_values,
         "invalid_rows": invalid_rows,
     }
@@ -641,65 +620,127 @@ def check_field_is_within_range_by_dataset_org(
     return passed, message, details
 
 
-def check_values_have_the_correct_datatype(file_path, field_datatype, conn=None):
+def check_values_have_the_correct_datatype(conn, file_path, field_datatype):
     """
     Validates that CSV column values have correct datatypes.
+
+    Uses DuckDB queries for datatypes: integer, decimal, flag, latitude, longitude, hash, curie, curie-list, json, url, date, datetime.
+
+    Uses Python validators for complex datatypes: pattern, multipolygon, point.
 
     Args:
         file_path: path to the CSV file to validate
         field_datatype: dict mapping column name to datatype string
-        conn: duckdb connection not used but required by caller
     """
-    validators = {
-        "address": _is_valid_address_value,
-        "curie-list": _is_valid_curie_list_value,
-        "curie": _is_valid_curie_value,
-        "date": _is_valid_datetime_value,
-        "datetime": _is_valid_datetime_value,
-        "decimal": _is_valid_decimal_value,
-        "flag": _is_valid_flag_value,
-        "hash": _is_valid_hash_value,
-        "integer": _is_valid_integer_value,
-        "json": _is_valid_json_value,
-        "latitude": _is_valid_latitude_value,
-        "longitude": _is_valid_longitude_value,
-        "multipolygon": _is_valid_multipolygon_value,
+
+    def _get_sql_validation_condition(datatype: str, field_name: str) -> str:
+        field_ref = f"TRIM(COALESCE(\"{field_name}\", ''))"
+
+        conditions = {
+            "integer": f"{field_ref} != '' AND NOT (TRY_CAST({field_ref} AS DOUBLE) IS NOT NULL AND TRY_CAST({field_ref} AS DOUBLE) = TRY_CAST({field_ref} AS BIGINT))",
+            "decimal": f"{field_ref} != '' AND TRY_CAST({field_ref} AS DECIMAL) IS NULL",
+            "flag": f"{field_ref} != '' AND LOWER({field_ref}) NOT IN ('yes', 'no', 'true', 'false')",
+            "latitude": f"{field_ref} != '' AND (TRY_CAST({field_ref} AS DOUBLE) IS NULL OR TRY_CAST({field_ref} AS DOUBLE) < -90 OR TRY_CAST({field_ref} AS DOUBLE) > 90)",
+            "longitude": f"{field_ref} != '' AND (TRY_CAST({field_ref} AS DOUBLE) IS NULL OR TRY_CAST({field_ref} AS DOUBLE) < -180 OR TRY_CAST({field_ref} AS DOUBLE) > 180)",
+            "hash": f"{field_ref} != '' AND NOT (REGEXP_MATCHES({field_ref}, '^([a-z]+:)?[0-9a-fA-F]+$'))",
+            "curie": f"{field_ref} != '' AND NOT (REGEXP_MATCHES({field_ref}, '^[a-z0-9-]+:[^\\s:][^\\s]*$'))",
+            "curie-list": f"{field_ref} != '' AND NOT (REGEXP_MATCHES({field_ref}, '^([a-z0-9-]+:[^\\s:][^\\s]*(;[a-z0-9-]+:[^\\s:][^\\s]*)*)?$'))",
+            "json": f"{field_ref} != '' AND TRY(json_extract({field_ref}, '$')) IS NULL",
+            "url": f"{field_ref} != '' AND NOT (REGEXP_MATCHES({field_ref}, '^[a-zA-Z][a-zA-Z0-9+.-]*://[^\\s/:?#]+(?::[0-9]+)?(?:[/?#][^\\s]*)?$'))",
+            "date": f"{field_ref} != '' AND TRY_CAST({field_ref} AS DATE) IS NULL",
+            "datetime": f"{field_ref} != '' AND TRY_CAST({field_ref} AS TIMESTAMP) IS NULL",
+        }
+
+        return conditions.get(datatype, "FALSE")
+
+    # Python validators for complex datatypes that can't be easily expressed in SQL
+    python_validators = {
         "pattern": _is_valid_pattern_value,
+        "multipolygon": _is_valid_multipolygon_value,
         "point": _is_valid_point_value,
-        "reference": _is_valid_reference_value,
-        "url": _is_valid_url_value,
     }
 
-    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
+    sql_validators = {
+        "integer",
+        "decimal",
+        "flag",
+        "latitude",
+        "longitude",
+        "hash",
+        "curie",
+        "curie-list",
+        "json",
+        "url",
+        "date",
+        "datetime",
+    }
 
-    if df.empty or len(df.columns) == 0:
-        return True, "no invalid values found", {"invalid_rows": []}
+    fields_for_sql = []
+    fields_for_python = []
 
-    applicable_fields = [
-        (field, field_datatype.get(field), validators[field_datatype.get(field)])
-        for field in df.columns
-        if field in field_datatype and field_datatype.get(field) in validators
-    ]
-
-    if not applicable_fields:
-        return True, "no invalid values found", {"invalid_rows": []}
+    for field in field_datatype:
+        datatype = field_datatype.get(field)
+        if datatype in sql_validators:
+            fields_for_sql.append((field, datatype))
+        elif datatype in python_validators:
+            fields_for_python.append((field, datatype, python_validators[datatype]))
 
     invalid_values = []
-    for line_number, (_, row) in enumerate(df.iterrows(), start=2):
-        for field, datatype, validator in applicable_fields:
-            value = str(row.get(field, "")).strip()
-            if not value:
-                continue
 
-            if not validator(value):
+    # SQL validation: query invalid rows for each field
+    if fields_for_sql:
+        for field, datatype in fields_for_sql:
+            condition = _get_sql_validation_condition(datatype, field)
+
+            result = conn.execute(
+                f"""
+                WITH source_rows AS (
+                    SELECT
+                        ROW_NUMBER() OVER () + 1 AS line_number,
+                        *
+                    FROM {_read_csv(file_path)}
+                )
+                SELECT
+                    line_number,
+                    TRIM(COALESCE("{field}", '')) AS value
+                FROM source_rows
+                WHERE {condition}
+                """
+            ).fetchall()
+
+            for row in result:
                 invalid_values.append(
                     {
-                        "line_number": line_number,
+                        "line_number": row[0],
                         "field": field,
                         "datatype": datatype,
-                        "value": value,
+                        "value": row[1],
                     }
                 )
+
+    if fields_for_python:
+        df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
+
+        if df.empty or len(df.columns) == 0:
+            pass
+        else:
+            for line_number, (_, row) in enumerate(df.iterrows(), start=2):
+                for field, datatype, validator in fields_for_python:
+                    if field not in df.columns:
+                        continue
+                    value = str(row.get(field, "")).strip()
+                    if not value:
+                        continue
+
+                    if not validator(value):
+                        invalid_values.append(
+                            {
+                                "line_number": line_number,
+                                "field": field,
+                                "datatype": datatype,
+                                "value": value,
+                            }
+                        )
 
     if len(invalid_values) == 0:
         passed = True

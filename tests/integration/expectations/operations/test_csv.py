@@ -665,8 +665,9 @@ def test_check_values_have_the_correct_datatype_passes(tmp_path):
         "enabled": "flag",
     }
 
+    conn = duckdb.connect()
     passed, message, details = check_values_have_the_correct_datatype(
-        file_path, field_datatype
+        conn, file_path, field_datatype
     )
 
     assert passed is True
@@ -689,8 +690,10 @@ def test_check_values_have_the_correct_datatype_fails(tmp_path):
         "enabled": "flag",
     }
 
+    conn = duckdb.connect()
+
     passed, message, details = check_values_have_the_correct_datatype(
-        file_path, field_datatype
+        conn, file_path, field_datatype
     )
 
     assert passed is False
@@ -719,9 +722,9 @@ def test_check_values_have_the_correct_datatype_ignores_empty_values(tmp_path):
         "entity": "reference",
         "count": "integer",
     }
-
+    conn = duckdb.connect()
     passed, message, details = check_values_have_the_correct_datatype(
-        file_path, field_datatype
+        conn, file_path, field_datatype
     )
 
     assert passed is True
@@ -740,9 +743,9 @@ def test_check_values_have_the_correct_datatype_skips_unmapped_fields(tmp_path):
         "entity": "reference",
         "count": "integer",
     }
-
+    conn = duckdb.connect()
     passed, message, details = check_values_have_the_correct_datatype(
-        file_path, field_datatype
+        conn, file_path, field_datatype
     )
 
     assert passed is True
@@ -760,9 +763,9 @@ def test_check_values_have_the_correct_datatype_empty_file(tmp_path):
         "entity": "reference",
         "count": "integer",
     }
-
+    conn = duckdb.connect()
     passed, message, details = check_values_have_the_correct_datatype(
-        file_path, field_datatype
+        conn, file_path, field_datatype
     )
 
     assert passed is True
@@ -781,10 +784,340 @@ def test_check_values_have_the_correct_datatype_no_applicable_fields(tmp_path):
         "name": "string",
         "description": "string",
     }
-
+    conn = duckdb.connect()
     passed, message, details = check_values_have_the_correct_datatype(
-        file_path, field_datatype
+        conn, file_path, field_datatype
     )
 
     assert passed is True
     assert details["invalid_rows"] == []
+
+
+def test_check_values_have_the_correct_datatype_decimal(tmp_path):
+    """Test decimal datatype validation with both valid and invalid values."""
+    file_path = tmp_path / "decimal_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["price"])
+        writer.writerow(["100.50"])
+        writer.writerow(["0.99"])
+        writer.writerow(["999.999"])
+        writer.writerow(["not-a-decimal"])
+        writer.writerow(["12abc"])
+
+    field_datatype = {"price": "decimal"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+    assert any(r["value"] == "not-a-decimal" for r in details["invalid_rows"])
+    assert any(r["value"] == "12abc" for r in details["invalid_rows"])
+
+
+def test_check_values_have_the_correct_datatype_latitude_longitude(tmp_path):
+    """Test latitude and longitude datatype validation with valid and invalid values."""
+    file_path = tmp_path / "coordinates.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["latitude", "longitude"])
+        writer.writerow(["0", "0"])
+        writer.writerow(["51.5074", "-0.1278"])
+        writer.writerow(["-33.8688", "151.2093"])
+        writer.writerow(["90", "180"])
+        writer.writerow(["91", "0"])
+        writer.writerow(["0", "181"])
+
+    field_datatype = {
+        "latitude": "latitude",
+        "longitude": "longitude",
+    }
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_flag(tmp_path):
+    """Test flag datatype validation with valid and invalid values."""
+    file_path = tmp_path / "flag_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["active"])
+        writer.writerow(["true"])
+        writer.writerow(["false"])
+        writer.writerow(["y"])
+        writer.writerow(["n"])
+        writer.writerow(["yes"])
+        writer.writerow(["no"])
+        writer.writerow(["maybe"])
+        writer.writerow(["1"])
+
+    field_datatype = {"active": "flag"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 4
+
+
+def test_check_values_have_the_correct_datatype_hash(tmp_path):
+    """Test hash datatype validation with valid and invalid values."""
+    file_path = tmp_path / "hash_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["content_hash"])
+        writer.writerow(["abcdef123456"])
+        writer.writerow(["abc:1234567890abcdef"])
+        writer.writerow(["sha:5d41402abc4b2a76b9719d911017c592"])
+        writer.writerow(["not-a-hash"])
+        writer.writerow(["xyz:notahex"])
+
+    field_datatype = {"content_hash": "hash"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_curie(tmp_path):
+    """Test curie datatype validation with valid and invalid values."""
+    file_path = tmp_path / "curie_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["identifier"])
+        writer.writerow(["prefix:value"])
+        writer.writerow(["org:entity123"])
+        writer.writerow(["schema:name"])
+        writer.writerow(["prefix:"])
+        writer.writerow(["no_colon"])
+        writer.writerow(["prefix: space"])
+
+    field_datatype = {"identifier": "curie"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 3
+
+
+def test_check_values_have_the_correct_datatype_curie_list(tmp_path):
+    """Test curie-list datatype validation with valid and invalid values."""
+    file_path = tmp_path / "curie_list_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["identifiers"])
+        writer.writerow(["prefix:value1;org:value2"])
+        writer.writerow(["schema:name"])
+        writer.writerow([""])
+        writer.writerow(["not-valid"])
+        writer.writerow(["prefix: value"])
+
+    field_datatype = {"identifiers": "curie-list"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_json(tmp_path):
+    """Test json datatype validation with valid and invalid JSON."""
+    file_path = tmp_path / "json_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["data"])
+        writer.writerow(['{"key":"value"}'])
+        writer.writerow(['{"nested":{"field":"value"}}'])
+        writer.writerow(["not json"])  # Invalid
+        writer.writerow(['{"incomplete":'])  # Invalid (malformed)
+
+    field_datatype = {"data": "json"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_url(tmp_path):
+    """Test url datatype validation with valid and invalid URLs."""
+    file_path = tmp_path / "url_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["website"])
+        writer.writerow(["https://example.com"])
+        writer.writerow(["http://test.org"])
+        writer.writerow(["ftp://files.example.com"])
+        writer.writerow(["not a url"])  # Invalid (no scheme)
+        writer.writerow(["example.com"])  # Invalid (no scheme)
+
+    field_datatype = {"website": "url"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_date(tmp_path):
+    """Test date datatype validation with valid and invalid dates."""
+    file_path = tmp_path / "date_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["start_date"])
+        writer.writerow(["2024-01-15"])
+        writer.writerow(["2023-12-31"])
+        writer.writerow(["2022-06-30"])
+        writer.writerow(["not-a-date"])
+        writer.writerow(["2024-13-01"])
+
+    field_datatype = {"start_date": "date"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_datetime(tmp_path):
+    """Test datetime datatype validation with valid and invalid datetimes."""
+    file_path = tmp_path / "datetime_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["timestamp"])
+        writer.writerow(["2024-01-15T10:30:45"])
+        writer.writerow(["2023-12-31T23:59:59Z"])
+        writer.writerow(["2022-06-30T12:00:00+00:00"])
+        writer.writerow(["not-a-datetime"])
+        writer.writerow(["2024-13-01T10:00:00"])
+
+    field_datatype = {"timestamp": "datetime"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_pattern(tmp_path):
+    """Test pattern datatype validation with valid and invalid regex patterns."""
+    file_path = tmp_path / "pattern_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["regex"])
+        writer.writerow(["^[A-Z]+$"])
+        writer.writerow(["\\d{3}-\\d{4}"])
+        writer.writerow(["(foo|bar)"])
+        writer.writerow(["["])
+        writer.writerow(["(unclosed"])
+
+    field_datatype = {"regex": "pattern"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_point(tmp_path):
+    """Test point datatype validation (WKT format) with valid and invalid values."""
+    file_path = tmp_path / "point_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["geometry"])
+        writer.writerow(["POINT(0 0)"])
+        writer.writerow(["POINT(51.5074 -0.1278)"])
+        writer.writerow(["POINT(-33.8688 151.2093)"])
+        writer.writerow(["not wkt"])
+        writer.writerow(["POINT(0)"])
+
+    field_datatype = {"geometry": "point"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_multipolygon(tmp_path):
+    """Test multipolygon datatype validation (WKT format) with valid and invalid values."""
+    file_path = tmp_path / "multipolygon_values.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["boundary"])
+        writer.writerow(["POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))"])
+        writer.writerow(
+            [
+                "MULTIPOLYGON(((0 0, 10 0, 10 10, 0 10, 0 0)), ((20 20, 30 20, 30 30, 20 30, 20 20)))"
+            ]
+        )
+        writer.writerow(["not wkt"])  # Invalid
+        writer.writerow(["POINT(0 0)"])  # Invalid (not a polygon/multipolygon)
+
+    field_datatype = {"boundary": "multipolygon"}
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+
+
+def test_check_values_have_the_correct_datatype_mixed_types(tmp_path):
+    """Test validation with multiple different datatypes in one file."""
+    file_path = tmp_path / "mixed_datatypes.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["id", "price", "active", "latitude", "url", "date"])
+        writer.writerow(
+            ["org-001", "99.99", "true", "51.5074", "https://example.com", "2024-01-15"]
+        )
+        writer.writerow(
+            ["org-002", "150.50", "false", "-33.8688", "https://test.org", "2023-12-31"]
+        )
+        writer.writerow(
+            ["org 003", "invalid", "maybe", "91", "not-a-url", "not-a-date"]
+        )
+
+    field_datatype = {
+        "price": "decimal",
+        "active": "flag",
+        "latitude": "latitude",
+        "url": "url",
+        "date": "date",
+    }
+    conn = duckdb.connect()
+    passed, message, details = check_values_have_the_correct_datatype(
+        conn, file_path, field_datatype
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 5
