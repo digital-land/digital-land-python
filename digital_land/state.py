@@ -59,6 +59,13 @@ class State(dict):
                     current_config_hash=pipeline_hash,
                     current_specification_hash=specification_hash,
                 ),
+                "transform_resources": State.get_transform_resources_by_dataset(
+                    collection,
+                    dataset_resource_dir=dataset_resource_dir,
+                    current_code_version=__version__,
+                    current_config_hash=pipeline_hash,
+                    current_specification_hash=specification_hash,
+                ),
             }
         )
 
@@ -174,6 +181,41 @@ class State(dict):
                 )
         return transform_count_by_dataset
 
+    def get_transform_resources_by_dataset(
+        collection: Collection,
+        dataset_resource_dir=None,
+        current_code_version=None,
+        current_config_hash=None,
+        current_specification_hash=None,
+    ):
+        """Get the resource hashes that need transformation per dataset.
+
+        When dataset_resource_dir is provided, only resources whose existing log
+        differs from the current code version, config hash, or specification hash
+        are included. If None, all resources are included.
+
+        Returns a dict mapping dataset name to a sorted list of resource hashes.
+        """
+        dataset_resource = collection.dataset_resource_map()
+        resources_by_dataset = {}
+        for dataset, resources in dataset_resource.items():
+            if dataset_resource_dir is None:
+                resources_by_dataset[dataset] = sorted(resources)
+            else:
+                resources_by_dataset[dataset] = sorted(
+                    resource
+                    for resource in resources
+                    if resource_needs_processing(
+                        dataset_resource_dir,
+                        dataset,
+                        resource,
+                        current_code_version,
+                        current_config_hash,
+                        current_specification_hash,
+                    )
+                )
+        return resources_by_dataset
+
 
 def compare_state(
     specification_dir,
@@ -207,6 +249,9 @@ def compare_state(
     # transform count by dataset should not be compared as it changes
     current.pop("transform_count_by_dataset", None)
     compare.pop("transform_count_by_dataset", None)
+    # transform resources should not be compared as it changes
+    current.pop("transform_resources", None)
+    compare.pop("transform_resources", None)
 
     if current == compare:
         return None

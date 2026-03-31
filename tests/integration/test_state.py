@@ -226,3 +226,59 @@ def test_state_build_has_transform_count(collection_with_transforms, tmp_path):
     assert (
         test_state["transform_count"] == expected_count
     ), f"Expected {expected_count} transforms, got {test_state['transform_count']}"
+
+
+class TestState:
+    def test_get_transform_resources_by_dataset_returns_all_resources(
+        self, collection_with_transforms
+    ):
+        collection_dir, _ = collection_with_transforms
+        collection = Collection(directory=str(collection_dir))
+        collection.load()
+
+        result = State.get_transform_resources_by_dataset(collection)
+
+        assert set(result["dataset1"]) == {"resource1", "resource2"}
+        assert set(result["dataset2"]) == {"resource2", "resource3"}
+
+    def test_get_transform_resources_by_dataset_returns_sorted_lists(
+        self, collection_with_transforms
+    ):
+        collection_dir, _ = collection_with_transforms
+        collection = Collection(directory=str(collection_dir))
+        collection.load()
+
+        result = State.get_transform_resources_by_dataset(collection)
+
+        for resources in result.values():
+            assert resources == sorted(resources)
+
+    def test_build_includes_transform_resources(
+        self, collection_with_transforms, tmp_path
+    ):
+        collection_dir, _ = collection_with_transforms
+        specification_dir = tmp_path / "specification"
+        specification_dir.mkdir()
+        pipeline_dir = tmp_path / "pipeline"
+        pipeline_dir.mkdir()
+        resource_dir = tmp_path / "resource"
+        resource_dir.mkdir()
+
+        test_state = State.build(
+            str(specification_dir),
+            str(collection_dir),
+            str(pipeline_dir),
+            str(resource_dir),
+            True,
+        )
+
+        assert "transform_resources" in test_state
+        assert isinstance(test_state["transform_resources"], dict)
+        assert set(test_state["transform_resources"]["dataset1"]) == {
+            "resource1",
+            "resource2",
+        }
+        assert set(test_state["transform_resources"]["dataset2"]) == {
+            "resource2",
+            "resource3",
+        }
