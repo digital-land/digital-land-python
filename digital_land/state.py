@@ -59,6 +59,13 @@ class State(dict):
                     current_config_hash=pipeline_hash,
                     current_specification_hash=specification_hash,
                 ),
+                "transform_resources": State.get_transform_resources_by_dataset(
+                    collection,
+                    dataset_resource_dir=dataset_resource_dir,
+                    current_code_version=__version__,
+                    current_config_hash=pipeline_hash,
+                    current_specification_hash=specification_hash,
+                ),
             }
         )
 
@@ -109,6 +116,21 @@ class State(dict):
         commit = repo.revparse_single("HEAD")
         return str(commit.id)
 
+    def _active_dataset_resources(collection: Collection):
+        """Return dataset_resource_map with retired resources (no replacement) removed.
+
+        Applies the same redirect filtering as makerules so that counts and
+        resource lists only include resources that will actually be processed.
+        """
+        redirect = {
+            entry["old-resource"]: entry["resource"]
+            for entry in collection.old_resource.entries
+        }
+        return {
+            dataset: {r for r in resources if redirect.get(r, r)}
+            for dataset, resources in collection.dataset_resource_map().items()
+        }
+
     def get_transform_count(
         collection: Collection,
         dataset_resource_dir=None,
@@ -118,11 +140,12 @@ class State(dict):
     ):
         """Calculate the number of transformations that need to be completed.
 
-        When dataset_resource_dir is provided, only resources whose existing log
+        Retired resources with no replacement are excluded. When
+        dataset_resource_dir is provided, only resources whose existing log
         differs from the current code version, config hash, or specification hash
-        are counted. If None, all resources are counted.
+        are counted. If None, all active resources are counted.
         """
-        dataset_resource = collection.dataset_resource_map()
+        dataset_resource = State._active_dataset_resources(collection)
 
         if dataset_resource_dir is None:
             return sum(len(resources) for resources in dataset_resource.values())
@@ -150,11 +173,12 @@ class State(dict):
     ):
         """Calculate the number of transformations needed per dataset.
 
-        When dataset_resource_dir is provided, only resources whose existing log
+        Retired resources with no replacement are excluded. When
+        dataset_resource_dir is provided, only resources whose existing log
         differs from the current code version, config hash, or specification hash
-        are counted. If None, all resources are counted.
+        are counted. If None, all active resources are counted.
         """
-        dataset_resource = collection.dataset_resource_map()
+        dataset_resource = State._active_dataset_resources(collection)
         transform_count_by_dataset = {}
         for dataset, resources in dataset_resource.items():
             if dataset_resource_dir is None:
@@ -173,6 +197,43 @@ class State(dict):
                     )
                 )
         return transform_count_by_dataset
+
+    def get_transform_resources_by_dataset(
+        collection: Collection,
+        dataset_resource_dir=None,
+        current_code_version=None,
+        current_config_hash=None,
+        current_specification_hash=None,
+    ):
+        """Get the resource hashes that need transformation per dataset.
+
+        Retired resources with no replacement are excluded. When
+        dataset_resource_dir is provided, only resources whose existing log
+        differs from the current code version, config hash, or specification hash
+        are included. If None, all active resources are included.
+
+        Returns a dict mapping dataset name to a sorted list of resource hashes.
+        """
+        dataset_resource = State._active_dataset_resources(collection)
+
+        resources_by_dataset = {}
+        for dataset, resources in dataset_resource.items():
+            if dataset_resource_dir is None:
+                resources_by_dataset[dataset] = sorted(resources)
+            else:
+                resources_by_dataset[dataset] = sorted(
+                    resource
+                    for resource in resources
+                    if resource_needs_processing(
+                        dataset_resource_dir,
+                        dataset,
+                        resource,
+                        current_code_version,
+                        current_config_hash,
+                        current_specification_hash,
+                    )
+                )
+        return resources_by_dataset
 
 
 def compare_state(
@@ -207,6 +268,9 @@ def compare_state(
     # transform count by dataset should not be compared as it changes
     current.pop("transform_count_by_dataset", None)
     compare.pop("transform_count_by_dataset", None)
+    # transform resources should not be compared as it changes
+    current.pop("transform_resources", None)
+    compare.pop("transform_resources", None)
 
     if current == compare:
         return None
