@@ -1,17 +1,8 @@
 import json
-import re
 
 import shapely.errors
 import shapely.wkt
 from shapely.geometry import GeometryCollection, MultiPolygon, Point, Polygon, shape
-
-
-def _is_valid_pattern_value(value):
-    try:
-        re.compile(value)
-        return True
-    except re.error:
-        return False
 
 
 def _is_valid_multipolygon_value(value):
