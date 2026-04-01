@@ -422,6 +422,11 @@ def dataset_create(
     if pqpackage.strategy != "direct":
         pqpackage.group_parquet_files(input_dir, target_mb=256)
     pqpackage.load_facts(input_dir)
+    # temporary diagnostic to verify fact count before sqlite load
+    fact_parquet_count = pqpackage.conn.execute(
+        f"SELECT COUNT(*) FROM parquet_scan('{pqpackage.fact_path}')"
+    ).fetchone()[0]
+    logger.info(f"fact.parquet row count before sqlite load: {fact_parquet_count}")
     pqpackage.load_fact_resource(input_dir)
     pqpackage.load_entities(input_dir, resource_path, organisation_path)
 
