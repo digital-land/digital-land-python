@@ -980,3 +980,69 @@ def test_load_pq_to_sqlite_basic(
     ), "Some json object have underscores in their 'keys'"
 
     cnx.close()
+
+
+def test_multi_bucket_load_facts_no_fact_loss(tmp_path):
+    """
+    Exercises the multi-bucket path in load_facts end-to-end and asserts that
+    every unique fact in the input appears exactly once in fact.parquet.
+
+    The multi-bucket path is forced by:
+    - creating one small parquet file per fact so group_parquet_files produces
+      many batch files (one per source file with target_mb=0.001)
+    - overriding parquet_dir_details to simulate a large dataset relative to
+      available memory, pushing n_buckets above 1
+
+    If any facts are silently dropped during bucket assignment or the final merge
+    this test will fail.
+    """
+    n_facts = 50
+    unique_facts = [f"{'a' * 63}{i}" for i in range(n_facts)]
+
+    transformed_dir = tmp_path / "transformed"
+    transformed_dir.mkdir()
+
+    for i, fact_hash in enumerate(unique_facts):
+        pd.DataFrame(
+            {
+                "end_date": [""],
+                "entity": [i + 1],
+                "entry_date": ["2023-01-01"],
+                "entry_number": ["1"],
+                "fact": [fact_hash],
+                "field": ["name"],
+                "priority": ["1"],
+                "reference_entity": [""],
+                "resource": ["resource_abc"],
+                "start_date": [""],
+                "value": [f"value_{i}"],
+            }
+        ).to_parquet(transformed_dir / f"resource_{i}.parquet", index=False)
+
+    package = DatasetParquetPackage(
+        dataset="conservation-area",
+        path=tmp_path / "output",
+        specification_dir=None,
+        transformed_parquet_dir=transformed_dir,
+    )
+
+    # One source file per batch, giving n_facts batch files
+    package.group_parquet_files(transformed_dir, target_mb=0.001)
+
+    # Simulate large-dataset conditions so n_buckets > 1 is calculated
+    package.parquet_dir_details["total_size_mb"] = 100.0
+    package.parquet_dir_details["memory_available"] = 1.0
+
+    package.load_facts(transformed_dir)
+
+    output_file = (
+        tmp_path / "output" / "fact" / "dataset=conservation-area" / "fact.parquet"
+    )
+    assert output_file.exists(), "fact.parquet was not created"
+
+    df_result = pd.read_parquet(output_file)
+
+    assert len(df_result) == n_facts, (
+        f"Expected {n_facts} facts but got {len(df_result)}. "
+        "The multi-bucket path silently dropped some facts."
+    )
