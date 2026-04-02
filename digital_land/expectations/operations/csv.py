@@ -1,8 +1,142 @@
 from pathlib import Path
+import re
+import pandas as pd
+
+from digital_land.expectations.operations.datatype_validators import (
+    _is_valid_multipolygon_value,
+    _is_valid_point_value,
+)
 
 
 def _read_csv(file_path: Path) -> str:
     return f"read_csv_auto('{str(file_path)}',all_varchar=true,delim=',',quote='\"',escape='\"')"
+
+
+def _get_csv_columns(conn, file_path: Path) -> list:
+    """Get column names from CSV file."""
+    return [
+        col[0]
+        for col in conn.execute(
+            f"SELECT * FROM {_read_csv(file_path)} LIMIT 0"
+        ).description
+    ]
+
+
+def _sql_string(value) -> str:
+    cleaned = str(value).strip().replace("'", "''")
+    return f"'{cleaned}'"
+
+
+def _build_field_condition(field_name: str, spec) -> str:
+    if isinstance(spec, dict):
+        op = str(spec.get("op", spec.get("operation", ""))).strip().lower()
+        value = spec.get("value")
+        if not op:
+            raise ValueError(
+                f"Condition for '{field_name}' must include 'op' when using dict format"
+            )
+    else:
+        op = "="
+        value = spec
+
+    if op in ("=", "=="):
+        return f'"{field_name}" = {_sql_string(value)}'
+    if op in ("!=", "<>"):
+        return f'"{field_name}" != {_sql_string(value)}'
+    if op in ("in", "not in"):
+        if not isinstance(value, (list, tuple, set)) or len(value) == 0:
+            raise ValueError(
+                f"Condition for '{field_name}' with op '{op}' must use a non-empty list"
+            )
+        values_sql = ", ".join(_sql_string(item) for item in value)
+        return f'"{field_name}" {op.upper()} ({values_sql})'
+
+    raise ValueError(
+        f"Unsupported operator '{op}' for field '{field_name}'. Supported: =, !=, in, not in"
+    )
+
+
+def _build_filter_clause(filter_spec, file_columns: list, name: str) -> str:
+    """Build SQL clause that keeps rows matching structured conditions."""
+    if filter_spec is None:
+        groups = []
+    elif isinstance(filter_spec, dict):
+        groups = [filter_spec]
+    elif isinstance(filter_spec, list):
+        groups = filter_spec
+    else:
+        raise ValueError(f"{name} must be a dict, list of dicts, or None")
+
+    if not groups:
+        return ""
+
+    clauses = []
+    for group in groups:
+        if not isinstance(group, dict) or not group:
+            raise ValueError("Each condition group must be a non-empty dict")
+
+        parts = []
+        for field_name, spec in group.items():
+            if field_name not in file_columns:
+                raise ValueError(
+                    f"Column '{field_name}' not found in file. Available columns: {file_columns}"
+                )
+            parts.append(_build_field_condition(field_name, spec))
+
+        clauses.append(f"({' AND '.join(parts)})")
+
+    return f" AND ({' OR '.join(clauses)})"
+
+
+def _normalize_fields_for_validation(field_spec, file_columns: list) -> list:
+    """Normalize a field spec into a list of column names to validate."""
+    if isinstance(field_spec, str):
+        fields = [item.strip() for item in field_spec.split(",") if item.strip()]
+    elif isinstance(field_spec, (list, tuple, set)):
+        fields = [str(item).strip() for item in field_spec if str(item).strip()]
+    else:
+        raise ValueError(
+            "field must be a string, comma-separated string, or list of strings"
+        )
+
+    if not fields:
+        raise ValueError("field must include at least one column name")
+
+    seen = set()
+    normalized_fields = []
+    for field_name in fields:
+        if field_name not in seen:
+            seen.add(field_name)
+            normalized_fields.append(field_name)
+
+    missing_fields = [
+        field_name for field_name in normalized_fields if field_name not in file_columns
+    ]
+    if missing_fields:
+        raise ValueError(
+            f"Column(s) {missing_fields} not found in file. Available columns: {file_columns}"
+        )
+
+    return normalized_fields
+
+
+def _build_range_invalid_rows(
+    result: list,
+    validating_multiple_fields: bool,
+) -> list:
+    """Format query rows into expectation invalid_rows shape."""
+    out_of_range_rows = []
+
+    for row in result:
+        field_name = row[1]
+
+        invalid_row = {"line_number": row[0], "value": row[2]}
+        if validating_multiple_fields:
+            invalid_row["field"] = field_name
+
+        out_of_range_rows.append(invalid_row)
+
+    return out_of_range_rows
 
 
 def count_rows(
@@ -157,3 +291,743 @@ def check_no_overlapping_ranges(conn, file_path: Path, min_field: str, max_field
     }
 
     return passed, message, details
+
+
+def check_allowed_values(conn, file_path: Path, field: str, allowed_values: list):
+    """
+    Checks that a field contains only values from an allowed set.
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file
+        field: the column name to validate
+        allowed_values: allowed values for the field
+    """
+
+    allowed_values_sql = ",".join("'" + value + "'" for value in allowed_values)
+
+    result = conn.execute(
+        f"""
+        SELECT
+            ROW_NUMBER() OVER () + 1 AS line_number,
+            TRIM(COALESCE("{field}", '')) AS value
+        FROM {_read_csv(file_path)}
+        WHERE TRIM(COALESCE("{field}", '')) NOT IN ({allowed_values_sql})
+        """
+    ).fetchall()
+
+    invalid_rows = [{"line_number": row[0], "value": row[1]} for row in result]
+    invalid_values = sorted({row["value"] for row in invalid_rows})
+
+    if len(invalid_rows) == 0:
+        passed = True
+        message = f"all values in '{field}' are allowed"
+    else:
+        passed = False
+        message = f"there were {len(invalid_rows)} invalid values in '{field}'"
+
+    details = {
+        "field": field,
+        "allowed_values": sorted({value for value in allowed_values}),
+        "invalid_values": invalid_values,
+        "invalid_rows": invalid_rows,
+    }
+
+    return passed, message, details
+
+
+def check_no_blank_rows(conn, file_path: Path):
+    """
+    Checks that the CSV does not contain fully blank rows.
+
+    A row is considered blank when every column is empty after trimming whitespace.
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file
+    """
+    file_columns = _get_csv_columns(conn, file_path)
+    if not file_columns:
+        return True, "no blank rows found", {"invalid_rows": []}
+
+    blank_conditions = " AND ".join(
+        f"TRIM(COALESCE(\"{column_name}\", '')) = ''" for column_name in file_columns
+    )
+
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT
+                ROW_NUMBER() OVER () + 1 AS line_number,
+                *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT
+            line_number
+        FROM source_rows
+        WHERE {blank_conditions}
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    invalid_rows = [{"line_number": row[0]} for row in result]
+
+    if len(invalid_rows) == 0:
+        passed = True
+        message = "no blank rows found"
+    else:
+        passed = False
+        message = f"there were {len(invalid_rows)} blank rows found"
+
+    details = {
+        "invalid_rows": invalid_rows,
+    }
+    return passed, message, details
+
+
+def check_fields_are_within_range(
+    conn,
+    file_path: Path,
+    field: str,
+    external_file: Path,
+    min_field: str,
+    max_field: str,
+    rules: dict = None,
+):
+    """
+    Check that one or more lookup fields are within ranges from an external file.
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file containing fields to validate
+        field: column name(s) to validate.
+               You can pass a single name ("entity") or a comma-separated list
+               ("entity, end-entity"). All specified fields must be within range.
+        external_file: path to the CSV file containing valid ranges
+        min_field: the column name for the range minimum
+        max_field: the column name for the range maximum
+        rules: optional dict controlling subset selection on lookup rows.
+               Supported keys:
+               - lookup_rules: dict or list[dict] of structured conditions.
+                 Fields in one dict are AND'ed; multiple dicts are OR'ed.
+               Examples:
+               {"lookup_rules": {"prefix": "conservationarea"}}
+               {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+               Use operators like != and not in when you want to exclude rows.
+    """
+    file_columns = _get_csv_columns(conn, file_path)
+    rules = rules or {}
+    if not isinstance(rules, dict):
+        raise ValueError("rules must be a dictionary or None")
+
+    lookup_clause = _build_filter_clause(
+        rules.get("lookup_rules"),
+        file_columns,
+        "rules.lookup_rules",
+    )
+
+    fields_to_validate = _normalize_fields_for_validation(field, file_columns)
+    validating_multiple_fields = len(fields_to_validate) > 1
+    lookup_values_sql = ",\n                    ".join(
+        f'({i}, {_sql_string(field_name)}, TRY_CAST(src."{field_name}" AS BIGINT))'
+        for i, field_name in enumerate(fields_to_validate)
+    )
+
+    result = conn.execute(
+        f"""
+        WITH ranges AS (
+            SELECT
+                TRY_CAST("{min_field}" AS BIGINT) AS min_value,
+                TRY_CAST("{max_field}" AS BIGINT) AS max_value
+            FROM {_read_csv(external_file)}
+            WHERE TRY_CAST("{min_field}" AS BIGINT) IS NOT NULL
+              AND TRY_CAST("{max_field}" AS BIGINT) IS NOT NULL
+        ),
+        source_rows AS (
+            SELECT
+                ROW_NUMBER() OVER () + 1 AS line_number,
+                *
+            FROM {_read_csv(file_path)}
+        ),
+        lookup_rows AS (
+            SELECT
+                src.line_number,
+                fields.field_order,
+                fields.field_name,
+                fields.value
+            FROM source_rows src
+            CROSS JOIN LATERAL (
+                VALUES
+                    {lookup_values_sql}
+            ) AS fields(field_order, field_name, value)
+            WHERE fields.value IS NOT NULL{lookup_clause}
+        )
+        SELECT
+            line_number,
+            field_name,
+            value
+        FROM lookup_rows l
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM ranges r
+            WHERE l.value BETWEEN r.min_value AND r.max_value
+        )
+        ORDER BY field_order, line_number
+        """
+    ).fetchall()
+
+    out_of_range_rows = _build_range_invalid_rows(
+        result=result,
+        validating_multiple_fields=validating_multiple_fields,
+    )
+
+    if len(out_of_range_rows) == 0:
+        passed = True
+        message = f"all values in '{field}' are within allowed ranges"
+    else:
+        passed = False
+        message = f"there were {len(out_of_range_rows)} out-of-range rows found"
+
+    details = {"invalid_rows": out_of_range_rows}
+    return passed, message, details
+
+
+def check_field_is_within_range_by_dataset_org(
+    conn,
+    file_path: Path,
+    field: str,
+    external_file: Path,
+    min_field: str,
+    max_field: str,
+    lookup_dataset_field: str,
+    range_dataset_field: str,
+    rules: dict = None,
+):
+    """
+    Check field values are within ranges matched by dataset field and organisation.
+
+    Matching is fixed to two keys:
+    1. lookup_dataset_field -> range_dataset_field
+    2. organisation -> organisation
+
+    Args:
+        conn: duckdb connection
+        file_path: path to the CSV file containing fields to validate
+        field: single column name to validate (for example: "entity").
+        external_file: path to the CSV file containing valid ranges
+        min_field: the column name for the range minimum
+        max_field: the column name for the range maximum
+        lookup_dataset_field: dataset column name in file_path
+        range_dataset_field: dataset column name in external_file
+        rules: optional dict controlling subset selection on lookup rows.
+               Supported keys:
+               - lookup_rules: dict or list[dict] of structured conditions.
+                 Fields in one dict are AND'ed; multiple dicts are OR'ed.
+               Examples:
+               {"lookup_rules": {"prefix": "conservationarea"}}
+               {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+               Use operators like != and not in when you want to exclude rows.
+    """
+    file_columns = _get_csv_columns(conn, file_path)
+    rules = rules or {}
+    if not isinstance(rules, dict):
+        raise ValueError("rules must be a dictionary or None")
+
+    lookup_clause = _build_filter_clause(
+        rules.get("lookup_rules"),
+        file_columns,
+        "rules.lookup_rules",
+    )
+
+    fields_to_validate = _normalize_fields_for_validation(field, file_columns)
+    if len(fields_to_validate) != 1:
+        raise ValueError("field must be a single column name")
+    field_name = fields_to_validate[0]
+
+    lookup_dataset_name = str(lookup_dataset_field).strip()
+    range_dataset_name = str(range_dataset_field).strip()
+    lookup_match_columns = [lookup_dataset_name, "organisation"]
+
+    lookup_dataset_col = f'"{lookup_dataset_name}"'
+    range_dataset_col = f'"{range_dataset_name}"'
+    min_col = f'"{min_field}"'
+    max_col = f'"{max_field}"'
+    value_col = f'"{field_name}"'
+
+    result = conn.execute(
+        f"""
+        WITH ranges AS (
+            SELECT
+                TRY_CAST({min_col} AS BIGINT) AS min_value,
+                TRY_CAST({max_col} AS BIGINT) AS max_value,
+                TRIM(COALESCE({range_dataset_col}, '')) AS range_key_0,
+                                TRIM(COALESCE("organisation", '')) AS range_key_1
+            FROM {_read_csv(external_file)}
+            WHERE TRY_CAST({min_col} AS BIGINT) IS NOT NULL
+              AND TRY_CAST({max_col} AS BIGINT) IS NOT NULL
+              AND TRIM(COALESCE({range_dataset_col}, '')) != ''
+                            AND TRIM(COALESCE("organisation", '')) != ''
+        ),
+        source_rows AS (
+            SELECT
+                ROW_NUMBER() OVER () + 1 AS line_number,
+                *
+            FROM {_read_csv(file_path)}
+        ),
+        lookup_rows AS (
+            SELECT
+                src.line_number,
+                TRY_CAST(src.{value_col} AS BIGINT) AS value,
+                TRIM(COALESCE(src.{lookup_dataset_col}, '')) AS lookup_key_0,
+                TRIM(COALESCE(src."organisation", '')) AS lookup_key_1
+            FROM source_rows src
+            WHERE TRY_CAST(src.{value_col} AS BIGINT) IS NOT NULL
+              AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
+              AND TRIM(COALESCE(src."organisation", '')) != ''{lookup_clause}
+        )
+        SELECT
+            line_number,
+            value,
+            lookup_key_0,
+            lookup_key_1
+        FROM lookup_rows l
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM ranges r
+            WHERE l.value BETWEEN r.min_value AND r.max_value
+                  AND l.lookup_key_0 = r.range_key_0
+                  AND l.lookup_key_1 = r.range_key_1
+        )
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    out_of_range_rows = []
+    for row in result:
+        invalid_row = {"line_number": row[0], field_name: row[1]}
+        for i, col_name in enumerate(lookup_match_columns):
+            invalid_row[col_name] = row[i + 2]
+        out_of_range_rows.append(invalid_row)
+
+    if len(out_of_range_rows) == 0:
+        passed = True
+        message = f"all values in '{field}' are within allowed ranges"
+    else:
+        passed = False
+        message = f"there were {len(out_of_range_rows)} out-of-range rows found"
+
+    details = {"invalid_rows": out_of_range_rows}
+    return passed, message, details
+
+
+def expect_column_to_be_integer(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND NOT (
+              TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) IS NOT NULL
+              AND TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) = TRY_CAST(TRIM(COALESCE("{field}", '')) AS BIGINT)
+          )
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "integer", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'integer'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'integer' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_decimal(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND TRY_CAST(TRIM(COALESCE("{field}", '')) AS DECIMAL) IS NULL
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "decimal", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'decimal'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'decimal' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_flag(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND LOWER(TRIM(COALESCE("{field}", ''))) NOT IN ('yes', 'no', 'true', 'false')
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "flag", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'flag'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'flag' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_latitude(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND (
+              TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) IS NULL
+              OR TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) < -90
+              OR TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) > 90
+          )
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "latitude", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'latitude'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'latitude' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_longitude(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND (
+              TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) IS NULL
+              OR TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) < -180
+              OR TRY_CAST(TRIM(COALESCE("{field}", '')) AS DOUBLE) > 180
+          )
+        """
+    ).fetchall()
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "longitude",
+            "value": row[1],
+        }
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'longitude'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'longitude' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_hash(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND NOT (REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), '^([a-z]+:)?[0-9a-fA-F]+$'))
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "hash", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'hash'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'hash' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_curie(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND NOT (REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), '^[a-z0-9-]+:[^\\s:][^\\s]*$'))
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "curie", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'curie'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'curie' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_curie_list(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND NOT (REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), '^([a-z0-9-]+:[^\\s:][^\\s]*(;[a-z0-9-]+:[^\\s:][^\\s]*)*)?$'))
+        """
+    ).fetchall()
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "curie-list",
+            "value": row[1],
+        }
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'curie-list'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'curie-list' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_json(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND TRY(json_extract(TRIM(COALESCE("{field}", '')), '$')) IS NULL
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "json", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'json'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'json' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_url(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND NOT (REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), '^[a-zA-Z][a-zA-Z0-9+.-]*://[^\\s/:?#]+(?::[0-9]+)?(?:[/?#][^\\s]*)?$'))
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "url", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'url'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'url' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_date(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND TRY_CAST(TRIM(COALESCE("{field}", '')) AS DATE) IS NULL
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "date", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'date'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'date' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_datetime(conn, file_path: Path, field: str):
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT line_number, TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND TRY_CAST(TRIM(COALESCE("{field}", '')) AS TIMESTAMP) IS NULL
+        """
+    ).fetchall()
+    invalid_rows = [
+        {"line_number": row[0], "field": field, "datatype": "datetime", "value": row[1]}
+        for row in result
+    ]
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'datetime'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'datetime' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_pattern(conn, file_path: Path, field: str):
+    invalid_rows = []
+    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
+    if not df.empty and len(df.columns) > 0 and field in df.columns:
+        for line_number, (_, row) in enumerate(df.iterrows(), start=2):
+            value = str(row.get(field, "")).strip()
+            if not value:
+                continue
+            try:
+                re.compile(value)
+            except re.error:
+                invalid_rows.append(
+                    {
+                        "line_number": line_number,
+                        "field": field,
+                        "datatype": "pattern",
+                        "value": value,
+                    }
+                )
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'pattern'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'pattern' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
+    invalid_rows = []
+    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
+    if not df.empty and len(df.columns) > 0 and field in df.columns:
+        for line_number, (_, row) in enumerate(df.iterrows(), start=2):
+            value = str(row.get(field, "")).strip()
+            if not value:
+                continue
+            if not _is_valid_multipolygon_value(value):
+                invalid_rows.append(
+                    {
+                        "line_number": line_number,
+                        "field": field,
+                        "datatype": "multipolygon",
+                        "value": value,
+                    }
+                )
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'multipolygon'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'multipolygon' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
+def expect_column_to_be_point(conn, file_path: Path, field: str):
+    invalid_rows = []
+    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
+    if not df.empty and len(df.columns) > 0 and field in df.columns:
+        for line_number, (_, row) in enumerate(df.iterrows(), start=2):
+            value = str(row.get(field, "")).strip()
+            if not value:
+                continue
+            if not _is_valid_point_value(value):
+                invalid_rows.append(
+                    {
+                        "line_number": line_number,
+                        "field": field,
+                        "datatype": "point",
+                        "value": value,
+                    }
+                )
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all values in '{field}' have datatype 'point'"
+        if passed
+        else f"there were {len(invalid_rows)} invalid 'point' value(s) in '{field}'"
+    )
+    return passed, message, {"invalid_rows": invalid_rows}
