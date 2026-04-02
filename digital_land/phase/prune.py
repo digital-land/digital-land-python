@@ -51,7 +51,7 @@ class EntityPrunePhase(Phase):
                 curie = f"{prefix}:{reference}"
                 entry_number = block["entry-number"]
 
-                logging.info(
+                logging.debug(
                     f"{resource} row {entry_number}: missing entity for {curie}"
                 )
                 logging.debug(block)
