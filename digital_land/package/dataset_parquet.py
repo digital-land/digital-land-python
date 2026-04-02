@@ -244,6 +244,20 @@ class DatasetParquetPackage(Package):
         mem = process.memory_info().rss / 1024**2  # Memory in MB
         logger.info(f"[Memory usage] After grouping: {mem:.2f} MB")
 
+        # temporary diagnostic: verify row count is preserved across batching
+        source_count = self.conn.execute(
+            f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/*.parquet')"
+        ).fetchone()[0]
+        batch_count = self.conn.execute(
+            f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/batch/batch_*.parquet')"
+        ).fetchone()[0]
+        logger.info(f"row count in source parquet files: {source_count}")
+        logger.info(f"row count in batch files after grouping: {batch_count}")
+        if source_count != batch_count:
+            logger.warning(
+                f"row count mismatch after grouping: {source_count} source rows vs {batch_count} batch rows"
+            )
+
     def load_facts(self, transformed_parquet_dir):
         """
         This method loads facts into a fact table from a directory containing all transformed files as parquet files
@@ -342,7 +356,7 @@ class DatasetParquetPackage(Package):
                         COPY (
                             SELECT *
                             FROM read_parquet('{f}')
-                            WHERE MOD(HASH(fact), {n_buckets}) = {i}
+                            WHERE CAST(HASH(fact) AS UBIGINT) % {n_buckets} = {i}
                         ) TO '{bucket_paths[i]}' (FORMAT PARQUET, APPEND TRUE);
                         """
                         )
@@ -350,6 +364,24 @@ class DatasetParquetPackage(Package):
                 logger.info(
                     f"Have {len(list(bucket_dir.glob('bucket_*.parquet')))} bucket files"
                 )
+
+                # temporary diagnostic: total rows across all buckets should equal
+                # total rows across all batch files (deduplication happens later)
+                bucket_total = self.conn.execute(
+                    f"SELECT COUNT(*) FROM read_parquet('{str(bucket_dir)}/bucket_*.parquet')"
+                ).fetchone()[0]
+                batch_total = self.conn.execute(
+                    f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/batch/batch_*.parquet')"
+                ).fetchone()[0]
+                logger.info(f"row count in batch files: {batch_total}")
+                logger.info(
+                    f"row count in bucket files after assignment: {bucket_total}"
+                )
+                if bucket_total != batch_total:
+                    logger.warning(
+                        f"row count mismatch after bucketing: {batch_total} batch rows vs {bucket_total} bucket rows"
+                    )
+
                 process = psutil.Process(os.getpid())
                 mem = process.memory_info().rss / 1024**2  # Memory in MB
                 logger.info(f"[Memory usage] After 'bucketing': {mem:.2f} MB")
