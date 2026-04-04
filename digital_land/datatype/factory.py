@@ -27,6 +27,7 @@ def datatype_factory(datatype_name, **kwargs):
         "multipolygon": MultiPolygonDataType,
         "point": PointDataType,
         "curie": DataType,  # TODO create proper curie type
+        "reference": DataType,  # TODO create proper reference type
     }
 
     if datatype_name in typemap:
