@@ -6,6 +6,7 @@
 import csv
 import hashlib
 import logging
+import json
 import os
 import re
 from datetime import datetime
@@ -17,7 +18,7 @@ import requests
 
 from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
-from .plugins.wfs import get as wfs_get
+# from .plugins.wfs import get as wfs_get
 from .plugins.arcgis import get as arcgis_get
 
 logger = logging.getLogger(__name__)
@@ -152,6 +153,7 @@ class Collector:
         log_datetime=datetime.utcnow(),
         end_date="",
         plugin="",
+        parameters=None,
         refill_todays_logs=False,
     ):
         log = {
@@ -161,6 +163,9 @@ class Collector:
 
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return FetchStatus.EXPIRED, None
+        
+        if parameters is None:
+            parameters = {}
 
         url_endpoint = self.url_endpoint(url)
         if not endpoint:
@@ -186,9 +191,9 @@ class Collector:
         if not plugin:
             log, content = self.get(url, log)
         elif plugin == "arcgis":
-            log, content = arcgis_get(self, url, log)
-        elif plugin == "wfs":
-            log, content = wfs_get(self, url, log)
+            log, content = arcgis_get(self, url, log, parameters=parameters)
+        # elif plugin == "wfs":
+        #     log, content = wfs_get(self, url, log,)
         elif plugin == "sparql":
             log, content = sparql_get(self, url, log)
         else:
@@ -222,6 +227,10 @@ class Collector:
             endpoint = row["endpoint"]
             url = row["endpoint-url"]
             plugin = row.get("plugin", "")
+            parameters = self.parse_parameters(
+                row.get("parameters", ""),
+                endpoint=endpoint,
+            )
 
             # skip manually added files ..
             if not url:
@@ -232,5 +241,23 @@ class Collector:
                 endpoint=endpoint,
                 end_date=row.get("end-date", ""),
                 plugin=plugin,
+                parameters=parameters,
                 refill_todays_logs=refill_todays_logs,
             )
+            
+    def parse_parameters(self, raw_parameters, endpoint=""):
+        if not raw_parameters:
+            return {}
+
+        try:
+            parameters = json.loads(raw_parameters)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid parameters JSON for endpoint {endpoint}: {raw_parameters}"
+            ) from exc
+
+        if not isinstance(parameters, dict):
+            raise ValueError(
+                f"Parameters must be a JSON object for endpoint {endpoint}: {raw_parameters}"
+            )
+        return parameters
