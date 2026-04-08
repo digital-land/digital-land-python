@@ -3,7 +3,7 @@ from shapely import set_precision
 import json
 import logging
 from shapely.geometry import shape, Point
-from shapely.errors import WKTReadingError
+from shapely.errors import ShapelyError
 from shapely.ops import transform
 from shapely.geometry import MultiPolygon
 from shapely.geometry.polygon import orient
@@ -55,7 +55,7 @@ def parse_wkt(value, boundary):
     else:
         try:
             geometry = shapely.wkt.loads(value)
-        except WKTReadingError:
+        except ShapelyError:
             try:
                 geometry = shapely.wkt.loads(shape(json.loads(value)).wkt)
                 return geometry, "invalid type geojson", None
@@ -163,7 +163,7 @@ def make_multipolygon(geometry):
                 temp_polygons = make_multipolygon(geom)
                 polygons.extend(temp_polygons.geoms)
             else:
-                logging.info(f"skipping {geom.geom_type}")
+                logging.debug(f"skipping {geom.geom_type}")
         return MultiPolygon(polygons)
 
     raise ValueError(f"unexpected geometry {geometry.geom_type}")
@@ -195,7 +195,7 @@ def normalise_geometry(geometry, simplification=0.000005):
     # uses a buffer to combine overlapping polyongs inside the multipolygon
     # this is very common when simplifying a geometry collection as it's
     # usually why it's a geometry collection not a multipolygon
-    # ToDO should this be in the make_multipolygon function? Should it record an error?
+    # TODO should this be in the make_multipolygon function? Should it record an error?
     if geometry:
         if not geometry.is_valid:
             geometry = geometry.buffer(0)
@@ -220,6 +220,7 @@ def dump_wkt(geometry, precision=6, dimensions=2):
     wkt = shapely.wkt.dumps(
         geometry, rounding_precision=precision, output_dimension=dimensions
     )
+
     return wkt.replace(", ", ",")
 
 
@@ -241,7 +242,7 @@ class WktDataType(DataType):
                         "",
                     )
                     boundary = DEFAULT_BOUNDARY
-            except WKTReadingError:
+            except ShapelyError:
                 issues.log("Error reading boundary - must be a WKT", "")
                 boundary = DEFAULT_BOUNDARY
         else:
