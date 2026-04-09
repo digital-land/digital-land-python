@@ -281,8 +281,8 @@ def test_duplicate_geometry_check(dataset_path):
     conn.close()
 
     assert not result
-    assert message == "There are 1 complete matches and 2 single matches in the dataset"
-    assert details["actual"] == 3
+    assert message == "There are 1 complete matches, 2 single matches and 3 any matches in the dataset"
+    assert details["actual"] == 6
     assert details["expected"] == 0
 
     assert details["complete_matches"][0]["entity_a"] == 1
@@ -295,7 +295,7 @@ def test_duplicate_geometry_check(dataset_path):
     assert details["single_matches"][1]["organisation_entity_a"] == 101
     assert details["single_matches"][1]["organisation_entity_b"] == 102
 
-    # entity 4 shouldn't have any duplicates
+    # entity 4 has partial overlap with entities 1, 2 and 3 - flagged as any_match only
     assert not any(
         row["entity_a"] == 4 or row["entity_b"] == 4
         for row in details["complete_matches"]
@@ -303,6 +303,10 @@ def test_duplicate_geometry_check(dataset_path):
     assert not any(
         row["entity_a"] == 4 or row["entity_b"] == 4
         for row in details["single_matches"]
+    )
+    assert any(
+        row["entity_a"] == 4 or row["entity_b"] == 4
+        for row in details["any_matches"]
     )
 
 
@@ -362,7 +366,7 @@ def test_duplicate_geometry_check_no_dupes(dataset_path):
             },
             {
                 "entity": 4,
-                "geometry": "POLYGON((1 1, 1 3, 3 3, 3 1, 1 1))",
+                "geometry": "POLYGON((3 3, 3 5, 5 5, 5 3, 3 3))",  # no overlap with entity 1
                 "organisation_entity": 103,
             },
         ]
@@ -381,5 +385,6 @@ def test_duplicate_geometry_check_no_dupes(dataset_path):
     assert message == "There are no duplicate geometries/points in the dataset"
     assert not details["complete_matches"]
     assert not details["single_matches"]
+    assert not details["any_matches"]
     assert details["actual"] == 0
     assert details["expected"] == 0
