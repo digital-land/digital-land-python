@@ -281,7 +281,10 @@ def test_duplicate_geometry_check(dataset_path):
     conn.close()
 
     assert not result
-    assert message == "There are 1 complete matches, 2 single matches and 3 any matches in the dataset"
+    assert (
+        message
+        == "There are 1 complete matches, 2 single matches and 3 any matches in the dataset"
+    )
     assert details["actual"] == 6
     assert details["expected"] == 0
 
@@ -305,8 +308,7 @@ def test_duplicate_geometry_check(dataset_path):
         for row in details["single_matches"]
     )
     assert any(
-        row["entity_a"] == 4 or row["entity_b"] == 4
-        for row in details["any_matches"]
+        row["entity_a"] == 4 or row["entity_b"] == 4 for row in details["any_matches"]
     )
 
 
