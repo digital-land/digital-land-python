@@ -18,7 +18,7 @@ import requests
 
 from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
-# from .plugins.wfs import get as wfs_get
+from .plugins.wfs import get as wfs_get
 from .plugins.arcgis import get as arcgis_get
 
 logger = logging.getLogger(__name__)
@@ -192,8 +192,8 @@ class Collector:
             log, content = self.get(url, log)
         elif plugin == "arcgis":
             log, content = arcgis_get(self, url, log, parameters=parameters)
-        # elif plugin == "wfs":
-        #     log, content = wfs_get(self, url, log,)
+        elif plugin == "wfs":
+            log, content = wfs_get(self, url, log,)
         elif plugin == "sparql":
             log, content = sparql_get(self, url, log)
         else:
