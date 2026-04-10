@@ -2,14 +2,23 @@ from pathlib import Path
 import re
 import pandas as pd
 
-from digital_land.expectations.operations.datatype_validators import (
-    _is_valid_multipolygon_value,
-    _is_valid_point_value,
-)
-
 
 def _read_csv(file_path: Path) -> str:
     return f"read_csv_auto('{str(file_path)}',all_varchar=true,delim=',',quote='\"',escape='\"')"
+
+
+def _load_duckdb_spatial_extension(conn) -> bool:
+    """Best-effort load of DuckDB spatial extension."""
+    try:
+        conn.execute("LOAD spatial")
+        return True
+    except Exception:
+        try:
+            conn.execute("INSTALL spatial")
+            conn.execute("LOAD spatial")
+            return True
+        except Exception:
+            return False
 
 
 def _get_csv_columns(conn, file_path: Path) -> list:
@@ -981,23 +990,58 @@ def expect_column_to_be_pattern(conn, file_path: Path, field: str):
     return passed, message, {"invalid_rows": invalid_rows}
 
 
-def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
-    invalid_rows = []
-    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
-    if not df.empty and len(df.columns) > 0 and field in df.columns:
-        for line_number, (_, row) in enumerate(df.iterrows(), start=2):
-            value = str(row.get(field, "")).strip()
-            if not value:
-                continue
-            if not _is_valid_multipolygon_value(value):
-                invalid_rows.append(
-                    {
-                        "line_number": line_number,
-                        "field": field,
-                        "datatype": "multipolygon",
-                        "value": value,
-                    }
-                )
+def expect_column_to_be_multipolygon(
+    conn, file_path: Path, field: str
+) -> tuple[bool, str, dict]:
+    """Validate that non-empty values in a column are valid multipolygon geometries using duckdb spatial extensions."""
+    if conn is None or not _load_duckdb_spatial_extension(conn):
+        raise RuntimeError(
+            "DuckDB spatial extension is required for multipolygon expectation"
+        )
+
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        ),
+        prepared AS (
+            SELECT
+                line_number,
+                TRIM(COALESCE("{field}", '')) AS value
+            FROM source_rows
+            WHERE TRIM(COALESCE("{field}", '')) != ''
+        ),
+        parsed AS (
+            SELECT
+                line_number,
+                value,
+                COALESCE(
+                    TRY(ST_GeomFromText(value)),
+                    TRY(ST_GeomFromGeoJSON(value))
+                ) AS geom
+            FROM prepared
+        )
+        SELECT
+            line_number,
+            value
+        FROM parsed
+        WHERE geom IS NULL
+           OR UPPER(CAST(ST_GeometryType(geom) AS VARCHAR)) NOT IN ('POLYGON', 'MULTIPOLYGON', 'GEOMETRYCOLLECTION')
+           OR NOT ST_IsValid(geom)
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "multipolygon",
+            "value": row[1],
+        }
+        for row in result
+    ]
     passed = len(invalid_rows) == 0
     message = (
         f"all values in '{field}' have datatype 'multipolygon'"
@@ -1007,23 +1051,55 @@ def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
     return passed, message, {"invalid_rows": invalid_rows}
 
 
-def expect_column_to_be_point(conn, file_path: Path, field: str):
-    invalid_rows = []
-    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
-    if not df.empty and len(df.columns) > 0 and field in df.columns:
-        for line_number, (_, row) in enumerate(df.iterrows(), start=2):
-            value = str(row.get(field, "")).strip()
-            if not value:
-                continue
-            if not _is_valid_point_value(value):
-                invalid_rows.append(
-                    {
-                        "line_number": line_number,
-                        "field": field,
-                        "datatype": "point",
-                        "value": value,
-                    }
-                )
+def expect_column_to_be_point(
+    conn, file_path: Path, field: str
+) -> tuple[bool, str, dict]:
+    """Validate that non-empty values in a column are valid WKT POINT geometries."""
+    if conn is None or not _load_duckdb_spatial_extension(conn):
+        raise RuntimeError("DuckDB spatial extension is required for point expectation")
+
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        ),
+        prepared AS (
+            SELECT
+                line_number,
+                TRIM(COALESCE("{field}", '')) AS value
+            FROM source_rows
+            WHERE TRIM(COALESCE("{field}", '')) != ''
+        ),
+        parsed AS (
+            SELECT
+                line_number,
+                value,
+                TRY(ST_GeomFromText(value)) AS geom
+            FROM prepared
+        )
+        SELECT
+            line_number,
+            value
+        FROM parsed
+        WHERE NOT (
+            geom IS NOT NULL
+            AND UPPER(CAST(ST_GeometryType(geom) AS VARCHAR)) = 'POINT'
+            AND ST_IsValid(geom)
+        )
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "point",
+            "value": row[1],
+        }
+        for row in result
+    ]
     passed = len(invalid_rows) == 0
     message = (
         f"all values in '{field}' have datatype 'point'"
