@@ -37,13 +37,13 @@ MANDATORY_FIELDS_DICT = {
         "documentation-url",
     ],
     "tree-preservation-zone": [
-        "reference", 
+        "reference",
         "geometry",
     ],
     "listed-building-outline": [
         "reference",
-        "geometry", 
-        "name", 
+        "geometry",
+        "name",
         "listed-building",
     ],
     "tree": [
