@@ -990,6 +990,56 @@ def expect_column_to_be_pattern(conn, file_path: Path, field: str):
     return passed, message, {"invalid_rows": invalid_rows}
 
 
+def expect_column_to_match_pattern(
+    conn, file_path: Path, field: str, pattern: str
+) -> tuple[bool, str, dict]:
+    """Validate that non-empty values in a column match a provided regex pattern."""
+    pattern_text = str(pattern)
+    if not pattern_text.strip():
+        raise ValueError("pattern must be a non-empty regex string")
+
+    try:
+        re.compile(pattern_text)
+    except re.error as exc:
+        raise ValueError(f"Invalid regex pattern '{pattern_text}': {exc}") from exc
+
+    pattern_sql = _sql_string(pattern_text)
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT
+            line_number,
+            TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND NOT REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), {pattern_sql})
+        """
+    ).fetchall()
+
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "pattern-match",
+            "value": row[1],
+            "pattern": pattern_text,
+        }
+        for row in result
+    ]
+
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all non-empty values in '{field}' match pattern '{pattern_text}'"
+        if passed
+        else f"there were {len(invalid_rows)} values in '{field}' that did not match pattern '{pattern_text}'"
+    )
+
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
 def expect_column_to_be_multipolygon(
     conn, file_path: Path, field: str
 ) -> tuple[bool, str, dict]:
