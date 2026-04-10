@@ -1,17 +1,24 @@
 import json
 import logging
 import time
-from utils.validate_parameter_utils import validate_parameters
 from esridump.dumper import EsriDumper
+from utils.validate_parameter_utils import non_negative_int
+from utils.validate_parameter_utils import positive_int
+from utils.validate_parameter_utils import validate_plugin_parameters
 
 DEFAULT_TIMEOUT = 60
 DEFAULT_RETRIES = 2
 DEFAULT_RETRY_BACKOFF_SECONDS = 2
-ALLOWED_ARCGIS_PARAMETERS = {
-    "max_page_size",
-    "timeout",
-    "retries",
-    "retry_backoff_seconds",
+ARCGIS_PARAMETER_DEFAULTS = {
+    "timeout": DEFAULT_TIMEOUT,
+    "retries": DEFAULT_RETRIES,
+    "retry_backoff_seconds": DEFAULT_RETRY_BACKOFF_SECONDS,
+}
+ARCGIS_PARAMETER_VALIDATORS = {
+    "max_page_size": positive_int,
+    "timeout": positive_int,
+    "retries": non_negative_int,
+    "retry_backoff_seconds": positive_int,
 }
 
 
@@ -89,50 +96,10 @@ def get(collector, url, log={}, plugin="arcgis", parameters=None):
     return log, content
 
 
-# def validate_parameters(parameters):
-#     if parameters is None:
-#         parameters = {}
-
-#     if not isinstance(parameters, dict):
-#         raise ValueError("ArcGIS parameters must be a dictionary")
-
-#     unknown = set(parameters) - ALLOWED_ARCGIS_PARAMETERS
-#     if unknown:
-#         raise ValueError(
-#             f"Unsupported ArcGIS parameters: {sorted(unknown)}. "
-#             f"Allowed parameters: {sorted(ALLOWED_ARCGIS_PARAMETERS)}"
-#         )
-
-#     validated = {
-#         "timeout": DEFAULT_TIMEOUT,
-#         "retries": DEFAULT_RETRIES,
-#         "retry_backoff_seconds": DEFAULT_RETRY_BACKOFF_SECONDS,
-#     }
-
-#     if "max_page_size" in parameters:
-#         value = parameters["max_page_size"]
-#         if not isinstance(value, int) or value <= 0:
-#             raise ValueError("ArcGIS parameter 'max_page_size' must be a positive integer")
-#         validated["max_page_size"] = value
-
-#     if "timeout" in parameters:
-#         value = parameters["timeout"]
-#         if not isinstance(value, int) or value <= 0:
-#             raise ValueError("ArcGIS parameter 'timeout' must be a positive integer")
-#         validated["timeout"] = value
-
-#     if "retries" in parameters:
-#         value = parameters["retries"]
-#         if not isinstance(value, int) or value < 0:
-#             raise ValueError("ArcGIS parameter 'retries' must be a non-negative integer")
-#         validated["retries"] = value
-
-#     if "retry_backoff_seconds" in parameters:
-#         value = parameters["retry_backoff_seconds"]
-#         if not isinstance(value, int) or value <= 0:
-#             raise ValueError(
-#                 "ArcGIS parameter 'retry_backoff_seconds' must be a positive integer"
-#             )
-#         validated["retry_backoff_seconds"] = value
-
-#     return validated
+def validate_parameters(parameters):
+    return validate_plugin_parameters(
+        parameters=parameters,
+        plugin_name="ArcGIS",
+        defaults=ARCGIS_PARAMETER_DEFAULTS,
+        validators=ARCGIS_PARAMETER_VALIDATORS,
+    )

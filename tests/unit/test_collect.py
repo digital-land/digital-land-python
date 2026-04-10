@@ -1,5 +1,4 @@
 import hashlib
-import io
 import json
 import csv
 import os
@@ -14,6 +13,8 @@ import requests
 from digital_land.collect import Collector, FetchStatus
 from digital_land.plugins.arcgis import get as arcgis_get
 from digital_land.plugins.arcgis import validate_parameters as validate_arcgis_parameters
+from digital_land.utils.validate_parameter_utils import positive_int
+from digital_land.utils.validate_parameter_utils import validate_plugin_parameters
 
 
 @pytest.fixture
@@ -258,6 +259,16 @@ def test_arcgis_validate_parameters_defaults():
     }
 
 
+def test_validate_plugin_parameters_rejects_unknown_parameters():
+    with pytest.raises(ValueError, match="Unsupported Example parameters"):
+        validate_plugin_parameters(
+            parameters={"unknown": 1},
+            plugin_name="Example",
+            defaults={},
+            validators={"page_size": positive_int},
+        )
+
+
 def test_arcgis_get_retries_and_logs_failed_step(monkeypatch):
     attempts = {"count": 0}
     sleep_calls = []
@@ -299,7 +310,7 @@ def test_arcgis_get_retries_and_logs_failed_step(monkeypatch):
     assert log["arcgis-timeout-seconds"] == 90
     assert log["arcgis-retries"] == 1
     assert log["arcgis-retry-backoff-seconds"] == 3
-    assert "exception" not in log  
+    assert "exception" not in log
     
 def test_fetch_passes_parameters_to_arcgis_plugin(collector, monkeypatch):
     captured = {}
