@@ -75,6 +75,7 @@ MANDATORY_FIELDS_DICT = {
         "plan",
         "plan-event",
         "event-date",
+        "entry-date",
     ],
     "local-plan": [
         "reference",
@@ -87,6 +88,7 @@ MANDATORY_FIELDS_DICT = {
         "documentation-url",
         "document-url",
         "required-housing",
+        "entry-date",
     ],
     "supplementary-plan": [
         "reference",
@@ -98,6 +100,7 @@ MANDATORY_FIELDS_DICT = {
         "local-planning-authorities",
         "documentation-url",
         "document-url",
+        "entry-date",
     ],
     "minerals-plan": [
         "reference",
@@ -110,6 +113,7 @@ MANDATORY_FIELDS_DICT = {
         "documentation-url",
         "document-url",
         "document-count",
+        "entry-date",
     ],
     "waste-plan": [
         "reference",
@@ -122,6 +126,7 @@ MANDATORY_FIELDS_DICT = {
         "documentation-url",
         "document-url",
         "document-count",
+        "entry-date",
     ],
 }
 
