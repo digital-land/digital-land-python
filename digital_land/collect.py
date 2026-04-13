@@ -163,7 +163,7 @@ class Collector:
 
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return FetchStatus.EXPIRED, None
-        
+
         if parameters is None:
             parameters = {}
 
@@ -193,7 +193,11 @@ class Collector:
         elif plugin == "arcgis":
             log, content = arcgis_get(self, url, log, parameters=parameters)
         elif plugin == "wfs":
-            log, content = wfs_get(self, url, log,)
+            log, content = wfs_get(
+                self,
+                url,
+                log,
+            )
         elif plugin == "sparql":
             log, content = sparql_get(self, url, log)
         else:
@@ -244,7 +248,7 @@ class Collector:
                 parameters=parameters,
                 refill_todays_logs=refill_todays_logs,
             )
-            
+
     def parse_parameters(self, raw_parameters, endpoint=""):
         if not raw_parameters:
             return {}
