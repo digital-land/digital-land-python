@@ -23,6 +23,7 @@ from digital_land.expectations.operations.csv import (
     expect_column_to_be_date,
     expect_column_to_be_datetime,
     expect_column_to_be_pattern,
+    expect_column_to_match_pattern,
     expect_column_to_be_point,
     expect_column_to_be_integer,
     expect_column_to_be_multipolygon,
@@ -701,6 +702,26 @@ def test_expect_column_to_be_multipolygon(tmp_path):
     assert details["invalid_rows"][0]["datatype"] == "multipolygon"
 
 
+def test_expect_column_to_be_multipolygon_accepts_geojson(tmp_path):
+    file_path = tmp_path / "expect_multipolygon_geojson.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["boundary"])
+        writer.writerow(
+            [
+                '{"type":"MultiPolygon","coordinates":[[[[0,0],[10,0],[10,10],[0,10],[0,0]]]]}'
+            ]
+        )
+
+    conn = duckdb.connect()
+    passed, _, details = expect_column_to_be_multipolygon(
+        conn, file_path=file_path, field="boundary"
+    )
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
 def test_expect_column_to_be_decimal(tmp_path):
     file_path = tmp_path / "expect_decimal.csv"
     with open(file_path, "w", newline="") as f:
@@ -930,6 +951,52 @@ def test_expect_column_to_be_pattern(tmp_path):
     assert passed is False
     assert len(details["invalid_rows"]) == 1
     assert details["invalid_rows"][0]["datatype"] == "pattern"
+
+
+def test_expect_column_to_match_pattern(tmp_path):
+    file_path = tmp_path / "expect_match_pattern.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["reference"])
+        writer.writerow(["abc-123"])
+        writer.writerow(["BAD"])
+        writer.writerow(["xyz-999"])
+        writer.writerow(["foo-12"])
+        writer.writerow([""])
+
+    conn = duckdb.connect()
+    passed, _, details = expect_column_to_match_pattern(
+        conn,
+        file_path=file_path,
+        field="reference",
+        pattern=r"^[a-z]{3}-\d{3}$",
+    )
+
+    assert passed is False
+    assert len(details["invalid_rows"]) == 2
+    assert details["invalid_rows"][0]["line_number"] == 3
+    assert details["invalid_rows"][0]["datatype"] == "pattern-match"
+    assert details["invalid_rows"][0]["value"] == "BAD"
+    assert details["invalid_rows"][1]["line_number"] == 5
+    assert details["invalid_rows"][1]["datatype"] == "pattern-match"
+    assert details["invalid_rows"][1]["value"] == "foo-12"
+
+
+def test_expect_column_to_match_pattern_invalid_regex(tmp_path):
+    file_path = tmp_path / "expect_match_pattern_invalid.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["reference"])
+        writer.writerow(["abc-123"])
+
+    conn = duckdb.connect()
+    with pytest.raises(ValueError):
+        expect_column_to_match_pattern(
+            conn,
+            file_path=file_path,
+            field="reference",
+            pattern="[",
+        )
 
 
 def test_expect_column_to_be_point(tmp_path):

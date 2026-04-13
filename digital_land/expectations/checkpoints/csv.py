@@ -26,6 +26,7 @@ from ..operations.csv import (
     expect_column_to_be_date,
     expect_column_to_be_datetime,
     expect_column_to_be_pattern,
+    expect_column_to_match_pattern,
     expect_column_to_be_multipolygon,
     expect_column_to_be_point,
 )
@@ -60,6 +61,7 @@ class CsvCheckpoint(BaseCheckpoint):
             "expect_column_to_be_date": expect_column_to_be_date,
             "expect_column_to_be_datetime": expect_column_to_be_datetime,
             "expect_column_to_be_pattern": expect_column_to_be_pattern,
+            "expect_column_to_match_pattern": expect_column_to_match_pattern,
             "expect_column_to_be_multipolygon": expect_column_to_be_multipolygon,
             "expect_column_to_be_point": expect_column_to_be_point,
         }
