@@ -320,10 +320,9 @@ def duplicate_geometry_check(conn, spatial_field: str):
                     CASE
                         WHEN pct_overlap_a > {MATCH_THRESHOLD} AND pct_overlap_b > {MATCH_THRESHOLD} THEN 'Complete match (two-way)'
                         WHEN pct_overlap_a > {MATCH_THRESHOLD} OR pct_overlap_b > {MATCH_THRESHOLD} THEN 'Single match (one-way)'
-                    ELSE 'undefined' END as intersection_type,
+                    ELSE 'Any match' END as intersection_type,
                     row_number() OVER (PARTITION BY entity_join_key ORDER BY pct_comb_overlap) as key_count
                 FROM calc
-                WHERE pct_overlap_a > 0.9 OR pct_overlap_b > 0.9 -- should this use MATCH_THRESHOLD?
                 ORDER BY entity_join_key
                 )
 
@@ -374,7 +373,18 @@ def duplicate_geometry_check(conn, spatial_field: str):
                 for row in rows
                 if row["intersection_type"] == "Single match (one-way)"
             ]
-            message = f"There are {len(complete_matches)} complete matches and {len(single_matches)} single matches in the dataset"
+
+            any_matches = [
+                {
+                    "entity_a": row["entity_a"],
+                    "organisation_entity_a": row["organisation_entity_a"],
+                    "entity_b": row["entity_b"],
+                    "organisation_entity_b": row["organisation_entity_b"],
+                }
+                for row in rows
+                if row["intersection_type"] == "Any match"
+            ]
+            message = f"There are {len(complete_matches)} complete matches, {len(single_matches)} single matches and {len(any_matches)} any matches in the dataset"
         else:
             complete_matches = [
                 {
@@ -386,6 +396,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
                 for row in rows
             ]
             single_matches = []
+            any_matches = []
             message = (
                 f"There are {len(complete_matches)} complete matches in the dataset"
             )
@@ -394,10 +405,12 @@ def duplicate_geometry_check(conn, spatial_field: str):
         message = "There are no duplicate geometries/points in the dataset"
         complete_matches = []
         single_matches = []
+        any_matches = []
     details = {
         "actual": len(rows),
         "expected": 0,
         "complete_matches": complete_matches,
         "single_matches": single_matches,
+        "any_matches": any_matches,
     }
     return result, message, details
