@@ -57,4 +57,3 @@ serve-docs:
 # Clean up the generated documentation
 clean::
 	rm -rf docs/_build
-
