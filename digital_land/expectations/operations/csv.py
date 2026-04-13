@@ -991,9 +991,7 @@ def expect_column_to_be_pattern(conn, file_path: Path, field: str):
     return passed, message, {"invalid_rows": invalid_rows}
 
 
-def expect_column_to_match_pattern(
-    conn, file_path: Path, field: str, pattern: str
-) -> tuple[bool, str, dict]:
+def expect_column_to_match_pattern(conn, file_path: Path, field: str, pattern: str):
     """Validate that non-empty values in a column match a provided regex pattern."""
     pattern_text = str(pattern)
     if not pattern_text.strip():
@@ -1041,9 +1039,7 @@ def expect_column_to_match_pattern(
     return passed, message, {"invalid_rows": invalid_rows}
 
 
-def expect_column_to_be_multipolygon(
-    conn, file_path: Path, field: str
-) -> tuple[bool, str, dict]:
+def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
     """Validate that non-empty values in a column are valid multipolygon geometries using duckdb spatial extensions."""
     if conn is None or not _load_duckdb_spatial_extension(conn):
         raise RuntimeError(
@@ -1102,9 +1098,7 @@ def expect_column_to_be_multipolygon(
     return passed, message, {"invalid_rows": invalid_rows}
 
 
-def expect_column_to_be_point(
-    conn, file_path: Path, field: str
-) -> tuple[bool, str, dict]:
+def expect_column_to_be_point(conn, file_path: Path, field: str):
     """Validate that non-empty values in a column are valid WKT POINT geometries."""
     if conn is None or not _load_duckdb_spatial_extension(conn):
         raise RuntimeError("DuckDB spatial extension is required for point expectation")
