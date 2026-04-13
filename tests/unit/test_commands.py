@@ -195,5 +195,5 @@ def test_validate_and_add_data_input_error_thrown_when_no_resource_downloaded(
             specification_dir,
             organisation_csv,
         )
-
-    assert "Failed to collect resource from URL" in str(error)
+    assert "Failed to collect from URL" in str(error.value)
+    assert "log status: 200" in str(error.value)
