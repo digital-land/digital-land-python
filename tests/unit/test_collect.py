@@ -1,5 +1,6 @@
 import hashlib
 import json
+import csv
 import os
 import pathlib
 from datetime import datetime, timedelta
@@ -10,6 +11,10 @@ import responses
 import requests
 
 from digital_land.collect import Collector, FetchStatus
+from digital_land.plugins.arcgis import get as arcgis_get
+from digital_land.plugins.arcgis import validate_parameters as validate_arcgis_parameters
+from digital_land.utils.validate_parameter_utils import positive_int
+from digital_land.utils.validate_parameter_utils import validate_plugin_parameters
 
 
 @pytest.fixture
@@ -216,3 +221,199 @@ def test_resource_not_bytes(collector):
 
     assert status == FetchStatus.FAILED
     assert log["exception"] == "TypeError"
+
+
+def test_arcgis_get_returns_no_partial_string_on_iteration_failure(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+    class FakeDumper:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def _request(self, method, url):
+            return FakeResponse()
+
+        def get_metadata(self):
+            return None
+
+        def __iter__(self):
+            raise requests.ReadTimeout("timed out")
+
+    monkeypatch.setattr("digital_land.plugins.arcgis.EsriDumper", FakeDumper)
+
+    log, content = arcgis_get(None, "https://example.com/arcgis")
+
+    assert content is None
+    assert log["status"] == "200"
+    assert log["exception"] == "ReadTimeout"
+    assert log["arcgis-failed-step"] == "feature-iteration"
+
+
+def test_arcgis_validate_parameters_defaults():
+    assert validate_arcgis_parameters({"max_page_size": 20}) == {
+        "max_page_size": 20,
+        "timeout": 60,
+        "retries": 2,
+        "retry_backoff_seconds": 2,
+    }
+
+
+def test_validate_plugin_parameters_rejects_unknown_parameters():
+    with pytest.raises(ValueError, match="Unsupported Example parameters"):
+        validate_plugin_parameters(
+            parameters={"unknown": 1},
+            plugin_name="Example",
+            defaults={},
+            validators={"page_size": positive_int},
+        )
+
+
+def test_arcgis_get_retries_and_logs_failed_step(monkeypatch):
+    attempts = {"count": 0}
+    sleep_calls = []
+
+    class FakeResponse:
+        status_code = 200
+
+    class FakeDumper:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def _request(self, method, url):
+            return FakeResponse()
+
+        def get_metadata(self):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise requests.ReadTimeout("metadata timed out")
+
+        def __iter__(self):
+            yield {"type": "Feature", "properties": {}, "geometry": None}
+
+    monkeypatch.setattr("digital_land.plugins.arcgis.EsriDumper", FakeDumper)
+    monkeypatch.setattr("digital_land.plugins.arcgis.time.sleep", sleep_calls.append)
+
+    log, content = arcgis_get(
+        None,
+        "https://example.com/arcgis",
+        parameters={"retries": 1, "retry_backoff_seconds": 3, "timeout": 90},
+    )
+
+    assert attempts["count"] == 2
+    assert sleep_calls == [3]
+    assert content is not None
+    assert log["status"] == "200"
+    assert log["arcgis-attempt"] == 2
+    assert log["arcgis-retried"] == 1
+    assert log["arcgis-failed-step"] == "metadata"
+    assert log["arcgis-timeout-seconds"] == 90
+    assert log["arcgis-retries"] == 1
+    assert log["arcgis-retry-backoff-seconds"] == 3
+    assert "exception" not in log
+    
+def test_fetch_passes_parameters_to_arcgis_plugin(collector, monkeypatch):
+    captured = {}
+
+    def fake_arcgis_get(collector_obj, url, log, parameters=None, plugin="arcgis"):
+        captured["collector"] = collector_obj
+        captured["url"] = url
+        captured["parameters"] = parameters
+        return log, b'{"type":"FeatureCollection","features":[]}'
+
+    monkeypatch.setattr("digital_land.collect.arcgis_get", fake_arcgis_get)
+
+    url = "http://some.arcgis.url"
+    status, log = collector.fetch(
+        url,
+        endpoint=sha_digest(url),
+        plugin="arcgis",
+        parameters={"max_page_size": 20},
+        
+        refill_todays_logs=True,
+    )
+
+    assert status == FetchStatus.OK
+    assert captured["url"] == url
+    assert captured["parameters"] == {"max_page_size": 20}
+    
+def test_collect_reads_parameters_from_csv(tmp_path, monkeypatch):
+    collector = Collector(
+        resource_dir=str(tmp_path / "resource"),
+        log_dir=str(tmp_path / "log"),
+    )
+
+    url = "http://some.arcgis.url"
+    endpoint = sha_digest(url)
+
+    endpoint_csv = tmp_path / "endpoints.csv"
+    with open(endpoint_csv, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["endpoint", "endpoint-url", "plugin", "parameters"],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "endpoint": endpoint,
+                "endpoint-url": url,
+                "plugin": "arcgis",
+                "parameters": '{"max_page_size": 20}',
+            }
+        )
+
+    captured = {}
+
+    def fake_fetch(
+        self,
+        url,
+        endpoint=None,
+        log_datetime=datetime.utcnow(),
+        end_date="",
+        plugin="",
+        parameters=None,
+        refill_todays_logs=False,
+    ):
+        captured["url"] = url
+        captured["endpoint"] = endpoint
+        captured["plugin"] = plugin
+        captured["parameters"] = parameters
+        return FetchStatus.OK, {"status": "200"}
+
+    monkeypatch.setattr(Collector, "fetch", fake_fetch)
+
+    collector.collect(endpoint_csv)
+
+    assert captured["url"] == url
+    assert captured["endpoint"] == endpoint
+    assert captured["plugin"] == "arcgis"
+    assert captured["parameters"] == {"max_page_size": 20}
+    
+    
+def test_collect_raises_for_invalid_parameters_json(tmp_path):
+    collector = Collector(
+        resource_dir=str(tmp_path / "resource"),
+        log_dir=str(tmp_path / "log"),
+    )
+
+    url = "http://some.arcgis.url"
+    endpoint = sha_digest(url)
+
+    endpoint_csv = tmp_path / "endpoints.csv"
+    with open(endpoint_csv, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["endpoint", "endpoint-url", "plugin", "parameters"],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "endpoint": endpoint,
+                "endpoint-url": url,
+                "plugin": "arcgis",
+                "parameters": "{max_page_size: 20}",  # invalid JSON
+            }
+        )
+
+    with pytest.raises(ValueError, match="Invalid parameters JSON"):
+        collector.collect(endpoint_csv)
