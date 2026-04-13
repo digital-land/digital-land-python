@@ -702,26 +702,6 @@ def test_expect_column_to_be_multipolygon(tmp_path):
     assert details["invalid_rows"][0]["datatype"] == "multipolygon"
 
 
-def test_expect_column_to_be_multipolygon_accepts_geojson(tmp_path):
-    file_path = tmp_path / "expect_multipolygon_geojson.csv"
-    with open(file_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["boundary"])
-        writer.writerow(
-            [
-                '{"type":"MultiPolygon","coordinates":[[[[0,0],[10,0],[10,10],[0,10],[0,0]]]]}'
-            ]
-        )
-
-    conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_multipolygon(
-        conn, file_path=file_path, field="boundary"
-    )
-
-    assert passed is True
-    assert details["invalid_rows"] == []
-
-
 def test_expect_column_to_be_decimal(tmp_path):
     file_path = tmp_path / "expect_decimal.csv"
     with open(file_path, "w", newline="") as f:

@@ -1063,10 +1063,7 @@ def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
             SELECT
                 line_number,
                 value,
-                COALESCE(
-                    TRY(ST_GeomFromText(value)),
-                    TRY(ST_GeomFromGeoJSON(value))
-                ) AS geom
+                TRY(ST_GeomFromText(value)) AS geom
             FROM prepared
         )
         SELECT
