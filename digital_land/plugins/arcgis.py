@@ -4,6 +4,7 @@ import time
 from esridump.dumper import EsriDumper
 from pydantic import ConfigDict, Field, ValidationError
 from pydantic.dataclasses import dataclass
+from typing import Optional
 
 DEFAULT_TIMEOUT = 60
 DEFAULT_RETRIES = 2
@@ -12,7 +13,7 @@ DEFAULT_RETRY_BACKOFF_SECONDS = 2
 
 @dataclass(config=ConfigDict(extra="forbid"))
 class ArcGISParameters:
-    max_page_size: int | None = Field(default=None, gt=0)
+    max_page_size: Optional[int] = Field(default=None, gt=0)
     timeout: int = Field(default=DEFAULT_TIMEOUT, gt=0)
     retries: int = Field(default=DEFAULT_RETRIES, ge=0)
     retry_backoff_seconds: int = Field(
