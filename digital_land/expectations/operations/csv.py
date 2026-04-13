@@ -963,6 +963,7 @@ def expect_column_to_be_datetime(conn, file_path: Path, field: str):
 
 
 def expect_column_to_be_pattern(conn, file_path: Path, field: str):
+    """Validate that non-empty values in a column are valid regex patterns."""
     invalid_rows = []
     df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
     if not df.empty and len(df.columns) > 0 and field in df.columns:
