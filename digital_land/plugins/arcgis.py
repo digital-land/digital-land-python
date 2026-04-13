@@ -2,9 +2,9 @@ import json
 import logging
 import time
 from esridump.dumper import EsriDumper
-from utils.validate_parameter_utils import non_negative_int
-from utils.validate_parameter_utils import positive_int
-from utils.validate_parameter_utils import validate_plugin_parameters
+from digital_land.utils.validate_parameter_utils import non_negative_int
+from digital_land.utils.validate_parameter_utils import positive_int
+from digital_land.utils.validate_parameter_utils import validate_plugin_parameters
 
 DEFAULT_TIMEOUT = 60
 DEFAULT_RETRIES = 2
