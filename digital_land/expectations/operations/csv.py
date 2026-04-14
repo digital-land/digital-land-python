@@ -7,20 +7,6 @@ def _read_csv(file_path: Path) -> str:
     return f"read_csv_auto('{str(file_path)}',all_varchar=true,delim=',',quote='\"',escape='\"')"
 
 
-def _load_duckdb_spatial_extension(conn) -> bool:
-    """Best-effort load of DuckDB spatial extension."""
-    try:
-        conn.execute("LOAD spatial")
-        return True
-    except Exception:
-        try:
-            conn.execute("INSTALL spatial")
-            conn.execute("LOAD spatial")
-            return True
-        except Exception:
-            return False
-
-
 def _get_csv_columns(conn, file_path: Path) -> list:
     """Get column names from CSV file."""
     return [
@@ -1040,12 +1026,8 @@ def expect_column_to_match_pattern(conn, file_path: Path, field: str, pattern: s
 
 
 def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
-    """Validate that non-empty values in a column are valid multipolygon geometries using duckdb spatial extensions."""
-    if conn is None or not _load_duckdb_spatial_extension(conn):
-        raise RuntimeError(
-            "DuckDB spatial extension is required for multipolygon expectation"
-        )
-
+    """Validate that non-empty values in a column are valid multipolygon geometries using duckdb spatial extensions.
+    This expectation requires the spatial extensions to be enabled in duckdb."""
     result = conn.execute(
         f"""
         WITH source_rows AS (
@@ -1096,10 +1078,8 @@ def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
 
 
 def expect_column_to_be_point(conn, file_path: Path, field: str):
-    """Validate that non-empty values in a column are valid WKT POINT geometries."""
-    if conn is None or not _load_duckdb_spatial_extension(conn):
-        raise RuntimeError("DuckDB spatial extension is required for point expectation")
-
+    """Validate that non-empty values in a column are valid WKT POINT geometries.
+    This expectation requires the spatial extensions to be enabled in duckdb."""
     result = conn.execute(
         f"""
         WITH source_rows AS (

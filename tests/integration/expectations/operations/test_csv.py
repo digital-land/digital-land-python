@@ -693,6 +693,7 @@ def test_expect_column_to_be_multipolygon(tmp_path):
         writer.writerow(["POINT(0 0)"])
 
     conn = duckdb.connect()
+    conn.execute("LOAD spatial")
     passed, _, details = expect_column_to_be_multipolygon(
         conn, file_path=file_path, field="boundary"
     )
@@ -989,6 +990,7 @@ def test_expect_column_to_be_point(tmp_path):
         writer.writerow(["POINT(0)"])
 
     conn = duckdb.connect()
+    conn.execute("LOAD spatial")
     passed, _, details = expect_column_to_be_point(
         conn, file_path=file_path, field="geom"
     )
