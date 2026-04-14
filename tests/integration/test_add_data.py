@@ -387,7 +387,8 @@ def test_validate_and_add_data_input_non_200(
             organisation_csv,
         )
 
-    assert "Failed to collect from URL with status: 404" in str(error)
+    assert "Failed to collect from URL" in str(error.value)
+    assert "log status: 404" in str(error.value)
 
 
 def test_validate_and_add_data_input_duplicate_endpoint(
