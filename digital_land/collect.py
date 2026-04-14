@@ -25,6 +25,10 @@ from .plugins.arcgis import get as arcgis_get
 
 logger = logging.getLogger(__name__)
 
+PLUGIN_PARAMETER_MODELS = {
+    "arcgis": ("ArcGIS", ArcGISParameters),
+}
+
 
 def hash_file(path):
     """Returns the hash of a file as a hex digest."""
@@ -190,10 +194,11 @@ class Collector:
         start = timer()
 
         # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
+        
+        parameters = self._validate_plugin_parameters(plugin, parameters)
         if not plugin:
             log, content = self.get(url, log)
         elif plugin == "arcgis":
-            parameters = self._validate_arcgis_parameters(parameters)
             log, content = arcgis_get(self, url, log, parameters=parameters)
         elif plugin == "wfs":
             log, content = wfs_get(
@@ -269,14 +274,17 @@ class Collector:
             )
         return parameters
 
-    def _validate_arcgis_parameters(self, parameters):
-        if isinstance(parameters, ArcGISParameters):
+    def _validate_plugin_parameters(self, plugin, parameters):
+        config = PLUGIN_PARAMETER_MODELS.get(plugin)
+        if not config:
             return parameters
+
+        plugin_name, parameter_model = config
         if parameters is None:
             parameters = {}
         if not isinstance(parameters, dict):
-            raise ValueError("ArcGIS parameters must be a dictionary")
+            raise ValueError(f"{plugin_name} parameters must be a dictionary")
         try:
-            return ArcGISParameters(**parameters)
+            return parameter_model(**parameters)
         except ValidationError as exc:
-            raise ValueError(f"Invalid ArcGIS parameters: {exc}") from exc
+            raise ValueError(f"Invalid {plugin_name} parameters: {exc}") from exc
