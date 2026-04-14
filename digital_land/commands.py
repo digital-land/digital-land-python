@@ -861,18 +861,6 @@ def validate_and_add_data_input(
             refill_todays_logs=True,
         )
 
-        # try:
-        #     # log is already returned from fetch, but read from file if needed for verification
-        #     log_path = collector.log_path(datetime.utcnow(), endpoint["endpoint"])
-        #     if os.path.isfile(log_path):
-        #         with open(log_path, "r") as f:
-        #             log = json.load(f)
-        # except Exception as e:
-        #     print(
-        #         f"Error: The log file for {endpoint} could not be read from path {log_path}.\n{e}"
-        #     )
-        #     break
-
         log_status = log.get("status", None)
         exception = log.get("exception", None)
         if fetch_status not in [FetchStatus.OK, FetchStatus.ALREADY_FETCHED]:
@@ -908,9 +896,6 @@ def validate_and_add_data_input(
                 "organisation": row["organisation"],
                 "entry-date": row["entry-date"],
             }
-            #     elif:
-            #        raise Error(
-            #         f"No resource avaible: {log_status if log_status else exception}"
         )
 
     return collection, endpoint_resource_info
