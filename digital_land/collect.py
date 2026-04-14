@@ -194,7 +194,7 @@ class Collector:
         start = timer()
 
         # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
-        
+
         parameters = self._validate_plugin_parameters(plugin, parameters)
         if not plugin:
             log, content = self.get(url, log)
