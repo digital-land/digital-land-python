@@ -11,6 +11,7 @@ import responses
 import requests
 
 from digital_land.collect import Collector, FetchStatus
+from digital_land.plugins.arcgis import ArcGISParameters
 
 
 @pytest.fixture
@@ -241,7 +242,7 @@ def test_fetch_passes_parameters_to_arcgis_plugin(collector, mocker):
 
     assert status == FetchStatus.OK
     assert captured["url"] == url
-    assert captured["parameters"] == {"max_page_size": 20}
+    assert captured["parameters"] == ArcGISParameters(max_page_size=20)
 
 
 def test_collect_reads_parameters_from_csv(tmp_path, mocker):
@@ -324,3 +325,16 @@ def test_collect_raises_for_invalid_parameters_json(tmp_path):
 
     with pytest.raises(ValueError, match="Invalid parameters JSON"):
         collector.collect(endpoint_csv)
+
+
+def test_fetch_raises_for_invalid_arcgis_parameters(collector):
+    url = "http://some.arcgis.url"
+
+    with pytest.raises(ValueError, match="Invalid ArcGIS parameters"):
+        collector.fetch(
+            url,
+            endpoint=sha_digest(url),
+            plugin="arcgis",
+            parameters={"max_page_size": 0},
+            refill_todays_logs=True,
+        )

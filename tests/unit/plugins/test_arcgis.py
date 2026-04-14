@@ -28,7 +28,11 @@ def test_arcgis_get_returns_no_partial_string_on_iteration_failure(mocker, caplo
     mocker.patch("digital_land.plugins.arcgis.EsriDumper", FakeDumper)
 
     with caplog.at_level("WARNING"):
-        log, content = arcgis_get(None, "https://example.com/arcgis")
+        log, content = arcgis_get(
+            None,
+            "https://example.com/arcgis",
+            parameters=ArcGISParameters(),
+        )
 
     assert content is None
     assert log["status"] == "200"
@@ -78,7 +82,11 @@ def test_arcgis_get_retries_and_logs_failed_step(mocker, caplog):
         log, content = arcgis_get(
             None,
             "https://example.com/arcgis",
-            parameters={"retries": 1, "retry_backoff_seconds": 3, "timeout": 90},
+            parameters=ArcGISParameters(
+                retries=1,
+                retry_backoff_seconds=3,
+                timeout=90,
+            ),
         )
 
     assert attempts["count"] == 2
@@ -86,3 +94,15 @@ def test_arcgis_get_retries_and_logs_failed_step(mocker, caplog):
     assert content is not None
     assert log["status"] == "200"
     assert "ArcGIS fetch failed at step 'metadata' on attempt 1/2" in caplog.text
+
+
+def test_arcgis_get_rejects_unvalidated_parameter_dict():
+    with pytest.raises(
+        TypeError,
+        match="ArcGIS get expects parameters to be an ArcGISParameters instance",
+    ):
+        arcgis_get(
+            None,
+            "https://example.com/arcgis",
+            parameters={"max_page_size": 20},
+        )

@@ -25,7 +25,12 @@ class ArcGISParameters:
 def get(collector, url, log={}, plugin="arcgis", parameters=None):
     content = None
     logging.info("%s %s" % (plugin, url))
-    parameters = validate_parameters(parameters)
+    if parameters is None:
+        parameters = ArcGISParameters()
+    elif not isinstance(parameters, ArcGISParameters):
+        raise TypeError(
+            "ArcGIS get expects parameters to be an ArcGISParameters instance"
+        )
 
     retries = parameters.retries
     timeout = parameters.timeout

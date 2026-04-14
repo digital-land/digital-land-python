@@ -15,10 +15,12 @@ from timeit import default_timer as timer
 
 import canonicaljson
 import requests
+from pydantic import ValidationError
 
 from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
 from .plugins.wfs import get as wfs_get
+from .plugins.arcgis import ArcGISParameters
 from .plugins.arcgis import get as arcgis_get
 
 logger = logging.getLogger(__name__)
@@ -191,6 +193,7 @@ class Collector:
         if not plugin:
             log, content = self.get(url, log)
         elif plugin == "arcgis":
+            parameters = self._validate_arcgis_parameters(parameters)
             log, content = arcgis_get(self, url, log, parameters=parameters)
         elif plugin == "wfs":
             log, content = wfs_get(
@@ -265,3 +268,15 @@ class Collector:
                 f"Parameters must be a JSON object for endpoint {endpoint}: {raw_parameters}"
             )
         return parameters
+
+    def _validate_arcgis_parameters(self, parameters):
+        if isinstance(parameters, ArcGISParameters):
+            return parameters
+        if parameters is None:
+            parameters = {}
+        if not isinstance(parameters, dict):
+            raise ValueError("ArcGIS parameters must be a dictionary")
+        try:
+            return ArcGISParameters(**parameters)
+        except ValidationError as exc:
+            raise ValueError(f"Invalid ArcGIS parameters: {exc}") from exc
