@@ -96,9 +96,14 @@ class CsvCheckpoint(BaseCheckpoint):
         )
         return passed, msg, details
 
+    def get_connection(self):
+        conn = duckdb.connect()
+        conn.execute("INSTALL spatial")
+        conn.execute("LOAD spatial")
+        return conn
+
     def run(self):
-        with duckdb.connect() as conn:
-            conn.execute("LOAD spatial")
+        with self.get_connection() as conn:
             for expectation in self.expectations:
                 passed, message, details = self.run_expectation(conn, expectation)
                 self.log.add(

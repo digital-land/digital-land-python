@@ -74,48 +74,12 @@ class TestCsvCheckpoint:
                 [{"operation": "nonexistent", "name": "test", "parameters": "{}"}]
             )
 
-    def test_spatial_extension_loaded_for_point_expectation(self, tmp_path):
-        file_path = tmp_path / "point.csv"
-        with open(file_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["point"])
-            writer.writerow(["POINT (0 0)"])
+    def test_get_connection_loads_spatial_extension(self, csv_file):
+        checkpoint = CsvCheckpoint("test-dataset", csv_file)
 
-        checkpoint = CsvCheckpoint("test-dataset", file_path)
-        rules = [
-            {
-                "operation": "expect_column_to_be_point",
-                "name": "Point datatype check",
-                "parameters": {"field": "point"},
-            }
-        ]
-        checkpoint.load(rules)
-        checkpoint.run()
+        with checkpoint.get_connection() as conn:
+            result = conn.execute(
+                "SELECT ST_AsText(ST_GeomFromText('POINT (0 0)'))"
+            ).fetchone()
 
-        assert len(checkpoint.log.entries) == 1
-        assert checkpoint.log.entries[0]["passed"] is True
-        assert checkpoint.log.entries[0]["operation"] == "expect_column_to_be_point"
-
-    def test_spatial_extension_loaded_for_multipolygon_expectation(self, tmp_path):
-        file_path = tmp_path / "multipolygon.csv"
-        with open(file_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["geometry"])
-            writer.writerow(["MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0)))"])
-
-        checkpoint = CsvCheckpoint("test-dataset", file_path)
-        rules = [
-            {
-                "operation": "expect_column_to_be_multipolygon",
-                "name": "Multipolygon datatype check",
-                "parameters": {"field": "geometry"},
-            }
-        ]
-        checkpoint.load(rules)
-        checkpoint.run()
-
-        assert len(checkpoint.log.entries) == 1
-        assert checkpoint.log.entries[0]["passed"] is True
-        assert (
-            checkpoint.log.entries[0]["operation"] == "expect_column_to_be_multipolygon"
-        )
+        assert result[0] == "POINT (0 0)"

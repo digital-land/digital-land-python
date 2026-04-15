@@ -1026,8 +1026,16 @@ def expect_column_to_match_pattern(conn, file_path: Path, field: str, pattern: s
 
 
 def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
-    """Validate that non-empty values in a column are valid multipolygon geometries using duckdb spatial extensions.
-    This expectation requires the spatial extensions to be enabled in duckdb."""
+    """
+    Validate that non-empty values in a column are valid polygonal geometries.
+    This expectation relies on DuckDB spatial functions so the provided connection
+    should have the spatial extension loaded.
+
+    args:
+        conn: duckdb connection used to run the query, spatial extension should already be loaded
+        file_path: path to the CSV file being validated
+        field: the geometry column to validate
+    """
     result = conn.execute(
         f"""
         WITH source_rows AS (
@@ -1078,8 +1086,17 @@ def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
 
 
 def expect_column_to_be_point(conn, file_path: Path, field: str):
-    """Validate that non-empty values in a column are valid WKT POINT geometries.
-    This expectation requires the spatial extensions to be enabled in duckdb."""
+    """
+    Validate that non-empty values in a column are valid WKT POINT geometries.
+    This expectation relies on DuckDB spatial functions so the provided connection
+    should have the spatial extension loaded.
+
+    args:
+        conn: duckdb connection used to run the query, spatial extension should already be loaded
+        file_path: path to the CSV file being validated
+        field: the point column to validate
+    """
+
     result = conn.execute(
         f"""
         WITH source_rows AS (
