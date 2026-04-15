@@ -170,9 +170,6 @@ class Collector:
         if end_date and datetime.strptime(end_date, "%Y-%m-%d") < log_datetime:
             return FetchStatus.EXPIRED, None
 
-        if parameters is None:
-            parameters = {}
-
         url_endpoint = self.url_endpoint(url)
         if not endpoint:
             endpoint = url_endpoint
@@ -259,32 +256,45 @@ class Collector:
 
     def parse_parameters(self, raw_parameters, endpoint=""):
         if not raw_parameters:
-            return {}
+            return None
 
         try:
             parameters = json.loads(raw_parameters)
         except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"Invalid parameters JSON for endpoint {endpoint}: {raw_parameters}"
-            ) from exc
+            logging.warning(
+                f"Invalid parameters JSON for endpoint {endpoint}: {raw_parameters}. "
+                f"Error: {exc}. Falling back to defaults."
+            )
+            return None
 
         if not isinstance(parameters, dict):
-            raise ValueError(
-                f"Parameters must be a JSON object for endpoint {endpoint}: {raw_parameters}"
+            logging.warning(
+                f"Parameters must be a JSON object for endpoint {endpoint}: {raw_parameters}. "
+                "Falling back to defaults."
             )
+            return None
+
         return parameters
 
     def _validate_plugin_parameters(self, plugin, parameters):
+
+        if parameters is None:
+            return None
+
         config = PLUGIN_PARAMETER_MODELS.get(plugin)
         if not config:
             return parameters
 
         plugin_name, parameter_model = config
-        if parameters is None:
-            parameters = {}
+
         if not isinstance(parameters, dict):
-            raise ValueError(f"{plugin_name} parameters must be a dictionary")
+            logging.warning(
+                f"{plugin_name} parameters must be a dictionary. Falling back to defaults"
+            )
+            return None
         try:
             return parameter_model(**parameters)
         except ValidationError as exc:
-            raise ValueError(f"Invalid {plugin_name} parameters: {exc}") from exc
+            logging.warning(
+                f"Invalid {plugin_name} parameters. Falling back to defaults. Errors: {exc.errors()}"
+            )
