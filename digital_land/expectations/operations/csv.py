@@ -2,11 +2,6 @@ from pathlib import Path
 import re
 import pandas as pd
 
-from digital_land.expectations.operations.datatype_validators import (
-    _is_valid_multipolygon_value,
-    _is_valid_point_value,
-)
-
 
 def _read_csv(file_path: Path) -> str:
     return f"read_csv_auto('{str(file_path)}',all_varchar=true,delim=',',quote='\"',escape='\"')"
@@ -954,6 +949,7 @@ def expect_column_to_be_datetime(conn, file_path: Path, field: str):
 
 
 def expect_column_to_be_pattern(conn, file_path: Path, field: str):
+    """Validate that non-empty values in a column are valid regex patterns."""
     invalid_rows = []
     df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
     if not df.empty and len(df.columns) > 0 and field in df.columns:
@@ -981,23 +977,105 @@ def expect_column_to_be_pattern(conn, file_path: Path, field: str):
     return passed, message, {"invalid_rows": invalid_rows}
 
 
+def expect_column_to_match_pattern(conn, file_path: Path, field: str, pattern: str):
+    """Validate that non-empty values in a column match a provided regex pattern."""
+    pattern_text = str(pattern)
+    if not pattern_text.strip():
+        raise ValueError("pattern must be a non-empty regex string")
+
+    try:
+        re.compile(pattern_text)
+    except re.error as exc:
+        raise ValueError(f"Invalid regex pattern '{pattern_text}': {exc}") from exc
+
+    pattern_sql = _sql_string(pattern_text)
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT
+            line_number,
+            TRIM(COALESCE("{field}", '')) AS value
+        FROM source_rows
+        WHERE TRIM(COALESCE("{field}", '')) != ''
+          AND NOT REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), {pattern_sql})
+        """
+    ).fetchall()
+
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "pattern-match",
+            "value": row[1],
+            "pattern": pattern_text,
+        }
+        for row in result
+    ]
+
+    passed = len(invalid_rows) == 0
+    message = (
+        f"all non-empty values in '{field}' match pattern '{pattern_text}'"
+        if passed
+        else f"there were {len(invalid_rows)} values in '{field}' that did not match pattern '{pattern_text}'"
+    )
+
+    return passed, message, {"invalid_rows": invalid_rows}
+
+
 def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
-    invalid_rows = []
-    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
-    if not df.empty and len(df.columns) > 0 and field in df.columns:
-        for line_number, (_, row) in enumerate(df.iterrows(), start=2):
-            value = str(row.get(field, "")).strip()
-            if not value:
-                continue
-            if not _is_valid_multipolygon_value(value):
-                invalid_rows.append(
-                    {
-                        "line_number": line_number,
-                        "field": field,
-                        "datatype": "multipolygon",
-                        "value": value,
-                    }
-                )
+    """
+    Validate that non-empty values in a column are valid polygonal geometries.
+    This expectation relies on DuckDB spatial functions so the provided connection
+    should have the spatial extension loaded.
+
+    args:
+        conn: duckdb connection used to run the query, spatial extension should already be loaded
+        file_path: path to the CSV file being validated
+        field: the geometry column to validate
+    """
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        ),
+        prepared AS (
+            SELECT
+                line_number,
+                TRIM(COALESCE("{field}", '')) AS value
+            FROM source_rows
+            WHERE TRIM(COALESCE("{field}", '')) != ''
+        ),
+        parsed AS (
+            SELECT
+                line_number,
+                value,
+                TRY(ST_GeomFromText(value)) AS geom
+            FROM prepared
+        )
+        SELECT
+            line_number,
+            value
+        FROM parsed
+        WHERE geom IS NULL
+           OR UPPER(CAST(ST_GeometryType(geom) AS VARCHAR)) NOT IN ('POLYGON', 'MULTIPOLYGON', 'GEOMETRYCOLLECTION')
+           OR NOT ST_IsValid(geom)
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "multipolygon",
+            "value": row[1],
+        }
+        for row in result
+    ]
     passed = len(invalid_rows) == 0
     message = (
         f"all values in '{field}' have datatype 'multipolygon'"
@@ -1008,22 +1086,59 @@ def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
 
 
 def expect_column_to_be_point(conn, file_path: Path, field: str):
-    invalid_rows = []
-    df = pd.read_csv(file_path, dtype=str, keep_default_na=False)
-    if not df.empty and len(df.columns) > 0 and field in df.columns:
-        for line_number, (_, row) in enumerate(df.iterrows(), start=2):
-            value = str(row.get(field, "")).strip()
-            if not value:
-                continue
-            if not _is_valid_point_value(value):
-                invalid_rows.append(
-                    {
-                        "line_number": line_number,
-                        "field": field,
-                        "datatype": "point",
-                        "value": value,
-                    }
-                )
+    """
+    Validate that non-empty values in a column are valid WKT POINT geometries.
+    This expectation relies on DuckDB spatial functions so the provided connection
+    should have the spatial extension loaded.
+
+    args:
+        conn: duckdb connection used to run the query, spatial extension should already be loaded
+        file_path: path to the CSV file being validated
+        field: the point column to validate
+    """
+
+    result = conn.execute(
+        f"""
+        WITH source_rows AS (
+            SELECT ROW_NUMBER() OVER () + 1 AS line_number, *
+            FROM {_read_csv(file_path)}
+        ),
+        prepared AS (
+            SELECT
+                line_number,
+                TRIM(COALESCE("{field}", '')) AS value
+            FROM source_rows
+            WHERE TRIM(COALESCE("{field}", '')) != ''
+        ),
+        parsed AS (
+            SELECT
+                line_number,
+                value,
+                TRY(ST_GeomFromText(value)) AS geom
+            FROM prepared
+        )
+        SELECT
+            line_number,
+            value
+        FROM parsed
+        WHERE NOT (
+            geom IS NOT NULL
+            AND UPPER(CAST(ST_GeometryType(geom) AS VARCHAR)) = 'POINT'
+            AND ST_IsValid(geom)
+        )
+        ORDER BY line_number
+        """
+    ).fetchall()
+
+    invalid_rows = [
+        {
+            "line_number": row[0],
+            "field": field,
+            "datatype": "point",
+            "value": row[1],
+        }
+        for row in result
+    ]
     passed = len(invalid_rows) == 0
     message = (
         f"all values in '{field}' have datatype 'point'"

@@ -73,3 +73,13 @@ class TestCsvCheckpoint:
             checkpoint.load(
                 [{"operation": "nonexistent", "name": "test", "parameters": "{}"}]
             )
+
+    def test_get_connection_loads_spatial_extension(self, csv_file):
+        checkpoint = CsvCheckpoint("test-dataset", csv_file)
+
+        with checkpoint.get_connection() as conn:
+            result = conn.execute(
+                "SELECT ST_AsText(ST_GeomFromText('POINT (0 0)'))"
+            ).fetchone()
+
+        assert result[0] == "POINT (0 0)"
