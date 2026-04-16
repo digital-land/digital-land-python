@@ -353,28 +353,27 @@ def test_collect_falls_back_to_default_parameters_for_invalid_parameters_json(
     assert captured["parameters"] is None
 
 
-def test_fetch_falls_back_to_default_arcgis_parameters(collector, mocker):
-    url = "http://some.arcgis.url"
+class TestCollector:
+    def test_fetch_passes_parameters_to_arcgis_plugin(self, collector, mocker):
+        captured = {}
 
-    captured = {}
+        def fake_arcgis_get(collector_obj, url, log, parameters=None, plugin="arcgis"):
+            captured["collector"] = collector_obj
+            captured["url"] = url
+            captured["parameters"] = parameters
+            return log, b'{"type":"FeatureCollection","features":[]}'
 
-    def fake_arcgis_get(collector_obj, url, log, parameters=None, plugin="arcgis"):
-        captured["collector"] = collector_obj
-        captured["url"] = url
-        captured["parameters"] = parameters
-        return log, b'{"type":"FeatureCollection","features":[]}'
+        mocker.patch("digital_land.collect.arcgis_get", side_effect=fake_arcgis_get)
 
-    mocker.patch("digital_land.collect.arcgis_get", side_effect=fake_arcgis_get)
+        url = "http://some.arcgis.url"
+        status, log = collector.fetch(
+            url,
+            endpoint=sha_digest(url),
+            plugin="arcgis",
+            parameters={"max_page_size": 20},
+            refill_todays_logs=True,
+        )
 
-    status, log = collector.fetch(
-        url,
-        endpoint=sha_digest(url),
-        plugin="arcgis",
-        parameters={"max_page_size": 0},
-        refill_todays_logs=True,
-    )
-
-    assert status == FetchStatus.OK
-    assert log is not None
-    assert captured["url"] == url
-    assert captured["parameters"] is None
+        assert status == FetchStatus.OK
+        assert captured["url"] == url
+        assert captured["parameters"] == ArcGISParameters(max_page_size=20)

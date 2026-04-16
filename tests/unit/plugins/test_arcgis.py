@@ -4,7 +4,7 @@ from digital_land.plugins.arcgis import ArcGISParameters
 from digital_land.plugins.arcgis import get as arcgis_get
 
 
-def test_arcgis_get_returns_partial_string_on_iteration_failure(mocker, caplog):
+def test_get_returns_partial_string_on_iteration_failure(mocker, caplog):
     class FakeResponse:
         status_code = 200
 
@@ -35,7 +35,7 @@ def test_arcgis_get_returns_partial_string_on_iteration_failure(mocker, caplog):
     assert "timed out" in caplog.text
 
 
-def test_arcgis_get_passes_retry_configuration_to_esri_dumper(mocker, caplog):
+def test_get_passes_retry_configuration_to_esri_dumper(mocker, caplog):
     attempts = {"count": 0}
     init_kwargs = {}
 
@@ -83,7 +83,7 @@ def test_arcgis_get_passes_retry_configuration_to_esri_dumper(mocker, caplog):
     assert "metadata timed out" in caplog.text
 
 
-def test_arcgis_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(
+def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(
     mocker, caplog
 ):
     init_kwargs = {}
