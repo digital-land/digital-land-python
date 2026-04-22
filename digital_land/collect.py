@@ -6,6 +6,7 @@
 import csv
 import hashlib
 import logging
+import json
 import os
 import re
 from datetime import datetime
@@ -14,13 +15,19 @@ from timeit import default_timer as timer
 
 import canonicaljson
 import requests
+from pydantic import ValidationError
 
 from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
 from .plugins.wfs import get as wfs_get
+from .plugins.arcgis import ArcGISParameters
 from .plugins.arcgis import get as arcgis_get
 
 logger = logging.getLogger(__name__)
+
+PLUGIN_PARAMETER_MODELS = {
+    "arcgis": ("ArcGIS", ArcGISParameters),
+}
 
 
 def hash_file(path):
@@ -152,6 +159,7 @@ class Collector:
         log_datetime=datetime.utcnow(),
         end_date="",
         plugin="",
+        parameters=None,
         refill_todays_logs=False,
     ):
         log = {
@@ -183,12 +191,18 @@ class Collector:
         start = timer()
 
         # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
+
+        parameters = self._validate_plugin_parameters(plugin, parameters)
         if not plugin:
             log, content = self.get(url, log)
         elif plugin == "arcgis":
-            log, content = arcgis_get(self, url, log)
+            log, content = arcgis_get(self, url, log, parameters=parameters)
         elif plugin == "wfs":
-            log, content = wfs_get(self, url, log)
+            log, content = wfs_get(
+                self,
+                url,
+                log,
+            )
         elif plugin == "sparql":
             log, content = sparql_get(self, url, log)
         else:
@@ -222,6 +236,10 @@ class Collector:
             endpoint = row["endpoint"]
             url = row["endpoint-url"]
             plugin = row.get("plugin", "")
+            parameters = self.parse_parameters(
+                row.get("parameters", ""),
+                endpoint=endpoint,
+            )
 
             # skip manually added files ..
             if not url:
@@ -232,5 +250,51 @@ class Collector:
                 endpoint=endpoint,
                 end_date=row.get("end-date", ""),
                 plugin=plugin,
+                parameters=parameters,
                 refill_todays_logs=refill_todays_logs,
+            )
+
+    def parse_parameters(self, raw_parameters, endpoint=""):
+        if not raw_parameters:
+            return None
+
+        try:
+            parameters = json.loads(raw_parameters)
+        except json.JSONDecodeError as exc:
+            logging.warning(
+                f"Invalid parameters JSON for endpoint {endpoint}: {raw_parameters}. "
+                f"Error: {exc}. Falling back to defaults."
+            )
+            return None
+
+        if not isinstance(parameters, dict):
+            logging.warning(
+                f"Parameters must be a JSON object for endpoint {endpoint}: {raw_parameters}. "
+                "Falling back to defaults."
+            )
+            return None
+
+        return parameters
+
+    def _validate_plugin_parameters(self, plugin, parameters):
+
+        if parameters is None:
+            return None
+
+        config = PLUGIN_PARAMETER_MODELS.get(plugin)
+        if not config:
+            return parameters
+
+        plugin_name, parameter_model = config
+
+        if not isinstance(parameters, dict):
+            logging.warning(
+                f"{plugin_name} parameters must be a dictionary. Falling back to defaults"
+            )
+            return None
+        try:
+            return parameter_model(**parameters)
+        except ValidationError as exc:
+            logging.warning(
+                f"Invalid {plugin_name} parameters. Falling back to defaults. Errors: {exc.errors()}"
             )

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import csv
 import os
 import pathlib
 from datetime import datetime, timedelta
@@ -10,6 +11,7 @@ import responses
 import requests
 
 from digital_land.collect import Collector, FetchStatus
+from digital_land.plugins.arcgis import ArcGISParameters
 
 
 @pytest.fixture
@@ -216,3 +218,162 @@ def test_resource_not_bytes(collector):
 
     assert status == FetchStatus.FAILED
     assert log["exception"] == "TypeError"
+
+
+def test_fetch_passes_parameters_to_arcgis_plugin(collector, mocker):
+    captured = {}
+
+    def fake_arcgis_get(collector_obj, url, log, parameters=None, plugin="arcgis"):
+        captured["collector"] = collector_obj
+        captured["url"] = url
+        captured["parameters"] = parameters
+        return log, b'{"type":"FeatureCollection","features":[]}'
+
+    mocker.patch("digital_land.collect.arcgis_get", side_effect=fake_arcgis_get)
+
+    url = "http://some.arcgis.url"
+    status, log = collector.fetch(
+        url,
+        endpoint=sha_digest(url),
+        plugin="arcgis",
+        parameters={"max_page_size": 20},
+        refill_todays_logs=True,
+    )
+
+    assert status == FetchStatus.OK
+    assert captured["url"] == url
+    assert captured["parameters"] == ArcGISParameters(max_page_size=20)
+
+
+def test_collect_reads_parameters_from_csv(tmp_path, mocker):
+    collector = Collector(
+        resource_dir=str(tmp_path / "resource"),
+        log_dir=str(tmp_path / "log"),
+    )
+
+    url = "http://some.arcgis.url"
+    endpoint = sha_digest(url)
+
+    endpoint_csv = tmp_path / "endpoints.csv"
+    with open(endpoint_csv, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["endpoint", "endpoint-url", "plugin", "parameters"],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "endpoint": endpoint,
+                "endpoint-url": url,
+                "plugin": "arcgis",
+                "parameters": '{"max_page_size": 20}',
+            }
+        )
+
+    captured = {}
+
+    def fake_fetch(
+        self,
+        url,
+        endpoint=None,
+        log_datetime=datetime.utcnow(),
+        end_date="",
+        plugin="",
+        parameters=None,
+        refill_todays_logs=False,
+    ):
+        captured["url"] = url
+        captured["endpoint"] = endpoint
+        captured["plugin"] = plugin
+        captured["parameters"] = parameters
+        return FetchStatus.OK, {"status": "200"}
+
+    mocker.patch.object(Collector, "fetch", new=fake_fetch)
+
+    collector.collect(endpoint_csv)
+
+    assert captured["url"] == url
+    assert captured["endpoint"] == endpoint
+    assert captured["plugin"] == "arcgis"
+    assert captured["parameters"] == {"max_page_size": 20}
+
+
+def test_collect_falls_back_to_default_parameters_for_invalid_parameters_json(
+    tmp_path, mocker
+):
+    collector = Collector(
+        resource_dir=str(tmp_path / "resource"),
+        log_dir=str(tmp_path / "log"),
+    )
+
+    url = "http://some.arcgis.url"
+    endpoint = sha_digest(url)
+
+    endpoint_csv = tmp_path / "endpoints.csv"
+    with open(endpoint_csv, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["endpoint", "endpoint-url", "plugin", "parameters"],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "endpoint": endpoint,
+                "endpoint-url": url,
+                "plugin": "arcgis",
+                "parameters": "{max_page_size: 20}",  # invalid JSON
+            }
+        )
+
+    captured = {}
+
+    def fake_fetch(
+        self,
+        url,
+        endpoint=None,
+        log_datetime=datetime.utcnow(),
+        end_date="",
+        plugin="",
+        parameters=None,
+        refill_todays_logs=False,
+    ):
+        captured["url"] = url
+        captured["endpoint"] = endpoint
+        captured["plugin"] = plugin
+        captured["parameters"] = parameters
+        return FetchStatus.OK, {"status": "200"}
+
+    mocker.patch.object(Collector, "fetch", new=fake_fetch)
+
+    collector.collect(endpoint_csv)
+
+    assert captured["url"] == url
+    assert captured["endpoint"] == endpoint
+    assert captured["plugin"] == "arcgis"
+    assert captured["parameters"] is None
+
+
+class TestCollector:
+    def test_fetch_passes_parameters_to_arcgis_plugin(self, collector, mocker):
+        captured = {}
+
+        def fake_arcgis_get(collector_obj, url, log, parameters=None, plugin="arcgis"):
+            captured["collector"] = collector_obj
+            captured["url"] = url
+            captured["parameters"] = parameters
+            return log, b'{"type":"FeatureCollection","features":[]}'
+
+        mocker.patch("digital_land.collect.arcgis_get", side_effect=fake_arcgis_get)
+
+        url = "http://some.arcgis.url"
+        status, log = collector.fetch(
+            url,
+            endpoint=sha_digest(url),
+            plugin="arcgis",
+            parameters={"max_page_size": 20},
+            refill_todays_logs=True,
+        )
+
+        assert status == FetchStatus.OK
+        assert captured["url"] == url
+        assert captured["parameters"] == ArcGISParameters(max_page_size=20)
