@@ -258,6 +258,56 @@ class DatasetParquetPackage(Package):
                 f"row count mismatch after grouping: {source_count} source rows vs {batch_count} batch rows"
             )
 
+    def _assign_to_buckets(self, batch_dir, bucket_dir, n_buckets):
+        """
+        Distribute rows from all batch files into n_buckets bucket files based
+        on HASH(fact) % n_buckets. Each unique fact hash always maps to the same
+        bucket, so per-bucket deduplication is equivalent to global deduplication.
+
+        Returns the list of bucket file paths.
+        """
+        digits = max(2, len(str(n_buckets - 1)))
+        bucket_paths = [
+            bucket_dir / f"bucket_{i:0{digits}}.parquet" for i in range(n_buckets)
+        ]
+        for i in range(n_buckets):
+            self.conn.execute(
+                f"""
+                COPY (
+                    SELECT *
+                    FROM read_parquet('{str(batch_dir)}/batch_*.parquet')
+                    WHERE CAST(HASH(fact) AS UBIGINT) % {n_buckets} = {i}
+                ) TO '{bucket_paths[i]}' (FORMAT PARQUET);
+                """
+            )
+        return bucket_paths
+
+    def _deduplicate_buckets(self, bucket_paths, result_dir):
+        """
+        Apply per-fact deduplication to each bucket file, keeping the highest
+        priority and most recent entry for each unique fact hash.
+
+        Returns the list of result file paths.
+        """
+        digits = max(2, len(str(len(bucket_paths) - 1)))
+        result_paths = [
+            result_dir / f"result_{i:0{digits}}.parquet"
+            for i in range(len(bucket_paths))
+        ]
+        for i, bucket_path in enumerate(bucket_paths):
+            self.conn.execute(
+                f"""
+                COPY (
+                    SELECT *
+                    FROM read_parquet('{bucket_path}')
+                    QUALIFY ROW_NUMBER() OVER (
+                        PARTITION BY fact ORDER BY priority, entry_date DESC, entry_number DESC
+                    ) = 1
+                ) TO '{result_paths[i]}' (FORMAT PARQUET);
+                """
+            )
+        return result_paths
+
     def load_facts(self, transformed_parquet_dir):
         """
         This method loads facts into a fact table from a directory containing all transformed files as parquet files
@@ -336,42 +386,22 @@ class DatasetParquetPackage(Package):
                 logger.info(
                     "Need to use multiple buckets in windowed function for facts"
                 )
+                batch_dir = transformed_parquet_dir / "batch"
+                logger.info(
+                    f"Have {len(list(batch_dir.glob('batch_*.parquet')))} batch files"
+                )
+
                 bucket_dir = transformed_parquet_dir / "bucket"
                 bucket_dir.mkdir(parents=True, exist_ok=True)
-                digits = max(2, len(str(n_buckets - 1)))
-                bucket_paths = [
-                    bucket_dir / f"bucket_{i:0{digits}}.parquet"
-                    for i in range(n_buckets)
-                ]
-                logger.info(
-                    f"Have {len(list(transformed_parquet_dir.glob('batch/batch_*.parquet')))} batch files"
-                )
-
-                # Loop over each batch file and assign to a bucket file
                 logger.info(f"Assigning to {n_buckets} buckets")
-                for f in transformed_parquet_dir.glob("batch/batch_*.parquet"):
-                    for i in range(n_buckets):
-                        self.conn.execute(
-                            f"""
-                        COPY (
-                            SELECT *
-                            FROM read_parquet('{f}')
-                            WHERE CAST(HASH(fact) AS UBIGINT) % {n_buckets} = {i}
-                        ) TO '{bucket_paths[i]}' (FORMAT PARQUET, APPEND TRUE);
-                        """
-                        )
+                bucket_paths = self._assign_to_buckets(batch_dir, bucket_dir, n_buckets)
+                logger.info(f"Have {len(bucket_paths)} bucket files")
 
-                logger.info(
-                    f"Have {len(list(bucket_dir.glob('bucket_*.parquet')))} bucket files"
-                )
-
-                # temporary diagnostic: total rows across all buckets should equal
-                # total rows across all batch files (deduplication happens later)
+                batch_total = self.conn.execute(
+                    f"SELECT COUNT(*) FROM read_parquet('{str(batch_dir)}/batch_*.parquet')"
+                ).fetchone()[0]
                 bucket_total = self.conn.execute(
                     f"SELECT COUNT(*) FROM read_parquet('{str(bucket_dir)}/bucket_*.parquet')"
-                ).fetchone()[0]
-                batch_total = self.conn.execute(
-                    f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/batch/batch_*.parquet')"
                 ).fetchone()[0]
                 logger.info(f"row count in batch files: {batch_total}")
                 logger.info(
@@ -383,51 +413,27 @@ class DatasetParquetPackage(Package):
                     )
 
                 process = psutil.Process(os.getpid())
-                mem = process.memory_info().rss / 1024**2  # Memory in MB
+                mem = process.memory_info().rss / 1024**2
                 logger.info(f"[Memory usage] After 'bucketing': {mem:.2f} MB")
 
                 result_dir = transformed_parquet_dir / "result"
                 result_dir.mkdir(parents=True, exist_ok=True)
-                result_paths = [
-                    result_dir / f"result_{i:0{digits}}.parquet"
-                    for i in range(n_buckets)
-                ]
-                for i in range(n_buckets):
-                    bucket_path = bucket_dir / f"bucket_{i:0{digits}}.parquet"
-                    self.conn.execute(
-                        f"""
-                    COPY (
-                        SELECT *
-                        FROM read_parquet('{bucket_path}')
-                        QUALIFY ROW_NUMBER() OVER (
-                            PARTITION BY fact ORDER BY priority, entry_date DESC, entry_number DESC
-                        ) = 1
-                    ) TO '{result_paths[i]}' (FORMAT PARQUET);
-                    """
-                    )
-                logger.info(
-                    f"Have {len(list(transformed_parquet_dir.glob('result_*.parquet')))} result files"
-                )
-
-                # for path in bucket_paths:
-                #     path.unlink(missing_ok=True)
+                result_paths = self._deduplicate_buckets(bucket_paths, result_dir)
+                logger.info(f"Have {len(result_paths)} result files")
 
                 process = psutil.Process(os.getpid())
-                mem = process.memory_info().rss / 1024**2  # Memory in MB
+                mem = process.memory_info().rss / 1024**2
                 logger.info(f"[Memory usage] After 'result': {mem:.2f} MB")
 
                 self.conn.execute(
                     f"""
-                    COPY(
-                        SELECT * FROM
-                    read_parquet('{str(result_dir)}/result_*.parquet')
-                ) TO '{str(output_path)}' (FORMAT PARQUET);
-                """
+                    COPY (
+                        SELECT * FROM read_parquet('{str(result_dir)}/result_*.parquet')
+                    ) TO '{str(output_path)}' (FORMAT PARQUET);
+                    """
                 )
                 logger.info(f"Facts saved to output_path: {output_path}")
                 logger.info(f"output_path exists: {os.path.exists(output_path)}")
-                # for path in result_paths:
-                #     path.unlink(missing_ok=True)
 
             process = psutil.Process(os.getpid())
             mem = process.memory_info().rss / 1024**2  # Memory in MB

@@ -1046,3 +1046,135 @@ def test_multi_bucket_load_facts_no_fact_loss(tmp_path):
         f"Expected {n_facts} facts but got {len(df_result)}. "
         "The multi-bucket path silently dropped some facts."
     )
+
+
+def test_assign_to_buckets_creates_correct_files(tmp_path):
+    """
+    Tests that _assign_to_buckets creates exactly n_buckets files in bucket_dir
+    and that the total row count across all bucket files equals the total row
+    count in the batch files (no rows dropped or duplicated during assignment).
+    """
+    n_facts = 30
+    n_buckets = 3
+
+    batch_dir = tmp_path / "batch"
+    batch_dir.mkdir()
+    for i in range(n_facts):
+        pd.DataFrame(
+            {
+                "end_date": [""],
+                "entity": [i + 1],
+                "entry_date": ["2023-01-01"],
+                "entry_number": ["1"],
+                "fact": [f"{'a' * 63}{i}"],
+                "field": ["name"],
+                "priority": ["1"],
+                "reference_entity": [""],
+                "resource": ["resource_abc"],
+                "start_date": [""],
+                "value": [f"value_{i}"],
+            }
+        ).to_parquet(batch_dir / f"batch_{i:02}.parquet", index=False)
+
+    bucket_dir = tmp_path / "bucket"
+    bucket_dir.mkdir()
+
+    package = DatasetParquetPackage(
+        dataset="conservation-area",
+        path=tmp_path / "output",
+        specification_dir=None,
+    )
+    bucket_paths = package._assign_to_buckets(batch_dir, bucket_dir, n_buckets)
+
+    assert (
+        len(bucket_paths) == n_buckets
+    ), f"Expected {n_buckets} bucket files, got {len(bucket_paths)}"
+    assert all(p.exists() for p in bucket_paths), "Not all bucket files were created"
+
+    bucket_total = sum(len(pd.read_parquet(p)) for p in bucket_paths)
+    assert bucket_total == n_facts, (
+        f"Expected {n_facts} total rows across buckets, got {bucket_total}. "
+        "Rows were dropped or duplicated during bucket assignment."
+    )
+
+    # each fact hash should appear in exactly one bucket
+    fact_counts = {}
+    for p in bucket_paths:
+        for fact in pd.read_parquet(p)["fact"]:
+            fact_counts[fact] = fact_counts.get(fact, 0) + 1
+    assert all(
+        v == 1 for v in fact_counts.values()
+    ), "Some fact hashes appear in more than one bucket"
+
+
+def test_deduplicate_buckets_creates_correct_files(tmp_path):
+    """
+    Tests that _deduplicate_buckets creates exactly one result file per bucket
+    and that duplicate fact hashes within a bucket are reduced to a single row,
+    keeping the row with the latest entry_date.
+    """
+    n_buckets = 2
+
+    bucket_dir = tmp_path / "bucket"
+    bucket_dir.mkdir()
+
+    # bucket_00: two rows for the same fact — only the later entry_date should survive
+    pd.DataFrame(
+        {
+            "end_date": ["", ""],
+            "entity": [1, 1],
+            "entry_date": ["2023-01-01", "2023-06-01"],
+            "entry_number": ["1", "2"],
+            "fact": ["fact_aaa", "fact_aaa"],
+            "field": ["name", "name"],
+            "priority": ["1", "1"],
+            "reference_entity": ["", ""],
+            "resource": ["res_a", "res_b"],
+            "start_date": ["", ""],
+            "value": ["old_value", "new_value"],
+        }
+    ).to_parquet(bucket_dir / "bucket_00.parquet", index=False)
+
+    # bucket_01: two distinct facts, no duplicates
+    pd.DataFrame(
+        {
+            "end_date": ["", ""],
+            "entity": [2, 3],
+            "entry_date": ["2023-01-01", "2023-01-01"],
+            "entry_number": ["1", "1"],
+            "fact": ["fact_bbb", "fact_ccc"],
+            "field": ["name", "name"],
+            "priority": ["1", "1"],
+            "reference_entity": ["", ""],
+            "resource": ["res_a", "res_a"],
+            "start_date": ["", ""],
+            "value": ["value_b", "value_c"],
+        }
+    ).to_parquet(bucket_dir / "bucket_01.parquet", index=False)
+
+    result_dir = tmp_path / "result"
+    result_dir.mkdir()
+
+    package = DatasetParquetPackage(
+        dataset="conservation-area",
+        path=tmp_path / "output",
+        specification_dir=None,
+    )
+    bucket_paths = [bucket_dir / "bucket_00.parquet", bucket_dir / "bucket_01.parquet"]
+    result_paths = package._deduplicate_buckets(bucket_paths, result_dir)
+
+    assert (
+        len(result_paths) == n_buckets
+    ), f"Expected {n_buckets} result files, got {len(result_paths)}"
+    assert all(p.exists() for p in result_paths), "Not all result files were created"
+
+    df_00 = pd.read_parquet(result_paths[0])
+    assert (
+        len(df_00) == 1
+    ), "Duplicate fact in bucket_00 should be deduplicated to 1 row"
+    assert (
+        df_00.iloc[0]["value"] == "new_value"
+    ), "The row with the latest entry_date should be kept"
+
+    df_01 = pd.read_parquet(result_paths[1])
+    assert len(df_01) == 2, "bucket_01 has 2 distinct facts, both should be kept"

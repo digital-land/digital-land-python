@@ -26,6 +26,7 @@ from ..operations.csv import (
     expect_column_to_be_date,
     expect_column_to_be_datetime,
     expect_column_to_be_pattern,
+    expect_column_to_match_pattern,
     expect_column_to_be_multipolygon,
     expect_column_to_be_point,
 )
@@ -60,6 +61,7 @@ class CsvCheckpoint(BaseCheckpoint):
             "expect_column_to_be_date": expect_column_to_be_date,
             "expect_column_to_be_datetime": expect_column_to_be_datetime,
             "expect_column_to_be_pattern": expect_column_to_be_pattern,
+            "expect_column_to_match_pattern": expect_column_to_match_pattern,
             "expect_column_to_be_multipolygon": expect_column_to_be_multipolygon,
             "expect_column_to_be_point": expect_column_to_be_point,
         }
@@ -94,8 +96,14 @@ class CsvCheckpoint(BaseCheckpoint):
         )
         return passed, msg, details
 
+    def get_connection(self):
+        conn = duckdb.connect()
+        conn.execute("INSTALL spatial")
+        conn.execute("LOAD spatial")
+        return conn
+
     def run(self):
-        with duckdb.connect() as conn:
+        with self.get_connection() as conn:
             for expectation in self.expectations:
                 passed, message, details = self.run_expectation(conn, expectation)
                 self.log.add(

@@ -61,6 +61,7 @@ def get(collector, url, log={}, plugin="arcgis", parameters=None):
 
         content += "]}"
         content = str.encode(content)
+        log["status"] = response_status
 
         log["status"] = response_status
 
