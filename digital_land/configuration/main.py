@@ -96,7 +96,6 @@ class Config(SqlitePackage):
             "column.csv",
             "combine.csv",
             "concat.csv",
-            "convert.csv",
             "default.csv",
             "default-value.csv",
             "filter.csv",
