@@ -7,7 +7,7 @@ from digital_land.state import compare_state
 
 specification_hash = "ebe620f5228d01170b1857bad3e738aa432f5fd6"
 collection_hash = "ed4c5979268ad880f7edbdc2047cfcfa6b9ee3b4"
-pipeline_hash = "4a5a778d678db812e4f3d498a5aaa6f39af38d10"
+pipeline_hash = "a4c891374a43968a63be663a26994b35ddcef22c"
 resource_hash = "063e908c6695671063dee27c534bf3471aa3f5d5"
 
 
