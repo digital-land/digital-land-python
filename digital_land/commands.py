@@ -51,6 +51,19 @@ from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.prune import FieldPrunePhase
 from digital_land.phase.reference import EntityReferencePhase
 from digital_land.pipeline import run_pipeline, Lookups, Pipeline
+from digital_land.phase_polars.transform.normalise import (
+    NormalisePhase as PolarsNormalisePhase,
+)
+from digital_land.phase_polars.transform.parse import ParsePhase as PolarsParsePhase
+from digital_land.phase_polars.transform.concat import ConcatPhase as PolarsConcatPhase
+from digital_land.phase_polars.transform.filter import FilterPhase as PolarsFilterPhase
+from digital_land.phase_polars.transform.map import MapPhase as PolarsMapPhase
+from digital_land.phase_polars.transform.patch import PatchPhase as PolarsPatchPhase
+from digital_land.phase_polars.transform.harmonise import (
+    HarmonisePhase as PolarsHarmonisePhase,
+)
+from digital_land.utils.convert_stream_polarsdf import StreamToPolarsConverter
+from digital_land.utils.convert_polarsdf_stream import polars_to_stream
 from digital_land.pipeline.process import convert_tranformed_csv_to_pq
 from digital_land.schema import Schema
 from digital_land.update import add_source_endpoint
@@ -1471,29 +1484,37 @@ def get_resource_unidentified_lookups(
         lookups=pipeline_lookups, redirect_lookups=redirect_lookups
     )
 
+    class _PolarsPhases:
+        def process(self, stream):
+            # Bridge: legacy stream → Polars LazyFrame
+            lf = StreamToPolarsConverter.from_stream(stream)
+            # Polars phases
+            lf = PolarsNormalisePhase(skip_patterns=skip_patterns).process(lf)
+            lf = PolarsParsePhase().process(lf)
+            lf = PolarsConcatPhase(concats=concats, log=column_field_log).process(lf)
+            lf = PolarsFilterPhase(filters=pipeline.filters(resource)).process(lf)
+            lf = PolarsMapPhase(
+                fieldnames=intermediate_fieldnames,
+                columns=columns,
+                log=column_field_log,
+            ).process(lf)
+            lf = PolarsFilterPhase(
+                filters=pipeline.filters(resource, endpoints=endpoints)
+            ).process(lf)
+            lf = PolarsPatchPhase(patches=patches).process(lf)
+            lf = PolarsHarmonisePhase(
+                field_datatype_map=specification.get_field_datatype_map(),
+                dataset=dataset,
+            ).process(lf)
+            # Bridge back: Polars LazyFrame → legacy stream
+            return polars_to_stream(lf, dataset=dataset, resource=resource, parsed=True)
+
     run_pipeline(
         ConvertPhase(
             path=input_path,
             dataset_resource_log=dataset_resource_log,
         ),
-        NormalisePhase(skip_patterns=skip_patterns),
-        ParsePhase(),
-        ConcatFieldPhase(concats=concats, log=column_field_log),
-        FilterPhase(filters=pipeline.filters(resource)),
-        MapPhase(
-            fieldnames=intermediate_fieldnames,
-            columns=columns,
-            log=column_field_log,
-        ),
-        FilterPhase(filters=pipeline.filters(resource, endpoints=endpoints)),
-        PatchPhase(
-            issues=issue_log,
-            patches=patches,
-        ),
-        HarmonisePhase(
-            field_datatype_map=specification.get_field_datatype_map(),
-            issues=issue_log,
-        ),
+        _PolarsPhases(),
         DefaultPhase(
             default_fields=default_fields,
             default_values=default_values,

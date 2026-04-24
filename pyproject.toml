@@ -18,7 +18,8 @@ dependencies = [
     "datasette",
     "canonicaljson",
     "click",
-    "cchardet",
+    "faust-cchardet",
+    "cchardet>=2.1.7",
     "esridump",
     "pandas",
     "pyproj",
@@ -27,7 +28,7 @@ dependencies = [
     "xlrd==1.2.0",
     "openpyxl",
     "numpy<2",
-    "Shapely==2.0.2",
+    "Shapely>=2.0.0",
     "SPARQLWrapper",
     "geojson",
     "spatialite",
@@ -43,6 +44,7 @@ dependencies = [
     "boto3",
     "moto",
     "psutil",
+    "polars",
 ]
 
 classifiers = [
