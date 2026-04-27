@@ -118,11 +118,11 @@ def test_count_lpa_boundary_passes(
 
 
 def test_count_deleted_entities(dataset_path, mocker):
-    # define constant parameters
+    """Entity with no facts in the active resource is reported as deleted."""
     organisation_entity = 109
     expected = 0
 
-    # load data into sqlite for entity, fact_resource and fact table
+    # entity 1001 has facts in the active resource; entity 1002 does not
     test_entity_data = pd.DataFrame.from_dict(
         {
             "entity": ["1001", "1002"],
@@ -149,34 +149,210 @@ def test_count_deleted_entities(dataset_path, mocker):
         }
     )
 
-    # mock `pandas.read_csv` to return the mock DataFrame
     mock_df = pd.DataFrame({"resource": ["2f7d900dd48fd02"]})
     mocker.patch("pandas.read_csv", return_value=mock_df)
 
     with spatialite.connect(dataset_path) as conn:
-        # load data into required tables
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
         test_fact_resource_data.to_sql(
             "fact_resource", conn, if_exists="replace", index=False
         )
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
-        # run expectation
         passed, message, details = count_deleted_entities(
             conn,
             expected=expected,
             organisation_entity=organisation_entity,
         )
 
-    assert (
-        not passed
-    ), f"test failed : expected {details['expected']} but got {details['actual']} entities"
-    assert message, "test requires a message"
-
-    detail_keys = ["actual", "expected", "entities"]
-    for key in detail_keys:
+    assert not passed, f"expected to fail (1 deleted) but passed"
+    assert message
+    for key in ["actual", "expected", "entities"]:
         assert key in details, f"{key} missing from details"
+    assert details["actual"] == 1
     assert "1002" in details["entities"]
+
+
+def test_count_deleted_entities_none_deleted(dataset_path, mocker):
+    """All entities have facts in the active resource — 0 deleted, check passes."""
+    organisation_entity = 109
+
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002"],
+            "name": ["test1", "test2"],
+            "organisation_entity": [109, 109],
+            "reference": ["ref1", "ref2"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b"],
+            "resource": ["res-active", "res-active"],
+            "entry_number": ["1", "2"],
+        }
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b"],
+            "entity": ["1001", "1002"],
+            "field": ["name", "name"],
+            "value": ["test1", "test2"],
+        }
+    )
+
+    mock_df = pd.DataFrame({"resource": ["res-active"]})
+    mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, message, details = count_deleted_entities(
+            conn,
+            expected=0,
+            organisation_entity=organisation_entity,
+        )
+
+    assert passed, f"expected 0 deleted but got {details['actual']}"
+    assert details["actual"] == 0
+    assert details["entities"] == []
+
+
+def test_count_deleted_entities_empty_references(dataset_path, mocker):
+    """
+    Regression test for the group-by-reference collapse bug.
+
+    When multiple entities share the same reference (including empty string,
+    common in tree data), the old `group by reference` query collapsed them
+    into one row, causing active entities to be undercounted and falsely
+    reported as deleted.
+
+    Setup: entities 1001 and 1002 both have empty references and are active;
+    entity 1003 also has an empty reference but has no facts (genuinely deleted).
+    Only 1003 should be reported as deleted.
+    """
+    organisation_entity = 109
+
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002", "1003"],
+            "name": ["tree one", "tree two", "tree three"],
+            "organisation_entity": [109, 109, 109],
+            "reference": ["", "", ""],
+        }
+    )
+
+    # facts for 1001 and 1002 only; 1003 is genuinely deleted
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b"],
+            "resource": ["res-active", "res-active"],
+            "entry_number": ["1", "2"],
+        }
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b"],
+            "entity": ["1001", "1002"],
+            "field": ["name", "name"],
+            "value": ["tree one", "tree two"],
+        }
+    )
+
+    mock_df = pd.DataFrame({"resource": ["res-active"]})
+    mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, message, details = count_deleted_entities(
+            conn,
+            expected=1,
+            organisation_entity=organisation_entity,
+        )
+
+    assert passed, (
+        f"expected exactly 1 deleted entity (1003) but got {details['actual']}: "
+        f"{details['entities']}"
+    )
+    assert details["actual"] == 1
+    assert "1003" in details["entities"]
+    assert "1001" not in details["entities"]
+    assert "1002" not in details["entities"]
+
+
+def test_count_deleted_entities_org_isolation(dataset_path, mocker):
+    """
+    Facts for a second organisation's entity in the same resource must not
+    cause that entity to be counted as active for the queried organisation.
+
+    Setup: org 109 has entities 1001 (active) and 1002 (deleted). Org 200
+    has entity 2001 with a fact in the same resource. Only 1002 should be
+    reported as deleted for org 109; entity 2001 must be excluded entirely.
+    """
+    organisation_entity = 109
+
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002", "2001"],
+            "name": ["org109 tree A", "org109 tree B", "org200 tree"],
+            "organisation_entity": [109, 109, 200],
+            "reference": ["T1", "T2", "T3"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-x"],
+            "resource": ["res-active", "res-active"],
+            "entry_number": ["1", "2"],
+        }
+    )
+
+    # fact-a belongs to org 109's entity 1001; fact-x belongs to org 200's entity 2001
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-x"],
+            "entity": ["1001", "2001"],
+            "field": ["name", "name"],
+            "value": ["org109 tree A", "org200 tree"],
+        }
+    )
+
+    mock_df = pd.DataFrame({"resource": ["res-active"]})
+    mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, message, details = count_deleted_entities(
+            conn,
+            expected=1,
+            organisation_entity=organisation_entity,
+        )
+
+    assert passed, (
+        f"expected exactly 1 deleted entity (1002) but got {details['actual']}: "
+        f"{details['entities']}"
+    )
+    assert details["actual"] == 1
+    assert "1002" in details["entities"]
+    assert "2001" not in details["entities"]
 
 
 def test_check_columns(dataset_path):
