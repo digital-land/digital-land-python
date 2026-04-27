@@ -149,16 +149,19 @@ def test_count_deleted_entities(dataset_path, mocker):
         }
     )
 
+    # mock `pandas.read_csv` to return the mock DataFrame
     mock_df = pd.DataFrame({"resource": ["2f7d900dd48fd02"]})
     mocker.patch("pandas.read_csv", return_value=mock_df)
 
     with spatialite.connect(dataset_path) as conn:
+        # load data into required tables
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
         test_fact_resource_data.to_sql(
             "fact_resource", conn, if_exists="replace", index=False
         )
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
+        # run expectation
         passed, message, details = count_deleted_entities(
             conn,
             expected=expected,
