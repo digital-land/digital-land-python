@@ -168,7 +168,7 @@ def test_count_deleted_entities(dataset_path, mocker):
             organisation_entity=organisation_entity,
         )
 
-    assert not passed, f"expected to fail (1 deleted) but passed"
+    assert not passed, "expected to fail (1 deleted) but passed"
     assert message
     for key in ["actual", "expected", "entities"]:
         assert key in details, f"{key} missing from details"
