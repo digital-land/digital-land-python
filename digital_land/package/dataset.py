@@ -182,29 +182,6 @@ class DatasetPackage(SqlitePackage):
         self.commit()
         self.disconnect()
 
-    def add_counts(self):
-        """count the number of entities by resource"""
-        self.connect()
-        self.create_cursor()
-        self.execute(
-            "select resource, count(*)"
-            "  from ("
-            "    select distinct resource, fact.entity"
-            "  from entity, fact, fact_resource"
-            "  where entity.entity = fact.entity"
-            "    and fact.fact = fact_resource.fact"
-            "  ) group by resource"
-        )
-        results = self.cursor.fetchall()
-        for result in results:
-            resource = result[0]
-            count = result[1]
-            self.execute(
-                f"update dataset_resource set entity_count = {count} where resource = '{resource}'"
-            )
-        self.commit()
-        self.disconnect()
-
     def entry_date_upsert(self, table, fields, row, conflict_fields, update_fields):
         """
         Dataset specific upsert function that only replace values for more recent entry_dates.
