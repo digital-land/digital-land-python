@@ -440,6 +440,7 @@ def dataset_create(
     package.create_indexes()
     package.disconnect()
 
+
 #
 #  update dataset from processed new resources
 #
@@ -521,6 +522,7 @@ def dataset_update(
             package.load_issues(os.path.join(issue_paths, issue_path))
     else:
         logging.warning("No directory for this dataset in the provided issue_directory")
+
 
 def dataset_dump(input_path, output_path):
     cmd = f"sqlite3 -header -csv {input_path} 'select * from entity;' > {output_path}"
