@@ -56,6 +56,18 @@ class PipelineStatus(Enum):
     FAILED = 5
 
 
+def count_distinct_entities(csv_path):
+    entities = set()
+
+    with open(csv_path, newline="") as f:
+        for row in csv.DictReader(f):
+            entity = (row.get("entity") or "").strip()
+            if entity:
+                entities.add(entity)
+
+    return len(entities)
+
+
 def chain_phases(phases):
     def add(f, g):
         return lambda x: g.process(f(x))
@@ -537,7 +549,6 @@ class Pipeline:
             harmonised_output_path (str, optional): Path to save the harmonised/intermediate output. Defaults to None.
             save_harmonised (bool, optional): Whether to save the harmonised intermediate output. Defaults to False.
             disable_lookups (bool, optional): Whether to disable entity lookups and pruning phases. Defaults to False. (useful for checking data before lookups are applied)
-
         Returns:
             IssueLog: The completed issue log containing all data quality issues found during transformation.
         """
@@ -685,6 +696,7 @@ class Pipeline:
         )
 
         self.run(*phases)
+        self.dataset_resource_log.entity_count = count_distinct_entities(output_path)
 
         # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
         # If we have done this then we will not call duplicate_reference_check as we have already carried out a

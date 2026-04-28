@@ -260,6 +260,7 @@ class DatasetResourceLog(Log):
     fieldnames = [
         "dataset",
         "resource",
+        "entity-count",
         "entry-count",
         "line-count",
         "mime-type",
@@ -272,6 +273,7 @@ class DatasetResourceLog(Log):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.entity_count = ""
         self.entry_count = 0
         self.line_count = 0
         self.mime_type = ""
@@ -286,6 +288,7 @@ class DatasetResourceLog(Log):
             {
                 "dataset": self.dataset,
                 "resource": self.resource,
+                "entity-count": self.entity_count,
                 "entry-count": self.entry_count,
                 "line-count": self.line_count,
                 "mime-type": self.mime_type,
