@@ -24,7 +24,6 @@ class DateDataType(DataType):
         # all of these patterns have been used!
         for pattern in [
             "%Y-%m-%d",
-            "%Y%m%d%H%M%S",
             "%Y%m%d",
             "%Y/%m/%d %H:%M:%S%z",  # added to handle ogr2ogr unix time conversion
             "%Y/%m/%d %H:%M:%S+00",  # added to handle ogr2ogr unix time conversion
@@ -71,6 +70,7 @@ class DateDataType(DataType):
             "%b-%y",
             "%B %Y",
             "%m/%d/%Y",  # risky!
+            "%Y%m%d%H%M%S",
             "%s",
         ]:
             try:
@@ -88,12 +88,12 @@ class DateDataType(DataType):
                     date = datetime.utcfromtimestamp(timestamp)
                     break
 
-                if pattern == "%Y%m%d%H%M%S":
-                    if not re.fullmatch(r"\d{14}", value):
-                        continue
-
                 if pattern == "%Y%m%d":
                     if not re.fullmatch(r"\d{8}", value):
+                        continue
+
+                if pattern == "%Y%m%d%H%M%S":
+                    if not re.fullmatch(r"\d{14}", value):
                         continue
 
                 if "%f" in pattern:
