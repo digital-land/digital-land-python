@@ -227,7 +227,6 @@ def test_count_deleted_entities_none_deleted(dataset_path, mocker):
     assert details["entities"] == []
 
 
-
 def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     """
     Facts for a second organisation's entity in the same resource must not
