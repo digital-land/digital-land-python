@@ -507,9 +507,9 @@ def check_field_is_within_range_by_dataset_org(
     2. organisation -> organisation
 
     Edge case: some lookup datasets map to more than one valid range dataset.
-    When the lookup dataset value appears in dataset_aliases, the direct
-    dataset-to-dataset match is replaced by the configured list of allowed
-    range dataset values.
+    When the lookup value matches a key in dataset_aliases, the value is checked
+    against the configured list of allowed range datasets instead of requiring a
+    direct dataset-to-dataset match.
 
     Args:
         conn: duckdb connection
@@ -575,34 +575,15 @@ def check_field_is_within_range_by_dataset_org(
         else ""
     )
 
-    expected_range_keys_cte = (
-        """
-        ,expected_range_keys AS (
-            SELECT
-                l.lookup_key_0,
-                l.lookup_key_0 AS range_key_0
-            FROM lookup_rows l
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM exception_mappings em
-                WHERE em.lookup_key_0 = l.lookup_key_0
-            )
-            UNION ALL
-            SELECT
-                lookup_key_0,
-                range_key_0
-            FROM exception_mappings
-        )
-        """
+    match_condition = (
+        """CASE WHEN EXISTS
+                    (SELECT 1 FROM exception_mappings em WHERE em.lookup_key_0 = l.lookup_key_0)
+                THEN EXISTS
+                    (SELECT 1 FROM exception_mappings em WHERE em.lookup_key_0 = l.lookup_key_0
+                            AND em.range_key_0 = r.range_key_0)
+                ELSE l.lookup_key_0 = r.range_key_0 END"""
         if exception_mapping_rows
-        else """
-        ,expected_range_keys AS (
-            SELECT
-                lookup_key_0,
-                lookup_key_0 AS range_key_0
-            FROM lookup_rows
-        )
-        """
+        else "l.lookup_key_0 = r.range_key_0"
     )
 
     result = conn.execute(
@@ -637,7 +618,6 @@ def check_field_is_within_range_by_dataset_org(
               AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
               AND TRIM(COALESCE(src."organisation", '')) != ''{lookup_clause}
         )
-        {expected_range_keys_cte}
         SELECT
             line_number,
             value,
@@ -647,11 +627,9 @@ def check_field_is_within_range_by_dataset_org(
         WHERE NOT EXISTS (
             SELECT 1
             FROM ranges r
-            JOIN expected_range_keys erk
-              ON erk.lookup_key_0 = l.lookup_key_0
-             AND erk.range_key_0 = r.range_key_0
             WHERE l.value BETWEEN r.min_value AND r.max_value
-              AND l.lookup_key_1 = r.range_key_1
+                  AND {match_condition}
+                  AND l.lookup_key_1 = r.range_key_1
         )
         ORDER BY line_number
         """

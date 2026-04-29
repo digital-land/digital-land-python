@@ -473,7 +473,7 @@ def test_check_field_is_within_ranges_by_dataset_org_supports_custom_column_name
     assert details["invalid_rows"][0]["organisation"] == "org-a"
 
 
-def test_check_field_is_within_ranges_by_dataset_org_supports_prefix_dataset_map(
+def test_check_field_is_within_ranges_by_dataset_org_supports_dataset_aliases_map(
     tmp_path,
 ):
     file_path = tmp_path / "lookup_exception.csv"
