@@ -159,11 +159,10 @@ def count_deleted_entities(
     resource_list = get_resource["resource"].to_list()
 
     # use resource list to get current entities
-    query = f"""select e.entity
+    query = f"""select f.entity
                 from fact_resource fe join fact f on fe.fact=f.fact join entity e on f.entity=e.entity
                 where resource in ({','.join(f"'{x}'" for x in resource_list)})
-                  and e.organisation_entity = '{organisation_entity}'
-                group by e.entity
+                group by reference
     """
     rows = conn.execute(query).fetchall()
     get_active_entities = [row[0] for row in rows]
