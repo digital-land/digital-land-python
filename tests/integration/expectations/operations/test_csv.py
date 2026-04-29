@@ -473,6 +473,38 @@ def test_check_field_is_within_ranges_by_dataset_org_supports_custom_column_name
     assert details["invalid_rows"][0]["organisation"] == "org-a"
 
 
+def test_check_field_is_within_ranges_by_dataset_org_supports_prefix_dataset_map(
+    tmp_path,
+):
+    file_path = tmp_path / "lookup_exception.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["entity", "prefix", "organisation", "reference"])
+        writer.writerow(["150", "statistical-geography", "org-1", "ok-ref"])
+
+    external_file = tmp_path / "ranges_exception.csv"
+    with open(external_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["dataset", "organisation", "entity-minimum", "entity-maximum"])
+        writer.writerow(["ward", "org-1", "100", "200"])
+
+    conn = duckdb.connect()
+    passed, message, details = check_field_is_within_range_by_dataset_org(
+        conn,
+        file_path=file_path,
+        external_file=external_file,
+        min_field="entity-minimum",
+        max_field="entity-maximum",
+        field="entity",
+        lookup_dataset_field="prefix",
+        range_dataset_field="dataset",
+        prefix_datasets={"statistical-geography": ["ward", "lsoa"]},
+    )
+
+    assert passed is True
+    assert details["invalid_rows"] == []
+
+
 def test_check_field_is_within_ranges_filters_rows_with_lookup_rules(tmp_path):
     """Test filtering rows with lookup_rules during validation."""
     file_path = tmp_path / "lookup.csv"

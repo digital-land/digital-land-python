@@ -497,6 +497,7 @@ def check_field_is_within_range_by_dataset_org(
     lookup_dataset_field: str,
     range_dataset_field: str,
     rules: dict = None,
+    prefix_datasets: dict = None,
 ):
     """
     Check field values are within ranges matched by dataset field and organisation.
@@ -514,14 +515,18 @@ def check_field_is_within_range_by_dataset_org(
         max_field: the column name for the range maximum
         lookup_dataset_field: dataset column name in file_path
         range_dataset_field: dataset column name in external_file
-        rules: optional dict controlling subset selection on lookup rows.
-               Supported keys:
-               - lookup_rules: dict or list[dict] of structured conditions.
-                 Fields in one dict are AND'ed; multiple dicts are OR'ed.
-               Examples:
-               {"lookup_rules": {"prefix": "conservationarea"}}
-               {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
-               Use operators like != and not in when you want to exclude rows.
+         rules: optional dict controlling subset selection on lookup rows.
+             Supported keys:
+             - lookup_rules: dict or list[dict] of structured conditions.
+               Fields in one dict are AND'ed; multiple dicts are OR'ed.
+             Examples:
+             {"lookup_rules": {"prefix": "conservationarea"}}
+             {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+             Use operators like != and not in when you want to exclude rows.
+         prefix_datasets: optional mapping of lookup prefix
+             values to allowed fallback range dataset values.
+             Example:
+             {"statistical-geography": ["ward", "region"]}
     """
     file_columns = _get_csv_columns(conn, file_path)
     rules = rules or {}
@@ -549,6 +554,33 @@ def check_field_is_within_range_by_dataset_org(
     max_col = f'"{max_field}"'
     value_col = f'"{field_name}"'
 
+    exception_dataset_map = prefix_datasets or {}
+    exception_mapping_rows = [
+        f"({_sql_string(str(lookup_key).strip())}, {_sql_string(str(range_value).strip())})"
+        for lookup_key, range_values in exception_dataset_map.items()
+        for range_value in range_values
+        if str(lookup_key).strip() and str(range_value).strip()
+    ]
+
+    mapping_cte = (
+        ",exception_mappings AS (SELECT * FROM (VALUES"
+        + ",".join(exception_mapping_rows)
+        + ") AS m(lookup_key_0, range_key_0))"
+        if exception_mapping_rows
+        else ""
+    )
+
+    match_condition = (
+        """CASE WHEN EXISTS
+                    (SELECT 1 FROM exception_mappings em WHERE em.lookup_key_0 = l.lookup_key_0)
+                THEN EXISTS
+                    (SELECT 1 FROM exception_mappings em WHERE em.lookup_key_0 = l.lookup_key_0
+                            AND em.range_key_0 = r.range_key_0)
+                ELSE l.lookup_key_0 = r.range_key_0 END"""
+        if exception_mapping_rows
+        else "l.lookup_key_0 = r.range_key_0"
+    )
+
     result = conn.execute(
         f"""
         WITH ranges AS (
@@ -562,7 +594,8 @@ def check_field_is_within_range_by_dataset_org(
               AND TRY_CAST({max_col} AS BIGINT) IS NOT NULL
               AND TRIM(COALESCE({range_dataset_col}, '')) != ''
                             AND TRIM(COALESCE("organisation", '')) != ''
-        ),
+        )
+        {mapping_cte},
         source_rows AS (
             SELECT
                 ROW_NUMBER() OVER () + 1 AS line_number,
@@ -590,7 +623,7 @@ def check_field_is_within_range_by_dataset_org(
             SELECT 1
             FROM ranges r
             WHERE l.value BETWEEN r.min_value AND r.max_value
-                  AND l.lookup_key_0 = r.range_key_0
+                  AND {match_condition}
                   AND l.lookup_key_1 = r.range_key_1
         )
         ORDER BY line_number
