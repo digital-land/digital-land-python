@@ -19,8 +19,13 @@ class OrganisationPhase(Phase):
                 self.issues.entry_number = block["entry-number"]
 
             organisation_value = row.get("organisation", "")
-            row["organisation"] = self.organisation.lookup(row.get("organisation", ""))
-            if not row.get("organisation", "") and self.issues:
+            if organisation_value:
+                row["organisation"] = self.organisation.lookup(organisation_value)
+            else:
+                row["organisation"] = ""
+
+            # Only report invalid organisations when a value was supplied.
+            if organisation_value and not row.get("organisation", "") and self.issues:
                 self.issues.log_issue(
                     "organisation", "invalid organisation", organisation_value
                 )
