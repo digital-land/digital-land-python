@@ -498,7 +498,7 @@ def test_check_field_is_within_ranges_by_dataset_org_supports_prefix_dataset_map
         field="entity",
         lookup_dataset_field="prefix",
         range_dataset_field="dataset",
-        prefix_datasets={"statistical-geography": ["ward", "lsoa"]},
+        dataset_aliases={"statistical-geography": ["ward", "lsoa"]},
     )
 
     assert passed is True

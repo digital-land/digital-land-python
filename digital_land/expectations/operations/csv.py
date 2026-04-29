@@ -497,7 +497,7 @@ def check_field_is_within_range_by_dataset_org(
     lookup_dataset_field: str,
     range_dataset_field: str,
     rules: dict = None,
-    prefix_datasets: dict = None,
+    dataset_aliases: dict = None,
 ):
     """
     Check field values are within ranges matched by dataset field and organisation.
@@ -505,6 +505,11 @@ def check_field_is_within_range_by_dataset_org(
     Matching is fixed to two keys:
     1. lookup_dataset_field -> range_dataset_field
     2. organisation -> organisation
+
+    Edge case: some lookup datasets map to more than one valid range dataset.
+    When the lookup dataset value appears in dataset_aliases, the direct
+    dataset-to-dataset match is replaced by the configured list of allowed
+    range dataset values.
 
     Args:
         conn: duckdb connection
@@ -523,8 +528,8 @@ def check_field_is_within_range_by_dataset_org(
              {"lookup_rules": {"prefix": "conservationarea"}}
              {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
              Use operators like != and not in when you want to exclude rows.
-         prefix_datasets: optional mapping of lookup prefix
-             values to allowed fallback range dataset values.
+         dataset_aliases: optional mapping of lookup dataset values
+             to allowed range dataset values.
              Example:
              {"statistical-geography": ["ward", "region"]}
     """
@@ -554,7 +559,7 @@ def check_field_is_within_range_by_dataset_org(
     max_col = f'"{max_field}"'
     value_col = f'"{field_name}"'
 
-    exception_dataset_map = prefix_datasets or {}
+    exception_dataset_map = dataset_aliases or {}
     exception_mapping_rows = [
         f"({_sql_string(str(lookup_key).strip())}, {_sql_string(str(range_value).strip())})"
         for lookup_key, range_values in exception_dataset_map.items()
@@ -570,15 +575,34 @@ def check_field_is_within_range_by_dataset_org(
         else ""
     )
 
-    match_condition = (
-        """CASE WHEN EXISTS
-                    (SELECT 1 FROM exception_mappings em WHERE em.lookup_key_0 = l.lookup_key_0)
-                THEN EXISTS
-                    (SELECT 1 FROM exception_mappings em WHERE em.lookup_key_0 = l.lookup_key_0
-                            AND em.range_key_0 = r.range_key_0)
-                ELSE l.lookup_key_0 = r.range_key_0 END"""
+    expected_range_keys_cte = (
+        """
+        ,expected_range_keys AS (
+            SELECT
+                l.lookup_key_0,
+                l.lookup_key_0 AS range_key_0
+            FROM lookup_rows l
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM exception_mappings em
+                WHERE em.lookup_key_0 = l.lookup_key_0
+            )
+            UNION ALL
+            SELECT
+                lookup_key_0,
+                range_key_0
+            FROM exception_mappings
+        )
+        """
         if exception_mapping_rows
-        else "l.lookup_key_0 = r.range_key_0"
+        else """
+        ,expected_range_keys AS (
+            SELECT
+                lookup_key_0,
+                lookup_key_0 AS range_key_0
+            FROM lookup_rows
+        )
+        """
     )
 
     result = conn.execute(
@@ -613,6 +637,7 @@ def check_field_is_within_range_by_dataset_org(
               AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
               AND TRIM(COALESCE(src."organisation", '')) != ''{lookup_clause}
         )
+        {expected_range_keys_cte}
         SELECT
             line_number,
             value,
@@ -622,9 +647,11 @@ def check_field_is_within_range_by_dataset_org(
         WHERE NOT EXISTS (
             SELECT 1
             FROM ranges r
+            JOIN expected_range_keys erk
+              ON erk.lookup_key_0 = l.lookup_key_0
+             AND erk.range_key_0 = r.range_key_0
             WHERE l.value BETWEEN r.min_value AND r.max_value
-                  AND {match_condition}
-                  AND l.lookup_key_1 = r.range_key_1
+              AND l.lookup_key_1 = r.range_key_1
         )
         ORDER BY line_number
         """
