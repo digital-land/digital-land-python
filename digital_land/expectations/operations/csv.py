@@ -515,18 +515,18 @@ def check_field_is_within_range_by_dataset_org(
         max_field: the column name for the range maximum
         lookup_dataset_field: dataset column name in file_path
         range_dataset_field: dataset column name in external_file
-         rules: optional dict controlling subset selection on lookup rows.
-             Supported keys:
-             - lookup_rules: dict or list[dict] of structured conditions.
-               Fields in one dict are AND'ed; multiple dicts are OR'ed.
-             Examples:
-             {"lookup_rules": {"prefix": "conservationarea"}}
-             {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
-             Use operators like != and not in when you want to exclude rows.
-         dataset_aliases: optional mapping of lookup dataset values
-             to allowed range dataset values.
-             Example:
-             {"statistical-geography": ["ward", "region"]}
+        rules: optional dict controlling subset selection on lookup rows.
+            Supported keys:
+            - lookup_rules: dict or list[dict] of structured conditions.
+            Fields in one dict are AND'ed; multiple dicts are OR'ed.
+            Examples:
+            {"lookup_rules": {"prefix": "conservationarea"}}
+            {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+            Use operators like != and not in when you want to exclude rows.
+        dataset_aliases: optional mapping of lookup dataset values
+            to allowed range dataset values.
+            Example:
+            {"statistical-geography": ["ward", "region"]}
     """
     file_columns = _get_csv_columns(conn, file_path)
     rules = rules or {}
@@ -570,9 +570,7 @@ def check_field_is_within_range_by_dataset_org(
         values_clause = "(NULL, NULL)"
     result = conn.execute(
         f"""
-        WITH
-
-        ranges AS (
+        WITH ranges AS (
             SELECT
                 TRY_CAST({min_col} AS BIGINT) AS min_value,
                 TRY_CAST({max_col} AS BIGINT) AS max_value,
@@ -611,8 +609,7 @@ def check_field_is_within_range_by_dataset_org(
             FROM source_rows src
             WHERE TRY_CAST(src.{value_col} AS BIGINT) IS NOT NULL
             AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
-            AND TRIM(COALESCE(src."organisation", '')) != ''
-            {lookup_clause}
+            AND TRIM(COALESCE(src."organisation", '')) != ''{lookup_clause}
         )
 
         SELECT
