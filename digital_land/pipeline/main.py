@@ -4,6 +4,7 @@ import csv
 import functools
 import importlib.util
 import logging
+import polars as pl
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -57,15 +58,18 @@ class PipelineStatus(Enum):
 
 
 def count_distinct_entities(csv_path):
-    entities = set()
+    entity = pl.col("entity").cast(pl.Utf8).str.strip_chars()
 
-    with open(csv_path, newline="") as f:
-        for row in csv.DictReader(f):
-            entity = (row.get("entity") or "").strip()
-            if entity:
-                entities.add(entity)
-
-    return len(entities)
+    return (
+        pl.scan_csv(csv_path)
+        .select(
+            entity.filter(entity.is_not_null() & (entity != ""))
+            .n_unique()
+            .alias("entity_count")
+        )
+        .collect()
+        .item()
+    )
 
 
 def chain_phases(phases):
