@@ -570,14 +570,14 @@ def check_field_is_within_range_by_dataset_org(
     ]
 
     # When dataset_aliases is empty, we still need a dummy CTE to avoid SQL errors in the main query.
-    # Creates a CTE for alias mapping with rows e.g.:
-    # statistical-geography | ward
-    # statistical-geography | region
     if dataset_alias_rows:
         values_clause = ",".join(dataset_alias_rows)
     else:
         values_clause = "(NULL, NULL)"
 
+    # Creates a CTE for alias mapping with rows e.g.:
+    # statistical-geography | ward
+    # statistical-geography | region
     dataset_alias_cte = f"""
     , dataset_aliases_map AS (
         SELECT
