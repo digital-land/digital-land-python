@@ -72,3 +72,26 @@ def test_process_with_invalid_organisation_and_no_log(mocker):
     output = [block for block in organisationPhase.process(input_stream)]
     assert organisationPhase.issues is None
     assert output[0]["row"]["organisation"] == ""
+
+
+def test_process_with_blank_organisation_does_not_lookup_or_log(mocker):
+    mock_organisation = Mock()
+    mocker.patch("digital_land.phase.organisation", return_value=mock_organisation)
+
+    issues = IssueLog(dataset="brownfield-land", resource="1")
+    issues.log_issue = Mock()
+    input_stream = [
+        {
+            "row": {"organisation": ""},
+            "resource": "1",
+            "line-number": 1,
+            "entry-number": 2,
+        }
+    ]
+
+    organisationPhase = OrganisationPhase(organisation=mock_organisation, issues=issues)
+    output = [block for block in organisationPhase.process(input_stream)]
+
+    mock_organisation.lookup.assert_not_called()
+    issues.log_issue.assert_not_called()
+    assert output[0]["row"]["organisation"] == ""
