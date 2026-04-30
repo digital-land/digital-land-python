@@ -569,26 +569,10 @@ def check_field_is_within_range_by_dataset_org(
         if str(dataset).strip() and str(alias).strip()
     ]
 
-    # When dataset_aliases is empty, we still need a dummy CTE to avoid SQL errors in the main query.
     if dataset_alias_rows:
         values_clause = ",".join(dataset_alias_rows)
     else:
         values_clause = "(NULL, NULL)"
-
-    # Creates a CTE for alias mapping with rows e.g.:
-    # statistical-geography | ward
-    # statistical-geography | region
-    dataset_alias_cte = f"""
-    , dataset_aliases_map AS (
-        SELECT
-            CAST(dataset AS VARCHAR) AS dataset,
-            CAST(alias AS VARCHAR) AS alias
-        FROM (VALUES
-            {values_clause}
-        ) AS m(dataset, alias)
-        WHERE dataset IS NOT NULL
-    )
-    """
 
     query = f"""
     WITH
@@ -604,18 +588,26 @@ def check_field_is_within_range_by_dataset_org(
         AND TRY_CAST({max_col} AS BIGINT) IS NOT NULL
         AND TRIM(COALESCE({range_dataset_col}, '')) != ''
         AND TRIM(COALESCE("organisation", '')) != ''
-    )
+    ),
 
-    {dataset_alias_cte}
+    dataset_aliases_map AS (
+        SELECT
+            CAST(dataset AS VARCHAR) AS dataset,
+            CAST(alias AS VARCHAR) AS alias
+        FROM (VALUES
+            {values_clause}
+        ) AS m(dataset, alias)
+        WHERE dataset IS NOT NULL
+    ),
 
-    , source_rows AS (
+    source_rows AS (
         SELECT
             ROW_NUMBER() OVER () + 1 AS line_number,
             *
         FROM {_read_csv(file_path)}
-    )
+    ),
 
-    , lookup_rows AS (
+    lookup_rows AS (
         SELECT
             src.line_number,
             TRY_CAST(src.{value_col} AS BIGINT) AS value,
