@@ -139,7 +139,7 @@ def count_deleted_entities(
     params = urllib.parse.urlencode(
         {
             "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
-                        where pipeline == '{db_name}' and o.entity='{organisation_entity}' and (resource_end_date = '' or resource_end_date is null) group by endpoint""",
+                        where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
             "_size": "max",
         }
     )
