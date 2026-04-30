@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from .datatype import DataType
 
@@ -16,12 +17,13 @@ class DateDataType(DataType):
     def normalise(self, fieldvalue, issues=None):
         value = fieldvalue.strip().strip('",')
 
+        timestamp_pattern = re.compile(r"^[+-]?\d+(?:\.\d+)?$")
+
         # set date initially to None to be overriten if code is successful
         date = None
         # all of these patterns have been used!
         for pattern in [
             "%Y-%m-%d",
-            "%Y%m%d",
             "%Y/%m/%d %H:%M:%S%z",  # added to handle ogr2ogr unix time conversion
             "%Y/%m/%d %H:%M:%S+00",  # added to handle ogr2ogr unix time conversion
             "%Y/%m/%d %H:%M:%S",  # added to handle ogr2ogr unix time conversion
@@ -67,26 +69,42 @@ class DateDataType(DataType):
             "%b-%y",
             "%B %Y",
             "%m/%d/%Y",  # risky!
+            "%Y%m%d",
+            "%Y%m%d%H%M%S",
             "%s",
         ]:
             try:
+                if pattern == "%s":
+                    if not timestamp_pattern.fullmatch(value):
+                        continue
+
+                    int_part = value.split(".", 1)[0].lstrip("+-")
+                    if len(int_part) not in (10, 13):
+                        continue
+
+                    timestamp = float(value)
+                    if len(int_part) == 13:
+                        timestamp /= 1000.0
+                    date = datetime.utcfromtimestamp(timestamp)
+                    break
+
+                if pattern == "%Y%m%d":
+                    if not re.fullmatch(r"\d{8}", value):
+                        continue
+
+                if pattern == "%Y%m%d%H%M%S":
+                    if not re.fullmatch(r"\d{14}", value):
+                        continue
+
+                if "%f" in pattern:
+                    datearr = value.split(".")
+                    if len(datearr) > 1 and len(datearr[1].split("+")[0]) > 6:
+                        s = len(datearr[1].split("+")[0]) - 6
+                        value = value.split("+")[0][:-s]
                 date = datetime.strptime(value, pattern)
                 break
             except ValueError:
-                try:
-                    if pattern == "%s":
-                        date = datetime.utcfromtimestamp(float(value) / 1000.0)
-                        break
-                    if "%f" in pattern:
-                        datearr = value.split(".")
-                        if len(datearr) > 1 and len(datearr[1].split("+")[0]) > 6:
-                            s = len(datearr[1].split("+")[0]) - 6
-                            value = value.split("+")[0][:-s]
-                        date = datetime.strptime(value, pattern)
-                        break
-
-                except ValueError:
-                    pass
+                pass
 
         if date is not None:
             if self.far_past_date and date.date() < self.far_past_date:
