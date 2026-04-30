@@ -440,9 +440,6 @@ def dataset_create(
     package.create_indexes()
     package.disconnect()
 
-    logger.info(f"creating dataset package {output_path} counts")
-    package.add_counts()
-
 
 #
 #  update dataset from processed new resources
@@ -525,8 +522,6 @@ def dataset_update(
             package.load_issues(os.path.join(issue_paths, issue_path))
     else:
         logging.warning("No directory for this dataset in the provided issue_directory")
-
-    package.add_counts()
 
 
 def dataset_dump(input_path, output_path):

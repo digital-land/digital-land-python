@@ -347,8 +347,6 @@ def test_dataset_create_fixture(
     else:
         logging.warning("No directory for this dataset in the provided issue_directory")
 
-    package.add_counts()
-
     assert sqlite3_path.exists(), "SQLite file should exist after setup"
 
     # Fetch data for validation

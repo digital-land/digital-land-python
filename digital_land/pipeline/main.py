@@ -4,6 +4,7 @@ import csv
 import functools
 import importlib.util
 import logging
+import polars as pl
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -54,6 +55,21 @@ class PipelineStatus(Enum):
     COMPLETE = 3
     ERROR = 4
     FAILED = 5
+
+
+def count_distinct_entities(csv_path):
+    entity = pl.col("entity").cast(pl.Utf8).str.strip_chars()
+
+    return (
+        pl.scan_csv(csv_path)
+        .select(
+            entity.filter(entity.is_not_null() & (entity != ""))
+            .n_unique()
+            .alias("entity_count")
+        )
+        .collect()
+        .item()
+    )
 
 
 def chain_phases(phases):
@@ -537,7 +553,6 @@ class Pipeline:
             harmonised_output_path (str, optional): Path to save the harmonised/intermediate output. Defaults to None.
             save_harmonised (bool, optional): Whether to save the harmonised intermediate output. Defaults to False.
             disable_lookups (bool, optional): Whether to disable entity lookups and pruning phases. Defaults to False. (useful for checking data before lookups are applied)
-
         Returns:
             IssueLog: The completed issue log containing all data quality issues found during transformation.
         """
@@ -685,6 +700,7 @@ class Pipeline:
         )
 
         self.run(*phases)
+        self.dataset_resource_log.entity_count = count_distinct_entities(output_path)
 
         # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
         # If we have done this then we will not call duplicate_reference_check as we have already carried out a

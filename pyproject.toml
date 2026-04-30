@@ -43,6 +43,7 @@ dependencies = [
     "boto3",
     "moto",
     "psutil",
+    "polars",
 ]
 
 classifiers = [
