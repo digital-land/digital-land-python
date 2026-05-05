@@ -24,8 +24,8 @@ class OrganisationPhase(Phase):
                 # Only report invalid organisations when a value was supplied.
                 if not row.get("organisation", "") and self.issues:
                     self.issues.log_issue(
-                    "organisation", "invalid organisation", organisation_value
-                )
+                        "organisation", "invalid organisation", organisation_value
+                    )
             else:
                 row["organisation"] = ""
 
