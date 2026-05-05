@@ -15,13 +15,13 @@ MANDATORY_FIELDS_DICT = {
         "name",
         "document-url",
         "documentation-url",
-        "article-4-direction",
     ],
     "article-4-direction-area": [
         "reference",
         "geometry",
         "name",
         "permitted-development-rights",
+        "article-4-direction",
     ],
     "conservation-area": [
         "reference",
