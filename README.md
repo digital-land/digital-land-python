@@ -46,16 +46,16 @@ Before Initialising you will need to:
 - ensure GNU make is being used, if using macOS then it may need installing
 - ensure python is available on the system, Development requires Python 3.6.2 or later, see [our guidance](https://digital-land.github.io/technical-documentation/development/how-to-guides/using-different-python-versions/)
 - set up a [virtual environment](https://docs.python.org/3/library/venv.html), see [our guidance](https://digital-land.github.io/technical-documentation/development/how-to-guides/make-python-venv/)
-- ensurre SQLite is installed and is capable of loading extensions
+- ensure SQLite is installed and is capable of loading extensions
 
 The GDAL tools are required to convert geographic data, and in order for all of the tests to pass.
 
-after the above is satisfied run the foow to get setup:
+after the above is satisfied run the following to get setup:
 
     make init
     python -m digital-land --help
 
-On linux this will automatically install key dependecies, on mac o othe systems it may error:
+On Linux this will automatically install key dependencies, on macOS or other systems it may error:
 - The GDAL tools are required to convert geographic data, and in order for all of the tests to pass. see [our guidance](https://digital-land.github.io/technical-documentation/development/how-to-guides/installing-gdal/)
 
 ## Testing
@@ -63,21 +63,80 @@ On linux this will automatically install key dependecies, on mac o othe systems 
 > [!WARNING]
 > Some machines may experience segmentation faults when running the test suite. This is a known issue.
 
-This repository follows a structured testing approach. It aims to follow our [team's guidance](https://digital-land.github.io/technical-documentation/development/testing-guidance/). See [TESTING.md](TESTING.md) for detailed testing guidelines and structure documentation.
+This repository follows a structured testing approach with comprehensive test coverage across unit, integration, acceptance, and performance tests. See [TESTING.md](TESTING.md) for detailed testing guidelines and structure documentation.
 
+### Test Structure
+
+The test suite is organized into several categories:
+
+- **Unit Tests** (`tests/unit/`) - Test individual components in isolation
+- **Integration Tests** (`tests/integration/`) - Test component interactions
+- **Acceptance Tests** (`tests/acceptance/`) - End-to-end workflow validation
+- **Performance Tests** (`tests/performance/`) - Performance benchmarking
 
 ### Quick Test Commands
 
 ```bash
 # Run all tests
-pytest
+make test
 
-# Run phase_polars tests
-pytest tests/unit/phase_polars/ tests/integration/phase_polars/
+# Run specific test categories
+pytest tests/unit/                    # Unit tests only
+pytest tests/integration/             # Integration tests only
+pytest tests/acceptance/              # Acceptance tests only
+pytest tests/performance/             # Performance tests only
 
-# Run with coverage
-pytest --cov=digital_land
+# Run phase-specific tests
+pytest tests/unit/phase/              # Legacy phase tests
+pytest tests/unit/phase_polars/       # New Polars-based phase tests
+pytest tests/integration/phase_polars/ # Polars integration tests
+
+# Run with coverage reporting
+pytest --cov=digital_land --cov-report=html
+pytest --cov=digital_land --cov-report=term-missing
+
+# Run specific test files
+pytest tests/unit/test_pipeline.py
+pytest tests/integration/phase_polars/test_performance_benchmark_multi.py
+
+# Run tests with verbose output
+pytest -v tests/unit/phase_polars/transform/
+
+# Run tests matching a pattern
+pytest -k "test_harmonise" tests/
 ```
+
+### Performance Benchmarking
+
+The repository includes comprehensive performance benchmarking tools:
+
+```bash
+# Run performance benchmarks
+python tests/integration/phase_polars/test_performance_benchmark_multi.py
+
+# Run specific benchmark with limited files
+python tests/integration/phase_polars/test_performance_benchmark_multi.py --files 5
+
+# Run benchmark with custom CSV directory
+python tests/integration/phase_polars/test_performance_benchmark_multi.py --csv-dir path/to/csvs
+```
+
+### Test Dependencies
+
+Ensure you have the required test dependencies installed:
+
+```bash
+pip install pytest pytest-cov pytest-mock
+```
+
+### Continuous Integration
+
+Tests are automatically run on GitHub Actions for all pull requests. The CI pipeline includes:
+
+- Unit tests across multiple Python versions
+- Integration tests with real data
+- Code coverage reporting
+- Performance regression detection
 
 
 ## Commands Guide
@@ -115,7 +174,7 @@ Wait for the [continuous integration tests](https://pypi.python.org/pypi/digital
 
 ## Notebooks
 
-notebooks have been added which contain code that code be useful when debugging the system. currently jupyter isn;t installed as part of the dev environment so before running you may need to install:
+notebooks have been added which contain code that could be useful when debugging the system. Currently Jupyter isn't installed as part of the dev environment so before running you may need to install:
 
 ```
 pip install jupyterlab
@@ -123,7 +182,7 @@ pip install jupyterlab
 
 The notebooks are as follows:
 
-* debug_resource_transformation.ipynb - given a resource and a dataset this downloads the resource and relvant information to process the resource. This is very useful for replicating errors that occur in this step.
+* debug_resource_transformation.ipynb - given a resource and a dataset this downloads the resource and relevant information to process the resource. This is very useful for replicating errors that occur in this step.
 
 # Licence
 
