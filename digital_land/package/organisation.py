@@ -23,6 +23,7 @@ source_filenames = [
     "regional-park-authority.csv",
     "waste-authority.csv",
     "local-planning-group.csv",
+    "local-resilience-forum.csv",
 ]
 
 
