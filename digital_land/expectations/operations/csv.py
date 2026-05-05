@@ -497,6 +497,7 @@ def check_field_is_within_range_by_dataset_org(
     lookup_dataset_field: str,
     range_dataset_field: str,
     rules: dict = None,
+    dataset_aliases: dict = None,
 ):
     """
     Check field values are within ranges matched by dataset field and organisation.
@@ -515,13 +516,17 @@ def check_field_is_within_range_by_dataset_org(
         lookup_dataset_field: dataset column name in file_path
         range_dataset_field: dataset column name in external_file
         rules: optional dict controlling subset selection on lookup rows.
-               Supported keys:
-               - lookup_rules: dict or list[dict] of structured conditions.
-                 Fields in one dict are AND'ed; multiple dicts are OR'ed.
-               Examples:
-               {"lookup_rules": {"prefix": "conservationarea"}}
-               {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
-               Use operators like != and not in when you want to exclude rows.
+            Supported keys:
+            - lookup_rules: dict or list[dict] of structured conditions.
+            Fields in one dict are AND'ed; multiple dicts are OR'ed.
+            Examples:
+            {"lookup_rules": {"prefix": "conservationarea"}}
+            {"lookup_rules": {"organisation": {"op": "in", "value": ["orgA", "orgB"]}}}
+            Use operators like != and not in when you want to exclude rows.
+        dataset_aliases: optional mapping of lookup dataset values
+            to allowed range dataset values.
+            Example:
+            {"statistical-geography": ["ward", "region"]}
     """
     file_columns = _get_csv_columns(conn, file_path)
     rules = rules or {}
@@ -548,52 +553,95 @@ def check_field_is_within_range_by_dataset_org(
     min_col = f'"{min_field}"'
     max_col = f'"{max_field}"'
     value_col = f'"{field_name}"'
+    dataset_alias_map = dataset_aliases or {}
 
+    # Flattens dataset_aliases dict into a VALUES clause for SQL CTE.
+    # [("statistical-geography", "ward"), ...]
+    dataset_alias_rows = [
+        f"({_sql_string(str(dataset).strip())}, {_sql_string(str(alias).strip())})"
+        for dataset, aliases in dataset_alias_map.items()
+        for alias in aliases
+        if str(dataset).strip() and str(alias).strip()
+    ]
+
+    if dataset_alias_rows:
+        values_clause = ",".join(dataset_alias_rows)
+    else:
+        values_clause = "(NULL, NULL)"
     result = conn.execute(
         f"""
         WITH ranges AS (
             SELECT
                 TRY_CAST({min_col} AS BIGINT) AS min_value,
                 TRY_CAST({max_col} AS BIGINT) AS max_value,
-                TRIM(COALESCE({range_dataset_col}, '')) AS range_key_0,
-                                TRIM(COALESCE("organisation", '')) AS range_key_1
+                TRIM(COALESCE({range_dataset_col}, '')) AS range_dataset,
+                TRIM(COALESCE("organisation", '')) AS range_org
             FROM {_read_csv(external_file)}
             WHERE TRY_CAST({min_col} AS BIGINT) IS NOT NULL
-              AND TRY_CAST({max_col} AS BIGINT) IS NOT NULL
-              AND TRIM(COALESCE({range_dataset_col}, '')) != ''
-                            AND TRIM(COALESCE("organisation", '')) != ''
+            AND TRY_CAST({max_col} AS BIGINT) IS NOT NULL
+            AND TRIM(COALESCE({range_dataset_col}, '')) != ''
+            AND TRIM(COALESCE("organisation", '')) != ''
         ),
+
+        dataset_aliases_map AS (
+            SELECT
+                CAST(dataset AS VARCHAR) AS dataset,
+                CAST(alias AS VARCHAR) AS alias
+            FROM (VALUES
+                {values_clause}
+            ) AS m(dataset, alias)
+            WHERE dataset IS NOT NULL
+        ),
+
         source_rows AS (
             SELECT
                 ROW_NUMBER() OVER () + 1 AS line_number,
                 *
             FROM {_read_csv(file_path)}
         ),
+
         lookup_rows AS (
             SELECT
                 src.line_number,
                 TRY_CAST(src.{value_col} AS BIGINT) AS value,
-                TRIM(COALESCE(src.{lookup_dataset_col}, '')) AS lookup_key_0,
-                TRIM(COALESCE(src."organisation", '')) AS lookup_key_1
+                TRIM(COALESCE(src.{lookup_dataset_col}, '')) AS lookup_dataset,
+                TRIM(COALESCE(src."organisation", '')) AS lookup_org
             FROM source_rows src
             WHERE TRY_CAST(src.{value_col} AS BIGINT) IS NOT NULL
-              AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
-              AND TRIM(COALESCE(src."organisation", '')) != ''{lookup_clause}
+            AND TRIM(COALESCE(src.{lookup_dataset_col}, '')) != ''
+            AND TRIM(COALESCE(src."organisation", '')) != ''{lookup_clause}
         )
+
         SELECT
-            line_number,
-            value,
-            lookup_key_0,
-            lookup_key_1
+            l.line_number,
+            l.value,
+            l.lookup_dataset,
+            l.lookup_org
         FROM lookup_rows l
         WHERE NOT EXISTS (
             SELECT 1
             FROM ranges r
             WHERE l.value BETWEEN r.min_value AND r.max_value
-                  AND l.lookup_key_0 = r.range_key_0
-                  AND l.lookup_key_1 = r.range_key_1
+            AND l.lookup_org = r.range_org
+
+            AND (
+                EXISTS (
+                    SELECT 1
+                    FROM dataset_aliases_map dam
+                    WHERE dam.dataset = l.lookup_dataset
+                    AND dam.alias = r.range_dataset
+                )
+                OR (
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM dataset_aliases_map dam
+                        WHERE dam.dataset = l.lookup_dataset
+                    )
+                    AND l.lookup_dataset = r.range_dataset
+                )
+            )
         )
-        ORDER BY line_number
+        ORDER BY l.line_number
         """
     ).fetchall()
 
