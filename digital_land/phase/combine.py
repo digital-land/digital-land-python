@@ -9,6 +9,9 @@ import shapely.wkt
 
 
 def combine_geometries(wkts, precision=6):
+    """
+    Combine multiple WKT geometries into a single geometry using a union operation. requires clean geometries to be provided
+    """
     # https://shapely.readthedocs.io/en/stable/manual.html#shapely.ops.unary_union
     geometries = [shapely.wkt.loads(x) for x in wkts]
     union = unary_union(geometries)

@@ -39,7 +39,6 @@ def issue_dir(f):
 def operational_issue_dir(f):
     return click.option(
         "--operational-issue-dir",
-        "-i",
         type=click.Path(),
         default="performance/operational_issue/",
     )(f)
@@ -55,7 +54,7 @@ def column_field_dir(f):
 
 def output_log_dir(f):
     return click.option(
-        "--output-log-dir", "-i", type=click.Path(exists=True), default="log/"
+        "--output-log-dir", type=click.Path(exists=True), default="log/"
     )(f)
 
 

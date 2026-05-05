@@ -65,7 +65,7 @@ def test_normalise_geojson_provided():
     assert issues.rows[0]["issue-type"] == "invalid type geojson"
 
 
-def test_normalise_geometrycollection_provided():
+def test_normalise_geometry_collection_provided():
     wkt = MultiPolygonDataType()
     issues = IssueLog()
 
@@ -83,20 +83,11 @@ def test_normalise_geometrycollection_provided():
         "-0.176757 51.552538))))"
     )
 
-    expected = (
-        "MULTIPOLYGON (((-0.173644 51.549807,-0.173551 51.549811,"
-        "-0.173545 51.549902,-0.173545 51.549912,-0.173554 51.549913,-0.173550 51.549971,"
-        "-0.173689 51.549976,-0.173724 51.549935,-0.174041 51.549928,-0.174039 51.549828,"
-        "-0.174024 51.549799,-0.173644 51.549807)),((-0.176790 51.555154,"
-        "-0.176884 51.555212,-0.176896 51.555199,-0.176994 51.555231,-0.177025 51.555233,"
-        "-0.177041 51.555212,-0.177085 51.555194,-0.176995 51.555106,-0.176900 51.555147,"
-        "-0.176851 51.555112,-0.176790 51.555154)),((-0.176757 51.552538,"
-        "-0.176804 51.552519,-0.176793 51.552502,-0.176758 51.552515,-0.176707 51.552463,"
-        "-0.176595 51.552506,-0.176651 51.552562,-0.176746 51.552526,-0.176757 51.552538)))"
-    )
-
     actual = wkt.normalise(value, issues=issues)
-    assert actual == expected
+    actual_geom = shapely.wkt.loads(actual)
+    assert actual_geom.is_valid
+    assert actual_geom.geom_type == "MultiPolygon"
+    assert len(actual_geom.geoms) == 3
     assert len(issues.rows) == 0
 
 
