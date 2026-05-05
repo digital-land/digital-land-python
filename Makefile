@@ -24,7 +24,8 @@ ifeq ($(UNAME),Darwin)
 endif
 	sudo add-apt-repository ppa:ubuntugis/ppa
 	sudo apt-get update
-	sudo apt-get install gdal-bin
+	GDAL_PKG=$$(apt-cache madison gdal-bin | awk '/3\.8\.4/ {print $$3; exit}') && \
+	sudo apt-get install -y gdal-bin=$$GDAL_PKG libgdal-dev=$$GDAL_PKG
 	gdalinfo --version
 endif
 ifndef SQLDIFF
