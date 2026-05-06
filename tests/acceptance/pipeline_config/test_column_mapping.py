@@ -285,7 +285,7 @@ def test_pipeline_run_with_default_values(test_dirs):
     assert "name" in df["field"].values
     assert "ep-col-one" in df["field"].values
     assert "entry-date" not in df["field"].values  # not saved, at present, in issues
-    assert "organisation" in df["field"].values
+    assert "organisation" not in df["field"].values
     assert "entity" in df["field"].values
 
     assert "default1" in df["value"].values

@@ -19,11 +19,15 @@ class OrganisationPhase(Phase):
                 self.issues.entry_number = block["entry-number"]
 
             organisation_value = row.get("organisation", "")
-            row["organisation"] = self.organisation.lookup(row.get("organisation", ""))
-            if not row.get("organisation", "") and self.issues:
-                self.issues.log_issue(
-                    "organisation", "invalid organisation", organisation_value
-                )
+            if organisation_value:
+                row["organisation"] = self.organisation.lookup(organisation_value)
+                # Only report invalid organisations when a value was supplied
+                if not row.get("organisation", "") and self.issues:
+                    self.issues.log_issue(
+                        "organisation", "invalid organisation", organisation_value
+                    )
+            else:
+                row["organisation"] = ""
 
             # Store at block level for post-pivot lookups
             block["organisation"] = row["organisation"]
