@@ -47,6 +47,7 @@ def dataset_resource_file(test_dirs):
     dataset_resource_headers = [
         "dataset",
         "resource",
+        "entity-count",
         "entry-count",
         "line-count",
         "mime-type",
@@ -57,6 +58,7 @@ def dataset_resource_file(test_dirs):
         {
             "dataset": "central-activities-zone",
             "resource": "resource-hash",
+            "entity-count": 1,
             "entry-count": 1,
             "line-count": 1,
             "mime-type": "",

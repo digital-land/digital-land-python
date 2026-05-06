@@ -7,6 +7,7 @@ import logging
 from urllib.error import URLError
 from digital_land.pipeline import Pipeline
 from digital_land.pipeline import Lookups
+from digital_land.pipeline.main import count_distinct_entities
 from digital_land.specification import Specification
 from digital_land.organisation import Organisation
 
@@ -805,6 +806,53 @@ def test_pipeline_transform_basic(
     assert output_df["entity"].notna().any(), "At least one entity should be created"
     entities = output_df["entity"].dropna().unique()
     assert len(entities) > 0, "Should have created entities for test data"
+
+
+def test_count_distinct_entities_counts_non_empty_entities(tmp_path):
+    transformed_path = tmp_path / "transformed.csv"
+    pd.DataFrame(
+        [
+            {
+                "entity": "1",
+                "field": "reference",
+                "value": "valid-reference",
+                "priority": "1",
+                "entry-date": "2024-01-01",
+            },
+            {
+                "entity": "1",
+                "field": "name",
+                "value": "Valid entity",
+                "priority": "1",
+                "entry-date": "2024-01-01",
+            },
+            {
+                "entity": "2",
+                "field": "reference",
+                "value": "invalid-geometry-reference",
+                "priority": "1",
+                "entry-date": "2024-01-01",
+            },
+            {
+                "entity": "2",
+                "field": "geometry",
+                "value": "NOT A VALID GEOMETRY",
+                "priority": "1",
+                "entry-date": "2024-01-01",
+            },
+            {
+                "entity": "",
+                "field": "name",
+                "value": "blank entity should not count",
+                "priority": "1",
+                "entry-date": "2024-01-01",
+            },
+        ]
+    ).to_csv(transformed_path, index=False)
+
+    count = count_distinct_entities(transformed_path)
+
+    assert count == 2
 
 
 def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
