@@ -21,7 +21,7 @@ class OrganisationPhase(Phase):
             organisation_value = row.get("organisation", "")
             if organisation_value:
                 row["organisation"] = self.organisation.lookup(organisation_value)
-                # Only report invalid organisations when a value was supplied.
+                # Only report invalid organisations when a value was supplied
                 if not row.get("organisation", "") and self.issues:
                     self.issues.log_issue(
                         "organisation", "invalid organisation", organisation_value
