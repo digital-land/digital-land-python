@@ -64,6 +64,7 @@ class DateDataType(DataType):
             "%d-%b-%Y",
             "%d-%b-%y",
             "%d %B %Y",
+            "%a, %d %b %Y %H:%M:%S %Z",  # RFC 2822 / HTTP date format e.g. Thu, 11 Dec 2025 00:00:00 GMT
             "%b %d, %Y",
             "%b %d, %y",
             "%b-%y",
