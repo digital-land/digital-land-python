@@ -41,23 +41,7 @@ class EntityReferencePhase(Phase):
 
     def process_row(self, row):
         reference = row.get("reference", "") or row.get(self.dataset, "")
-        reference_prefix, reference = split_curie(reference)
-
-        if self.issues and reference_prefix:
-            self.issues.log_issue(
-                "reference",
-                "reference value contains reference_prefix",
-                reference_prefix,
-                f"Original reference split into prefix '{reference_prefix}' and reference '{reference}'",
-            )
-
-        # crude fix for (hopefully) one-of issue with Newham Council
-        # if this type of problem becomes common, a more scalable
-        # solution will need to be sought.
-        if "UPRN" in reference_prefix:
-            reference_prefix = ""
-
-        prefix = row.get("prefix", "") or reference_prefix or self.prefix
+        prefix = row.get("prefix", "") or self.prefix
         return prefix, reference
 
     def process(self, stream):
