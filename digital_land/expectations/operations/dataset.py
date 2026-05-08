@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 import requests
 import pandas as pd
@@ -151,7 +152,11 @@ def count_deleted_entities(
         try:
             get_resource = pd.read_csv(base_url)
             break
-        except urllib.error.HTTPError:
+        except urllib.error.HTTPError as e:
+            logging.warning(
+                f"HTTP error fetching datasette for organisation {organisation_entity}, "
+                f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s..."
+            )
             time.sleep(60)
     else:
         raise Exception("Failed to fetch datasette after multiple attempts")
