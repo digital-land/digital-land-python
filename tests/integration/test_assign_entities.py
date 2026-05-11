@@ -356,6 +356,49 @@ def test_check_and_assign_entities(
     assert "invalid date  start-date    1" in out
 
 
+@patch(
+    "digital_land.commands.get_user_response",
+    side_effect=AssertionError("get_user_response should not be called"),
+)
+def test_check_and_assign_entities_prompt_flag_false(
+    mock_user_response,
+    capfd,
+    collection_dir,
+    pipeline_dir,
+    specification_dir,
+    organisation_path,
+    mock_resource,
+):
+    """
+    When prompt_user=False, `get_user_response` must not be called; function should complete
+    and produce the transformed file.
+    """
+    collection_name = "tree-preservation-order"
+    test_endpoint = "endpoint"
+
+    resource = os.path.basename(mock_resource)
+    input_path = Path("var/cache/assign_entities/transformed") / f"{resource}.csv"
+
+    # Run with prompt_user explicitly False
+    check_and_assign_entities(
+        resource_file_paths=[mock_resource],
+        endpoints=[test_endpoint],
+        collection_name=collection_name,
+        dataset=collection_name,
+        organisation=["government-organisation:D1342"],
+        collection_dir=collection_dir,
+        organisation_path=organisation_path,
+        specification_dir=specification_dir,
+        pipeline_dir=pipeline_dir,
+        input_path=input_path,
+        prompt_user=False,
+    )
+
+    assert (
+        input_path.exists()
+    ), "Expected transformed file not found when prompt_user=False."
+
+
 def test_command_assign_entities_reference_with_comma(
     collection_dir,
     pipeline_dir,
