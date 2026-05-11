@@ -127,41 +127,78 @@ def count_lpa_boundary(
     return result, message, details
 
 
-def count_deleted_entities(
-    conn,
-    expected: int,
-    organisation_entity: int = None,
-):
-    # get database name to identify dataset
-    db_path = conn.execute("PRAGMA database_list").fetchall()[0][2]
-    db_name = os.path.splitext(os.path.basename(db_path))[0]
-
-    # get dataset specific active resource list
+def fetch_active_resources_for_dataset(dataset_name):
     params = urllib.parse.urlencode(
         {
-            "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
-                        where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
+            "sql": f"""select o.entity as organisation_entity, rhe.resource
+                        from reporting_historic_endpoints rhe
+                        join organisation o on rhe.organisation=o.organisation
+                        where pipeline == '{dataset_name}' and resource_end_date == ""
+                        group by o.entity, rhe.endpoint""",
             "_size": "max",
         }
     )
     base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
 
-    # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
-    max_retries = 60  # Retry for an hour
+    max_retries = 60
     for attempt in range(max_retries):
         try:
-            get_resource = pd.read_csv(base_url)
-            break
+            df = pd.read_csv(base_url)
+            cache = {}
+            for _, row in df.iterrows():
+                cache.setdefault(row["organisation_entity"], []).append(row["resource"])
+            return cache
         except urllib.error.HTTPError as e:
             logging.warning(
-                f"HTTP error fetching datasette for organisation {organisation_entity}, "
+                f"HTTP error fetching datasette for dataset {dataset_name}, "
                 f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s..."
             )
             time.sleep(60)
-    else:
-        raise Exception("Failed to fetch datasette after multiple attempts")
+    raise Exception(
+        f"Failed to fetch datasette for dataset {dataset_name} after multiple attempts"
+    )
 
-    resource_list = get_resource["resource"].to_list()
+
+def count_deleted_entities(
+    conn,
+    expected: int,
+    organisation_entity: int = None,
+    resources_cache: dict = None,
+):
+    # get database name to identify dataset
+    db_path = conn.execute("PRAGMA database_list").fetchall()[0][2]
+    db_name = os.path.splitext(os.path.basename(db_path))[0]
+
+    # check if entity data has been fetched from datasette and stored in the cache
+    if resources_cache is not None:
+        resource_list = resources_cache.get(organisation_entity, [])
+    else:
+        # get dataset specific active resource list if nothing is found it
+        params = urllib.parse.urlencode(
+            {
+                "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
+                            where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
+                "_size": "max",
+            }
+        )
+        base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
+
+        # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
+        max_retries = 60  # Retry for an hour
+        for attempt in range(max_retries):
+            try:
+                get_resource = pd.read_csv(base_url)
+                break
+            except urllib.error.HTTPError as e:
+                logging.warning(
+                    f"HTTP error fetching datasette for organisation {organisation_entity}, "
+                    f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s..."
+                )
+                time.sleep(60)
+        else:
+            raise Exception("Failed to fetch datasette after multiple attempts")
+
+        resource_list = get_resource["resource"].to_list()
 
     # use resource list to get current entities
     query = f"""select f.entity

@@ -11,6 +11,7 @@ from ..operations.dataset import (
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
+    fetch_active_resources_for_dataset,
 )
 
 
@@ -134,15 +135,24 @@ class DatasetCheckpoint(BaseCheckpoint):
 
         return passed, msg, details
 
-    def run(self):
+    def run(self, prefetch_resources=False):
         """
         run the set of expectations that have been loaded into the checkpoint
-        results will be stoed in the log and can be saved used .save
+        results will be stored in the log and can be saved used .save
         """
         # TODO implement faillure on critical errors, this is also the zombie code below
         # self.failed_expectation_with_error_severity = 0
 
+        resources_cache = (
+            fetch_active_resources_for_dataset(self.dataset)
+            if prefetch_resources
+            else None
+        )
+
         for expectation in self.expectations:
+            if resources_cache is not None:
+                expectation["parameters"]["resources_cache"] = resources_cache
+
             passed, message, details = self.run_expectation(expectation)
             self.log.add(
                 {

@@ -25,7 +25,10 @@ def run_dataset_checkpoint(
     rules = config.get_expectation_rules(dataset)
     checkpoint = DatasetCheckpoint(dataset, file_path, organisations)
     checkpoint.load(rules)
-    checkpoint.run()
+    prefetch_resources = any(
+        rule["operation"] == "count_deleted_entities" for rule in rules
+    )
+    checkpoint.run(prefetch_resources=prefetch_resources)
     checkpoint.save(output_dir)
     # TODO add failure on critical error back in
     if act_on_critical_error:
