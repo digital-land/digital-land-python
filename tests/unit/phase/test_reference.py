@@ -21,10 +21,14 @@ def test_entity_reference():
     assert ("foo", "Q1234") == phase.process_row(
         {"prefix": "foo", "reference": "Q1234"}
     )
+    assert ("wikidata", "Q1234") != phase.process_row({"reference": "wikidata:Q1234"})
     assert ("tree", "NSP22: Not A CURIE") == phase.process_row(
         {"reference": "NSP22: Not A CURIE"}
     )
     assert ("tree", "Not A CURIE:") == phase.process_row({"reference": "Not A CURIE:"})
+    assert ("foo", "Q1234") != phase.process_row(
+        {"prefix": "foo", "reference": "wikidata:Q1234"}
+    )
 
 
 def test_fact_reference():
