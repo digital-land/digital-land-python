@@ -8,6 +8,7 @@ from digital_land.expectations.operations.dataset import (
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
+    fetch_active_resources_for_dataset,
 )
 
 
@@ -117,6 +118,20 @@ def test_count_lpa_boundary_passes(
         assert key in details, f"{key} missing from details"
 
 
+def test_fetch_active_resources_for_dataset(mocker):
+    mock_df = pd.DataFrame(
+        {
+            "organisation_entity": [101, 101, 102],
+            "resource": ["resource_a", "resource_b", "resource_c"],
+        }
+    )
+    mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    result = fetch_active_resources_for_dataset("test-dataset")
+
+    assert result == {101: ["resource_a", "resource_b"], 102: ["resource_c"]}
+
+
 def test_count_deleted_entities(dataset_path, mocker):
     # define constant parameters
     organisation_entity = 109
@@ -176,6 +191,56 @@ def test_count_deleted_entities(dataset_path, mocker):
     detail_keys = ["actual", "expected", "entities"]
     for key in detail_keys:
         assert key in details, f"{key} missing from details"
+    assert "1002" in details["entities"]
+
+
+def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker):
+    organisation_entity = 109
+    expected = 0
+
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002"],
+            "name": ["test1", "test2"],
+            "organisation_entity": [109, 109],
+            "reference": ["ref1", "ref2"],
+        }
+    )
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
+            "entry_number": ["1", "1"],
+        }
+    )
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "entity": ["1001", "1001"],
+            "field": ["name", "reference"],
+            "value": ["abc", "ref1"],
+        }
+    )
+
+    mock_read_csv = mocker.patch("pandas.read_csv")
+    resources_cache = {109: ["2f7d900dd48fd02"]}
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, _, details = count_deleted_entities(
+            conn,
+            expected=expected,
+            organisation_entity=organisation_entity,
+            resources_cache=resources_cache,
+        )
+
+    mock_read_csv.assert_not_called()
+    assert not passed
     assert "1002" in details["entities"]
 
 
