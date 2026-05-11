@@ -1649,6 +1649,7 @@ def check_and_assign_entities(
     specification_dir,
     pipeline_dir,
     input_path=None,
+    prompt_user=True,
 ):
     # Assigns entities for the given resources in the given collection and run pipeline to get the transformed resource.
 
@@ -1733,7 +1734,7 @@ def check_and_assign_entities(
     issue_summary = get_issue_summary(endpoint_resource_info, issue_dir, new_entities)
     print(issue_summary)
 
-    if "No issues found" not in issue_summary:
+    if prompt_user and "No issues found" not in issue_summary:
         if not get_user_response(
             "Do you want to continue processing this resource? (yes/no): "
         ):
