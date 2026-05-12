@@ -194,6 +194,49 @@ class TestDatasetCheckpoint:
         assert log.entries[0]["passed"] is True
         assert log.entries[0]["message"] == "this operation is a test and always passes"
 
+    def test_run_with_prefetch_fetches_once_and_injects_cache(
+        self, sqlite3_with_entity_tables_path, mocker, test_organisations
+    ):
+        mock_fetch = mocker.patch(
+            "digital_land.expectations.checkpoints.dataset.fetch_active_resources_for_dataset",
+            return_value={101: ["resource_a"]},
+        )
+        mock_function = mocker.Mock(return_value=(True, "passed", {}))
+        mock_function.__name__ = "count_deleted_entities"
+        mocker.patch(
+            "digital_land.expectations.checkpoints.dataset.DatasetCheckpoint.operation_factory",
+            return_value=mock_function,
+        )
+
+        checkpoint = DatasetCheckpoint(
+            dataset="test-dataset",
+            file_path=sqlite3_with_entity_tables_path,
+            organisations=test_organisations,
+        )
+        rules = [
+            {
+                "datasets": "test-dataset",
+                "organisations": "local-authority:test;local-authority:test_2",
+                "operation": "count_deleted_entities",
+                "parameters": '{"organisation_entity": {{ organisation.entity }}, "expected": 0}',
+                "name": "test expectation for {{ organisation.name }}",
+                "description": "",
+                "severity": "notice",
+                "responsibility": "internal",
+            }
+        ]
+        checkpoint.load(rules)
+        checkpoint.run(prefetch_resources=True)
+
+        # datasette fetched exactly once despite two organisations
+        mock_fetch.assert_called_once_with("test-dataset")
+
+        # cache was injected into every operation call
+        for call in mock_function.call_args_list:
+            assert call.kwargs["resources_cache"] == {101: ["resource_a"]}
+
+        assert len(checkpoint.log.entries) == 2
+
     def test_save_to_parquet(self, tmp_path, test_organisations):
         """
         assuming run is successful then the log exists and can be saved
