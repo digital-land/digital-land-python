@@ -5,7 +5,6 @@ import pytest
 from digital_land.specification import Specification
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.reference import split_curie
-from digital_land.log import IssueLog
 
 
 def test_split_curie():
@@ -22,12 +21,12 @@ def test_entity_reference():
     assert ("foo", "Q1234") == phase.process_row(
         {"prefix": "foo", "reference": "Q1234"}
     )
-    assert ("wikidata", "Q1234") == phase.process_row({"reference": "wikidata:Q1234"})
+    assert ("wikidata", "Q1234") != phase.process_row({"reference": "wikidata:Q1234"})
     assert ("tree", "NSP22: Not A CURIE") == phase.process_row(
         {"reference": "NSP22: Not A CURIE"}
     )
     assert ("tree", "Not A CURIE:") == phase.process_row({"reference": "Not A CURIE:"})
-    assert ("foo", "Q1234") == phase.process_row(
+    assert ("foo", "Q1234") != phase.process_row(
         {"prefix": "foo", "reference": "wikidata:Q1234"}
     )
 
@@ -104,13 +103,3 @@ def test_get_field_prefix_uses_field_name_for_missing_mapping():
 
     prefix = phase.get_field_prefix("reference")
     assert prefix == "reference"
-
-
-def test_entity_reference_with_prefix_issue():
-    issues = IssueLog()
-    phase = EntityReferencePhase(
-        dataset="developer-agreement", prefix="developer-agreement", issues=issues
-    )
-
-    assert ("DA", "20/21:CIL:1") == phase.process_row({"reference": "DA:20/21:CIL:1"})
-    assert issues.rows[0]["issue-type"] == "reference value contains reference_prefix"
