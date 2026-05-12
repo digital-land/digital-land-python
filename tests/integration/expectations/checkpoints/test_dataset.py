@@ -3,6 +3,8 @@ import spatialite
 import logging
 import pandas as pd
 from digital_land.expectations.checkpoints.dataset import DatasetCheckpoint
+from digital_land.expectations.operations.dataset import count_deleted_entities
+
 from digital_land.organisation import Organisation
 
 
@@ -201,7 +203,9 @@ class TestDatasetCheckpoint:
             "digital_land.expectations.checkpoints.dataset.fetch_active_resources_for_dataset",
             return_value={101: ["resource_a"]},
         )
-        mock_function = mocker.Mock(return_value=(True, "passed", {}))
+        mock_function = mocker.create_autospec(
+            count_deleted_entities, return_value=(True, "passed", {})
+        )
         mock_function.__name__ = "count_deleted_entities"
         mocker.patch(
             "digital_land.expectations.checkpoints.dataset.DatasetCheckpoint.operation_factory",
@@ -236,6 +240,49 @@ class TestDatasetCheckpoint:
             assert call.kwargs["resources_cache"] == {101: ["resource_a"]}
 
         assert len(checkpoint.log.entries) == 2
+
+    def test_run_with_prefetch_does_not_inject_cache_into_incompatible_operations(
+        self, sqlite3_with_entity_tables_path, mocker, test_organisations
+    ):
+        """
+        Regression test: resources_cache should only be passed to operations that
+        explicitly accept it in their signature. If the inspect.signature check is
+        removed, this will fail with:
+        TypeError: operation_without_cache() got an unexpected keyword argument 'resources_cache'
+        """
+        mocker.patch(
+            "digital_land.expectations.checkpoints.dataset.fetch_active_resources_for_dataset",
+            return_value={101: ["resource_a"]},
+        )
+
+        def operation_without_cache(conn, expected: int):
+            return True, "passed", {}
+
+        mocker.patch.object(
+            DatasetCheckpoint,
+            "operation_factory",
+            return_value=operation_without_cache,
+        )
+
+        checkpoint = DatasetCheckpoint(
+            dataset="test-dataset",
+            file_path=sqlite3_with_entity_tables_path,
+            organisations=test_organisations,
+        )
+        rules = [
+            {
+                "datasets": "test-dataset",
+                "organisations": "",
+                "operation": "operation_without_cache",
+                "parameters": '{"expected": 0}',
+                "name": "test expectation",
+                "description": "",
+                "severity": "notice",
+                "responsibility": "internal",
+            }
+        ]
+        checkpoint.load(rules)
+        checkpoint.run(prefetch_resources=True)
 
     def test_save_to_parquet(self, tmp_path, test_organisations):
         """

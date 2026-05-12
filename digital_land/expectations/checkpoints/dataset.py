@@ -1,3 +1,4 @@
+import inspect
 import json
 import spatialite
 from pathlib import Path
@@ -151,7 +152,10 @@ class DatasetCheckpoint(BaseCheckpoint):
 
         for expectation in self.expectations:
             if resources_cache is not None:
-                expectation["parameters"]["resources_cache"] = resources_cache
+                operation = expectation["operation"]
+                # only pass resources_cache to operations that explicitly accept it
+                if "resources_cache" in inspect.signature(operation).parameters:
+                    expectation["parameters"]["resources_cache"] = resources_cache
 
             passed, message, details = self.run_expectation(expectation)
             self.log.add(
