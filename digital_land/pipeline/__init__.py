@@ -7,3 +7,4 @@ from .main import (  # noqa: F401
     run_pipeline,
     EntityNumGen,
 )
+from .task import TaskPipeline, TaskPipelineConfig  # noqa: F401
