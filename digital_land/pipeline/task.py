@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from datetime import date
@@ -23,6 +24,7 @@ TASK_COLUMNS = [
     "responsibility",
     "task-source",
     "entry-date",
+    "task-id",
 ]
 
 _EMPTY_SCHEMA = {col: pl.Utf8 for col in TASK_COLUMNS}
@@ -126,11 +128,14 @@ def _tasks_from_log(
 ) -> pl.DataFrame:
     """Return a task row for each failed collection log entry."""
 
+    # scan_csv + filter stays lazy; .collect() materialises only the failed rows
     # infer_schema_length=0 tells polars to read all columns as strings rather than
     # infer datatypes based on the first 100 rows, the default behaviour.
-    df = pl.read_csv(log_path, infer_schema_length=0, null_values=[""])
-
-    failed = df.filter(pl.col("status") != "200")
+    failed = (
+        pl.scan_csv(log_path, infer_schema_length=0, null_values=[""])
+        .filter(pl.col("status") != "200")
+        .collect()
+    )
 
     if failed.is_empty():
         return pl.DataFrame(schema=_EMPTY_SCHEMA)
@@ -157,7 +162,7 @@ def _tasks_from_log(
         .alias("details")
     )
 
-    return pl.DataFrame(
+    result = pl.DataFrame(
         {
             "dataset": pl.Series([dataset] * n, dtype=pl.Utf8),
             "organisation": pl.Series([organisation] * n, dtype=pl.Utf8),
@@ -170,6 +175,26 @@ def _tasks_from_log(
             "entry-date": pl.Series([entry_date] * n, dtype=pl.Utf8),
         }
     )
+    # callculate a sha256 hash from some key columns to identify this task
+    result = result.with_columns(
+        pl.struct(["dataset", "endpoint", "resource", "task-source", "details"])
+        .map_elements(
+            lambda r: hashlib.sha256(
+                "|".join(
+                    [
+                        r["dataset"] or "",
+                        r["endpoint"] or "",
+                        r["resource"] or "",
+                        r["task-source"],
+                        r["details"],
+                    ]
+                ).encode()
+            ).hexdigest()[:16],
+            return_dtype=pl.Utf8,
+        )
+        .alias("task-id")
+    )
+    return result
 
 
 def _tasks_from_issues(
@@ -182,13 +207,15 @@ def _tasks_from_issues(
 ) -> pl.DataFrame:
     """Return one task row per (issue-type, resource, field, dataset) group."""
 
-    df = pl.read_csv(issue_path, infer_schema_length=0, null_values=[""])
-    cols = set(df.columns)
+    lf = pl.scan_csv(issue_path, infer_schema_length=0, null_values=[""])
+    cols = set(lf.columns)  # .columns works on LazyFrame without collecting
 
     if "severity" in cols:
-        df = df.filter(pl.col("severity").is_in(severity_filter))
+        lf = lf.filter(pl.col("severity").is_in(severity_filter))
     if "responsibility" in cols:
-        df = df.filter(pl.col("responsibility").is_in(responsibility_filter))
+        lf = lf.filter(pl.col("responsibility").is_in(responsibility_filter))
+
+    df = lf.collect()  # materialise after filters are applied
 
     if df.is_empty():
         return pl.DataFrame(schema=_EMPTY_SCHEMA)
@@ -231,7 +258,7 @@ def _tasks_from_issues(
         .alias("details")
     )
 
-    return grouped.select(
+    result = grouped.select(
         [
             pl.col("dataset"),
             pl.lit(organisation).alias("organisation"),
@@ -244,3 +271,23 @@ def _tasks_from_issues(
             pl.lit(entry_date).alias("entry-date"),
         ]
     )
+    # callculate a sha256 hash from some key columns to identify this task
+    result = result.with_columns(
+        pl.struct(["dataset", "endpoint", "resource", "task-source", "details"])
+        .map_elements(
+            lambda r: hashlib.sha256(
+                "|".join(
+                    [
+                        r["dataset"] or "",
+                        r["endpoint"] or "",
+                        r["resource"] or "",
+                        r["task-source"],
+                        r["details"],
+                    ]
+                ).encode()
+            ).hexdigest()[:16],
+            return_dtype=pl.Utf8,
+        )
+        .alias("task-id")
+    )
+    return result

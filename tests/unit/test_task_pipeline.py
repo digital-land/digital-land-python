@@ -177,6 +177,7 @@ def test_output_has_correct_columns(log_csv, tmp_path):
         "responsibility",
         "task-source",
         "entry-date",
+        "task-id",
     }
     rows = _read_csv(output)
     assert set(rows[0].keys()) == expected_cols
