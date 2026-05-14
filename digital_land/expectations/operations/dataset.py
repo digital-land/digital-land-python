@@ -133,7 +133,7 @@ def fetch_active_resources_for_dataset(dataset_name):
             "sql": f"""select o.entity as organisation_entity, rhe.resource
                         from reporting_historic_endpoints rhe
                         join organisation o on rhe.organisation=o.organisation
-                        where pipeline == '{dataset_name}' and resource_end_date == ""
+                        where pipeline == '{dataset_name}' and (resource_end_date == "" or resource_end_date is null)
                         group by o.entity, rhe.endpoint""",
             "_size": "max",
         }
