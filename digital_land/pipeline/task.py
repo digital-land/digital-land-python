@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import date
+from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 
@@ -27,14 +28,20 @@ TASK_COLUMNS = [
 _EMPTY_SCHEMA = {col: pl.Utf8 for col in TASK_COLUMNS}
 
 
+class TaskPipelineStatus(Enum):
+    SUCCESS = 1
+    NO_TASKS = 2
+    FAILED = 3
+
+
 @dataclass(config=ConfigDict(extra="forbid"))
 class TaskPipelineConfig:
     dataset: str
     organisation: str
     endpoint: str
+    output_path: Path
     log_path: Optional[Path] = None
     issue_path: Optional[Path] = None
-    output_path: Optional[Path] = None
     severity_filter: List[str] = Field(default_factory=lambda: ["error"])
     responsibility_filter: List[str] = Field(default_factory=lambda: ["external"])
     entry_date: Optional[str] = None
@@ -48,54 +55,67 @@ class TaskPipeline:
 
     def run(
         self,
+        output_path: Path = None,
         dataset: Optional[str] = None,
         organisation: Optional[str] = None,
         endpoint: Optional[str] = None,
         log_path: Optional[Path] = None,
         issue_path: Optional[Path] = None,
-        output_path: Optional[Path] = None,
         severity_filter: Optional[List[str]] = None,
         responsibility_filter: Optional[List[str]] = None,
         entry_date: Optional[str] = None,
-    ) -> List[dict]:
-        cfg = self.config
-        dataset = dataset or (cfg.dataset if cfg else None)
-        organisation = organisation or (cfg.organisation if cfg else None)
-        endpoint = endpoint or (cfg.endpoint if cfg else None)
-        log_path = log_path or (cfg.log_path if cfg else None)
-        issue_path = issue_path or (cfg.issue_path if cfg else None)
-        output_path = output_path or (cfg.output_path if cfg else None)
-        severity_filter = severity_filter or (cfg.severity_filter if cfg else ["error"])
-        responsibility_filter = responsibility_filter or (
-            cfg.responsibility_filter if cfg else ["external"]
-        )
-        entry_date = entry_date or (cfg.entry_date if cfg else str(date.today()))
-
-        frames = []
-
-        if log_path and Path(log_path).exists():
-            log_tasks = _tasks_from_log(log_path, dataset, organisation, entry_date)
-            if not log_tasks.is_empty():
-                frames.append(log_tasks)
-
-        if issue_path and Path(issue_path).exists():
-            issue_tasks = _tasks_from_issues(
-                issue_path,
-                organisation,
-                endpoint,
-                severity_filter,
-                responsibility_filter,
-                entry_date,
+    ) -> TaskPipelineStatus:
+        try:
+            cfg = self.config
+            output_path = output_path or (cfg.output_path if cfg else None)
+            dataset = dataset or (cfg.dataset if cfg else None)
+            organisation = organisation or (cfg.organisation if cfg else None)
+            endpoint = endpoint or (cfg.endpoint if cfg else None)
+            log_path = log_path or (cfg.log_path if cfg else None)
+            issue_path = issue_path or (cfg.issue_path if cfg else None)
+            severity_filter = severity_filter or (
+                cfg.severity_filter if cfg else ["error"]
             )
-            if not issue_tasks.is_empty():
-                frames.append(issue_tasks)
+            responsibility_filter = responsibility_filter or (
+                cfg.responsibility_filter if cfg else ["external"]
+            )
+            entry_date = entry_date or (cfg.entry_date if cfg else str(date.today()))
 
-        result = pl.concat(frames) if frames else pl.DataFrame(schema=_EMPTY_SCHEMA)
-        tasks = result.to_dicts()
-        if output_path:
-            with open(output_path, "w") as f:
-                json.dump(tasks, f, indent=2)
-        return tasks
+            if output_path is None:
+                logger.error("output_path is required")
+                return TaskPipelineStatus.FAILED
+
+            frames = []
+
+            if log_path and Path(log_path).exists():
+                log_tasks = _tasks_from_log(log_path, dataset, organisation, entry_date)
+                if not log_tasks.is_empty():
+                    frames.append(log_tasks)
+
+            if issue_path and Path(issue_path).exists():
+                issue_tasks = _tasks_from_issues(
+                    issue_path,
+                    organisation,
+                    endpoint,
+                    severity_filter,
+                    responsibility_filter,
+                    entry_date,
+                )
+                if not issue_tasks.is_empty():
+                    frames.append(issue_tasks)
+
+            result = pl.concat(frames) if frames else pl.DataFrame(schema=_EMPTY_SCHEMA)
+            result.write_csv(output_path)
+
+            return (
+                TaskPipelineStatus.NO_TASKS
+                if result.is_empty()
+                else TaskPipelineStatus.SUCCESS
+            )
+
+        except Exception:
+            logger.exception("TaskPipeline failed")
+            return TaskPipelineStatus.FAILED
 
 
 def _tasks_from_log(

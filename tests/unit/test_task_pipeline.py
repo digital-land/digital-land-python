@@ -1,7 +1,12 @@
+import csv
 import json
 import pytest
 
-from digital_land.pipeline.task import TaskPipeline, TaskPipelineConfig
+from digital_land.pipeline.task import (
+    TaskPipeline,
+    TaskPipelineConfig,
+    TaskPipelineStatus,
+)
 
 
 @pytest.fixture
@@ -31,33 +36,42 @@ def issue_csv(tmp_path):
     return path
 
 
-def test_log_tasks_creates_row_per_failure(log_csv):
-    pipeline = TaskPipeline()
-    results = pipeline.run(
+def _read_csv(path):
+    with open(path) as f:
+        return list(csv.DictReader(f))
+
+
+def test_log_tasks_creates_row_per_failure(log_csv, tmp_path):
+    output = tmp_path / "tasks.csv"
+    status = TaskPipeline().run(
+        output_path=output,
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
         log_path=log_csv,
     )
 
-    # Only the two failed rows should produce tasks, not the 200
-    assert len(results) == 2
-    assert set(result["task-source"] for result in results) == {"log"}
+    assert status == TaskPipelineStatus.SUCCESS
+    rows = _read_csv(output)
+    assert len(rows) == 2
+    assert set(row["task-source"] for row in rows) == {"log"}
 
 
-def test_log_task_details_json(log_csv):
-    results = TaskPipeline().run(
+def test_log_task_details_json(log_csv, tmp_path):
+    output = tmp_path / "tasks.csv"
+    TaskPipeline().run(
+        output_path=output,
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
         log_path=log_csv,
     )
 
-    details = [json.loads(result["details"]) for result in results]
+    rows = _read_csv(output)
+    details = [json.loads(row["details"]) for row in rows]
     statuses = {detail["status"] for detail in details}
     assert 404 in statuses
     assert 500 in statuses
-    # status should be an int in the JSON, not a string
     assert all(isinstance(d["status"], int) for d in details)
 
 
@@ -67,47 +81,55 @@ def test_log_tasks_empty_when_all_successful(tmp_path):
         "endpoint,resource,status,exception,entry-date,bytes,elapsed\n"
         "endpoint-aaa,resource-aaa,200,,2024-01-01,1234,0.5\n"
     )
-    results = TaskPipeline().run(
+    output = tmp_path / "tasks.csv"
+    status = TaskPipeline().run(
+        output_path=output,
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
         log_path=log,
     )
-    assert results == []
+    assert status == TaskPipelineStatus.NO_TASKS
+    assert _read_csv(output) == []
 
 
-def test_issue_tasks_groups_by_type_and_field(issue_csv):
-    results = TaskPipeline().run(
+def test_issue_tasks_groups_by_type_and_field(issue_csv, tmp_path):
+    output = tmp_path / "tasks.csv"
+    status = TaskPipeline().run(
+        output_path=output,
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
         issue_path=issue_csv,
     )
 
-    # 2 geometry rows + 1 name row = 2 groups (invalid-geometry/geometry and missing-value/name)
-    # the warning/internal row should be filtered out
-    assert len(results) == 2
-    assert set(result["task-source"] for result in results) == {"issue"}
+    assert status == TaskPipelineStatus.SUCCESS
+    rows = _read_csv(output)
+    assert len(rows) == 2
+    assert set(row["task-source"] for row in rows) == {"issue"}
 
 
-def test_issue_task_details_json(issue_csv):
-    results = TaskPipeline().run(
+def test_issue_task_details_json(issue_csv, tmp_path):
+    output = tmp_path / "tasks.csv"
+    TaskPipeline().run(
+        output_path=output,
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
         issue_path=issue_csv,
     )
 
-    details = [json.loads(result["details"]) for result in results]
-    geom_task = next(
-        detail for detail in details if detail["issue_type"] == "invalid-geometry"
-    )
+    rows = _read_csv(output)
+    details = [json.loads(row["details"]) for row in rows]
+    geom_task = next(d for d in details if d["issue_type"] == "invalid-geometry")
     assert geom_task["count"] == 2
     assert geom_task["field"] == "geometry"
 
 
-def test_both_sources_combined(log_csv, issue_csv):
-    results = TaskPipeline().run(
+def test_both_sources_combined(log_csv, issue_csv, tmp_path):
+    output = tmp_path / "tasks.csv"
+    status = TaskPipeline().run(
+        output_path=output,
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
@@ -115,25 +137,31 @@ def test_both_sources_combined(log_csv, issue_csv):
         issue_path=issue_csv,
     )
 
-    sources = set(result["task-source"] for result in results)
-
+    assert status == TaskPipelineStatus.SUCCESS
+    rows = _read_csv(output)
+    sources = set(row["task-source"] for row in rows)
     assert "log" in sources
     assert "issue" in sources
 
 
-def test_run_with_config(log_csv):
+def test_run_with_config(log_csv, tmp_path):
+    output = tmp_path / "tasks.csv"
     config = TaskPipelineConfig(
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
+        output_path=output,
         log_path=log_csv,
     )
-    results = TaskPipeline(config).run()
-    assert len(results) == 2
+    status = TaskPipeline(config).run()
+    assert status == TaskPipelineStatus.SUCCESS
+    assert len(_read_csv(output)) == 2
 
 
-def test_output_has_correct_columns(log_csv):
-    results = TaskPipeline().run(
+def test_output_has_correct_columns(log_csv, tmp_path):
+    output = tmp_path / "tasks.csv"
+    TaskPipeline().run(
+        output_path=output,
         dataset="tree-preservation-zone",
         organisation="local-authority-eng:ABC",
         endpoint="endpoint-aaa",
@@ -150,4 +178,5 @@ def test_output_has_correct_columns(log_csv):
         "task-source",
         "entry-date",
     }
-    assert set(results[0].keys()) == expected_cols
+    rows = _read_csv(output)
+    assert set(rows[0].keys()) == expected_cols
