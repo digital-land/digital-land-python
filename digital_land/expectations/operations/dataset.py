@@ -126,6 +126,7 @@ def count_lpa_boundary(
 
     return result, message, details
 
+
 # Previously named count_deleted_entities() function
 def fetch_active_resources_for_dataset(dataset_name):
     params = urllib.parse.urlencode(
