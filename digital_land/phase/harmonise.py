@@ -21,6 +21,7 @@ MANDATORY_FIELDS_DICT = {
         "geometry",
         "name",
         "permitted-development-rights",
+        "article-4-direction",
     ],
     "conservation-area": [
         "reference",
@@ -43,6 +44,7 @@ MANDATORY_FIELDS_DICT = {
     "tree-preservation-zone": [
         "reference",
         "geometry",
+        "tree-preservation-order",
     ],
     "listed-building-outline": [
         "reference",
@@ -54,6 +56,7 @@ MANDATORY_FIELDS_DICT = {
         "reference",
         "point",
         "geometry",
+        "tree-preservation-order",
     ],
     "brownfield-land": [
         "OrganisationURI",
