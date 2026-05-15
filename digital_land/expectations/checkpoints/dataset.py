@@ -1,5 +1,6 @@
 import inspect
 import json
+import logging
 import spatialite
 from pathlib import Path
 from jinja2 import Template
@@ -144,13 +145,17 @@ class DatasetCheckpoint(BaseCheckpoint):
         # TODO implement faillure on critical errors, this is also the zombie code below
         # self.failed_expectation_with_error_severity = 0
 
-        resources_cache = (
-            fetch_active_resources_for_dataset(self.dataset)
-            if prefetch_resources
-            else None
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"[expectations] Starting run for dataset '{self.dataset}' with {len(self.expectations)} expectations"
         )
 
-        for expectation in self.expectations:
+        resources_cache = None
+        if prefetch_resources:
+            resources_cache = fetch_active_resources_for_dataset(self.dataset)
+            logger.info("[expectations] Prefetched resources cache")
+
+        for i, expectation in enumerate(self.expectations):
             if resources_cache is not None:
                 operation = expectation["operation"]
                 # only pass resources_cache to operations that explicitly accept it
@@ -158,6 +163,15 @@ class DatasetCheckpoint(BaseCheckpoint):
                     expectation["parameters"]["resources_cache"] = resources_cache
 
             passed, message, details = self.run_expectation(expectation)
+
+            # generating logging statements for each expectation per orgaisation
+            org = expectation.get("organisation", {})
+            org_name = org.get("organisation", "") if org else ""
+            label = f"{expectation['operation'].__name__}({org_name})"
+            logger.info(
+                f"[expectations] {i+1}/{len(self.expectations)} {label} — {'PASSED' if passed else 'FAILED'}"
+            )
+
             self.log.add(
                 {
                     "organisation": (
