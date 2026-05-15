@@ -145,6 +145,9 @@ def fetch_active_resources_for_dataset(dataset_name):
     for attempt in range(max_retries):
         try:
             df = pd.read_csv(base_url)
+            logging.info(
+                f"[expectations] Fetched {len(df)} active resources for '{dataset_name}' from datasette"
+            )
             cache = {}
             for _, row in df.iterrows():
                 cache.setdefault(row["organisation_entity"], []).append(row["resource"])
