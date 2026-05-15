@@ -90,13 +90,25 @@ class TaskPipeline:
             frames = []
 
             if log_path and Path(log_path).exists():
-                log_tasks = _tasks_from_log(log_path, dataset, organisation, entry_date)
+                log_df = (
+                    # infer_schema_length=0 means that polas will interpret all values as strings
+                    # rather than the defaul of infering datatypes on first 100 rows
+                    pl.scan_csv(
+                        log_path, infer_schema_length=0, null_values=[""]
+                    ).collect()
+                )
+                log_tasks = _transform_log_to_tasks(
+                    log_df, dataset, organisation, entry_date
+                )
                 if not log_tasks.is_empty():
                     frames.append(log_tasks)
 
             if issue_path and Path(issue_path).exists():
-                issue_tasks = _tasks_from_issues(
-                    issue_path,
+                issue_df = pl.scan_csv(
+                    issue_path, infer_schema_length=0, null_values=[""]
+                ).collect()
+                issue_tasks = _transform_issues_to_tasks(
+                    issue_df,
                     organisation,
                     endpoint,
                     severity_filter,
@@ -120,22 +132,15 @@ class TaskPipeline:
             return TaskPipelineStatus.FAILED
 
 
-def _tasks_from_log(
-    log_path: Path,
+def _transform_log_to_tasks(
+    df: pl.DataFrame,
     dataset: str,
     organisation: str,
     entry_date: str,
 ) -> pl.DataFrame:
-    """Return a task row for each failed collection log entry."""
+    """Filter and transform a log DataFrame into task rows."""
 
-    # scan_csv + filter stays lazy; .collect() materialises only the failed rows
-    # infer_schema_length=0 tells polars to read all columns as strings rather than
-    # infer datatypes based on the first 100 rows, the default behaviour.
-    failed = (
-        pl.scan_csv(log_path, infer_schema_length=0, null_values=[""])
-        .filter(pl.col("status") != "200")
-        .collect()
-    )
+    failed = df.filter(pl.col("status") != "200")
 
     if failed.is_empty():
         return pl.DataFrame(schema=_EMPTY_SCHEMA)
@@ -175,7 +180,7 @@ def _tasks_from_log(
             "entry-date": pl.Series([entry_date] * n, dtype=pl.Utf8),
         }
     )
-    # callculate a sha256 hash from some key columns to identify this task
+    # calculate a sha256 hash from some key columns to identify this task
     result = result.with_columns(
         pl.struct(["dataset", "endpoint", "resource", "task-source", "details"])
         .map_elements(
@@ -197,25 +202,22 @@ def _tasks_from_log(
     return result
 
 
-def _tasks_from_issues(
-    issue_path: Path,
+def _transform_issues_to_tasks(
+    df: pl.DataFrame,
     organisation: str,
     endpoint: str,
     severity_filter: List[str],
     responsibility_filter: List[str],
     entry_date: str,
 ) -> pl.DataFrame:
-    """Return one task row per (issue-type, resource, field, dataset) group."""
+    """Filter and transform an issue DataFrame into task rows."""
 
-    lf = pl.scan_csv(issue_path, infer_schema_length=0, null_values=[""])
-    cols = set(lf.columns)  # .columns works on LazyFrame without collecting
+    cols = set(df.columns)
 
     if "severity" in cols:
-        lf = lf.filter(pl.col("severity").is_in(severity_filter))
+        df = df.filter(pl.col("severity").is_in(severity_filter))
     if "responsibility" in cols:
-        lf = lf.filter(pl.col("responsibility").is_in(responsibility_filter))
-
-    df = lf.collect()  # materialise after filters are applied
+        df = df.filter(pl.col("responsibility").is_in(responsibility_filter))
 
     if df.is_empty():
         return pl.DataFrame(schema=_EMPTY_SCHEMA)
@@ -271,7 +273,7 @@ def _tasks_from_issues(
             pl.lit(entry_date).alias("entry-date"),
         ]
     )
-    # callculate a sha256 hash from some key columns to identify this task
+    # calculate a sha256 hash from some key columns to identify this task
     result = result.with_columns(
         pl.struct(["dataset", "endpoint", "resource", "task-source", "details"])
         .map_elements(
