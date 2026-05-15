@@ -24,7 +24,7 @@ TASK_COLUMNS = [
     "responsibility",
     "task-source",
     "entry-date",
-    "task-id",
+    "reference",
 ]
 
 _EMPTY_SCHEMA = {col: pl.Utf8 for col in TASK_COLUMNS}
@@ -197,7 +197,7 @@ def _transform_log_to_tasks(
             ).hexdigest()[:16],
             return_dtype=pl.Utf8,
         )
-        .alias("task-id")
+        .alias("reference")
     )
     return result
 
@@ -290,6 +290,6 @@ def _transform_issues_to_tasks(
             ).hexdigest()[:16],
             return_dtype=pl.Utf8,
         )
-        .alias("task-id")
+        .alias("reference")
     )
     return result

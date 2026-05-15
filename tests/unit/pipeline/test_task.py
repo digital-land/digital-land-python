@@ -172,7 +172,7 @@ class TestTaskPipeline:
             "responsibility",
             "task-source",
             "entry-date",
-            "task-id",
+            "reference",
         }
         rows = _read_csv(output)
         assert set(rows[0].keys()) == expected_cols
