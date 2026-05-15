@@ -53,7 +53,7 @@ class TestTaskPipeline:
             log_path=log_csv,
         )
 
-        assert status == TaskPipelineStatus.SUCCESS
+        assert status == TaskPipelineStatus.COMPLETE
         rows = _read_csv(output)
         assert len(rows) == 2
         assert set(row["task-source"] for row in rows) == {"log"}
@@ -89,7 +89,7 @@ class TestTaskPipeline:
             endpoint="endpoint-aaa",
             log_path=log,
         )
-        assert status == TaskPipelineStatus.NO_TASKS
+        assert status == TaskPipelineStatus.COMPLETE
         assert _read_csv(output) == []
 
     def test_run_issue_tasks_groups_by_type_and_field(self, issue_csv, tmp_path):
@@ -102,7 +102,7 @@ class TestTaskPipeline:
             issue_path=issue_csv,
         )
 
-        assert status == TaskPipelineStatus.SUCCESS
+        assert status == TaskPipelineStatus.COMPLETE
         rows = _read_csv(output)
         assert len(rows) == 2
         assert set(row["task-source"] for row in rows) == {"issue"}
@@ -134,7 +134,7 @@ class TestTaskPipeline:
             issue_path=issue_csv,
         )
 
-        assert status == TaskPipelineStatus.SUCCESS
+        assert status == TaskPipelineStatus.COMPLETE
         rows = _read_csv(output)
         sources = set(row["task-source"] for row in rows)
         assert "log" in sources
@@ -150,7 +150,7 @@ class TestTaskPipeline:
             log_path=log_csv,
         )
         status = TaskPipeline(config).run()
-        assert status == TaskPipelineStatus.SUCCESS
+        assert status == TaskPipelineStatus.COMPLETE
         assert len(_read_csv(output)) == 2
 
     def test_run_output_has_correct_columns(self, log_csv, tmp_path):

@@ -31,8 +31,8 @@ _EMPTY_SCHEMA = {col: pl.Utf8 for col in TASK_COLUMNS}
 
 
 class TaskPipelineStatus(Enum):
-    SUCCESS = 1
-    NO_TASKS = 2
+    INITIALISED = 1
+    COMPLETE = 2
     FAILED = 3
 
 
@@ -54,6 +54,7 @@ class TaskPipeline:
 
     def __init__(self, config: Optional[TaskPipelineConfig] = None):
         self.config = config
+        self.status = TaskPipelineStatus.INITIALISED
 
     def run(
         self,
@@ -121,14 +122,12 @@ class TaskPipeline:
             result = pl.concat(frames) if frames else pl.DataFrame(schema=_EMPTY_SCHEMA)
             result.write_csv(output_path)
 
-            return (
-                TaskPipelineStatus.NO_TASKS
-                if result.is_empty()
-                else TaskPipelineStatus.SUCCESS
-            )
+            self.status = TaskPipelineStatus.COMPLETE
+            return TaskPipelineStatus.COMPLETE
 
         except Exception:
             logger.exception("TaskPipeline failed")
+            self.status = TaskPipelineStatus.FAILED
             return TaskPipelineStatus.FAILED
 
 
