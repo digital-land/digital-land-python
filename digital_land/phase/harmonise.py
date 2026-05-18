@@ -180,6 +180,9 @@ class HarmonisePhase(Phase):
 
         return datatype.normalise(value, issues=self.issues)
 
+    def category_values(self, value):
+        return [v.strip() for v in value.split(";") if v.strip()]
+
     def process(self, stream):
 
         for block in stream:
@@ -195,23 +198,27 @@ class HarmonisePhase(Phase):
                 if field in self.valid_category_values.keys():
                     value = row[field]
                     if value:
-                        normalised_value = value.replace(" ", "-")
-                        matching_value = next(
-                            (
-                                v
-                                for v in self.valid_category_values[field]
-                                if v.lower() == normalised_value.lower()
-                            ),
-                            None,
-                        )
-                        if matching_value:
-                            # use exact value from self.valid_category_values
-                            # TODO: log a warning where we've replaced spaces to match categorical value
-                            row[field] = matching_value
-                        else:
-                            self.issues.log_issue(
-                                field, "invalid category value", value
+                        harmonised_values = []
+                        for raw_value in self.category_values(value):
+                            normalised_value = raw_value.replace(" ", "-")
+                            matching_value = next(
+                                (
+                                    v
+                                    for v in self.valid_category_values[field]
+                                    if v.lower() == normalised_value.lower()
+                                ),
+                                None,
                             )
+                            if matching_value:
+                                # use exact value from self.valid_category_values
+                                # TODO: log a warning where we've replaced spaces to match categorical value
+                                harmonised_values.append(matching_value)
+                            else:
+                                self.issues.log_issue(
+                                    field, "invalid category value", raw_value
+                                )
+                                harmonised_values.append(raw_value)
+                        row[field] = ";".join(harmonised_values)
                 o[field] = self.harmonise_field(field, row[field])
 
             # remove future entry dates
