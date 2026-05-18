@@ -146,14 +146,14 @@ class DatasetCheckpoint(BaseCheckpoint):
         # self.failed_expectation_with_error_severity = 0
 
         logger = logging.getLogger(__name__)
-        logger.info(
+        logger.warning(
             f"[expectations] Starting run for dataset '{self.dataset}' with {len(self.expectations)} expectations"
         )
 
         resources_cache = None
         if prefetch_resources:
             resources_cache = fetch_active_resources_for_dataset(self.dataset)
-            logger.info("[expectations] Prefetched resources cache")
+            logger.warning("[expectations] Prefetched resources cache")
 
         for i, expectation in enumerate(self.expectations):
             if resources_cache is not None:
@@ -168,7 +168,7 @@ class DatasetCheckpoint(BaseCheckpoint):
             org = expectation.get("organisation", {})
             org_name = org.get("organisation", "") if org else ""
             label = f"{expectation['operation'].__name__}({org_name})"
-            logger.info(
+            logger.warning(
                 f"[expectations] {i+1}/{len(self.expectations)} {label} — {'PASSED' if passed else 'FAILED'}"
             )
 
