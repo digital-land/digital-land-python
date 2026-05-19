@@ -160,9 +160,11 @@ class DatasetPackage(SqlitePackage):
         self.connect()
         self.create_cursor()
         self.execute(
-            "select entity, field, value, priority from fact"
-            "  where value != '' or field == 'end-date'"
-            "  order by entity, field, priority, entry_date"
+            "select fact.entity, fact.field, fact.value, fact.priority from fact"
+            "  left join (select fact, max(start_date) start_date from fact_resource group by fact) fact_resource"
+            "  on fact.fact = fact_resource.fact"
+            "  where fact.value != '' or fact.field == 'end-date'"
+            "  order by fact.entity, fact.field, fact.priority, fact.entry_date, fact_resource.start_date"
         )
         results = self.cursor.fetchall()
 
