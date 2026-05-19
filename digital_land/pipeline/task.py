@@ -64,6 +64,8 @@ class TaskPipeline:
         endpoint: Optional[str] = None,
         log_path: Optional[Path] = None,
         issue_path: Optional[Path] = None,
+        column_field_path: Optional[Path] = None,
+        mandatory_fields: Optional[List[str]] = None,
         severity_filter: Optional[List[str]] = None,
         responsibility_filter: Optional[List[str]] = None,
         entry_date: Optional[str] = None,
@@ -86,7 +88,20 @@ class TaskPipeline:
 
             if output_path is None:
                 logger.error("output_path is required")
-                return TaskPipelineStatus.FAILED
+                self.status = TaskPipelineStatus.FAILED
+                return self.status
+
+            if column_field_path and not mandatory_fields:
+                logger.warning(
+                    "column_field_path provided but mandatory_fields not supplied — skipping missing field checks"
+                )
+                column_field_path = None
+            elif column_field_path and not Path(column_field_path).exists():
+                logger.warning(
+                    "column_field_path provided but does not exist: %s",
+                    column_field_path,
+                )
+                column_field_path = None
 
             frames = []
 
@@ -119,16 +134,30 @@ class TaskPipeline:
                 if not issue_tasks.is_empty():
                     frames.append(issue_tasks)
 
+            if column_field_path:
+                column_field_df = pl.scan_csv(
+                    column_field_path, infer_schema_length=0, null_values=[""]
+                ).collect()
+                column_field_tasks = _transform_column_field_to_tasks(
+                    column_field_df,
+                    organisation,
+                    dataset,
+                    mandatory_fields,
+                    entry_date,
+                )
+                if not column_field_tasks.is_empty():
+                    frames.append(column_field_tasks)
+
             result = pl.concat(frames) if frames else pl.DataFrame(schema=_EMPTY_SCHEMA)
             result.write_csv(output_path)
 
             self.status = TaskPipelineStatus.COMPLETE
-            return TaskPipelineStatus.COMPLETE
+            return self.status
 
         except Exception:
             logger.exception("TaskPipeline failed")
             self.status = TaskPipelineStatus.FAILED
-            return TaskPipelineStatus.FAILED
+            return self.status
 
 
 def _transform_log_to_tasks(
@@ -180,6 +209,67 @@ def _transform_log_to_tasks(
         }
     )
     # calculate a sha256 hash from some key columns to identify this task
+    result = result.with_columns(
+        pl.struct(["dataset", "endpoint", "resource", "task-source", "details"])
+        .map_elements(
+            lambda r: hashlib.sha256(
+                "|".join(
+                    [
+                        r["dataset"] or "",
+                        r["endpoint"] or "",
+                        r["resource"] or "",
+                        r["task-source"],
+                        r["details"],
+                    ]
+                ).encode()
+            ).hexdigest()[:16],
+            return_dtype=pl.Utf8,
+        )
+        .alias("reference")
+    )
+    return result
+
+
+def _transform_column_field_to_tasks(
+    df: pl.DataFrame,
+    organisation: str,
+    dataset: str,
+    mandatory_fields: List[str],
+    entry_date: str,
+) -> pl.DataFrame:
+    """Identify missing required fields from column-field log and create task rows."""
+    present_fields = set(df["field"].to_list()) if "field" in df.columns else set()
+    missing = []
+    for field in mandatory_fields:
+        if isinstance(field, list):
+            if not any(f in present_fields for f in field):
+                missing.extend(field)
+        else:
+            if field not in present_fields:
+                missing.append(field)
+
+    if not missing:
+        return pl.DataFrame(schema=_EMPTY_SCHEMA)
+
+    resource = df["resource"][0] if "resource" in df.columns and len(df) > 0 else ""
+    n = len(missing)
+    details_col = [
+        json.dumps({"field": f, "issue_type": "missing-field"}) for f in missing
+    ]
+
+    result = pl.DataFrame(
+        {
+            "dataset": pl.Series([dataset] * n, dtype=pl.Utf8),
+            "organisation": pl.Series([organisation] * n, dtype=pl.Utf8),
+            "endpoint": pl.Series([""] * n, dtype=pl.Utf8),
+            "resource": pl.Series([resource] * n, dtype=pl.Utf8),
+            "details": pl.Series(details_col, dtype=pl.Utf8),
+            "severity": pl.Series(["error"] * n, dtype=pl.Utf8),
+            "responsibility": pl.Series(["external"] * n, dtype=pl.Utf8),
+            "task-source": pl.Series(["column-field"] * n, dtype=pl.Utf8),
+            "entry-date": pl.Series([entry_date] * n, dtype=pl.Utf8),
+        }
+    )
     result = result.with_columns(
         pl.struct(["dataset", "endpoint", "resource", "task-source", "details"])
         .map_elements(
@@ -262,8 +352,8 @@ def _transform_issues_to_tasks(
     result = grouped.select(
         [
             pl.col("dataset"),
-            pl.lit(organisation).alias("organisation"),
-            pl.lit(endpoint).alias("endpoint"),
+            pl.lit(organisation or "").alias("organisation"),
+            pl.lit(endpoint or "").alias("endpoint"),
             pl.col("resource"),
             pl.col("details"),
             pl.col("severity"),
