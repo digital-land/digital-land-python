@@ -144,6 +144,61 @@ class TestDatasetCheckpoint:
             for expectation in checkpoint.expectations:
                 assert expectation.get(key) is not None
 
+    def test_load_skips_rule_not_scheduled_today(self, test_organisations, mocker):
+        """test loading skips rules not schedule for today, shoulld be moved to unit"""
+        from unittest.mock import patch
+
+        rules = [
+            {
+                "datasets": "test",
+                "organisations": "",
+                "operation": "test",
+                "parameters": '{"test":"test"}',
+                "name": "a saturday only rule",
+                "severity": "notice",
+                "responsibility": "internal",
+                "schedule": "saturday",
+            }
+        ]
+        mocker.patch(
+            "digital_land.expectations.checkpoints.dataset.DatasetCheckpoint.operation_factory",
+            return_value=mocker.Mock(return_value=True),
+        )
+        # force "today" to be a non-saturday
+        with patch("digital_land.expectations.checkpoints.dataset.datetime") as mock_dt:
+            mock_dt.now.return_value.strftime.return_value = "wednesday"
+            checkpoint = DatasetCheckpoint("dataset", "test-path", test_organisations)
+            checkpoint.load(rules)
+
+        assert len(checkpoint.expectations) == 0
+
+    def test_load_includes_rule_scheduled_for_today(self, test_organisations, mocker):
+        """test loading includes rules scheduled for today, shoulld be moved to unit"""
+        from unittest.mock import patch
+
+        rules = [
+            {
+                "datasets": "test",
+                "organisations": "",
+                "operation": "test",
+                "parameters": '{"test":"test"}',
+                "name": "a saturday only rule",
+                "severity": "notice",
+                "responsibility": "internal",
+                "schedule": "saturday",
+            }
+        ]
+        mocker.patch(
+            "digital_land.expectations.checkpoints.dataset.DatasetCheckpoint.operation_factory",
+            return_value=mocker.Mock(return_value=True),
+        )
+        with patch("digital_land.expectations.checkpoints.dataset.datetime") as mock_dt:
+            mock_dt.now.return_value.strftime.return_value = "saturday"
+            checkpoint = DatasetCheckpoint("dataset", "test-path", test_organisations)
+            checkpoint.load(rules)
+
+        assert len(checkpoint.expectations) == 1
+
     def test_run_success(
         self, tmp_path, sqlite3_with_entity_tables_path, mocker, test_organisations
     ):
