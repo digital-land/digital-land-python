@@ -2,6 +2,7 @@ import inspect
 import json
 import logging
 import spatialite
+from datetime import datetime
 from pathlib import Path
 from jinja2 import Template
 
@@ -114,7 +115,12 @@ class DatasetCheckpoint(BaseCheckpoint):
         expectations need parsing
         """
         self.expectations = []
+        today = datetime.now().strftime("%A").lower()
         for rule in rules:
+            schedule = rule.get("schedule", "")
+            # skip rule if today does not match scheduled day of the week.
+            if schedule and schedule.lower() != today:
+                continue
             if rule["organisations"]:
                 rule_orgs = self.get_rule_orgs(rule)
 
