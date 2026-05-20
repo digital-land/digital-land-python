@@ -77,6 +77,110 @@ def blank_patch_csv(tmp_path):
     return patch_path
 
 
+def test_load_entities_uses_resource_start_date_as_tiebreaker(tmp_path):
+    class OrganisationStub:
+        organisation = {}
+
+    specification_dir = Path(__file__).parents[2] / "data" / "state" / "specification"
+    package = DatasetPackage(
+        "conservation-area",
+        organisation=OrganisationStub(),
+        path=os.path.join(tmp_path, "test.sqlite3"),
+        specification_dir=specification_dir,
+    )
+    package.create_database()
+    package.disconnect()
+
+    with sqlite3.connect(package.path) as connection:
+        connection.executemany(
+            """
+            INSERT INTO fact (
+                fact, entity, field, value, priority, entry_date, start_date, end_date, reference_entity
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    "fact-reference",
+                    "44006677",
+                    "reference",
+                    "ca-1",
+                    "2",
+                    "2024-01-01",
+                    "",
+                    "",
+                    "",
+                ),
+                (
+                    "fact-name-old-resource",
+                    "44006677",
+                    "name",
+                    "Older resource value",
+                    "2",
+                    "2024-01-01",
+                    "",
+                    "",
+                    "",
+                ),
+                (
+                    "fact-name-new-resource",
+                    "44006677",
+                    "name",
+                    "Newer resource value",
+                    "2",
+                    "2024-01-01",
+                    "",
+                    "",
+                    "",
+                ),
+            ],
+        )
+        connection.executemany(
+            """
+            INSERT INTO fact_resource (
+                fact, resource, priority, entry_date, start_date, end_date, entry_number
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    "fact-reference",
+                    "resource-reference",
+                    "2",
+                    "2024-01-01",
+                    "2024-01-01",
+                    "",
+                    "1",
+                ),
+                (
+                    "fact-name-old-resource",
+                    "resource-old",
+                    "2",
+                    "2024-01-01",
+                    "2024-01-01",
+                    "",
+                    "1",
+                ),
+                (
+                    "fact-name-new-resource",
+                    "resource-new",
+                    "2",
+                    "2024-01-01",
+                    "2024-02-01",
+                    "",
+                    "1",
+                ),
+            ],
+        )
+
+    package.load_entities()
+
+    with sqlite3.connect(package.path) as connection:
+        name = connection.execute(
+            "select name from entity where entity = 44006677"
+        ).fetchone()[0]
+
+    assert name == "Newer resource value"
+
+
 def test_load_old_entities_entities_outside_of_range_are_removed(tmp_path):
     # create custom specification to feed in
     schema = {
