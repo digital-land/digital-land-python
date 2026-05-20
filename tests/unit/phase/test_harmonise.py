@@ -291,6 +291,47 @@ def test_validate_categorical_field_dataset():
     assert issues.rows[0]["issue-type"] == "invalid category value"
 
 
+def test_validate_categorical_field_with_semicolon_separated_values():
+    field_datatype_map = {
+        "reference": "string",
+        "permitted-development-rights": "string",
+    }
+    issues = IssueLog()
+
+    h = HarmonisePhase(
+        field_datatype_map,
+        issues=issues,
+        dataset="article-4-direction-area",
+        valid_category_values={
+            "permitted-development-rights": ["6A", "6B", "6C", "6E"]
+        },
+    )
+
+    reader = FakeDictReader(
+        [
+            {
+                "reference": "1",
+                "permitted-development-rights": "6A;6B;6C;6E",
+            },
+            {
+                "reference": "2",
+                "permitted-development-rights": "6A;made-up-code;6C",
+            },
+        ],
+    )
+
+    output = list(h.process(reader))
+
+    assert len(output) == 2
+    assert output[0]["row"]["permitted-development-rights"] == "6A;6B;6C;6E"
+    assert output[1]["row"]["permitted-development-rights"] == "6A;made-up-code;6C"
+
+    assert len(issues.rows) == 1
+    assert issues.rows[0]["field"] == "permitted-development-rights"
+    assert issues.rows[0]["issue-type"] == "invalid category value"
+    assert issues.rows[0]["value"] == "made-up-code"
+
+
 def test_harmonise_geox_geoy():
     field_datatye_map = {
         "GeoX": "string",
