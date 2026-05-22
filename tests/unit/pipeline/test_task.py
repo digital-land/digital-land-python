@@ -176,3 +176,147 @@ class TestTaskPipeline:
         }
         rows = _read_csv(output)
         assert set(rows[0].keys()) == expected_cols
+
+
+RESOURCE_HASH = "be5a869a80edf1eee0cedf66efc726ffe9c51e30f04d4ef976c5b3db4dbb5456"
+
+COLUMN_FIELD_ROWS = (
+    "dataset,resource,column,field\n"
+    f"tree-preservation-zone,{RESOURCE_HASH},name,name\n"
+    f"tree-preservation-zone,{RESOURCE_HASH},geometry,geometry\n"
+    f"tree-preservation-zone,{RESOURCE_HASH},reference,reference\n"
+)
+
+
+@pytest.fixture
+def column_field_csv(tmp_path):
+    path = tmp_path / "column_field.csv"
+    path.write_text(COLUMN_FIELD_ROWS)
+    return path
+
+
+class TestColumnFieldTasks:
+
+    def test_missing_mandatory_field_creates_task(self, column_field_csv, tmp_path):
+        output = tmp_path / "tasks.csv"
+        status = TaskPipeline().run(
+            output_path=output,
+            dataset="tree-preservation-zone",
+            organisation="local-authority-eng:ABC",
+            endpoint="endpoint-aaa",
+            column_field_path=column_field_csv,
+            mandatory_fields=["name", "geometry", "start-date"],
+        )
+
+        assert status == TaskPipelineStatus.COMPLETE
+        rows = _read_csv(output)
+        assert len(rows) == 1
+        assert rows[0]["task-source"] == "column-field"
+        details = json.loads(rows[0]["details"])
+        assert details["field"] == "start-date"
+        assert details["issue_type"] == "missing-field"
+
+    def test_multiple_missing_fields_each_produce_a_task(
+        self, column_field_csv, tmp_path
+    ):
+        output = tmp_path / "tasks.csv"
+        TaskPipeline().run(
+            output_path=output,
+            dataset="tree-preservation-zone",
+            organisation="local-authority-eng:ABC",
+            endpoint="endpoint-aaa",
+            column_field_path=column_field_csv,
+            mandatory_fields=["name", "start-date", "end-date"],
+        )
+
+        rows = _read_csv(output)
+        missing_fields = {json.loads(r["details"])["field"] for r in rows}
+        assert missing_fields == {"start-date", "end-date"}
+
+    def test_no_tasks_when_all_mandatory_fields_present(
+        self, column_field_csv, tmp_path
+    ):
+        output = tmp_path / "tasks.csv"
+        status = TaskPipeline().run(
+            output_path=output,
+            dataset="tree-preservation-zone",
+            organisation="local-authority-eng:ABC",
+            endpoint="endpoint-aaa",
+            column_field_path=column_field_csv,
+            mandatory_fields=["name", "geometry"],
+        )
+
+        assert status == TaskPipelineStatus.COMPLETE
+        assert _read_csv(output) == []
+
+    def test_alternative_field_group_passes_when_one_present(
+        self, column_field_csv, tmp_path
+    ):
+        """A list inside mandatory_fields means 'any one of these is sufficient'."""
+        output = tmp_path / "tasks.csv"
+        TaskPipeline().run(
+            output_path=output,
+            dataset="tree-preservation-zone",
+            organisation="local-authority-eng:ABC",
+            endpoint="endpoint-aaa",
+            column_field_path=column_field_csv,
+            mandatory_fields=[["geometry", "point"]],
+        )
+
+        assert _read_csv(output) == []
+
+    def test_alternative_field_group_fails_when_none_present(
+        self, column_field_csv, tmp_path
+    ):
+        """All alternatives missing → both are appended as missing."""
+        output = tmp_path / "tasks.csv"
+        TaskPipeline().run(
+            output_path=output,
+            dataset="tree-preservation-zone",
+            organisation="local-authority-eng:ABC",
+            endpoint="endpoint-aaa",
+            column_field_path=column_field_csv,
+            mandatory_fields=[["start-date", "opening-date"]],
+        )
+
+        rows = _read_csv(output)
+        missing_fields = {json.loads(r["details"])["field"] for r in rows}
+        assert missing_fields == {"start-date", "opening-date"}
+
+    def test_column_field_path_without_mandatory_fields_is_skipped(
+        self, column_field_csv, tmp_path, caplog
+    ):
+        import logging
+
+        output = tmp_path / "tasks.csv"
+        with caplog.at_level(logging.WARNING):
+            status = TaskPipeline().run(
+                output_path=output,
+                dataset="tree-preservation-zone",
+                organisation="local-authority-eng:ABC",
+                endpoint="endpoint-aaa",
+                column_field_path=column_field_csv,
+            )
+
+        assert status == TaskPipelineStatus.COMPLETE
+        assert _read_csv(output) == []
+        assert "mandatory_fields not supplied" in caplog.text
+
+    def test_column_field_task_output_columns(self, column_field_csv, tmp_path):
+        output = tmp_path / "tasks.csv"
+        TaskPipeline().run(
+            output_path=output,
+            dataset="tree-preservation-zone",
+            organisation="local-authority-eng:ABC",
+            endpoint="endpoint-aaa",
+            column_field_path=column_field_csv,
+            mandatory_fields=["start-date"],
+        )
+
+        rows = _read_csv(output)
+        assert rows[0]["dataset"] == "tree-preservation-zone"
+        assert rows[0]["organisation"] == "local-authority-eng:ABC"
+        assert rows[0]["severity"] == "error"
+        assert rows[0]["responsibility"] == "external"
+        assert rows[0]["resource"] == RESOURCE_HASH
+        assert rows[0]["reference"] != ""
