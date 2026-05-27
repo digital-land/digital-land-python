@@ -171,6 +171,7 @@ class TestDatasetCheckpoint:
             checkpoint.load(rules)
 
         assert len(checkpoint.expectations) == 0
+        assert "a saturday only rule" in checkpoint.skipped_rule_names
 
     def test_load_includes_rule_scheduled_for_today(self, test_organisations, mocker):
         """test loading includes rules scheduled for today, shoulld be moved to unit"""
@@ -198,6 +199,96 @@ class TestDatasetCheckpoint:
             checkpoint.load(rules)
 
         assert len(checkpoint.expectations) == 1
+
+    def test_save_carries_forward_skipped_rule_results(
+        self, tmp_path, test_organisations
+    ):
+        import pyarrow.parquet as pq
+        from digital_land.expectations.log import ExpectationLog
+
+        dataset = "test-dataset"
+        output_path = tmp_path / "expectations"
+
+        # write a previous parquet with a result for the skipped rule
+        partition_dir = output_path / f"dataset={dataset}"
+        partition_dir.mkdir(parents=True)
+        previous_log = ExpectationLog(dataset=dataset)
+        previous_log.add(
+            {
+                "organisation": "",
+                "name": "Check no duplicate geometries",
+                "operation": "duplicate_geometry_check",
+                "passed": False,
+                "message": "2 duplicates found",
+                "details": "",
+                "description": "",
+                "severity": "notice",
+                "responsibility": "internal",
+                "parameters": '{"spatial_field": "geometry"}',
+            }
+        )
+        previous_log.save_parquet(output_path)
+
+        checkpoint = DatasetCheckpoint(
+            dataset=dataset, file_path="", organisations=test_organisations
+        )
+        checkpoint.skipped_rule_names = ["Check no duplicate geometries"]
+        checkpoint.log.add(
+            {
+                "organisation": "",
+                "name": "A fresh check",
+                "passed": True,
+                "message": "passed",
+                "details": "",
+                "description": "",
+                "severity": "notice",
+                "responsibility": "internal",
+                "parameters": "{}",
+                "operation": "test",
+            }
+        )
+
+        checkpoint.save(str(output_path))
+
+        result = pq.ParquetFile(partition_dir / f"{dataset}.parquet").read().to_pylist()
+        names = [row["name"] for row in result]
+        assert "Check no duplicate geometries" in names  # carried forward
+        assert "A fresh check" in names  # fresh result preserved
+
+    def test_save_skipped_rule_no_existing_parquet(self, tmp_path, test_organisations):
+        import pyarrow.parquet as pq
+
+        dataset = "test-dataset"
+        output_path = tmp_path / "expectations"
+
+        checkpoint = DatasetCheckpoint(
+            dataset=dataset, file_path="", organisations=test_organisations
+        )
+        checkpoint.skipped_rule_names = ["some skipped rule"]
+        checkpoint.log.add(
+            {
+                "organisation": "",
+                "name": "A fresh check",
+                "passed": True,
+                "message": "passed",
+                "details": "",
+                "description": "",
+                "severity": "notice",
+                "responsibility": "internal",
+                "parameters": "{}",
+                "operation": "test",
+            }
+        )
+
+        checkpoint.save(str(output_path))
+
+        result = (
+            pq.ParquetFile(output_path / f"dataset={dataset}" / f"{dataset}.parquet")
+            .read()
+            .to_pylist()
+        )
+        assert len(result) == 1
+        assert result[0]["name"] == "A fresh check"
 
     def test_run_success(
         self, tmp_path, sqlite3_with_entity_tables_path, mocker, test_organisations
