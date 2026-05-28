@@ -12,7 +12,7 @@ def test_combine_geometries():
 
     combined_wkt = combine_geometries(
         [
-            "MULTIPOLYGON (((30 20,45 40,10 40,30 20)),((15 5,40 10,10 20,5 10,15 5))))",
+            "MULTIPOLYGON (((30 20,45 40,10 40,30 20)),((15 5,40 10,10 20,5 10,15 5)))",
             "MULTIPOLYGON (((30 10, 40 40, 20 40, 10 20, 30 10)))",
         ],
         precision=0,
