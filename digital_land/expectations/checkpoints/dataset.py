@@ -1,6 +1,7 @@
 import inspect
 import json
 import logging
+import pyarrow.parquet as pq
 import spatialite
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         self.dataset_path = Path(file_path)
         self.organisations = organisations
         self.log = ExpectationLog(dataset=dataset)
+        self.skipped_rule_names = []
 
     def operation_factory(self, operation_string: str):
         """
@@ -115,11 +117,13 @@ class DatasetCheckpoint(BaseCheckpoint):
         expectations need parsing
         """
         self.expectations = []
+        self.skipped_rule_names = []
         today = datetime.now().strftime("%A").lower()
         for rule in rules:
             schedule = rule.get("schedule", "")
             # skip rule if today does not match scheduled day of the week.
             if schedule and schedule.lower() != today:
+                self.skipped_rule_names.append(rule["name"])
                 continue
             if rule["organisations"]:
                 rule_orgs = self.get_rule_orgs(rule)
@@ -208,4 +212,14 @@ class DatasetCheckpoint(BaseCheckpoint):
         save the outputs as a file, the file is named based the the dataset
         and stored in the provided directory
         """
+        if self.skipped_rule_names:
+            existing_path = (
+                Path(output_dir) / self.log.pq_partition / (self.dataset + ".parquet")
+            )
+            if existing_path.exists():
+                previous = pq.ParquetFile(existing_path).read().to_pylist()
+                for row in previous:
+                    if row.get("name") in self.skipped_rule_names:
+                        self.log.entries.append(row)
+
         self.log.save_parquet(output_dir)
