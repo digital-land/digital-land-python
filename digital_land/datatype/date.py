@@ -80,11 +80,11 @@ class DateDataType(DataType):
                         continue
 
                     int_part = value.split(".", 1)[0].lstrip("+-")
-                    if len(int_part) not in (9, 10, 12, 13):
+                    if len(int_part) not in (9, 10, 11, 12, 13):
                         continue
 
                     timestamp = float(value)
-                    if len(int_part) == 13 or len(int_part) == 12:
+                    if len(int_part) in (11, 12, 13):
                         timestamp /= 1000.0
                     date = datetime.utcfromtimestamp(timestamp)
                     break
