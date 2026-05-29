@@ -96,7 +96,7 @@ class DateDataType(DataType):
                         # if out of plausible range, retry as milliseconds
                         candidate = datetime.utcfromtimestamp(timestamp)
                         if not (MIN_DATE <= candidate <= MAX_DATE):
-                            timestampe /= 1000.0
+                            timestamp /= 1000.0
 
                     date = datetime.utcfromtimestamp(timestamp)
                     break
