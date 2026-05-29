@@ -83,9 +83,21 @@ class DateDataType(DataType):
                     if len(int_part) not in (9, 10, 11, 12, 13):
                         continue
 
+                    MIN_DATE = datetime(1800, 1, 1)
+                    MAX_DATE = datetime(2100, 1, 1)
+
                     timestamp = float(value)
+
+                    # For lengths we know are always ms, divide immediately
                     if len(int_part) in (11, 12, 13):
                         timestamp /= 1000.0
+                    else:
+                        # For 9/10 digit values, try as seconds first;
+                        # if out of plausible range, retry as milliseconds
+                        candidate = datetime.utcfromtimestamp(timestamp)
+                        if not (MIN_DATE <= candidate <= MAX_DATE):
+                            timestamp /= 1000.0
+
                     date = datetime.utcfromtimestamp(timestamp)
                     break
 
