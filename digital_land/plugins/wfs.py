@@ -4,7 +4,7 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Optional
+from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from digital_land.phase.convert import detect_encoding
 from pydantic import ConfigDict, Field
@@ -27,8 +27,6 @@ strip_exps = [
 class WFSParameters:
     paging: bool = False
     page_size: int = Field(default=DEFAULT_PAGE_SIZE, gt=0)
-    source_url: Optional[str] = None
-    layer_name: Optional[str] = None
 
 
 @dataclass
@@ -69,7 +67,8 @@ def get_paged_wfs(url, log, plugin="wfs", parameters=None):
     output_file.close()
     _remove_file(output_path)
 
-    source = parameters.source_url or url
+    source_url, layer_name = wfs_source_and_layer(url)
+
     command = [
         "ogr2ogr",
         "--config",
@@ -81,10 +80,9 @@ def get_paged_wfs(url, log, plugin="wfs", parameters=None):
         "-f",
         "GPKG",
         output_path,
-        f"WFS:{source}",
+        f"WFS:{source_url}",
     ]
-    if parameters.layer_name:
-        command.append(parameters.layer_name)
+    command.append(layer_name)
 
     logging.info("%s %s", plugin, url)
 
@@ -115,6 +113,15 @@ def get_paged_wfs(url, log, plugin="wfs", parameters=None):
         return log, None
 
     return log, WFSFileResource(output_path)
+
+
+def wfs_source_and_layer(url):
+    parsed = urlsplit(url)
+    query = {key.lower(): value for key, value in parse_qs(parsed.query).items()}
+    values = query.get("typename") or query.get("typenames")
+    if values:
+        return urlunsplit(parsed._replace(query="")), values[0]
+    return url, ""
 
 
 def _remove_file(path):
