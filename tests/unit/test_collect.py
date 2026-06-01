@@ -12,6 +12,8 @@ import requests
 
 from digital_land.collect import Collector, FetchStatus
 from digital_land.plugins.arcgis import ArcGISParameters
+from digital_land.plugins.wfs import WFSFileResource
+from digital_land.plugins.wfs import WFSParameters
 
 
 @pytest.fixture
@@ -243,6 +245,49 @@ def test_fetch_passes_parameters_to_arcgis_plugin(collector, mocker):
     assert status == FetchStatus.OK
     assert captured["url"] == url
     assert captured["parameters"] == ArcGISParameters(max_page_size=20)
+
+
+def test_fetch_passes_parameters_to_wfs_plugin(collector, mocker):
+    captured = {}
+
+    def fake_wfs_get(collector_obj, url, log, parameters=None, plugin="wfs"):
+        captured["collector"] = collector_obj
+        captured["url"] = url
+        captured["parameters"] = parameters
+        return log, b"wfs data"
+
+    mocker.patch("digital_land.collect.wfs_get", side_effect=fake_wfs_get)
+
+    url = "http://some.wfs.url"
+    status, log = collector.fetch(
+        url,
+        endpoint=sha_digest(url),
+        plugin="wfs",
+        parameters={"paging": True, "page_size": 500},
+        refill_todays_logs=True,
+    )
+
+    assert status == FetchStatus.OK
+    assert captured["url"] == url
+    assert captured["parameters"] == WFSParameters(paging=True, page_size=500)
+
+
+def test_save_resource_saves_file_resource_without_loading_content(collector, tmp_path):
+    source_path = tmp_path / "source.gpkg"
+    source_path.write_bytes(b"geopackage")
+
+    log = {}
+    status = collector.save_resource(
+        WFSFileResource(str(source_path)),
+        "http://some.wfs.url",
+        log,
+    )
+
+    resource_path = pathlib.Path(collector.resource_dir) / log["resource"]
+
+    assert status == FetchStatus.OK
+    assert resource_path.read_bytes() == b"geopackage"
+    assert not source_path.exists()
 
 
 def test_collect_reads_parameters_from_csv(tmp_path, mocker):
