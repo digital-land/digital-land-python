@@ -263,13 +263,13 @@ def test_fetch_passes_parameters_to_wfs_plugin(collector, mocker):
         url,
         endpoint=sha_digest(url),
         plugin="wfs",
-        parameters={"paging": True, "page_size": 500},
+        parameters={"page_size": 500},
         refill_todays_logs=True,
     )
 
     assert status == FetchStatus.OK
     assert captured["url"] == url
-    assert captured["parameters"] == WFSParameters(paging=True, page_size=500)
+    assert captured["parameters"] == WFSParameters(page_size=500)
 
 
 def test_save_resource_saves_file_resource_without_loading_content(collector, tmp_path):

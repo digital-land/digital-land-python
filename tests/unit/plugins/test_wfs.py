@@ -16,7 +16,7 @@ def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(cap
         log, content = wfs_get(
             FakeCollector(),
             "https://example.com/wfs",
-            parameters={"paging": True},
+            parameters={"page_size": 1000},
         )
 
     assert log["status"] == "200"
@@ -53,7 +53,7 @@ def test_get_paged_wfs_runs_ogr2ogr_with_paging_config(tmp_path, mocker):
     log, content = wfs_get(
         None,
         "https://example.com/wfs?request=GetFeature&typeName=dataset:Flood_Zones",
-        parameters=WFSParameters(paging=True, page_size=500),
+        parameters=WFSParameters(page_size=500),
     )
 
     assert isinstance(content, WFSFileResource)
@@ -99,7 +99,7 @@ def test_get_paged_wfs_derives_layer_name_from_endpoint_url(tmp_path, mocker):
     log, content = wfs_get(
         None,
         "https://example.com/wfs?request=GetFeature&typeName=dataset:Flood_Zones&outputFormat=Geopackage",
-        parameters=WFSParameters(paging=True),
+        parameters=WFSParameters(page_size=1000),
     )
 
     assert isinstance(content, WFSFileResource)
@@ -108,6 +108,7 @@ def test_get_paged_wfs_derives_layer_name_from_endpoint_url(tmp_path, mocker):
         "WFS:https://example.com/wfs",
         "dataset:Flood_Zones",
     ]
+    assert "1000" in captured["command"]
 
 
 def test_wfs_source_and_layer_extracts_case_insensitive_typename():
@@ -141,7 +142,7 @@ def test_get_paged_wfs_logs_failure_and_cleans_temp_file(tmp_path, mocker):
     log, content = wfs_get(
         None,
         "https://example.com/wfs",
-        parameters=WFSParameters(paging=True),
+        parameters=WFSParameters(page_size=1000),
     )
 
     assert content is None

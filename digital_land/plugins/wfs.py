@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import tempfile
+from typing import Optional
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from digital_land.phase.convert import detect_encoding
@@ -25,8 +26,7 @@ strip_exps = [
 
 @dataclass(config=ConfigDict(extra="forbid"))
 class WFSParameters:
-    paging: bool = False
-    page_size: int = Field(default=DEFAULT_PAGE_SIZE, gt=0)
+    page_size: Optional[int] = Field(default=None, gt=0)
 
 
 @dataclass
@@ -50,7 +50,7 @@ def get(collector, url, log={}, plugin="wfs", parameters=None):
         )
         parameters = WFSParameters()
 
-    if parameters.paging:
+    if parameters.page_size:
         return get_paged_wfs(url, log, plugin=plugin, parameters=parameters)
 
     log, content = collector.get(url=url, log=log, plugin=plugin)
@@ -62,6 +62,7 @@ def get(collector, url, log={}, plugin="wfs", parameters=None):
 
 def get_paged_wfs(url, log, plugin="wfs", parameters=None):
     parameters = parameters or WFSParameters()
+    page_size = parameters.page_size or DEFAULT_PAGE_SIZE
     output_file = tempfile.NamedTemporaryFile(suffix=".gpkg", delete=False)
     output_path = output_file.name
     output_file.close()
@@ -76,7 +77,7 @@ def get_paged_wfs(url, log, plugin="wfs", parameters=None):
         "ON",
         "--config",
         "OGR_WFS_PAGING_PAGE_SIZE",
-        str(parameters.page_size),
+        str(page_size),
         "-f",
         "GPKG",
         output_path,
