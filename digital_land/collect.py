@@ -9,6 +9,7 @@ import logging
 import json
 import os
 import re
+import shutil
 from datetime import datetime
 from enum import Enum
 from timeit import default_timer as timer
@@ -19,6 +20,8 @@ from pydantic import ValidationError
 
 from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
+from .plugins.wfs import WFSFileResource
+from .plugins.wfs import WFSParameters
 from .plugins.wfs import get as wfs_get
 from .plugins.arcgis import ArcGISParameters
 from .plugins.arcgis import get as arcgis_get
@@ -27,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 PLUGIN_PARAMETER_MODELS = {
     "arcgis": ("ArcGIS", ArcGISParameters),
+    "wfs": ("WFS", WFSParameters),
 }
 
 
@@ -87,6 +91,20 @@ class Collector:
         )
 
     def save_content(self, content):
+        if isinstance(content, WFSFileResource):
+            hasher = hashlib.sha256()
+            with open(content.path, "rb") as f:
+                for chunk in iter(lambda: f.read(32 * 1024 * 1024), b""):
+                    hasher.update(chunk)
+
+            resource = hasher.hexdigest()
+            path = os.path.join(self.resource_dir, resource)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            if not os.path.exists(path):
+                logging.info(path)
+                shutil.copyfile(content.path, path)
+            return resource
+
         resource = hashlib.sha256(content).hexdigest()
         path = os.path.join(self.resource_dir, resource)
         self.save(path, content)
@@ -202,6 +220,7 @@ class Collector:
                 self,
                 url,
                 log,
+                parameters=parameters,
             )
         elif plugin == "sparql":
             log, content = sparql_get(self, url, log)
@@ -220,6 +239,8 @@ class Collector:
         if content:
             try:
                 log["resource"] = self.save_content(content)
+                if isinstance(content, WFSFileResource) and content.cleanup:
+                    os.unlink(content.path)
                 return FetchStatus.OK
             except Exception as exception:
                 logging.warning(f"Failed to save data from '{url} ({exception})")
@@ -298,3 +319,4 @@ class Collector:
             logging.warning(
                 f"Invalid {plugin_name} parameters. Falling back to defaults. Errors: {exc.errors()}"
             )
+            return None
