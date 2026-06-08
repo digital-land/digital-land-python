@@ -1,17 +1,9 @@
-import importlib
 import logging
-import sys
-import types
 from unittest.mock import patch
 
 import pytest
+from digital_land.expectations.checkpoints.dataset import DatasetCheckpoint
 from digital_land.organisation import Organisation
-
-sys.modules.setdefault("spatialite", types.SimpleNamespace())
-
-DatasetCheckpoint = importlib.import_module(
-    "digital_land.expectations.checkpoints.dataset"
-).DatasetCheckpoint
 
 
 @pytest.fixture
