@@ -46,6 +46,13 @@ def test_organisations(mocker):
     return organisations
 
 
+def mock_operation_pass(*args, **kwargs):
+    passed = True
+    message = "this is a mocked operation always returning passed"
+    details = {}
+    return passed, message, details
+
+
 class TestDatasetCheckpoint:
     def test_run_success(
         self, tmp_path, sqlite3_with_entity_tables_path, mocker, test_organisations
