@@ -125,5 +125,5 @@ def read_csv(file):
 
 
 def normalise_csv_value(value):
-    # normalise whitespace 
+    # normalise whitespace
     return " ".join(value.split())
