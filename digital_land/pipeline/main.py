@@ -690,6 +690,7 @@ class Pipeline:
                     redirect_lookups=redirect_lookups,
                     issue_log=self.issue_log,
                     odp_collections=self.specification.get_odp_collections(),
+                    package_prefixes=self.specification.get_package_prefixes(),
                 ),
                 FactPrunePhase(),
                 SavePhase(

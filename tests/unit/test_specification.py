@@ -227,3 +227,15 @@ def test_get_field_prefix_map_returns_correct_values(input, expected):
     spec = Specification()
     spec.field = input
     assert expected == spec.get_field_prefix_map()
+
+
+def test_get_package_prefixes_returns_plan_package_prefixes():
+    spec = Specification()
+    assert spec.get_package_prefixes() == {
+        "plan": [
+            "local-plan",
+            "minerals-plan",
+            "waste-plan",
+            "supplementary-plan",
+        ],
+    }

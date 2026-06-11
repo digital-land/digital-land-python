@@ -319,6 +319,16 @@ class Specification:
     def get_field_prefix_map(self):
         return {key: self.field_prefix(key) for key in self.field.keys()}
 
+    def get_package_prefixes(self):
+        return {
+            "plan": [
+                "local-plan",
+                "minerals-plan",
+                "waste-plan",
+                "supplementary-plan",
+            ],
+        }
+
     def get_dataset_typology(self, dataset):
         if dataset:
             return self.dataset[dataset]["typology"]

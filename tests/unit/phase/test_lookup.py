@@ -314,3 +314,69 @@ class TestFactLookupPhase:
 
         assert output[0]["row"]["reference-entity"] == "1"
         assert len(issues.rows) == 0
+
+    def test_package_prefix_lookup_assigns_reference_entity(self):
+        input_stream = [
+            {
+                "organisation": "local-authorityabc",
+                "row": {
+                    "fact": "abc",
+                    "entity": "10",
+                    "field": "plan",
+                    "value": "local-plan-1",
+                    "prefix": "plan",
+                    "reference": "local-plan-1",
+                    "entry-number": 1,
+                    "line-number": 2,
+                },
+            }
+        ]
+        lookups = {
+            ",local-plan,local-plan-1,local-authorityabc": "1",
+            ",plan-timetable,1,local-authorityabc": "10",
+        }
+        issues = IssueLog()
+
+        phase = FactLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            package_prefixes={"plan": ["local-plan"]},
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["reference-entity"] == "1"
+        assert len(issues.rows) == 0
+
+    def test_package_prefix_lookup_raises_missing_associated_entity(self):
+        input_stream = [
+            {
+                "organisation": "local-authorityabc",
+                "row": {
+                    "fact": "abc",
+                    "entity": "10",
+                    "field": "plan",
+                    "value": "missing-plan",
+                    "prefix": "plan",
+                    "reference": "missing-plan",
+                    "entry-number": 1,
+                    "line-number": 2,
+                },
+            }
+        ]
+        lookups = {
+            ",local-plan,other-plan,local-authorityabc": "1",
+            ",plan-timetable,1,local-authorityabc": "10",
+        }
+        issues = IssueLog()
+
+        phase = FactLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            package_prefixes={"plan": ["local-plan"]},
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert "reference-entity" not in output[0]["row"]
+        assert issues.rows[0]["field"] == "plan"
+        assert issues.rows[0]["issue-type"] == "missing associated entity"
+        assert issues.rows[0]["value"] == "missing-plan"
