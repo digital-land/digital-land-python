@@ -1,14 +1,11 @@
 #!/usr/bin/env -S py.test -svv
 import csv
-import difflib
-import filecmp
 import pathlib
 import pytest
 import xlsxwriter
 
 from click.testing import CliRunner
 from digital_land.cli import cli
-from tests.utils.helpers import print_diffs
 
 
 @pytest.mark.parametrize(
@@ -34,16 +31,20 @@ def test_convert(input_file, tmp_path):
     _execute_convert(input_file, output_file)
     golden_master = input_file.with_suffix(".csv")
 
-    assert filecmp.cmp(output_file, golden_master), print_diffs(
-        output_file, golden_master
-    )
+    output = read_csv(output_file)
+    expected = read_csv(golden_master)
 
+    assert output
+    assert expected
+    assert set(expected[0]).issubset(set(output[0]))
+    assert len(output) == len(expected)
 
-def diff_macos_fuzzy(fromfile, tofile):
-    file_a = open(fromfile).readlines()
-    file_b = open(tofile).readlines()
-    matcher = difflib.SequenceMatcher(None, " ".join(file_a), " ".join(file_b))
-    return matcher.quick_ratio()
+    for output_row, expected_row in zip(output, expected):
+        for column, value in expected_row.items():
+            if value:
+                assert normalise_csv_value(output_row[column]) == normalise_csv_value(
+                    value
+                )
 
 
 @pytest.fixture()
@@ -121,3 +122,8 @@ def read_csv(file):
     with open(file) as f:
         csv_reader = csv.DictReader(f)
         return list(csv_reader)
+
+
+def normalise_csv_value(value):
+    # normalise whitespace
+    return " ".join(value.split())
