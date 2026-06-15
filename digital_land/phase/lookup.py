@@ -172,11 +172,17 @@ class EntityLookupPhase(LookupPhase):
 
 class FactLookupPhase(LookupPhase):
     def __init__(
-        self, lookups={}, redirect_lookups={}, issue_log=None, odp_collections=[]
+        self,
+        lookups={},
+        redirect_lookups={},
+        issue_log=None,
+        odp_collections=None,
+        package_prefixes=None,
     ):
         super().__init__(lookups, redirect_lookups, issue_log)
         self.entity_field = "reference-entity"
         self.odp_collections = odp_collections
+        self.package_prefixes = package_prefixes or {}
 
     def process(self, stream):
         for block in stream:
@@ -211,11 +217,28 @@ class FactLookupPhase(LookupPhase):
                 # as it is organisation specific.
                 find_entity = self.check_associated_organisation(find_entity)
 
+            for package_prefix in self.package_prefixes.get(prefix, []):
+                if find_entity:
+                    break
+
+                find_entity = self.lookup(
+                    prefix=package_prefix,
+                    organisation=organisation,
+                    reference=reference,
+                )
+                if not find_entity:
+                    find_entity = self.lookup(
+                        prefix=package_prefix, reference=reference
+                    )
+                    find_entity = self.check_associated_organisation(find_entity)
+
             if not find_entity or (
                 str(find_entity) in self.redirect_lookups
                 and int(self.redirect_lookups[str(find_entity)].get("status", 0)) == 410
             ):
-                if self.odp_collections and prefix in self.odp_collections:
+                if (self.odp_collections and prefix in self.odp_collections) or (
+                    prefix in self.package_prefixes
+                ):
                     self.issues.log_issue(
                         prefix,
                         "missing associated entity",
