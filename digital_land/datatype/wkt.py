@@ -1,6 +1,7 @@
 import shapely.wkt
 from shapely import set_precision
 import json
+import time
 import logging
 from shapely.geometry import shape, Point
 from shapely.errors import WKTReadingError
@@ -173,6 +174,8 @@ def normalise_geometry(geometry, simplification=0.000005):
     if geometry.geom_type in ["Point", "Line", "MultiLineString"]:
         return geometry, None
 
+    _start = time.time()
+
     # see https://gist.github.com/psd/0189bc66fd46e00a82df2acbc7e35c8a
     # don't want to simplify if it takes a valid shape and makes it invalid
     simplification = geometry.simplify(simplification)
@@ -213,6 +216,7 @@ def normalise_geometry(geometry, simplification=0.000005):
             polygons.append(orient(geom))
         geometry = MultiPolygon(polygons)
 
+    logging.info(f"normalise_geometry took {time.time() - _start:.3f}s")
     return geometry, issue
 
 
