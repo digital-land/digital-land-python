@@ -169,7 +169,7 @@ def make_multipolygon(geometry):
     raise ValueError(f"unexpected geometry {geometry.geom_type}")
 
 
-def normalise_geometry(geometry, simplification=0.000005):
+def normalise_geometry(geometry, simplification=0.000001):
     if geometry.geom_type in ["Point", "Line", "MultiLineString"]:
         return geometry, None
 
