@@ -187,9 +187,13 @@ class ResourceLogStore(CSVStore):
 
                 for entry in source.records[endpoint]:
                     organisations.add(entry["organisation"])
-                    datasets = set(
-                        entry.get("datasets", entry.get("pipelines", "")).split(";")
-                    )
+                    datasets |= {
+                        dataset
+                        for dataset in entry.get(
+                            "datasets", entry.get("pipelines", "")
+                        ).split(";")
+                        if dataset
+                    }
 
             new_entries[key] = {
                 "bytes": resource["bytes"],
@@ -227,11 +231,14 @@ class ResourceLogStore(CSVStore):
                 for endpoint in entry["endpoints"].split(";"):
                     for r_source in source.records[endpoint]:
                         organisations.add(r_source["organisation"])
-                        datasets = set(
-                            r_source.get(
+                        datasets |= {
+                            dataset
+                            for dataset in r_source.get(
                                 "datasets", r_source.get("pipelines", "")
                             ).split(";")
-                        )
+                            if dataset
+                        }
+
                 entry["organisations"] = ";".join(sorted(organisations))
                 entry["datasets"] = ";".join(sorted(datasets))
 
