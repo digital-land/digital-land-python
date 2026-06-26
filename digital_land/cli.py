@@ -213,6 +213,11 @@ def convert_cmd(input_path, output_path):
     default="collection/resource.csv",
     help="link to where the resource list is stored",
 )
+@click.option(
+    "--cleanup-provenance-cache/--no-cleanup-provenance-cache",
+    default=True,
+    help="delete the intermediate provenance parquet cache before indexing to save disk (default: enabled)",
+)
 @click.argument("input-dir", nargs=1, type=click.Path(exists=True))
 @click.pass_context
 def dataset_create_cmd(
@@ -225,6 +230,7 @@ def dataset_create_cmd(
     issue_dir,
     cache_dir,
     resource_path,
+    cleanup_provenance_cache,
 ):
     return dataset_create(
         input_dir=input_dir,
@@ -238,6 +244,7 @@ def dataset_create_cmd(
         issue_dir=issue_dir,
         cache_dir=cache_dir,
         resource_path=resource_path,
+        cleanup_provenance_cache=cleanup_provenance_cache,
     )
 
 

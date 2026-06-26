@@ -322,6 +322,7 @@ def dataset_create(
     dataset_resource_dir="var/dataset-resource",
     cache_dir="var/cache",
     resource_path="collection/resource.csv",
+    cleanup_provenance_cache=True,
 ):
     """
     Create a dataset package from transformed parquet files.
@@ -434,6 +435,14 @@ def dataset_create(
     logger.info("loading fact,fact_resource and entity into {output_path}")
     pqpackage.load_to_sqlite(output_path)
 
+    # The provenance parquet has now been copied into the sqlite and is not
+    # needed again. Releasing it lowers peak disk usage on the Fargate task
+    # before the disk-heavy index build. Disabled in tests that need to
+    # inspect the intermediate parquet (e.g. parquet-vs-sqlite row checks).
+    if cleanup_provenance_cache:
+        pqpackage.close_conn()  # release the duckdb overflow file handle first
+        _free_parquet_cache(dataset_parquet_path)
+
     logger.info(f"add indexes to {output_path}")
     package.connect()
     package.create_cursor()
@@ -522,6 +531,30 @@ def dataset_update(
             package.load_issues(os.path.join(issue_paths, issue_path))
     else:
         logging.warning("No directory for this dataset in the provided issue_directory")
+
+
+def _free_parquet_cache(parquet_dir):
+    """Delete the intermediate provenance parquet cache to reclaim disk.
+
+    Called after the parquet data has been loaded into the sqlite package and
+    before index creation, to lower peak disk usage on the (200 GiB, capped)
+    Fargate ephemeral volume. A failure here is logged but not fatal - we would
+    rather attempt the index build than abort on a cleanup error.
+    """
+    parquet_dir = Path(parquet_dir)
+    if not parquet_dir.exists():
+        return
+    try:
+        before = shutil.disk_usage(parquet_dir).free
+        shutil.rmtree(parquet_dir)
+        after = shutil.disk_usage(parquet_dir.parent).free
+        freed_gb = (after - before) / 1024**3
+        logger.info(
+            f"removed intermediate parquet cache {parquet_dir}, "
+            f"freed ~{freed_gb:.1f} GiB (now {after / 1024**3:.1f} GiB free)"
+        )
+    except OSError as e:
+        logger.warning(f"could not remove parquet cache {parquet_dir}: {e}")
 
 
 def dataset_dump(input_path, output_path):

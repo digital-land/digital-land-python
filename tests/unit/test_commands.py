@@ -197,3 +197,22 @@ def test_validate_and_add_data_input_error_thrown_when_no_resource_downloaded(
         )
     assert "Failed to collect from URL" in str(error.value)
     assert "log status: 200" in str(error.value)
+
+
+def test_free_parquet_cache_removes_dir(tmp_path):
+    from digital_land.commands import _free_parquet_cache
+
+    cache = tmp_path / "provenance"
+    (cache / "fact" / "dataset=x").mkdir(parents=True)
+    (cache / "fact" / "dataset=x" / "fact.parquet").write_text("data")
+
+    _free_parquet_cache(cache)
+
+    assert not cache.exists()
+
+
+def test_free_parquet_cache_missing_dir_is_noop(tmp_path):
+    from digital_land.commands import _free_parquet_cache
+
+    # should not raise when the directory was never created
+    _free_parquet_cache(tmp_path / "does-not-exist")
