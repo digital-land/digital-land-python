@@ -823,8 +823,10 @@ class DatasetParquetPackage(Package):
         logging.info("Close connection to duckdb database in session")
         if self.conn is not None:
             self.conn.close()
-            if os.path.exists(self.duckdb_file):
-                os.remove(self.duckdb_file)
+            # duckdb_path is only set when a file-backed db is used (not in-memory)
+            duckdb_path = getattr(self, "duckdb_path", None)
+            if duckdb_path is not None and os.path.exists(duckdb_path):
+                os.remove(duckdb_path)
 
     def load(self):
         pass

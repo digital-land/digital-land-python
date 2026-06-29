@@ -296,6 +296,7 @@ def test_acceptance_dataset_create(
             str(cache_path),
             "--resource-path",
             str(resource_path),
+            "--no-cleanup-provenance-cache",
             str(input_dir),
         ],
         catch_exceptions=False,
