@@ -127,12 +127,12 @@ class IssueLog(Log):
                 if entity:
                     row["entity"] = entity
 
-    def add_severity_column(self, severity_mapping_path):
-        # Load only the 'severity' column from severity_mapping
-        severity_mapping = pd.read_csv(
-            severity_mapping_path,
-            usecols=["issue-type", "severity", "description", "responsibility"],
-        )
+    def add_severity_column(self, severity_mapping_path=None, severity_mapping=None):
+        if severity_mapping is None:
+            severity_mapping = pd.read_csv(
+                severity_mapping_path,
+                usecols=["issue-type", "severity", "description", "responsibility"],
+            )
 
         # Convert the existing log data to a DataFrame
         log_df = pd.DataFrame(self.rows)
