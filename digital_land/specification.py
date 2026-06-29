@@ -389,6 +389,7 @@ class Specification:
             "provision-rule.csv",
             "schema.csv",
             "schema-field.csv",
+            "issue-type.csv",
         ]
         for specification_csv in specification_csvs:
             urllib.request.urlretrieve(
