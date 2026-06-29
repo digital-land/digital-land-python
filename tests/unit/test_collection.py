@@ -118,3 +118,97 @@ def test_endpoint_source_mismatch():
     resource = ResourceLogStore(Schema("resource"))
     with pytest.raises(RuntimeError):
         resource.load(log, source)
+
+
+def test_resource_shared_by_two_endpoints_gets_both_datasets():
+    """A resource collected from two endpoints that feed DIFFERENT datasets
+    must be recorded against BOTH datasets (the Adur A4D/A4DA edge case).
+
+    Regression guard: `datasets` used to be overwritten per-endpoint instead
+    of accumulated, so only the last-visited endpoint's dataset survived.
+    """
+    # the same resource hash collected from two different endpoints
+    log = LogStore(Schema("log"))
+    for endpoint in ["endpoint-a4da", "endpoint-a4d"]:
+        log.add_entry(
+            {
+                "endpoint": endpoint,
+                "entry-date": "2025-01-06",
+                "resource": "shared-resource",
+                "bytes": "1024",
+            }
+        )
+
+    # each endpoint feeds a different dataset
+    source = CSVStore(Schema("source"))
+    source.add_entry(
+        {
+            "endpoint": "endpoint-a4da",
+            "organisation": "test-org",
+            "pipelines": "article-4-direction-area",
+        }
+    )
+    source.add_entry(
+        {
+            "endpoint": "endpoint-a4d",
+            "organisation": "test-org",
+            "pipelines": "article-4-direction",
+        }
+    )
+
+    resource = ResourceLogStore(Schema("resource"))
+    resource.load(log, source)
+
+    assert len(resource.entries) == 1
+    entry = resource.entries[0]
+    assert entry["resource"] == "shared-resource"
+    # both datasets present, not just the last endpoint visited
+    assert set(entry["datasets"].split(";")) == {
+        "article-4-direction",
+        "article-4-direction-area",
+    }
+    # endpoints were already accumulated correctly - guard against regression
+    assert set(entry["endpoints"].split(";")) == {"endpoint-a4da", "endpoint-a4d"}
+
+
+def test_existing_resource_datasets_recomputed_from_all_endpoints():
+    """The config-change branch (updating an existing resource entry) must also
+    accumulate datasets across all of a resource's endpoints, not overwrite."""
+    source = CSVStore(Schema("source"))
+    source.add_entry(
+        {
+            "endpoint": "endpoint-a4da",
+            "organisation": "test-org",
+            "pipelines": "article-4-direction-area",
+        }
+    )
+    source.add_entry(
+        {
+            "endpoint": "endpoint-a4d",
+            "organisation": "test-org",
+            "pipelines": "article-4-direction",
+        }
+    )
+
+    resource = ResourceLogStore(Schema("resource"))
+    # pre-existing entry from both endpoints but with a stale, single dataset
+    resource.add_entry(
+        {
+            "resource": "shared-resource",
+            "bytes": "1024",
+            "endpoints": "endpoint-a4da;endpoint-a4d",
+            "organisations": "test-org",
+            "datasets": "article-4-direction-area",
+            "start-date": "2025-01-06",
+            "end-date": "",
+        }
+    )
+
+    # empty log -> the existing entry takes the config-recompute (else) branch
+    resource.load(LogStore(Schema("log")), source)
+
+    entry = next(e for e in resource.entries if e["resource"] == "shared-resource")
+    assert set(entry["datasets"].split(";")) == {
+        "article-4-direction",
+        "article-4-direction-area",
+    }
