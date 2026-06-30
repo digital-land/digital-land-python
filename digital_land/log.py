@@ -139,7 +139,14 @@ class IssueLog(Log):
                 usecols=["issue-type", "severity", "description", "responsibility"],
             )
         elif isinstance(severity_mapping, dict):
-            severity_mapping = pd.DataFrame(list(severity_mapping.values()))
+            # Convert the dictionary to a DataFrame, keeping only relevant cols
+            _cols = {"issue-type", "severity", "description", "responsibility"}
+            severity_mapping = pd.DataFrame(
+                [
+                    {k: v for k, v in row.items() if k in _cols}
+                    for row in severity_mapping.values()
+                ]
+            )
 
         # Convert the existing log data to a DataFrame
         log_df = pd.DataFrame(self.rows)
