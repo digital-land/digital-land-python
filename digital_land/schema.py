@@ -81,6 +81,21 @@ schemas = {
             "end-date",
         ],
     },
+    "lookup-rule": {
+        "key": "lookup-rule",
+        "fields": [
+            "prefix",
+            "dataset",
+            "organisation",
+            "resource",
+            "offset",
+            "entity-minimum",
+            "entity-maximum",
+            "entry-date",
+            "start-date",
+            "end-date",
+        ],
+    },
     "operational-issue": {
         "fields": [
             "dataset",
