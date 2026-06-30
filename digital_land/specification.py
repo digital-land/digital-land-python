@@ -4,6 +4,7 @@ from datetime import datetime
 import logging
 import warnings
 import urllib.request
+import pandas as pd
 
 from pathlib import Path
 from cloudpathlib import AnyPath
@@ -133,8 +134,6 @@ class Specification:
                 self.odp_collections.append(row["specification"])
 
     def load_issue_type(self, path):
-        import pandas as pd
-
         self.issue_type = pd.read_csv(
             (path / "issue-type.csv").open(),
             usecols=["issue-type", "severity", "description", "responsibility"],

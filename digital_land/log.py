@@ -128,6 +128,7 @@ class IssueLog(Log):
                     row["entity"] = entity
 
     def add_severity_column(self, severity_mapping_path=None, severity_mapping=None):
+        # Load only the 'severity' column from severity_mapping, optional path if Specifiaction has already loaded it
         if severity_mapping is None:
             severity_mapping = pd.read_csv(
                 severity_mapping_path,
