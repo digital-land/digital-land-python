@@ -4,8 +4,6 @@ from datetime import datetime
 import logging
 import warnings
 import urllib.request
-import pandas as pd
-
 from pathlib import Path
 from cloudpathlib import AnyPath
 
@@ -134,10 +132,13 @@ class Specification:
                 self.odp_collections.append(row["specification"])
 
     def load_issue_type(self, path):
-        self.issue_type = pd.read_csv(
-            (path / "issue-type.csv").open(),
-            usecols=["issue-type", "severity", "description", "responsibility"],
-        )
+        # try/except to handle as this file is not always present
+        try:
+            with (path / "issue-type.csv").open() as f:
+                reader = csv.DictReader(f)
+                self.issue_type = {row["issue-type"]: row for row in reader}
+        except FileNotFoundError:
+            self.issue_type = {}
 
     def index_schema(self):
         self.schema_dataset = {}
