@@ -4,8 +4,8 @@ from datetime import datetime
 import logging
 import warnings
 import urllib.request
-
 from pathlib import Path
+from cloudpathlib import AnyPath
 
 from .datatype.address import AddressDataType
 from .datatype.datatype import DataType
@@ -28,7 +28,7 @@ specification_path = os.path.join(
 
 class Specification:
     def __init__(self, path="specification"):
-        self.path = path
+        self.path = AnyPath(path)
         self.dataset = {}
         self.dataset_names = []
         self.schema = {}
@@ -45,54 +45,55 @@ class Specification:
         self.pipeline = {}
         self.licence = {}
         self.odp_collections = []
-        self.load_dataset(path)
-        self.load_schema(path)
-        self.load_dataset_schema(path)
-        self.load_datatype(path)
-        self.load_field(path)
-        self.load_schema_field(path)
-        self.load_typology(path)
-        self.load_pipeline(path)
-        self.load_dataset_field(path)
-        self.load_licence(path)
-        self.load_odp_collections(path)
+        self.load_dataset(self.path)
+        self.load_schema(self.path)
+        self.load_dataset_schema(self.path)
+        self.load_datatype(self.path)
+        self.load_field(self.path)
+        self.load_schema_field(self.path)
+        self.load_typology(self.path)
+        self.load_pipeline(self.path)
+        self.load_dataset_field(self.path)
+        self.load_licence(self.path)
+        self.load_odp_collections(self.path)
+        self.load_issue_type(self.path)
 
         self.index_field()
         self.index_schema()
 
     def load_dataset(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
+        reader = csv.DictReader((path / "dataset.csv").open())
         for row in reader:
             self.dataset_names.append(row["dataset"])
             self.dataset[row["dataset"]] = row
 
     def load_schema(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "schema.csv")))
+        reader = csv.DictReader((path / "schema.csv").open())
         for row in reader:
             self.schema_names.append(row["schema"])
             self.schema[row["schema"]] = row
             self.schema[row["schema"]].setdefault("fields", [])
 
     def load_dataset_schema(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "dataset-schema.csv")))
+        reader = csv.DictReader((path / "dataset-schema.csv").open())
         for row in reader:
             schemas = self.dataset_schema.setdefault(row["dataset"], [])
             schemas.append(row["schema"])
 
     def load_datatype(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "datatype.csv")))
+        reader = csv.DictReader((path / "datatype.csv").open())
         for row in reader:
             self.datatype_names.append(row["datatype"])
             self.datatype[row["datatype"]] = row
 
     def load_field(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "field.csv")))
+        reader = csv.DictReader((path / "field.csv").open())
         for row in reader:
             self.field_names.append(row["field"])
             self.field[row["field"]] = row
 
     def load_dataset_field(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "dataset-field.csv")))
+        reader = csv.DictReader((path / "dataset-field.csv").open())
         for row in reader:
             dataset = row["dataset"]
             field = row["field"]
@@ -103,32 +104,41 @@ class Specification:
             self.dataset_field_dataset[dataset][field] = row["field-dataset"]
 
     def load_schema_field(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "schema-field.csv")))
+        reader = csv.DictReader((path / "schema-field.csv").open())
         for row in reader:
             self.schema_field.setdefault(row["schema"], [])
             self.schema_field[row["schema"]].append(row["field"])
             self.schema[row["schema"]]["fields"].append(row["field"])
 
     def load_typology(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "typology.csv")))
+        reader = csv.DictReader((path / "typology.csv").open())
         for row in reader:
             self.typology[row["typology"]] = row
 
     def load_pipeline(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "pipeline.csv")))
+        reader = csv.DictReader((path / "pipeline.csv").open())
         for row in reader:
             self.pipeline[row["pipeline"]] = row
 
     def load_licence(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "licence.csv")))
+        reader = csv.DictReader((path / "licence.csv").open())
         for row in reader:
             self.licence[row["licence"]] = row
 
     def load_odp_collections(self, path):
-        reader = csv.DictReader(open(os.path.join(path, "provision-rule.csv")))
+        reader = csv.DictReader((path / "provision-rule.csv").open())
         for row in reader:
             if row["project"] == "open-digital-planning":
                 self.odp_collections.append(row["specification"])
+
+    def load_issue_type(self, path):
+        # try/except to handle as this file is not always present
+        try:
+            with (path / "issue-type.csv").open() as f:
+                reader = csv.DictReader(f)
+                self.issue_type = {row["issue-type"]: row for row in reader}
+        except FileNotFoundError:
+            self.issue_type = {}
 
     def index_schema(self):
         self.schema_dataset = {}
@@ -379,6 +389,7 @@ class Specification:
             "provision-rule.csv",
             "schema.csv",
             "schema-field.csv",
+            "issue-type.csv",
         ]
         for specification_csv in specification_csvs:
             urllib.request.urlretrieve(
