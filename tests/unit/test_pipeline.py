@@ -1,5 +1,6 @@
 #!/usr/bin/env -S py.test -svv
 import io
+import logging
 import pytest
 from digital_land.pipeline import EntityNumGen, Pipeline
 from digital_land.pipeline import Lookups
@@ -366,6 +367,149 @@ class TestPipeLine:
 
         if new_lookup[0]["entity"] is None:
             assert True
+
+    def test_load_lookup_rule_with_all_fields(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup-rule.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "offset": "1000000",
+                        "entity-minimum": "1000000",
+                        "entity-maximum": "2000000",
+                        "resource": "",
+                    }
+                ]
+            return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+        p = Pipeline("anything", "stuff")
+        rules = p.lookup_rules()
+        assert len(rules) == 1
+        assert rules[0]["offset"] == 1000000
+        assert rules[0]["entity-minimum"] == 1000000
+        assert rules[0]["entity-maximum"] == 2000000
+        assert rules[0]["prefix"] == "listed-building"
+
+    def test_load_lookup_rule_missing_entity_minimum(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup-rule.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "offset": "1000000",
+                        "entity-minimum": "",
+                        "entity-maximum": "2000000",
+                        "resource": "",
+                    }
+                ]
+            return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+        p = Pipeline("anything", "stuff")
+        assert len(p.lookup_rules()) == 0
+
+    def test_load_lookup_rule_missing_entity_maximum(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup-rule.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "offset": "1000000",
+                        "entity-minimum": "1000000",
+                        "entity-maximum": "",
+                        "resource": "",
+                    }
+                ]
+            return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+        p = Pipeline("anything", "stuff")
+        assert len(p.lookup_rules()) == 0
+
+    def test_load_lookup_rule_unexpected_column(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup-rule.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "offset": "1000000",
+                        "entity-min": "1000000",  # typo for entity-minimum
+                        "entity-maximum": "2000000",
+                        "resource": "",
+                    }
+                ]
+            return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+        with pytest.raises(RuntimeError, match="unexpected columns"):
+            Pipeline("anything", "stuff")
+
+    def test_load_lookup_rule_warns_when_no_valid_rules(self, mocker, caplog):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup-rule.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "offset": "1000000",
+                        "entity-minimum": "",  # missing -> no rule built
+                        "entity-maximum": "2000000",
+                        "resource": "",
+                    }
+                ]
+            return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+        with caplog.at_level(logging.WARNING):
+            p = Pipeline("anything", "stuff")
+
+        assert len(p.lookup_rules()) == 0
+        assert any("lookup-rule.csv" in r.message for r in caplog.records)
+
+    def test_lookup_rules_resource_scoping(self, mocker):
+        def mock_file_reader(self, filepath):
+            if filepath == "lookup-rule.csv":
+                return [
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "offset": "1000000",
+                        "entity-minimum": "1000000",
+                        "entity-maximum": "2000000",
+                        "resource": "",  # global rule
+                    },
+                    {
+                        "prefix": "listed-building",
+                        "organisation": "",
+                        "offset": "5000000",
+                        "entity-minimum": "5000000",
+                        "entity-maximum": "6000000",
+                        "resource": "res1",  # resource-specific rule
+                    },
+                ]
+            return []
+
+        mocker.patch("digital_land.pipeline.Pipeline.file_reader", mock_file_reader)
+        p = Pipeline("anything", "stuff")
+
+        # no resource -> only the global rule
+        global_rules = p.lookup_rules()
+        assert len(global_rules) == 1
+        assert global_rules[0]["offset"] == 1000000
+
+        # matching resource -> global rule plus the resource-specific one
+        scoped_rules = p.lookup_rules(resource="res1")
+        assert len(scoped_rules) == 2
+        assert {r["offset"] for r in scoped_rules} == {1000000, 5000000}
+
+        # unrelated resource -> only the global rule
+        other_rules = p.lookup_rules(resource="other")
+        assert len(other_rules) == 1
+        assert other_rules[0]["offset"] == 1000000
 
     @pytest.fixture
     def pipeline(self, mocker):

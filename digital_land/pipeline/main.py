@@ -109,6 +109,7 @@ class Pipeline:
         self.concat = {}
         self.migrate = {}
         self.lookup = {}
+        self.lookup_rule = {}
         self.redirect_lookup = {}
 
         self.specification = specification
@@ -124,6 +125,7 @@ class Pipeline:
         self.load_combine_fields()
         self.load_migrate()
         self.load_lookup()
+        self.load_lookup_rule()
         self.load_redirect_lookup()
         self.load_filter()
 
@@ -292,6 +294,56 @@ class Pipeline:
                 )
             ] = row["entity"]
 
+    def load_lookup_rule(self):
+        # optional: collections without a lookup-rule.csv simply have no rules
+        rows = list(self.file_reader("lookup-rule.csv"))
+        if not rows:
+            return
+
+        # validate columns against the schema; "pipeline" is an accepted
+        # legacy alias for the prefix/dataset column
+        allowed_fields = set(Schema("lookup-rule").fieldnames) | {"pipeline"}
+        observed_fields = set().union(*(row.keys() for row in rows))
+        unexpected = observed_fields - allowed_fields
+        if unexpected:
+            raise RuntimeError(
+                "unexpected columns in lookup-rule.csv: "
+                f"{', '.join(sorted(unexpected))}"
+            )
+
+        rule_count = 0
+        for row in rows:
+            prefix = (
+                row.get("prefix", "")
+                or row.get("dataset", "")
+                or row.get("pipeline", "")
+            )
+            organisation = row.get("organisation", "").replace(
+                "local-authority-eng", "local-authority"
+            )
+            resource = row.get("resource", "")
+
+            if (
+                row.get("offset", "")
+                and row.get("entity-minimum", "")
+                and row.get("entity-maximum", "")
+            ):
+                rule = {
+                    "prefix": prefix,
+                    "organisation": organisation,
+                    "offset": int(row["offset"]),
+                    "entity-minimum": int(row["entity-minimum"]),
+                    "entity-maximum": int(row["entity-maximum"]),
+                }
+                self.lookup_rule.setdefault(resource, []).append(rule)
+                rule_count += 1
+
+        if rule_count == 0:
+            logging.warning(
+                "lookup-rule.csv was found but produced no valid rules; "
+                "check the offset, entity-minimum and entity-maximum columns"
+            )
+
     def load_redirect_lookup(self):
         for row in self.file_reader("old-entity.csv"):
             old_entity = row.get("old-entity", "")
@@ -422,6 +474,12 @@ class Pipeline:
         if resource:
             d.update(self.lookup.get(resource, {}))
         return d
+
+    def lookup_rules(self, resource=None):
+        rules = list(self.lookup_rule.get("", []))
+        if resource:
+            rules.extend(self.lookup_rule.get(resource, []))
+        return rules
 
     def redirect_lookups(self):
         return self.redirect_lookup
@@ -577,6 +635,8 @@ class Pipeline:
         concats = self.concatenations(resource, endpoints=endpoints)
         patches = self.patches(resource=resource, endpoints=endpoints)
         lookups = self.lookups(resource=resource)
+        lookup_rules = self.lookup_rules(resource=resource)
+
         default_fields = self.default_fields(resource=resource, endpoints=endpoints)
         default_values = self.default_values(endpoints=endpoints)
         combine_fields = self.combine_fields(endpoints=endpoints)
@@ -652,6 +712,7 @@ class Pipeline:
                         issue_log=self.issue_log,
                         operational_issue_log=self.operational_issue_log,
                         entity_range=[entity_range_min, entity_range_max],
+                        lookup_rules=lookup_rules,
                     ),
                 ]
             )
@@ -691,6 +752,7 @@ class Pipeline:
                     issue_log=self.issue_log,
                     odp_collections=self.specification.get_odp_collections(),
                     package_prefixes=self.specification.get_package_prefixes(),
+                    lookup_rules=lookup_rules,
                 ),
                 FactPrunePhase(),
                 SavePhase(

@@ -33,6 +33,7 @@ class LookupPhase(Phase):
         issue_log=None,
         operational_issue_log=None,
         entity_range=[],
+        lookup_rules=None,
     ):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
@@ -40,6 +41,7 @@ class LookupPhase(Phase):
         self.operational_issues = operational_issue_log
         self.reverse_lookups = self.build_reverse_lookups()
         self.entity_range = entity_range
+        self.lookup_rules = lookup_rules or []
 
     def build_reverse_lookups(self):
         reverse_lookups = {}
@@ -51,6 +53,27 @@ class LookupPhase(Phase):
 
     def lookup(self, **kwargs):
         return self.lookups.get(key(**kwargs), "")
+
+    def lookup_rule(self, prefix="", organisation="", reference=""):
+        try:
+            ref_int = int(reference)
+        except (ValueError, TypeError):
+            return ""
+
+        prefix_norm = normalise(prefix)
+        org_norm = normalise(organisation)
+
+        for rule in self.lookup_rules:
+            if normalise(rule["prefix"]) != prefix_norm:
+                continue
+            rule_org = normalise(rule.get("organisation", ""))
+            if rule_org and rule_org != org_norm:
+                continue
+            candidate = ref_int + rule["offset"]
+            if rule["entity-minimum"] <= candidate <= rule["entity-maximum"]:
+                return str(candidate)
+
+        return ""
 
     def check_associated_organisation(self, entity):
         if entity in self.reverse_lookups:
@@ -85,6 +108,11 @@ class LookupPhase(Phase):
                 reference=reference,
             )
             or self.lookup(prefix=prefix, reference=reference)
+            or self.lookup_rule(
+                prefix=prefix,
+                organisation=organisation,
+                reference=reference,
+            )
         )
 
         if entity and self.entity_range:
@@ -178,8 +206,11 @@ class FactLookupPhase(LookupPhase):
         issue_log=None,
         odp_collections=None,
         package_prefixes=None,
+        lookup_rules=None,
     ):
-        super().__init__(lookups, redirect_lookups, issue_log)
+        super().__init__(
+            lookups, redirect_lookups, issue_log, lookup_rules=lookup_rules
+        )
         self.entity_field = "reference-entity"
         self.odp_collections = odp_collections
         self.package_prefixes = package_prefixes or {}
@@ -231,6 +262,13 @@ class FactLookupPhase(LookupPhase):
                         prefix=package_prefix, reference=reference
                     )
                     find_entity = self.check_associated_organisation(find_entity)
+
+            if not find_entity:
+                find_entity = self.lookup_rule(
+                    prefix=prefix,
+                    organisation=organisation,
+                    reference=reference,
+                )
 
             if not find_entity or (
                 str(find_entity) in self.redirect_lookups
