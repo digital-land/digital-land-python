@@ -72,6 +72,46 @@ def count_distinct_entities(csv_path):
     )
 
 
+def _concat_transformed(input_paths, output_path):
+    """Concatenate per-organisation transformed CSVs into one resource file.
+
+    Writes the header once (from the first file) then the data rows of every
+    file, and removes the per-organisation inputs. Used for multi-organisation
+    resources, where the pipeline is run once per org and the outputs are
+    stitched into the single resource-keyed file the rest of the pipeline expects.
+    """
+    output_path = Path(output_path)
+    with open(output_path, "w", newline="") as out:
+        for idx, path in enumerate(input_paths):
+            with open(path, newline="") as f:
+                header = f.readline()
+                if idx == 0:
+                    out.write(header)
+                for line in f:
+                    out.write(line)
+    for path in input_paths:
+        if Path(path) != output_path:
+            os.remove(path)
+
+
+def _dedup_log_rows(log):
+    """Collapse duplicate rows in an org-independent per-resource side-log.
+
+    The column-field and converted-resource logs are appended once per
+    organisation pass, so a multi-organisation resource produces identical
+    duplicate rows. Deduplicate them, preserving order. Assumes flat rows
+    (string/scalar values).
+    """
+    seen = set()
+    deduped = []
+    for row in log.rows:
+        key = tuple(sorted(row.items()))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(row)
+    log.rows = deduped
+
+
 def chain_phases(phases):
     def add(f, g):
         return lambda x: g.process(f(x))
@@ -605,7 +645,11 @@ class Pipeline:
             resource (str): Resource file identifier (hash), TBD can be removed.
             valid_category_values (dict): Dictionary of valid category values per field from the API/specification.
             endpoints (list, optional): List of endpoint hashes/identifiers for this resource. Defaults to None.
-            organisations (list, optional): List of organisation codes/identifiers associated with the resource. Defaults to None, Note if one passed, org will become default value
+            organisations (list, optional): Organisation codes for the resource.
+                0 or 1 -> single pass (the one org, if any, becomes the default).
+                >1 -> the resource is processed once per organisation, each set
+                as the default in turn, and the outputs concatenated (handles
+                multi-organisation resources such as joint local plans).
             entry_date (str, optional): Default entry-date value to apply to all records. Defaults to "".
             converted_path (str, optional): Path to save converted (pre-normalised) resource. Defaults to None.
             harmonised_output_path (str, optional): Path to save the harmonised/intermediate output. Defaults to None.
@@ -621,40 +665,121 @@ class Pipeline:
 
         endpoints = endpoints or []
         organisations = organisations or []
+        dataset = self.name
 
+        # shared, organisation-independent defaults
+        default_values = self.default_values(endpoints=endpoints)
+        combine_fields = self.combine_fields(endpoints=endpoints)
+
+        # need an entry-date for all entries and for facts
+        if entry_date and "entry-date" not in default_values:
+            default_values["entry-date"] = entry_date
+
+        # init logs ONCE for this resource — logs accumulate across all org passes
+        self.init_logs(dataset, resource)
+
+        # Decide the organisation passes:
+        #   0 orgs  -> one pass, no organisation default
+        #   1 org   -> one pass, that org is the default
+        #  >1 orgs  -> one pass per organisation, each set as the default in turn
+        # The multi-org case is a resource collected from endpoints belonging to
+        # more than one organisation (e.g. a joint local plan two authorities submit
+        # to the same URL -> one content-hashed resource carrying both orgs). Each
+        # pass produces that org's transformed rows so its lookup.csv entities
+        # resolve; the outputs are concatenated into the single resource file.
+        if len(organisations) > 1:
+            org_passes = list(organisations)
+        else:
+            org_passes = [organisations[0] if organisations else None]
+
+        output_path = Path(output_path)
+        pass_outputs = []
+        for i, org in enumerate(org_passes):
+            # per-pass defaults — never mutate the shared dict
+            pass_default_values = dict(default_values)
+            if org:
+                pass_default_values["organisation"] = org
+
+            if len(org_passes) == 1:
+                pass_output_path = output_path
+            else:
+                pass_output_path = output_path.parent / f"{resource}.{i}.csv"
+            pass_outputs.append(pass_output_path)
+
+            phases = self._build_transform_phases(
+                input_path=input_path,
+                output_path=pass_output_path,
+                resource=resource,
+                endpoints=endpoints,
+                organisation=organisation,
+                default_values=pass_default_values,
+                providers=[org] if org else organisations,
+                valid_category_values=valid_category_values,
+                # side artefacts only need writing once
+                converted_path=converted_path if i == 0 else None,
+                harmonised_output_path=harmonised_output_path if i == 0 else None,
+                save_harmonised=save_harmonised and i == 0,
+                disable_lookups=disable_lookups,
+            )
+            self.run(*phases)
+
+            # Duplicate-reference check runs PER organisation pass, where references
+            # are genuinely expected to be unique. Running it on the combined file
+            # would falsely flag a reference shared across the joint-plan orgs.
+            if combine_fields == {}:
+                self.issue_log = duplicate_reference_check(
+                    issues=self.issue_log, csv_path=pass_output_path
+                )
+
+            # Attribute THIS pass's issues to THIS pass's entities while the
+            # entry-number -> entity map is unambiguous, then reset for the next org.
+            self.issue_log.apply_entity_map()
+            self.issue_log.entry_to_entity.clear()
+
+        # Stitch the per-organisation outputs into the single resource-keyed file
+        if len(org_passes) > 1:
+            _concat_transformed(pass_outputs, output_path)
+            # org-independent side-logs were appended once per pass — collapse them
+            _dedup_log_rows(self.column_field_log)
+            _dedup_log_rows(self.converted_resource_log)
+
+        self.dataset_resource_log.entity_count = count_distinct_entities(output_path)
+        self._status = PipelineStatus.COMPLETE
+
+        return self.issue_log
+
+    def _build_transform_phases(
+        self,
+        *,
+        input_path,
+        output_path,
+        resource,
+        endpoints,
+        organisation,
+        default_values,
+        providers,
+        valid_category_values,
+        converted_path=None,
+        harmonised_output_path=None,
+        save_harmonised=False,
+        disable_lookups=False,
+    ):
+        """Build the resource -> transformed phase list for a single org pass."""
         dataset = self.name
         schema = self.specification.pipeline[dataset]["schema"]
         intermediate_fieldnames = self.specification.intermediate_fieldnames(self)
 
-        # TODO: Future loading from config class not from init()
-        # i.e self.config.get_pipeline_columns(self.dataset)
-
-        # load pipeline configuration files
         skip_patterns = self.skip_patterns(resource, endpoints)
         columns = self.columns(resource, endpoints=endpoints)
         concats = self.concatenations(resource, endpoints=endpoints)
         patches = self.patches(resource=resource, endpoints=endpoints)
         lookups = self.lookups(resource=resource)
         lookup_rules = self.lookup_rules(resource=resource)
-
         default_fields = self.default_fields(resource=resource, endpoints=endpoints)
-        default_values = self.default_values(endpoints=endpoints)
         combine_fields = self.combine_fields(endpoints=endpoints)
         redirect_lookups = self.redirect_lookups()
-
         entity_range_min = self.specification.get_dataset_entity_min(dataset)
         entity_range_max = self.specification.get_dataset_entity_max(dataset)
-
-        # init logs for this resource run and set current runtime resource, sets pipeline status to running
-        self.init_logs(dataset, resource)
-
-        # resource specific default values
-        if len(organisations) == 1:
-            default_values["organisation"] = organisations[0]
-
-        # need an entry-date for all entries and for facts
-        if entry_date and "entry-date" not in default_values:
-            default_values["entry-date"] = entry_date
 
         phases = [
             ConvertPhase(
@@ -702,7 +827,6 @@ class Pipeline:
             EntityPrefixPhase(dataset=dataset),
         ]
 
-        # Conditionally add EntityLookupPhase and EntityPrunePhase if not disabling lookups
         if not disable_lookups:
             phases.extend(
                 [
@@ -738,7 +862,7 @@ class Pipeline:
 
         phases.extend(
             [
-                PriorityPhase(config=self.config, providers=organisations),
+                PriorityPhase(config=self.config, providers=providers),
                 PivotPhase(),
                 FactCombinePhase(issue_log=self.issue_log, fields=combine_fields),
                 FactorPhase(),
@@ -762,20 +886,7 @@ class Pipeline:
             ]
         )
 
-        self.run(*phases)
-        self.dataset_resource_log.entity_count = count_distinct_entities(output_path)
-
-        # In the FactCombinePhase, when combine_fields has some values, we check for duplicates and combine values.
-        # If we have done this then we will not call duplicate_reference_check as we have already carried out a
-        # duplicate check and stop messages appearing in issues about reference values not being unique
-        if combine_fields == {}:
-            self.issue_log = duplicate_reference_check(
-                issues=self.issue_log, csv_path=output_path
-            )
-
-        self._status = PipelineStatus.COMPLETE
-
-        return self.issue_log
+        return phases
 
 
 class EntityNumGen:
