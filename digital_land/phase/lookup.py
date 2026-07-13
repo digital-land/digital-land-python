@@ -84,14 +84,14 @@ class LookupPhase(Phase):
                     return ""
         return entity
 
-    def get_entity(self, block):
+    def get_entity(self, block, organisation=None):
         row = block["row"]
         prefix = row.get("prefix", "")
         reference = row.get("reference", "")
         # Eventually won't be needed but leave in for now
-        organisation = row.get("organisation", "").replace(
-            "local-authority-eng", "local-authority"
-        )
+        if organisation is None:
+            organisation = row.get("organisation", "")
+        organisation = organisation.replace("local-authority-eng", "local-authority")
         entry_number = block["entry-number"]
 
         entity = (
@@ -143,6 +143,31 @@ class LookupPhase(Phase):
                     return ""
         return entity
 
+    def _log_unknown_entity(self, reference, curie, line_number):
+        if not self.issues:
+            return
+        if not reference:
+            self.issues.log_issue(
+                "entity",
+                "unknown entity - missing reference",
+                curie,
+                line_number=line_number,
+            )
+        else:
+            self.issues.log_issue(
+                "entity",
+                "unknown entity",
+                curie,
+                line_number=line_number,
+            )
+            if self.operational_issues:
+                self.operational_issues.log_issue(
+                    "entity",
+                    "unknown entity",
+                    curie,
+                    line_number=line_number,
+                )
+
     def process(self, stream):
         for block in stream:
             row = block["row"]
@@ -189,13 +214,84 @@ class LookupPhase(Phase):
 class EntityLookupPhase(LookupPhase):
     entity_field = "entity"
 
+    def __init__(
+        self,
+        lookups={},
+        redirect_lookups={},
+        issue_log=None,
+        operational_issue_log=None,
+        entity_range=[],
+        lookup_rules=None,
+        organisations=None,
+    ):
+        super().__init__(
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issue_log,
+            operational_issue_log=operational_issue_log,
+            entity_range=entity_range,
+            lookup_rules=lookup_rules,
+        )
+        self.organisations = organisations or []
+
     def process(self, stream):
+        # A resource may be associated with more than one organisation (e.g. a
+        # joint local plan shared by two authorities). In that case the entity
+        # is resolved once per organisation and a row is emitted per distinct
+        # entity. With a single organisation (or none) each row resolves to at
+        # most one entity.
+        if len(self.organisations) > 1:
+            yield from self._process_multi_org(stream)
+            return
+
         for block in super().process(stream):
             if self.issues:
                 self.issues.record_entity_map(
                     block["entry-number"], block["row"]["entity"]
                 )
             yield block
+
+    def _process_multi_org(self, stream):
+        for block in stream:
+            row = block["row"]
+            prefix = row.get("prefix", "")
+            reference = row.get("reference", "")
+            curie = f"{prefix}:{reference}"
+            line_number = block["line-number"]
+
+            # Nothing to look up if there is no prefix, or an entity has
+            # already been assigned upstream.
+            if not prefix or row.get(self.entity_field, ""):
+                if self.issues:
+                    self.issues.record_entity_map(
+                        block["entry-number"], row.get(self.entity_field, "")
+                    )
+                yield block
+                continue
+
+            emitted_entities = set()
+            for organisation in self.organisations:
+                entity = self.get_entity(block, organisation=organisation)
+
+                if not entity:
+                    # no entity for this organisation: log an unknown-entity
+                    # issue and emit no row for it
+                    self._log_unknown_entity(reference, curie, line_number)
+                    continue
+
+                entity = self.redirect_entity(entity)
+                if not entity or entity in emitted_entities:
+                    continue
+                emitted_entities.add(entity)
+
+                new_block = dict(block)
+                new_block["row"] = dict(row)
+                new_block["row"][self.entity_field] = entity
+                new_block["row"]["organisation"] = organisation
+                new_block["organisation"] = organisation
+                if self.issues:
+                    self.issues.record_entity_map(block["entry-number"], entity)
+                yield new_block
 
 
 class FactLookupPhase(LookupPhase):

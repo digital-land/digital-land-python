@@ -1,6 +1,7 @@
 import duckdb
 import logging
 import dask.dataframe as dd
+import pandas as pd
 
 
 # TODO This might need to move into expectations as it is a form of data checking
@@ -22,10 +23,11 @@ def duplicate_reference_check(issues=None, csv_path=None):
             "field",
             "value",
             "entry_date",
+            "entity",
             COUNT(*) AS count,
             STRING_AGG("entry_number"::TEXT, ',') AS entry_numbers
         FROM filtered_table
-        GROUP BY "field", "value", "entry_date"
+        GROUP BY "field", "value", "entry_date", "entity"
         HAVING COUNT(*) > 1;
         """
 
@@ -34,11 +36,14 @@ def duplicate_reference_check(issues=None, csv_path=None):
         if len(count_table) >= 1:
             duplicate_references = count_table[count_table["count"] > 1]
             for idx, row in duplicate_references.iterrows():
+                entity = row["entity"]
+                entity = int(entity) if pd.notna(entity) else None
                 for entry_number in row["entry_numbers"].split(","):
                     issues.log_issue(
                         "reference",
                         "reference values are not unique",
                         row["value"],
+                        entity=entity,
                         entry_number=int(entry_number),
                         line_number=int(entry_number)
                         + 1,  # TODO Check this makes sense in all cases

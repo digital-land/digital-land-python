@@ -315,6 +315,148 @@ class TestEntityLookupPhase:
 
         assert len(output) == 0
 
+    def test_multi_org_fans_out_to_distinct_entities(self):
+        # One joint-plan row, two orgs, two different entities -> two rows out,
+        # each stamped with the org it was looked up with (row + block level).
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "local-plan",
+                    "reference": "owen",
+                    "organisation": "",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = {
+            ",local-plan,owen,local-authorityoe": "101",
+            ",local-plan,owen,local-authoritytb": "102",
+        }
+        phase = EntityLookupPhase(
+            lookups=lookups,
+            organisations=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert len(output) == 2
+        entity_to_org = {b["row"]["entity"]: b["row"]["organisation"] for b in output}
+        assert entity_to_org == {
+            "101": "local-authority:OE",
+            "102": "local-authority:TB",
+        }
+        # org also stamped at block level (FactLookupPhase reads this post-pivot)
+        assert {b["organisation"] for b in output} == {
+            "local-authority:OE",
+            "local-authority:TB",
+        }
+
+    def test_multi_org_same_entity_produces_single_row(self):
+        # Both orgs resolve to the same entity -> one row, no dedupe-after needed.
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "local-plan",
+                    "reference": "owen",
+                    "organisation": "",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = {
+            ",local-plan,owen,local-authorityoe": "101",
+            ",local-plan,owen,local-authoritytb": "101",
+        }
+        phase = EntityLookupPhase(
+            lookups=lookups,
+            organisations=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert len(output) == 1
+        assert output[0]["row"]["entity"] == "101"
+        # first org to resolve the entity wins
+        assert output[0]["row"]["organisation"] == "local-authority:OE"
+
+    def test_multi_org_one_missing_raises_issue_and_emits_found(self):
+        # OE resolves, TB has no lookup -> one row for OE + one unknown-entity issue.
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "local-plan",
+                    "reference": "owen",
+                    "organisation": "",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = {",local-plan,owen,local-authorityoe": "101"}
+        issues = IssueLog()
+        phase = EntityLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            organisations=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert len(output) == 1
+        assert output[0]["row"]["entity"] == "101"
+        assert output[0]["row"]["organisation"] == "local-authority:OE"
+        assert [i["issue-type"] for i in issues.rows] == ["unknown entity"]
+
+    def test_multi_org_neither_found_emits_nothing_and_raises_issues(self):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "local-plan",
+                    "reference": "owen",
+                    "organisation": "",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = {}
+        issues = IssueLog()
+        phase = EntityLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            organisations=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert output == []
+        # one unknown-entity issue per organisation that missed
+        assert [i["issue-type"] for i in issues.rows] == [
+            "unknown entity",
+            "unknown entity",
+        ]
+
+    def test_single_org_uses_unchanged_path(self):
+        # len(organisations) <= 1 must not fan out; org read from the row as before.
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "local-plan",
+                    "reference": "owen",
+                    "organisation": "local-authority:OE",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = {",local-plan,owen,local-authorityoe": "101"}
+        phase = EntityLookupPhase(
+            lookups=lookups,
+            organisations=["local-authority:OE"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert len(output) == 1
+        assert output[0]["row"]["entity"] == "101"
+
 
 class TestFactLookupPhase:
     def test_missing_associated_entity_issue_raised(

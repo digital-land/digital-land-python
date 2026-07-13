@@ -110,6 +110,25 @@ def test_duplicate_reference_check(tmp_path):
             ],
         ),
         (
+            "different_entity.csv",
+            [
+                {
+                    "entity": 7010002598,
+                    "entry-date": "2024-07-19",
+                    "entry-number": 1,
+                    "field": "reference",
+                    "value": "ref1",
+                },
+                {
+                    "entity": 7010002599,
+                    "entry-date": "2024-07-19",
+                    "entry-number": 1,
+                    "field": "reference",
+                    "value": "ref1",
+                },
+            ],
+        ),
+        (
             "no_references.csv",
             [
                 {
