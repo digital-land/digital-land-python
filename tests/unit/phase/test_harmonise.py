@@ -157,6 +157,56 @@ def test_harmonise_missing_mandatory_values():
         assert issue["value"] == ""
 
 
+def test_harmonise_stage_dependent_plan_fields_not_flagged():
+    # period-end-date, document-url and required-housing are stage-dependent for
+    # the plan datasets: they should only be required once the LPA has reached
+    # proposed-plan-consultation-start. They must NOT be flagged as "missing
+    # value" when blank here — that check moves to a post-build expectation.
+    issues = IssueLog()
+    field_datatype_map = {
+        "reference": "string",
+        "name": "string",
+        "description": "string",
+        "dataset": "string",
+        "period-start-date": "datetime",
+        "period-end-date": "datetime",
+        "local-planning-authorities": "string",
+        "documentation-url": "url",
+        "document-url": "url",
+        "required-housing": "integer",
+        "entry-date": "datetime",
+    }
+
+    h = HarmonisePhase(
+        field_datatype_map=field_datatype_map,
+        issues=issues,
+        dataset="local-plan",
+    )
+    reader = FakeDictReader(
+        [
+            {
+                "reference": "camden-local-plan",
+                "name": "Camden Local Plan",
+                "description": "A plan",
+                "dataset": "local-plan",
+                "period-start-date": "2020-01-01",
+                "period-end-date": "",
+                "local-planning-authorities": "local-authority:CMD",
+                "documentation-url": "https://example.com/docs",
+                "document-url": "",
+                "required-housing": "",
+                "entry-date": "2026-01-01",
+            },
+        ],
+    )
+    list(h.process(reader))
+
+    flagged = {issue["field"] for issue in issues.rows}
+    assert "period-end-date" not in flagged
+    assert "document-url" not in flagged
+    assert "required-housing" not in flagged
+
+
 def test_get_field_datatype_name_uses_field_datatype_map():
     field_datatype_map = {"reference": "string"}
     phase = HarmonisePhase(field_datatype_map=field_datatype_map)
