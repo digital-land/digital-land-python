@@ -305,13 +305,21 @@ class EntityLookupPhase(LookupPhase):
         The reference is looked up once per provider, and distinct entities
         produce distinct rows, each stamped with the organisation it was looked
         up with; if two providers resolve to the same entity only one row is
-        emitted. A provider that resolves nothing raises an unknown-entity issue
-        and produces no row, so an entry may yield fewer rows than there are
-        providers — including none.
+        emitted. A provider that resolves nothing simply produces no row, so an
+        entry may yield fewer rows than there are providers — including none.
 
         Some collections do map a source column to the organisation (e.g.
         conservation-area's `borough`), and that organisation need not be one of
         the providers — so when the row knows, it is resolved against that alone.
+
+        An unknown-entity issue is raised only when NO organisation resolves an
+        entity. A resource shared by several organisations often holds one
+        organisation's rows alongside another's, so a reference missing for the
+        organisation that does not own it is normal, not a fault. Issues also
+        carry no organisation of their own and are fanned out to every
+        organisation on the resource when they become tasks, so a per-organisation
+        miss would tell both authorities their records were missing while the
+        entity sat correctly assigned.
 
         The organisation is set on the block as well as the row because
         FactLookupPhase reads it after the pivot, once row-level fields are gone.
@@ -336,9 +344,7 @@ class EntityLookupPhase(LookupPhase):
             entity = self.get_entity(block, organisation=organisation)
 
             if not entity:
-                # no entity for this organisation: log an unknown-entity
-                # issue and emit no row for it
-                self._log_unknown_entity(reference, curie, line_number)
+                # this organisation does not own the reference: no row for it
                 continue
 
             entity = self.redirect_entity(entity)
@@ -354,6 +360,11 @@ class EntityLookupPhase(LookupPhase):
             if self.issues:
                 self.issues.record_entity_map(block["entry-number"], entity)
             yield new_block
+
+        # no organisation resolved an entity: raise a single unknown-entity
+        # issue, as the inherited single-organisation path does
+        if not emitted_entities:
+            self._log_unknown_entity(reference, curie, line_number)
 
 
 class FactLookupPhase(LookupPhase):

@@ -379,8 +379,13 @@ class TestEntityLookupPhase:
         # first org to resolve the entity wins
         assert output[0]["row"]["organisation"] == "local-authority:OE"
 
-    def test_multi_org_one_missing_raises_issue_and_emits_found(self):
-        # OE resolves, TB has no lookup -> one row for OE + one unknown-entity issue.
+    def test_multi_org_one_missing_emits_found_without_issue(self):
+        # OE resolves, TB has no lookup -> one row for OE and NO issue. A shared
+        # resource routinely holds one organisation's rows alongside another's,
+        # so a reference missing for the organisation that does not own it is
+        # normal. Issues carry no organisation and are fanned out to every
+        # organisation on the resource as tasks, so raising one here would tell
+        # both authorities their records were missing.
         input_stream = [
             {
                 "row": {
@@ -404,9 +409,9 @@ class TestEntityLookupPhase:
         assert len(output) == 1
         assert output[0]["row"]["entity"] == "101"
         assert output[0]["row"]["organisation"] == "local-authority:OE"
-        assert [i["issue-type"] for i in issues.rows] == ["unknown entity"]
+        assert issues.rows == []
 
-    def test_multi_org_neither_found_emits_nothing_and_raises_issues(self):
+    def test_multi_org_neither_found_emits_nothing_and_raises_one_issue(self):
         input_stream = [
             {
                 "row": {
@@ -428,11 +433,9 @@ class TestEntityLookupPhase:
         output = [block for block in phase.process(input_stream)]
 
         assert output == []
-        # one unknown-entity issue per organisation that missed
-        assert [i["issue-type"] for i in issues.rows] == [
-            "unknown entity",
-            "unknown entity",
-        ]
+        # nothing resolved at all, so one issue for the entry -- not one per
+        # organisation, which would fan out into a task for each of them
+        assert [i["issue-type"] for i in issues.rows] == ["unknown entity"]
 
     def test_multi_org_row_with_own_organisation_is_not_fanned_out(self):
         # Some collections map a source column to the organisation (e.g.
