@@ -85,6 +85,17 @@ class LookupPhase(Phase):
         return entity
 
     def get_entity(self, block, organisation=None):
+        """Look up the entity for a block's prefix and reference.
+
+        Args:
+            organisation (str, optional): Organisation to resolve the entity against.
+                Defaults to None, meaning use the organisation already on the row.
+                EntityLookupPhase passes this explicitly when fanning out a
+                multi-organisation resource, where the row's organisation is blank.
+
+        Returns:
+            str: The entity number, or "" if nothing matched.
+        """
         row = block["row"]
         prefix = row.get("prefix", "")
         reference = row.get("reference", "")
@@ -144,6 +155,7 @@ class LookupPhase(Phase):
         return entity
 
     def _log_unknown_entity(self, reference, curie, line_number):
+        """Raise an unknown-entity issue, distinguishing a missing reference."""
         if not self.issues:
             return
         if not reference:
@@ -212,6 +224,21 @@ class LookupPhase(Phase):
 
 
 class EntityLookupPhase(LookupPhase):
+    """
+    lookup the entity for an entry's reference
+
+    A resource is identified by the hash of its contents, so when several
+    organisations publish identical data the collection merges them into one
+    resource carrying every organisation's code (e.g. a joint local plan, or a
+    brownfield register published by two authorities). Those rows arrive here
+    with a blank organisation, because the resource-level default is only
+    applied when the resource has exactly one organisation.
+
+    When given more than one organisation this phase resolves the entity once
+    per organisation and emits a row per distinct entity. With one organisation
+    (or none) it behaves exactly as it always has.
+    """
+
     entity_field = "entity"
 
     def __init__(
@@ -224,6 +251,13 @@ class EntityLookupPhase(LookupPhase):
         lookup_rules=None,
         organisations=None,
     ):
+        """
+        Args:
+            organisations (list, optional): Organisation codes associated with the
+                resource. More than one means the resource is shared, and the entity
+                is resolved once per organisation. Defaults to None (no fan-out).
+        """
+
         super().__init__(
             lookups=lookups,
             redirect_lookups=redirect_lookups,
@@ -252,6 +286,19 @@ class EntityLookupPhase(LookupPhase):
             yield block
 
     def _process_multi_org(self, stream):
+        """Resolve the entity once per organisation and fan out the row.
+
+        For each entry the reference is looked up against every organisation on
+        the resource. Distinct entities produce distinct rows, each stamped with
+        the organisation it was looked up with; if two organisations resolve to
+        the same entity only one row is emitted. An organisation that resolves
+        nothing raises an unknown-entity issue and produces no row, so an entry
+        may yield fewer rows than there are organisations — including none.
+
+        The organisation is set on the block as well as the row because
+        FactLookupPhase reads it after the pivot, once row-level fields are gone.
+        """
+
         for block in stream:
             row = block["row"]
             prefix = row.get("prefix", "")
