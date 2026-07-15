@@ -335,7 +335,7 @@ class TestEntityLookupPhase:
         }
         phase = EntityLookupPhase(
             lookups=lookups,
-            organisations=["local-authority:OE", "local-authority:TB"],
+            providers=["local-authority:OE", "local-authority:TB"],
         )
         output = [block for block in phase.process(input_stream)]
 
@@ -370,7 +370,7 @@ class TestEntityLookupPhase:
         }
         phase = EntityLookupPhase(
             lookups=lookups,
-            organisations=["local-authority:OE", "local-authority:TB"],
+            providers=["local-authority:OE", "local-authority:TB"],
         )
         output = [block for block in phase.process(input_stream)]
 
@@ -397,7 +397,7 @@ class TestEntityLookupPhase:
         phase = EntityLookupPhase(
             lookups=lookups,
             issue_log=issues,
-            organisations=["local-authority:OE", "local-authority:TB"],
+            providers=["local-authority:OE", "local-authority:TB"],
         )
         output = [block for block in phase.process(input_stream)]
 
@@ -423,7 +423,7 @@ class TestEntityLookupPhase:
         phase = EntityLookupPhase(
             lookups=lookups,
             issue_log=issues,
-            organisations=["local-authority:OE", "local-authority:TB"],
+            providers=["local-authority:OE", "local-authority:TB"],
         )
         output = [block for block in phase.process(input_stream)]
 
@@ -435,7 +435,7 @@ class TestEntityLookupPhase:
         ]
 
     def test_single_org_uses_unchanged_path(self):
-        # len(organisations) <= 1 must not fan out; org read from the row as before.
+        # len(providers) <= 1 must not fan out; org read from the row as before.
         input_stream = [
             {
                 "row": {
@@ -450,7 +450,7 @@ class TestEntityLookupPhase:
         lookups = {",local-plan,owen,local-authorityoe": "101"}
         phase = EntityLookupPhase(
             lookups=lookups,
-            organisations=["local-authority:OE"],
+            providers=["local-authority:OE"],
         )
         output = [block for block in phase.process(input_stream)]
 

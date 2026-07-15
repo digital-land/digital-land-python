@@ -91,7 +91,9 @@ class LookupPhase(Phase):
             organisation (str, optional): Organisation to resolve the entity against.
                 Defaults to None, meaning use the organisation already on the row.
                 EntityLookupPhase passes this explicitly when fanning out a
-                multi-organisation resource, where the row's organisation is blank.
+                multi-organisation resource, where the row's organisation is blank
+                because the resource-level default is only applied when a resource
+                has exactly one organisation.
 
         Returns:
             str: The entity number, or "" if nothing matched.
@@ -249,11 +251,11 @@ class EntityLookupPhase(LookupPhase):
         operational_issue_log=None,
         entity_range=[],
         lookup_rules=None,
-        organisations=None,
+        providers=None,
     ):
         """
         Args:
-            organisations (list, optional): Organisation codes associated with the
+            providers (list, optional): Organisation codes that provided the
                 resource. More than one means the resource is shared, and the entity
                 is resolved once per organisation. Defaults to None (no fan-out).
         """
@@ -266,7 +268,7 @@ class EntityLookupPhase(LookupPhase):
             entity_range=entity_range,
             lookup_rules=lookup_rules,
         )
-        self.organisations = organisations or []
+        self.providers = providers or []
 
     def process(self, stream):
         # A resource may be associated with more than one organisation (e.g. a
@@ -274,7 +276,7 @@ class EntityLookupPhase(LookupPhase):
         # is resolved once per organisation and a row is emitted per distinct
         # entity. With a single organisation (or none) each row resolves to at
         # most one entity.
-        if len(self.organisations) > 1:
+        if len(self.providers) > 1:
             yield from self._process_multi_org(stream)
             return
 
@@ -317,7 +319,7 @@ class EntityLookupPhase(LookupPhase):
                 continue
 
             emitted_entities = set()
-            for organisation in self.organisations:
+            for organisation in self.providers:
                 entity = self.get_entity(block, organisation=organisation)
 
                 if not entity:

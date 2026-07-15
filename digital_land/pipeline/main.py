@@ -715,7 +715,7 @@ class Pipeline:
                         operational_issue_log=self.operational_issue_log,
                         entity_range=[entity_range_min, entity_range_max],
                         lookup_rules=lookup_rules,
-                        organisations=organisations,
+                        providers=organisations,
                     ),
                 ]
             )
