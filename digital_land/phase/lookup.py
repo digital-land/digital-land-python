@@ -271,46 +271,25 @@ class EntityLookupPhase(LookupPhase):
         self.providers = providers or []
 
     def process(self, stream):
-        # A resource may be associated with more than one organisation (e.g. a
-        # joint local plan shared by two authorities). In that case the entity
-        # is resolved once per organisation and a row is emitted per distinct
-        # entity. With a single organisation (or none) each row resolves to at
-        # most one entity.
-        if len(self.providers) > 1:
-            yield from self._process_multi_org(stream)
+        # With a single provider (or none) the row already carries the
+        # organisation, so the inherited behaviour is used unchanged. Only a
+        # resource shared by several organisations (e.g. a joint local plan)
+        # needs the entity resolving once per organisation.
+        if len(self.providers) <= 1:
+            for block in super().process(stream):
+                if self.issues:
+                    self.issues.record_entity_map(
+                        block["entry-number"], block["row"]["entity"]
+                    )
+                yield block
             return
-
-        for block in super().process(stream):
-            if self.issues:
-                self.issues.record_entity_map(
-                    block["entry-number"], block["row"]["entity"]
-                )
-            yield block
-
-    def _process_multi_org(self, stream):
-        """Resolve the entity once per organisation and fan out the row.
-
-        For each entry the reference is looked up against every organisation on
-        the resource. Distinct entities produce distinct rows, each stamped with
-        the organisation it was looked up with; if two organisations resolve to
-        the same entity only one row is emitted. An organisation that resolves
-        nothing raises an unknown-entity issue and produces no row, so an entry
-        may yield fewer rows than there are organisations — including none.
-
-        The organisation is set on the block as well as the row because
-        FactLookupPhase reads it after the pivot, once row-level fields are gone.
-        """
 
         for block in stream:
             row = block["row"]
-            prefix = row.get("prefix", "")
-            reference = row.get("reference", "")
-            curie = f"{prefix}:{reference}"
-            line_number = block["line-number"]
 
             # Nothing to look up if there is no prefix, or an entity has
             # already been assigned upstream.
-            if not prefix or row.get(self.entity_field, ""):
+            if not row.get("prefix", "") or row.get(self.entity_field, ""):
                 if self.issues:
                     self.issues.record_entity_map(
                         block["entry-number"], row.get(self.entity_field, "")
@@ -318,29 +297,49 @@ class EntityLookupPhase(LookupPhase):
                 yield block
                 continue
 
-            emitted_entities = set()
-            for organisation in self.providers:
-                entity = self.get_entity(block, organisation=organisation)
+            yield from self._fan_out(block)
 
-                if not entity:
-                    # no entity for this organisation: log an unknown-entity
-                    # issue and emit no row for it
-                    self._log_unknown_entity(reference, curie, line_number)
-                    continue
+    def _fan_out(self, block):
+        """Resolve the entity once per provider, yielding a row per entity.
 
-                entity = self.redirect_entity(entity)
-                if not entity or entity in emitted_entities:
-                    continue
-                emitted_entities.add(entity)
+        Distinct entities produce distinct rows, each stamped with the
+        organisation it was looked up with; if two providers resolve to the same
+        entity only one row is emitted. A provider that resolves nothing raises
+        an unknown-entity issue and produces no row, so an entry may yield fewer
+        rows than there are providers — including none.
 
-                new_block = dict(block)
-                new_block["row"] = dict(row)
-                new_block["row"][self.entity_field] = entity
-                new_block["row"]["organisation"] = organisation
-                new_block["organisation"] = organisation
-                if self.issues:
-                    self.issues.record_entity_map(block["entry-number"], entity)
-                yield new_block
+        The organisation is set on the block as well as the row because
+        FactLookupPhase reads it after the pivot, once row-level fields are gone.
+        """
+        row = block["row"]
+        prefix = row.get("prefix", "")
+        reference = row.get("reference", "")
+        curie = f"{prefix}:{reference}"
+        line_number = block["line-number"]
+
+        emitted_entities = set()
+        for organisation in self.providers:
+            entity = self.get_entity(block, organisation=organisation)
+
+            if not entity:
+                # no entity for this organisation: log an unknown-entity
+                # issue and emit no row for it
+                self._log_unknown_entity(reference, curie, line_number)
+                continue
+
+            entity = self.redirect_entity(entity)
+            if not entity or entity in emitted_entities:
+                continue
+            emitted_entities.add(entity)
+
+            new_block = dict(block)
+            new_block["row"] = dict(row)
+            new_block["row"][self.entity_field] = entity
+            new_block["row"]["organisation"] = organisation
+            new_block["organisation"] = organisation
+            if self.issues:
+                self.issues.record_entity_map(block["entry-number"], entity)
+            yield new_block
 
 
 class FactLookupPhase(LookupPhase):
