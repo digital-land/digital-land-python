@@ -300,25 +300,39 @@ class EntityLookupPhase(LookupPhase):
             yield from self._fan_out(block)
 
     def _fan_out(self, block):
-        """Resolve the entity once per provider, yielding a row per entity.
+        """Resolve the entity for a row that has no organisation of its own.
 
-        Distinct entities produce distinct rows, each stamped with the
-        organisation it was looked up with; if two providers resolve to the same
-        entity only one row is emitted. A provider that resolves nothing raises
-        an unknown-entity issue and produces no row, so an entry may yield fewer
-        rows than there are providers — including none.
+        The reference is looked up once per provider, and distinct entities
+        produce distinct rows, each stamped with the organisation it was looked
+        up with; if two providers resolve to the same entity only one row is
+        emitted. A provider that resolves nothing raises an unknown-entity issue
+        and produces no row, so an entry may yield fewer rows than there are
+        providers — including none.
+
+        Some collections do map a source column to the organisation (e.g.
+        conservation-area's `borough`), and that organisation need not be one of
+        the providers — so when the row knows, it is resolved against that alone.
 
         The organisation is set on the block as well as the row because
         FactLookupPhase reads it after the pivot, once row-level fields are gone.
         """
+
         row = block["row"]
         prefix = row.get("prefix", "")
         reference = row.get("reference", "")
         curie = f"{prefix}:{reference}"
         line_number = block["line-number"]
 
+        # Some collections map a source column to the organisation (e.g.
+        # conservation-area's `borough`), so a row may already say which
+        # authority it belongs to — and it need not be one of the providers.
+        # Trust the row when it knows; only try every provider when it doesn't.
+        organisations = (
+            [row["organisation"]] if row.get("organisation", "") else self.providers
+        )
+
         emitted_entities = set()
-        for organisation in self.providers:
+        for organisation in organisations:
             entity = self.get_entity(block, organisation=organisation)
 
             if not entity:

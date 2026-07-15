@@ -434,6 +434,42 @@ class TestEntityLookupPhase:
             "unknown entity",
         ]
 
+    def test_multi_org_row_with_own_organisation_is_not_fanned_out(self):
+        # Some collections map a source column to the organisation (e.g.
+        # conservation-area's `borough`), and it need not be one of the
+        # providers. The row knows which authority it belongs to, so it is
+        # resolved against that alone and the providers are never tried.
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "local-plan",
+                    "reference": "owen",
+                    "organisation": "local-authority:XY",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        lookups = {
+            ",local-plan,owen,local-authorityoe": "101",
+            ",local-plan,owen,local-authoritytb": "102",
+            ",local-plan,owen,local-authorityxy": "103",
+        }
+        issues = IssueLog()
+        phase = EntityLookupPhase(
+            lookups=lookups,
+            issue_log=issues,
+            providers=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        # one row for the row's own org, not one per provider
+        assert len(output) == 1
+        assert output[0]["row"]["entity"] == "103"
+        assert output[0]["row"]["organisation"] == "local-authority:XY"
+        # the providers were never looked up, so nothing "missed"
+        assert issues.rows == []
+
     def test_single_org_uses_unchanged_path(self):
         # len(providers) <= 1 must not fan out; org read from the row as before.
         input_stream = [
