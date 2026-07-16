@@ -605,7 +605,9 @@ class Pipeline:
             resource (str): Resource file identifier (hash), TBD can be removed.
             valid_category_values (dict): Dictionary of valid category values per field from the API/specification.
             endpoints (list, optional): List of endpoint hashes/identifiers for this resource. Defaults to None.
-            organisations (list, optional): List of organisation codes/identifiers associated with the resource. Defaults to None, Note if one passed, org will become default value
+            organisations (list, optional): List of organisation codes/identifiers associated with the resource. Defaults to None.
+                If one is passed it becomes the default organisation for every row; if more than one, no default is applied and
+                EntityLookupPhase resolves the entity once per organisation.
             entry_date (str, optional): Default entry-date value to apply to all records. Defaults to "".
             converted_path (str, optional): Path to save converted (pre-normalised) resource. Defaults to None.
             harmonised_output_path (str, optional): Path to save the harmonised/intermediate output. Defaults to None.
@@ -713,6 +715,7 @@ class Pipeline:
                         operational_issue_log=self.operational_issue_log,
                         entity_range=[entity_range_min, entity_range_max],
                         lookup_rules=lookup_rules,
+                        providers=organisations,
                     ),
                 ]
             )

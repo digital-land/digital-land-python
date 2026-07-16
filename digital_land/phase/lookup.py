@@ -84,14 +84,27 @@ class LookupPhase(Phase):
                     return ""
         return entity
 
-    def get_entity(self, block):
+    def get_entity(self, block, organisation=None):
+        """Look up the entity for a block's prefix and reference.
+
+        Args:
+            organisation (str, optional): Organisation to resolve the entity against.
+                Defaults to None, meaning use the organisation already on the row.
+                EntityLookupPhase passes this explicitly when fanning out a
+                multi-organisation resource, where the row's organisation is blank
+                because the resource-level default is only applied when a resource
+                has exactly one organisation.
+
+        Returns:
+            str: The entity number, or "" if nothing matched.
+        """
         row = block["row"]
         prefix = row.get("prefix", "")
         reference = row.get("reference", "")
         # Eventually won't be needed but leave in for now
-        organisation = row.get("organisation", "").replace(
-            "local-authority-eng", "local-authority"
-        )
+        if organisation is None:
+            organisation = row.get("organisation", "")
+        organisation = organisation.replace("local-authority-eng", "local-authority")
         entry_number = block["entry-number"]
 
         entity = (
@@ -143,6 +156,32 @@ class LookupPhase(Phase):
                     return ""
         return entity
 
+    def _log_unknown_entity(self, reference, curie, line_number):
+        """Raise an unknown-entity issue, distinguishing a missing reference."""
+        if not self.issues:
+            return
+        if not reference:
+            self.issues.log_issue(
+                "entity",
+                "unknown entity - missing reference",
+                curie,
+                line_number=line_number,
+            )
+        else:
+            self.issues.log_issue(
+                "entity",
+                "unknown entity",
+                curie,
+                line_number=line_number,
+            )
+            if self.operational_issues:
+                self.operational_issues.log_issue(
+                    "entity",
+                    "unknown entity",
+                    curie,
+                    line_number=line_number,
+                )
+
     def process(self, stream):
         for block in stream:
             row = block["row"]
@@ -187,15 +226,145 @@ class LookupPhase(Phase):
 
 
 class EntityLookupPhase(LookupPhase):
+    """
+    lookup the entity for an entry's reference
+
+    A resource is identified by the hash of its contents, so when several
+    organisations publish identical data the collection merges them into one
+    resource carrying every organisation's code (e.g. a joint local plan, or a
+    brownfield register published by two authorities). Those rows arrive here
+    with a blank organisation, because the resource-level default is only
+    applied when the resource has exactly one organisation.
+
+    When given more than one organisation this phase resolves the entity once
+    per organisation and emits a row per distinct entity. With one organisation
+    (or none) it behaves exactly as it always has.
+    """
+
     entity_field = "entity"
 
+    def __init__(
+        self,
+        lookups={},
+        redirect_lookups={},
+        issue_log=None,
+        operational_issue_log=None,
+        entity_range=[],
+        lookup_rules=None,
+        providers=None,
+    ):
+        """
+        Args:
+            providers (list, optional): Organisation codes that provided the
+                resource. More than one means the resource is shared, and the entity
+                is resolved once per organisation. Defaults to None (no fan-out).
+        """
+
+        super().__init__(
+            lookups=lookups,
+            redirect_lookups=redirect_lookups,
+            issue_log=issue_log,
+            operational_issue_log=operational_issue_log,
+            entity_range=entity_range,
+            lookup_rules=lookup_rules,
+        )
+        self.providers = providers or []
+
     def process(self, stream):
-        for block in super().process(stream):
+        # With a single provider (or none) the row already carries the
+        # organisation, so the inherited behaviour is used unchanged. Only a
+        # resource shared by several organisations (e.g. a joint local plan)
+        # needs the entity resolving once per organisation.
+        if len(self.providers) <= 1:
+            for block in super().process(stream):
+                if self.issues:
+                    self.issues.record_entity_map(
+                        block["entry-number"], block["row"]["entity"]
+                    )
+                yield block
+            return
+
+        for block in stream:
+            row = block["row"]
+
+            # Nothing to look up if there is no prefix, or an entity has
+            # already been assigned upstream.
+            if not row.get("prefix", "") or row.get(self.entity_field, ""):
+                if self.issues:
+                    self.issues.record_entity_map(
+                        block["entry-number"], row.get(self.entity_field, "")
+                    )
+                yield block
+                continue
+
+            yield from self._get_provider_entity_numbers(block)
+
+    def _get_provider_entity_numbers(self, block):
+        """Resolve the entity for a row that has no organisation of its own.
+
+        The reference is looked up once per provider, and distinct entities
+        produce distinct rows, each stamped with the organisation it was looked
+        up with; if two providers resolve to the same entity only one row is
+        emitted. A provider that resolves nothing simply produces no row, so an
+        entry may yield fewer rows than there are providers — including none.
+
+        Some collections do map a source column to the organisation (e.g.
+        conservation-area's `borough`), and that organisation need not be one of
+        the providers — so when the row knows, it is resolved against that alone.
+
+        An unknown-entity issue is raised only when NO organisation resolves an
+        entity. A resource shared by several organisations often holds one
+        organisation's rows alongside another's, so a reference missing for the
+        organisation that does not own it is normal, not a fault. Issues also
+        carry no organisation of their own and are fanned out to every
+        organisation on the resource when they become tasks, so a per-organisation
+        miss would tell both authorities their records were missing while the
+        entity sat correctly assigned.
+
+        The organisation is set on the block as well as the row because
+        FactLookupPhase reads it after the pivot, once row-level fields are gone.
+        """
+
+        row = block["row"]
+        prefix = row.get("prefix", "")
+        reference = row.get("reference", "")
+        curie = f"{prefix}:{reference}"
+        line_number = block["line-number"]
+
+        # Some collections map a source column to the organisation (e.g.
+        # conservation-area's `borough`), so a row may already say which
+        # authority it belongs to — and it need not be one of the providers.
+        # Trust the row when it knows; only try every provider when it doesn't.
+        organisations = (
+            [row["organisation"]] if row.get("organisation", "") else self.providers
+        )
+
+        emitted_entities = set()
+        for organisation in organisations:
+            entity = self.get_entity(block, organisation=organisation)
+
+            if not entity:
+                # this organisation does not own the reference: no row for it
+                continue
+
+            entity = self.redirect_entity(entity)
+            if not entity or entity in emitted_entities:
+                continue
+            emitted_entities.add(entity)
+
+            new_block = dict(block)
+            new_block["row"] = dict(row)
+            new_block["row"][self.entity_field] = entity
+            new_block["row"]["organisation"] = organisation
+            new_block["organisation"] = organisation
             if self.issues:
-                self.issues.record_entity_map(
-                    block["entry-number"], block["row"]["entity"]
-                )
-            yield block
+                self.issues.record_entity_map(block["entry-number"], entity)
+            yield new_block
+
+        # no organisation resolved an entity: raise a single unknown-entity
+        # issue, as the inherited single-organisation path does
+        if not emitted_entities:
+            self._log_unknown_entity(reference, curie, line_number)
 
 
 class FactLookupPhase(LookupPhase):
