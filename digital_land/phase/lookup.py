@@ -297,9 +297,9 @@ class EntityLookupPhase(LookupPhase):
                 yield block
                 continue
 
-            yield from self._fan_out(block)
+            yield from self._get_provider_entity_numbers(block)
 
-    def _fan_out(self, block):
+    def _get_provider_entity_numbers(self, block):
         """Resolve the entity for a row that has no organisation of its own.
 
         The reference is looked up once per provider, and distinct entities
