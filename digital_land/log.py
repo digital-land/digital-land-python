@@ -167,10 +167,7 @@ class IssueLog(Log):
             self.fieldnames.append("responsibility")
             # Switch Pandas NaN to None to avoid issues with JSON
             self.rows = [
-                {
-                    k: (None if isinstance(v, float) and v != v else v)
-                    for k, v in row.items()
-                }
+                {k: (None if pd.isna(v) else v) for k, v in row.items()}
                 for row in merged_df.to_dict(orient="records")
             ]
 
