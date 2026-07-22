@@ -165,7 +165,11 @@ class IssueLog(Log):
             self.fieldnames.append("severity")
             self.fieldnames.append("description")
             self.fieldnames.append("responsibility")
-            self.rows = merged_df.to_dict(orient="records")
+            # Switch Pandas NaN to None to avoid issues with JSON
+            self.rows = [
+                {k: (None if pd.isna(v) else v) for k, v in row.items()}
+                for row in merged_df.to_dict(orient="records")
+            ]
 
     def appendErrorMessage(self, mapping_path):
         # Read the mapping from the JSON config file
