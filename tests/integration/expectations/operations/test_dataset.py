@@ -1,3 +1,4 @@
+import json
 import spatialite
 import sqlite3
 import pytest
@@ -5,6 +6,7 @@ import pandas as pd
 
 from digital_land.expectations.operations.dataset import (
     check_columns,
+    check_fields_required_after_plan_event,
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
@@ -567,3 +569,156 @@ def test_duplicate_geometry_check_no_dupes(dataset_path):
     assert not details["any_matches"]
     assert details["actual"] == 0
     assert details["expected"] == 0
+
+
+@pytest.fixture
+def plan_timetable_path(tmp_path):
+    """a minimal built plan-timetable sqlite, matching the dataset entity schema"""
+    plan_timetable_path = tmp_path / "plan-timetable.sqlite3"
+    with spatialite.connect(plan_timetable_path) as con:
+        con.execute(
+            """
+            CREATE TABLE entity (
+                entity INTEGER PRIMARY KEY,
+                json JSON,
+                reference TEXT
+            );
+        """
+        )
+        rows = [
+            # consultation started in the past, this plan is gated on
+            (1, "started-plan", "proposed-plan-consultation-start", "2024-12-12"),
+            # a duplicate row for the same event, the earliest date should win
+            (2, "started-plan", "proposed-plan-consultation-start", "2025-01-30"),
+            # consultation only planned, no actual-date, so not gated on
+            (3, "future-plan", "proposed-plan-consultation-start", ""),
+            # a different event which must not open the gate
+            (4, "other-event-plan", "scoping-consultation-start", "2020-01-01"),
+        ]
+        for entity, plan, plan_event, actual_date in rows:
+            con.execute(
+                "INSERT INTO entity (entity, json, reference) VALUES (?, ?, ?)",
+                (
+                    entity,
+                    json.dumps(
+                        {
+                            "plan": plan,
+                            "plan-event": plan_event,
+                            "actual-date": actual_date,
+                        }
+                    ),
+                    f"{plan}-{plan_event}",
+                ),
+            )
+    return plan_timetable_path
+
+
+def test_check_fields_required_after_plan_event(dataset_path, plan_timetable_path):
+    plans = [
+        # past consultation start with a blank field, should be flagged
+        (1, "started-plan", {"organisations": "local-authority:EXE"}),
+        # past consultation start but populated, should not be flagged
+        (2, "started-plan-complete", {"organisations": "local-authority:ARU"}),
+        # not yet consulted, blank is fine, should not be flagged
+        (3, "future-plan", {"organisations": "local-authority:CMD"}),
+        # wrong event, blank is fine, should not be flagged
+        (4, "other-event-plan", {"organisations": "local-authority:ISL"}),
+    ]
+    with spatialite.connect(dataset_path) as con:
+        for entity, reference, fields in plans:
+            if reference == "started-plan-complete":
+                fields = {**fields, "period-end-date": "2042-01-01"}
+            con.execute(
+                "INSERT INTO entity (entity, reference, organisation_entity, json)"
+                " VALUES (?, ?, ?, ?)",
+                (entity, reference, str(entity), json.dumps(fields)),
+            )
+
+    # started-plan-complete has no timetable row, give it one that has started
+    with spatialite.connect(plan_timetable_path) as con:
+        con.execute(
+            "INSERT INTO entity (entity, json, reference) VALUES (?, ?, ?)",
+            (
+                5,
+                json.dumps(
+                    {
+                        "plan": "started-plan-complete",
+                        "plan-event": "proposed-plan-consultation-start",
+                        "actual-date": "2024-01-01",
+                    }
+                ),
+                "started-plan-complete-proposed-plan-consultation-start",
+            ),
+        )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = check_fields_required_after_plan_event(
+            conn=con,
+            fields=["period-end-date"],
+            plan_timetable_path=plan_timetable_path,
+            today="2026-08-10",
+        )
+
+    assert not passed, message
+    assert details["plans_past_event"] == 2
+    assert details["failures"] == [
+        {
+            "organisation": "local-authority:EXE",
+            "organisation_entity": "1",
+            "reference": "started-plan",
+            "field": "period-end-date",
+            "actual-date": "2024-12-12",
+        }
+    ]
+
+
+def test_check_fields_required_after_plan_event_missing_timetable(
+    dataset_path, tmp_path
+):
+    """a missing artifact must skip the check, never fail the build"""
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = check_fields_required_after_plan_event(
+            conn=con,
+            fields=["period-end-date"],
+            plan_timetable_path=tmp_path / "does-not-exist.sqlite3",
+        )
+
+    assert passed
+    assert details["skipped"] is True
+    assert "check skipped" in message
+
+
+def test_check_fields_required_after_plan_event_null_value(
+    dataset_path, plan_timetable_path
+):
+    """an explicit null must count as missing, not as populated"""
+    with spatialite.connect(dataset_path) as con:
+        con.execute(
+            "INSERT INTO entity (entity, reference, organisation_entity, json)"
+            " VALUES (?, ?, ?, ?)",
+            (
+                1,
+                "started-plan",
+                "1",
+                json.dumps({"organisations": None, "period-end-date": None}),
+            ),
+        )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = check_fields_required_after_plan_event(
+            conn=con,
+            fields=["period-end-date"],
+            plan_timetable_path=plan_timetable_path,
+            today="2026-08-10",
+        )
+
+    assert not passed, message
+    assert details["failures"] == [
+        {
+            "organisation": "",
+            "organisation_entity": "1",
+            "reference": "started-plan",
+            "field": "period-end-date",
+            "actual-date": "2024-12-12",
+        }
+    ]
