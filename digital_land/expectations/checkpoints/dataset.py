@@ -12,6 +12,7 @@ from digital_land.organisation import Organisation
 from .base import BaseCheckpoint
 from ..log import ExpectationLog
 from ..operations.dataset import (
+    check_fields_required_after_plan_event,
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
@@ -37,6 +38,7 @@ class DatasetCheckpoint(BaseCheckpoint):
             operation: a string representing an operation
         """
         operation_map = {
+            "check_fields_required_after_plan_event": check_fields_required_after_plan_event,
             "count_lpa_boundary": count_lpa_boundary,
             "count_deleted_entities": count_deleted_entities,
             "duplicate_geometry_check": duplicate_geometry_check,

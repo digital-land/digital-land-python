@@ -1,3 +1,4 @@
+import json
 import logging
 import sqlite3
 import requests
@@ -5,6 +6,7 @@ import pandas as pd
 import urllib
 import os
 import time
+from datetime import datetime
 
 
 # # TODO is there a way to represent this in a generalised count or not
@@ -459,4 +461,99 @@ def duplicate_geometry_check(conn, spatial_field: str):
         "single_matches": single_matches,
         "any_matches": any_matches,
     }
+    return result, message, details
+
+
+def check_fields_required_after_plan_event(
+    conn,
+    fields: list,
+    plan_timetable_path: str,
+    plan_event: str = "proposed-plan-consultation-start",
+    today: str = None,
+):
+    """
+    Checks that a set of fields are populated on plan records, but only for plans
+    which have reached a given stage of plan making.
+
+    A plan reaches the stage when its linked plan-timetable row for plan_event has
+    an actual-date in the past. Plans which have not reached that stage are ignored,
+    so no issue is raised for data the LPA is not yet expected to supply.
+
+    The plan-timetable data lives in a different dataset, so it is fetched as a
+    published artifact during assemble and attached here as a second database.
+
+    args:
+        conn: connection to the dataset being checked, created by the checkpoint class
+        fields: the fields which must be populated once the stage is reached
+        plan_timetable_path: path to a local copy of the built plan-timetable sqlite
+        plan_event: the plan-timetable event which opens the gate
+        today: date to compare against as YYYY-MM-DD, defaults to the current date
+    """
+    if not fields:
+        raise ValueError("At least one field must be provided to check")
+
+    today = today or datetime.now().strftime("%Y-%m-%d")
+
+    # a missing timetable artifact must never fail the build, the check just can't run
+    if not plan_timetable_path or not os.path.isfile(plan_timetable_path):
+        message = (
+            f"plan-timetable not available at '{plan_timetable_path}', check skipped"
+        )
+        logging.warning(message)
+        return True, message, {"skipped": True, "failures": []}
+
+    # a plan can have more than one row for the same event, so take the earliest
+    # actual-date, the stage is reached as soon as any of them has passed
+    query = """
+        select
+            e.reference,
+            e.json,
+            e.organisation_entity,
+            min(json_extract(t.json, '$."actual-date"')) as actual_date
+        from entity e
+        inner join plan_timetable.entity t
+            on json_extract(t.json, '$.plan') = e.reference
+        where json_extract(t.json, '$."plan-event"') = ?
+            and coalesce(json_extract(t.json, '$."actual-date"'), '') != ''
+            and json_extract(t.json, '$."actual-date"') < ?
+        group by e.entity
+    """
+
+    conn.execute("ATTACH DATABASE ? AS plan_timetable", (str(plan_timetable_path),))
+    try:
+        rows = conn.execute(query, (plan_event, today)).fetchall()
+    finally:
+        conn.execute("DETACH DATABASE plan_timetable")
+
+    failures = []
+    for reference, entity_json, organisation_entity, actual_date in rows:
+        entity_fields = json.loads(entity_json or "{}")
+        for field in fields:
+            value = entity_fields.get(field)
+            if value is not None and str(value).strip():
+                continue
+            failures.append(
+                {
+                    "organisation": entity_fields.get("organisations") or "",
+                    "organisation_entity": organisation_entity,
+                    "reference": reference,
+                    "field": field,
+                    "actual-date": actual_date,
+                }
+            )
+
+    failures.sort(key=lambda failure: (failure["reference"], failure["field"]))
+
+    result = len(failures) == 0
+    message = (
+        f"{len(failures)} missing values found across {len(rows)} plans "
+        f"which have passed {plan_event}"
+    )
+    details = {
+        "failures": failures,
+        "fields": fields,
+        "plan_event": plan_event,
+        "plans_past_event": len(rows),
+    }
+
     return result, message, details
