@@ -18,6 +18,7 @@ from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
 from .datatype.point import PointDataType
 from .datatype.multipolygon import MultiPolygonDataType
+from .schema import DatasetSchema, FieldSchema
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,12 @@ class Specification:
 
         self.index_field()
         self.index_schema()
+
+        # eventually intended as the main way of accessing per-dataset
+        # schema information; built last since it depends on everything above
+        self.dataset_schemas = {
+            dataset: self.get_dataset_schema(dataset) for dataset in self.dataset_names
+        }
 
     def load_dataset(self, path):
         reader = csv.DictReader((path / "dataset.csv").open())
@@ -266,6 +273,37 @@ class Specification:
             return self.dataset[dataset]["entity-minimum"]
         else:
             return 0
+
+    def get_dataset_schema(self, dataset) -> DatasetSchema:
+        "build a DatasetSchema for one dataset from already-loaded specification data"
+        dataset_row = self.dataset[dataset]
+
+        field_names = set(self.dataset_field.get(dataset, []))
+        for schema in self.dataset_schema.get(dataset, []):
+            field_names.update(self.schema_field.get(schema, []))
+
+        fields = {}
+        for name in field_names:
+            row = self.field.get(name)
+            if not row:
+                continue
+            fields[name] = FieldSchema(
+                field=name,
+                datatype=row.get("datatype", ""),
+                cardinality=row.get("cardinality", ""),
+                parent_field=row.get("parent-field", ""),
+                typology=row.get("typology", ""),
+            )
+
+        return DatasetSchema(
+            dataset=dataset,
+            prefix=dataset_row.get("prefix", "") or dataset,
+            typology=dataset_row.get("typology", ""),
+            entity_minimum=dataset_row.get("entity-minimum", "") or 0,
+            entity_maximum=dataset_row.get("entity-maximum", "") or 0,
+            key_field=dataset_row.get("key-field", ""),
+            fields=fields,
+        )
 
     def get_dataset_entity_max(self, dataset):
         if dataset:

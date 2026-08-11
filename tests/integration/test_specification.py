@@ -5,6 +5,7 @@ import pandas as pd
 from pathlib import Path
 
 from digital_land.specification import Specification
+from digital_land.schema import DatasetSchema
 
 
 # mock the init function of specification to stop the loading of things
@@ -85,3 +86,23 @@ class TestSpecification:
         assert (
             len(spec.schema["battlefield"]["fields"]) > 0
         ), "no fields added to schema"
+
+    def test_get_dataset_schema_returns_a_dataset_schema(self, specification_dir):
+        specification = Specification(specification_dir)
+        dataset = specification.dataset_names[0]
+
+        schema = specification.get_dataset_schema(dataset)
+
+        assert isinstance(schema, DatasetSchema)
+        assert schema.dataset == dataset
+
+    def test_init_builds_dataset_schemas_for_every_dataset(self, specification_dir):
+        specification = Specification(specification_dir)
+
+        assert set(specification.dataset_schemas) == set(specification.dataset_names)
+
+    def test_get_dataset_schema_raises_for_unknown_dataset(self, specification_dir):
+        specification = Specification(specification_dir)
+
+        with pytest.raises(KeyError):
+            specification.get_dataset_schema("not-a-real-dataset")
