@@ -4,9 +4,11 @@ import logging
 import json_stream
 import os
 import os.path
+import signal
 import sqlite3
 import subprocess
 import tempfile
+import threading
 import time
 import zipfile
 from packaging.version import Version
@@ -61,16 +63,65 @@ def load_csv(path, encoding="UTF-8", log=None):
 
 def execute(command, env=os.environ):
     logging.debug("execute: %s", command)
+
+    # On macOS, subprocess.Popen uses fork() which crashes when C extensions
+    # that initialise GCD/libdispatch (e.g. spatialite) are already loaded.
+    # os.posix_spawnp avoids fork entirely, so it is safe in all cases.
+    # TODO once we have migrated to python3.13+ we can use sub process again
+    if hasattr(os, "posix_spawnp"):
+        stdout_r, stdout_w = os.pipe()
+        stderr_r, stderr_w = os.pipe()
+        file_actions = [
+            (os.POSIX_SPAWN_DUP2, stdout_w, 1),
+            (os.POSIX_SPAWN_DUP2, stderr_w, 2),
+            (os.POSIX_SPAWN_CLOSE, stdout_r),
+            (os.POSIX_SPAWN_CLOSE, stderr_r),
+            (os.POSIX_SPAWN_CLOSE, stdout_w),
+            (os.POSIX_SPAWN_CLOSE, stderr_w),
+        ]
+        try:
+            pid = os.posix_spawnp(command[0], command, env, file_actions=file_actions)
+        except BaseException:
+            for fd in (stdout_r, stdout_w, stderr_r, stderr_w):
+                os.close(fd)
+            raise
+        os.close(stdout_w)
+        os.close(stderr_w)
+        stdout_data, stderr_data = [], []
+
+        def _read(fd, buf):
+            with os.fdopen(fd, "rb") as f:
+                buf.append(f.read())
+
+        t1 = threading.Thread(target=_read, args=(stdout_r, stdout_data), daemon=True)
+        t2 = threading.Thread(target=_read, args=(stderr_r, stderr_data), daemon=True)
+        t1.start()
+        t2.start()
+        t1.join(timeout=600)
+        t2.join(timeout=600)
+        if t1.is_alive() or t2.is_alive():
+            os.kill(pid, signal.SIGKILL)
+            t1.join()
+            t2.join()
+        _, raw_status = os.waitpid(pid, 0)
+        if os.WIFEXITED(raw_status):
+            returncode = os.WEXITSTATUS(raw_status)
+        elif os.WIFSIGNALED(raw_status):
+            returncode = -os.WTERMSIG(raw_status)
+        else:
+            returncode = -1
+        outs = stdout_data[0] if stdout_data else b""
+        errs = stderr_data[0] if stderr_data else b""
+        return returncode, outs.decode("utf-8"), errs.decode("utf-8")
+
     proc = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
     )
-
     try:
         outs, errs = proc.communicate(timeout=600)
     except subprocess.TimeoutExpired:
         proc.kill()
         outs, errs = proc.communicate()
-
     return proc.returncode, outs.decode("utf-8"), errs.decode("utf-8")
 
 
