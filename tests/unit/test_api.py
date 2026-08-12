@@ -72,34 +72,37 @@ def _mock_get(status_code, content, calls=[]):
     return _mocked_get
 
 
-def test_download_dataset_cache(mocker):
+def test_download_dataset_cache(mocker, tmp_path):
     mocker.patch("requests.get", _mock_get(200, _tpz_type_data))
-    mocker.patch("builtins.open", mock_open())
-    mocker.patch("os.makedirs", Mock())
 
-    api = API(Mock(), "http://test", "/test/cache-dir")
+    api = API(Mock(), "http://test", str(tmp_path))
 
     api.download_dataset("test")
 
+    written = list((tmp_path / "dataset").iterdir())
+    assert len(written) == 1, "a temporary file was left behind"
+    assert written[0].read_bytes() == _tpz_type_data
 
-def test_download_dataset_specified(mocker):
+
+def test_download_dataset_specified(mocker, tmp_path):
     mocker.patch("requests.get", _mock_get(200, _tpz_type_data))
-    mocker.patch("builtins.open", mock_open())
-    mocker.patch("os.makedirs", Mock())
+    path = tmp_path / "test.csv"
 
-    api = API(Mock(), "http://test", "/test/cache-dir")
+    API(Mock(), "http://test", str(tmp_path)).download_dataset("test", path=str(path))
 
-    api.download_dataset("test", path="test.csv")
+    assert path.read_bytes() == _tpz_type_data
 
 
-def test_download_dataset_overwrite(mocker):
+def test_download_dataset_overwrite(mocker, tmp_path):
     mocker.patch("requests.get", _mock_get(200, _tpz_type_data))
-    mocker.patch("builtins.open", mock_open())
-    mocker.patch("os.makedirs", Mock())
+    path = tmp_path / "test.csv"
+    path.write_bytes(b"stale")
 
-    api = API(Mock(), "http://test", "/test/cache-dir")
+    API(Mock(), "http://test", str(tmp_path)).download_dataset(
+        "test", overwrite=True, path=str(path)
+    )
 
-    api.download_dataset("test", overwrite=True, path="test.csv")
+    assert path.read_bytes() == _tpz_type_data
 
 
 def test_download_dataset_error(mocker):
@@ -112,24 +115,23 @@ def test_download_dataset_error(mocker):
         api.download_dataset("test")
 
 
-def test_get_categorical_field_values_download(mocker, pipeline_dir):
+def test_get_categorical_field_values_download(mocker, pipeline_dir, tmp_path):
     get_calls = []
     mocker.patch("requests.get", _mock_get(200, _tpz_type_data, get_calls))
-    mocker.patch("builtins.open", mock_open(read_data=_tpz_type_data.decode("ascii")))
-    mocker.patch("os.makedirs", Mock())
-    mocker.patch("os.path.exists", Mock(return_value=False))
-    mocker.patch("os.stat", Mock(return_value=_stat_result_tpzt))
 
     pipeline = Pipeline(pipeline_dir, "tree-preservation-zone")
 
-    api = API(MockSpecification(), "http://test", "/test/cache-dir")
+    api = API(MockSpecification(), "http://test", str(tmp_path))
 
     values = api.get_valid_category_values("tree-preservation-zone", pipeline)
 
     assert len(get_calls) == 1
     assert get_calls[0] == "http://test/dataset/tree-preservation-zone-type.csv"
-
     assert values == {"tree-preservation-zone-type": ["area", "group", "woodland"]}
+
+    # prove the download actually landed, rather than the fallback empty file
+    cached = tmp_path / "dataset" / "tree-preservation-zone-type.csv"
+    assert cached.read_bytes() == _tpz_type_data
 
 
 def test_get_categorical_field_from_cache(mocker, pipeline_dir):
