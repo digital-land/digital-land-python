@@ -3,6 +3,7 @@ from enum import Enum
 import os
 import requests
 import logging
+import tempfile
 import typing
 
 from digital_land.pipeline.main import Pipeline
@@ -54,30 +55,30 @@ class API:
             logging.info(f"Dataset file {path} already exists.")
             return
 
-        # different extensions require different urls and reading modes
+        # different extensions require different urls
         if extension == self.Extension.SQLITE3:
             collection = self.specification.dataset[dataset]["collection"]
             url = f"{self.url}/{collection}-collection/dataset/{dataset}.sqlite3"
-            mode = "wb"
-
-            def get_content(response):
-                return (
-                    response.content
-                )  # need binary content otherwise .sqlite3 is corrupted
-
         else:
             url = f"{self.url}/dataset/{dataset}.csv"
-            mode = "w"
-
-            def get_content(response):
-                return response.text
 
         response = requests.get(url)
         response.raise_for_status()
 
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, mode) as f:
-            f.write(get_content(response))
+        directory = os.path.dirname(path)
+        os.makedirs(directory, exist_ok=True)
+
+        # Write to a temporary file in the same directory, then rename it into
+        # place. os.replace is atomic, so other processes only ever see a
+        # complete file - never one that is empty or half-written.
+        fd, tmp_path = tempfile.mkstemp(dir=directory, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(response.content)
+            os.replace(tmp_path, path)
+        except BaseException:
+            os.unlink(tmp_path)
+            raise
 
         logging.info(f"Downloaded dataset {dataset} from {url} to {path}")
 
