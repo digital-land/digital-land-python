@@ -1,5 +1,5 @@
 import csv
-from cchardet import UniversalDetector
+from charset_normalizer import from_path, from_fp
 import logging
 import json_stream
 import os
@@ -22,19 +22,13 @@ class ConversionError(Exception):
 
 
 def detect_file_encoding(path):
-    with open(path, "rb") as f:
-        return detect_encoding(f)
+    best = from_path(path).best()
+    return best.encoding if best else None
 
 
 def detect_encoding(f):
-    detector = UniversalDetector()
-    detector.reset()
-    for line in f:
-        detector.feed(line)
-        if detector.done:
-            break
-    detector.close()
-    return detector.result["encoding"]
+    best = from_fp(f).best()
+    return best.encoding if best else None
 
 
 def load_csv(path, encoding="UTF-8", log=None):
