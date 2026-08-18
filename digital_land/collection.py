@@ -639,8 +639,11 @@ class Collection:
             source_csv_path = os.path.join(collection.dir, "source.csv")
 
             # Read endpoint and source CSV files
-            endpoint_csv_df = pd.read_csv(endpoint_csv_path)
-            source_csv_df = pd.read_csv(source_csv_path)
+            # end-date is read as object (not left to dtype inference) so an
+            # all-blank column doesn't get inferred as float64 -- assigning a
+            # date string into a float64 column is an error under pandas 3.0
+            endpoint_csv_df = pd.read_csv(endpoint_csv_path, dtype={"end-date": "object"})
+            source_csv_df = pd.read_csv(source_csv_path, dtype={"end-date": "object"})
 
             # Get today's date in the format YYYY-MM-DD
             today_date = datetime.now().strftime("%Y-%m-%d")
