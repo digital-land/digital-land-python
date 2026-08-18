@@ -27,6 +27,21 @@ def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(cap
     )
 
 
+def test_get_does_not_crash_on_empty_content():
+    class FakeCollector:
+        def get(self, url, log, plugin):
+            log["status"] = "200"
+            return log, None
+
+    log, content = wfs_get(
+        FakeCollector(),
+        "https://example.com/wfs",
+    )
+
+    assert log["status"] == "200"
+    assert content is None
+
+
 def test_get_paged_wfs_runs_ogr2ogr_with_paging_config(tmp_path, mocker):
     output_path = tmp_path / "output.gpkg"
     captured = {}

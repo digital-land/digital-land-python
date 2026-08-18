@@ -1,5 +1,5 @@
 import csv
-from charset_normalizer import from_path, from_fp
+from charset_normalizer import from_bytes, from_path
 import logging
 import json_stream
 import os
@@ -31,11 +31,16 @@ def _best_encoding(best):
 
 
 def detect_file_encoding(path):
+    if not os.path.getsize(path):
+        return None
     return _best_encoding(from_path(path).best())
 
 
 def detect_encoding(f):
-    return _best_encoding(from_fp(f).best())
+    data = f.read()
+    if not data:
+        return None
+    return _best_encoding(from_bytes(data).best())
 
 
 def load_csv(path, encoding="UTF-8", log=None):
