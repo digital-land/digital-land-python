@@ -8,6 +8,7 @@ name = "digital-land"
 dynamic = ["version", "readme"]
 
 description = "Data pipeline tools to collect data and process it into a dataset"
+requires-python = ">=3.8"
 authors = [
     { name = "MHCLG Planning Data Team", email = "DigitalLand@communities.gov.uk" },
 ]
@@ -53,8 +54,12 @@ classifiers = [
     "Intended Audience :: Developers",
     "Topic :: Database",
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 [project.optional-dependencies]
