@@ -24,6 +24,7 @@ source_filenames = [
     "waste-authority.csv",
     "local-planning-group.csv",
     "local-resilience-forum.csv",
+    "company.csv",
 ]
 
 
