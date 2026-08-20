@@ -11,7 +11,8 @@ SQLDIFF := $(shell command -v sqldiff 2> /dev/null)
 UNAME := $(shell uname)
 
 ifeq ($(UNAME),Darwin)
-	SPATIAL := $(shell ls /usr/local/lib/*spatialite* 2> /dev/null)
+	# /opt/homebrew/lib on Apple Silicon, /usr/local/lib on Intel Macs
+	SPATIAL := $(shell ls /opt/homebrew/lib/*spatialite* 2> /dev/null || ls /usr/local/lib/*spatialite* 2> /dev/null)
 else
 	SPATIAL := $(shell ls /usr/lib/x86_64-linux-gnu/*spatialite* 2> /dev/null)
 endif

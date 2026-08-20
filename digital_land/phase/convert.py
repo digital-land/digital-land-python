@@ -1,5 +1,5 @@
 import csv
-from cchardet import UniversalDetector
+from charset_normalizer import from_bytes, from_path
 import logging
 import json_stream
 import os
@@ -21,20 +21,26 @@ class ConversionError(Exception):
     pass
 
 
+def _best_encoding(best):
+    if not best:
+        return None
+    # charset-normalizer reports the base codec even when a BOM is present
+    # (best.bom=True); Python needs the "-sig" variant to strip it, or the
+    # BOM decodes as a leading U+FEFF character in the content.
+    return best.encoding + "-sig" if best.bom else best.encoding
+
+
 def detect_file_encoding(path):
-    with open(path, "rb") as f:
-        return detect_encoding(f)
+    if not os.path.getsize(path):
+        return None
+    return _best_encoding(from_path(path).best())
 
 
 def detect_encoding(f):
-    detector = UniversalDetector()
-    detector.reset()
-    for line in f:
-        detector.feed(line)
-        if detector.done:
-            break
-    detector.close()
-    return detector.result["encoding"]
+    data = f.read()
+    if not data:
+        return None
+    return _best_encoding(from_bytes(data).best())
 
 
 def load_csv(path, encoding="UTF-8", log=None):

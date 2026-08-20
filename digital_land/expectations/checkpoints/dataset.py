@@ -181,7 +181,7 @@ class DatasetCheckpoint(BaseCheckpoint):
             org_name = org.get("organisation", "") if org else ""
             label = f"{expectation['operation'].__name__}({org_name})"
             logger.warning(
-                f"[expectations] {i+1}/{len(self.expectations)} {label} — {'PASSED' if passed else 'FAILED'}"
+                f"[expectations] {i + 1}/{len(self.expectations)} {label} — {'PASSED' if passed else 'FAILED'}"
             )
 
             self.log.add(
