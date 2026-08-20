@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import sqlite3
 import requests
 import pandas as pd
@@ -461,6 +462,70 @@ def duplicate_geometry_check(conn, spatial_field: str):
         "single_matches": single_matches,
         "any_matches": any_matches,
     }
+    return result, message, details
+
+
+# Flags a name which contains at least one digit, is 20 characters or fewer, and is
+# made up only of letters, digits, dots, slashes and hyphens - a bare reference code
+# rather than a description. The digit lookahead is what stops plain single-word place
+# names such as 'Napsbury' being flagged.
+CODE_LIKE_NAME_RE = re.compile(r"^(?=.*[0-9])[A-Za-z0-9./-]{1,20}$")
+
+
+def name_is_a_code_check(conn):
+    """
+    Checks for entities whose name is just a bare reference code rather than a
+    description, e.g. '59', '0164B2' or '11/802'.
+
+    Failures carry organisation_entity rather than an organisation curie. The dataset
+    package deliberately keeps 'organisation' out of the entity json (package/dataset.py),
+    so organisation_entity is the only provenance available here - resolving it to a
+    curie is the bridge's job.
+
+    Blank names are not flagged here - they are already covered by the existing
+    missing values issue, and the pattern cannot match an empty string anyway.
+
+    args:
+        conn: connection to the dataset being checked, created by the checkpoint class
+    """
+    # length is a cheap superset of the pattern's {1,20}, so this can only ever exclude
+    # rows the pattern would have rejected, and it keeps the regex off most of the table
+    query = """
+        select entity, reference, name, organisation_entity
+        from entity
+        where name is not null
+            and trim(name) != ''
+            and length(name) <= 20
+    """
+    rows = conn.execute(query).fetchall()
+
+    failures = [
+        {
+            "organisation_entity": organisation_entity,
+            "entity": entity,
+            "reference": reference,
+            "name": name,
+        }
+        for entity, reference, name, organisation_entity in rows
+        if CODE_LIKE_NAME_RE.match(name)
+    ]
+
+    failures.sort(
+        key=lambda failure: (
+            failure["organisation_entity"] or "",
+            failure["reference"] or "",
+        )
+    )
+
+    result = len(failures) == 0
+    message = f"{len(failures)} entities have a name which is only a reference code"
+    details = {
+        "failures": failures,
+        "field": "name",
+        "actual": len(failures),
+        "expected": 0,
+    }
+
     return result, message, details
 
 
