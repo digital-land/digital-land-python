@@ -137,6 +137,71 @@ def config_path(tmp_path, specification_dir):
     return config_path
 
 
+@pytest.fixture
+def name_check_dataset_path(tmp_path):
+    """a dataset with one bare code name and one descriptive name"""
+    dataset_path = tmp_path / "name_check.sqlite3"
+    create_entity_table_sql = """
+        CREATE TABLE entity (
+            dataset TEXT,
+            end_date TEXT,
+            entity INTEGER PRIMARY KEY,
+            entry_date TEXT,
+            geojson JSON,
+            geometry TEXT,
+            json JSON,
+            name TEXT,
+            organisation_entity TEXT,
+            point TEXT,
+            prefix TEXT,
+            reference TEXT,
+            start_date TEXT,
+            typology TEXT
+        );
+    """
+    with spatialite.connect(dataset_path) as con:
+        con.execute(create_entity_table_sql)
+        con.executemany(
+            "INSERT INTO entity (entity, reference, name, organisation_entity)"
+            " VALUES (?, ?, ?, ?)",
+            [
+                (1, "CA-59", "59", "122"),
+                (2, "CA-WYM", "Wymondham Conservation Area", "122"),
+            ],
+        )
+
+    return dataset_path
+
+
+@pytest.fixture
+def name_check_config_path(tmp_path, specification_dir):
+    """a configuration enabling name_is_a_code_check, with no organisations and empty
+    parameters, matching how the rule will be written in config"""
+    config_path = tmp_path / "name_check_config.sqlite3"
+    rules = [
+        {
+            "datasets": "test",
+            "organisations": "",
+            "name": "Check no entities have a name which is only a code",
+            "operation": "name_is_a_code_check",
+            "parameters": "{}",
+            "responsibility": "external",
+            "severity": "warning",
+        }
+    ]
+    expect_path = tmp_path / "expect.csv"
+    with open(expect_path, mode="w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=rules[0].keys())
+        writer.writeheader()
+        writer.writerows(rules)
+
+    spec = Specification(specification_dir)
+    config = Config(path=config_path, specification=spec)
+    config.create()
+    config.load({"expect": str(tmp_path)})
+    return config_path
+
+
 def test_run_some_expectations(
     tmp_path, organisation_path, dataset_path, config_path, specification_dir, mocker
 ):
@@ -228,3 +293,58 @@ def test_run_some_expectations(
     assert (
         len([result for result in results if result["passed"] == "True"]) == 1
     ), "expected 1 passed expectation"
+
+
+def test_run_name_is_a_code_expectation(
+    tmp_path,
+    organisation_path,
+    name_check_dataset_path,
+    name_check_config_path,
+    specification_dir,
+):
+    dataset = "test"
+    runner = CliRunner()
+
+    result = runner.invoke(
+        expectations_run_dataset_checkpoint,
+        [
+            "--dataset",
+            dataset,
+            "--file-path",
+            str(name_check_dataset_path),
+            "--log-dir",
+            str(tmp_path / "log"),
+            "--configuration-path",
+            str(name_check_config_path),
+            "--organisation-path",
+            str(organisation_path),
+            "--specification-dir",
+            str(specification_dir),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, result.output
+
+    log_path = tmp_path / f"log/expectation/dataset={dataset}/{dataset}.parquet"
+    assert log_path.exists(), "no logs created"
+
+    conn = duckdb.connect()
+    cursor = conn.execute(f"SELECT * FROM read_parquet('{str(log_path)}')")
+    columns = [desc[0] for desc in cursor.description]
+    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    assert len(results) == 1, "expected one expectation to have run"
+    log = results[0]
+    assert log["operation"] == "name_is_a_code_check"
+    assert log["passed"] == "False", "the bare code name should have failed the check"
+    assert log["severity"] == "warning"
+    assert log["responsibility"] == "external"
+    assert (
+        log["organisation"] == ""
+    ), "a rule with no organisations logs a blank organisation"
+
+    details = json.loads(log["details"])
+    assert details["actual"] == 1
+    assert [failure["name"] for failure in details["failures"]] == ["59"]
+    assert details["failures"][0]["organisation_entity"] == "122"
