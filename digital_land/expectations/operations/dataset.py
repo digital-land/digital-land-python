@@ -529,6 +529,118 @@ def name_is_a_code_check(conn):
     return result, message, details
 
 
+# Placeholder strings that some source systems write into `name` when they have no
+# real name, e.g. "No name for this Entry". Overridable per-dataset from the
+# parameters cell in config's expect.csv, so new boilerplate spotted in the data can
+# be added without a code release.
+DEFAULT_PLACEHOLDER_NAMES = [
+    "No name for this Entry",
+]
+
+
+def _normalise_name(name):
+    """casefold and collapse whitespace so matching ignores case and spacing"""
+    return re.sub(r"\s+", " ", name).strip().casefold()
+
+
+def name_is_a_placeholder_check(conn, listed_building_path, placeholders=None):
+    """
+    Checks for entities whose name is a placeholder string, e.g. 'No name for this
+    Entry', where the linked listed-building record holds a real name instead.
+
+    Matching is exact after normalisation - deliberately NOT a substring match, so a
+    real name which happens to contain the word 'name' is not flagged.
+
+    `name` is a mandatory field for listed-building-outline (MANDATORY_FIELDS_DICT in
+    digital_land/phase/harmonise.py), so a blank name already raises a missing value
+    issue.
+
+    args:
+        conn: connection to the dataset being checked, created by the checkpoint class
+        listed_building_path: path to a local copy of the built listed-building sqlite,
+            fetched as a published artifact during assemble
+        placeholders: list of placeholder strings; falls back to
+            DEFAULT_PLACEHOLDER_NAMES when absent or empty, so a parameters cell
+            carrying only the path still works
+    """
+    if not placeholders:
+        placeholders = DEFAULT_PLACEHOLDER_NAMES
+    # a single string in config would otherwise iterate as characters and match any
+    # one-character name, so treat it as one placeholder
+    if isinstance(placeholders, str):
+        placeholders = [placeholders]
+
+    placeholder_set = {_normalise_name(placeholder) for placeholder in placeholders}
+
+    # a missing artifact must never fail the build, the check just can't run
+    if not listed_building_path or not os.path.isfile(listed_building_path):
+        message = (
+            f"listed-building not available at '{listed_building_path}', check skipped"
+        )
+        logging.warning(message)
+        return True, message, {"skipped": True, "failures": []}
+
+    # listed-building is not a core entity column, so it lives in the json blob.
+    query = """
+        select
+            e.entity,
+            e.reference,
+            e.name,
+            e.organisation_entity,
+            lb.name as listed_building_name
+        from entity e
+        inner join listed_building.entity lb
+            on lb.reference = json_extract(e.json, '$."listed-building"')
+        where e.name is not null
+            and trim(e.name) != ''
+            and lb.name is not null
+            and trim(lb.name) != ''
+    """
+
+    conn.execute("ATTACH DATABASE ? AS listed_building", (str(listed_building_path),))
+    try:
+        rows = conn.execute(query).fetchall()
+    finally:
+        conn.execute("DETACH DATABASE listed_building")
+
+    failures = [
+        {
+            "organisation_entity": organisation_entity,
+            "entity": entity,
+            "reference": reference,
+            "name": name,
+            "listed_building_name": listed_building_name,
+        }
+        for entity, reference, name, organisation_entity, listed_building_name in rows
+        # the listed-building name must be a real name too - swapping one placeholder
+        # for another is not a fix worth asking an organisation to make
+        if _normalise_name(name) in placeholder_set
+        and _normalise_name(listed_building_name) not in placeholder_set
+    ]
+
+    failures.sort(
+        key=lambda failure: (
+            failure["organisation_entity"] or "",
+            failure["reference"] or "",
+            failure["entity"],
+        )
+    )
+
+    result = len(failures) == 0
+    message = (
+        f"{len(failures)} entities have a placeholder name where the listed building "
+        "record holds a real name"
+    )
+    details = {
+        "failures": failures,
+        "field": "name",
+        "actual": len(failures),
+        "expected": 0,
+    }
+
+    return result, message, details
+
+
 def check_fields_required_after_plan_event(
     conn,
     fields: list,

@@ -12,6 +12,7 @@ from digital_land.expectations.operations.dataset import (
     duplicate_geometry_check,
     fetch_active_resources_for_dataset,
     name_is_a_code_check,
+    name_is_a_placeholder_check,
 )
 
 
@@ -792,3 +793,178 @@ def test_name_is_a_code_check_all_descriptive(dataset_path):
     assert passed, message
     assert details["failures"] == []
     assert details["actual"] == 0
+
+
+@pytest.fixture
+def listed_building_path(tmp_path):
+    """a minimal built listed-building sqlite, standing in for the Historic England
+    dataset fetched during assemble"""
+    listed_building_path = tmp_path / "listed-building.sqlite3"
+    with spatialite.connect(listed_building_path) as con:
+        con.execute(
+            """
+            CREATE TABLE entity (
+                entity INTEGER PRIMARY KEY,
+                name TEXT,
+                reference TEXT
+            );
+        """
+        )
+        con.executemany(
+            "INSERT INTO entity (entity, name, reference) VALUES (?, ?, ?)",
+            [
+                (900001, "33, 37 AND 39, BAYFORD GREEN", "1234567"),
+                (900002, "NORTH LODGE", "2222222"),
+                # the listed-building name is itself boilerplate, so there is nothing
+                # better to offer and the outline row must not be flagged
+                (900003, "No name for this Entry", "3333333"),
+                # a blank name is no use either
+                (900004, "", "4444444"),
+            ],
+        )
+    return listed_building_path
+
+
+def _insert_outline(con, entity, reference, name, organisation_entity, listed_building):
+    """listed-building is not a core entity column, so it goes in the json blob"""
+    con.execute(
+        "INSERT INTO entity (entity, reference, name, organisation_entity, json)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (
+            entity,
+            reference,
+            name,
+            organisation_entity,
+            json.dumps({"listed-building": listed_building} if listed_building else {}),
+        ),
+    )
+
+
+def test_name_is_a_placeholder_check(dataset_path, listed_building_path):
+    entities = [
+        # placeholder with a real listed-building name, should be flagged
+        (1, "LBO-A", "No name for this Entry", "600001", "1234567"),
+        # same placeholder in a different case and spacing, should still be flagged
+        (2, "LBO-B", "  no   NAME for this ENTRY  ", "600002", "2222222"),
+        # a real name appending locating detail, legitimate and not flagged
+        (
+            3,
+            "LBO-C",
+            "NORTH LODGE - B1318 (EAST SIDE) GOSFORTH PARK",
+            "600001",
+            "2222222",
+        ),
+        # listed-building name is itself a placeholder, nothing better to suggest
+        (4, "LBO-D", "No name for this Entry", "600001", "3333333"),
+        # listed-building name is blank
+        (5, "LBO-E", "No name for this Entry", "600001", "4444444"),
+        # listed-building reference matches no record
+        (6, "LBO-F", "No name for this Entry", "600001", "9999999"),
+        # no listed-building reference at all
+        (7, "LBO-G", "No name for this Entry", "600001", None),
+        # blank, belongs to the missing values issue not this check
+        (8, "LBO-H", "", "600001", "1234567"),
+        # contains placeholder-ish words but is a real name, must not substring match
+        (9, "LBO-I", "A building with no name plate", "600001", "1234567"),
+    ]
+    with spatialite.connect(dataset_path) as con:
+        for row in entities:
+            _insert_outline(con, *row)
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = name_is_a_placeholder_check(
+            conn=con, listed_building_path=listed_building_path
+        )
+
+    assert not passed, message
+    assert details["actual"] == 2
+    assert details["expected"] == 0
+    assert details["field"] == "name"
+    assert details["failures"] == [
+        {
+            "organisation_entity": "600001",
+            "entity": 1,
+            "reference": "LBO-A",
+            "name": "No name for this Entry",
+            "listed_building_name": "33, 37 AND 39, BAYFORD GREEN",
+        },
+        {
+            "organisation_entity": "600002",
+            "entity": 2,
+            "reference": "LBO-B",
+            "name": "  no   NAME for this ENTRY  ",
+            "listed_building_name": "NORTH LODGE",
+        },
+    ]
+
+
+def test_name_is_a_placeholder_check_all_real_names(dataset_path, listed_building_path):
+    with spatialite.connect(dataset_path) as con:
+        _insert_outline(con, 1, "LBO-C", "NORTH LODGE", "600001", "2222222")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = name_is_a_placeholder_check(
+            conn=con, listed_building_path=listed_building_path
+        )
+
+    assert passed, message
+    assert details["failures"] == []
+    assert details["actual"] == 0
+
+
+def test_name_is_a_placeholder_check_missing_artifact(dataset_path, tmp_path):
+    """a missing artifact must skip the check, never fail the build"""
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = name_is_a_placeholder_check(
+            conn=con,
+            listed_building_path=tmp_path / "does-not-exist.sqlite3",
+        )
+
+    assert passed
+    assert details["skipped"] is True
+    assert "check skipped" in message
+
+
+def test_name_is_a_placeholder_check_placeholders_from_config(
+    dataset_path, listed_building_path
+):
+    """the list is overridable from the parameters cell, so new boilerplate spotted in
+    the data can be added without a code release"""
+    with spatialite.connect(dataset_path) as con:
+        _insert_outline(con, 1, "LBO-J", "No given name", "600001", "1234567")
+
+    with spatialite.connect(dataset_path) as con:
+        # not in the default list, so nothing is flagged
+        passed, _message, _details = name_is_a_placeholder_check(
+            conn=con, listed_building_path=listed_building_path
+        )
+        assert passed
+
+        passed, _message, details = name_is_a_placeholder_check(
+            conn=con,
+            listed_building_path=listed_building_path,
+            placeholders=["No given name"],
+        )
+
+    assert not passed
+    assert [failure["name"] for failure in details["failures"]] == ["No given name"]
+
+
+def test_name_is_a_placeholder_check_single_string_placeholder(
+    dataset_path, listed_building_path
+):
+    """a bare string in config must be treated as one placeholder rather than iterated
+    as characters, which would match any single character name"""
+    with spatialite.connect(dataset_path) as con:
+        _insert_outline(con, 1, "LBO-J", "No given name", "600001", "1234567")
+        _insert_outline(con, 2, "LBO-K", "N", "600001", "2222222")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, _message, details = name_is_a_placeholder_check(
+            conn=con,
+            listed_building_path=listed_building_path,
+            placeholders="No given name",
+        )
+
+    assert not passed
+    assert [failure["reference"] for failure in details["failures"]] == ["LBO-J"]
