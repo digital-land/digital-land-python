@@ -202,6 +202,113 @@ def name_check_config_path(tmp_path, specification_dir):
     return config_path
 
 
+@pytest.fixture
+def placeholder_check_dataset_path(tmp_path):
+    """a dataset with one placeholder name and one real name, both linked to a
+    listed-building record"""
+    dataset_path = tmp_path / "placeholder_check.sqlite3"
+    create_entity_table_sql = """
+        CREATE TABLE entity (
+            dataset TEXT,
+            end_date TEXT,
+            entity INTEGER PRIMARY KEY,
+            entry_date TEXT,
+            geojson JSON,
+            geometry TEXT,
+            json JSON,
+            name TEXT,
+            organisation_entity TEXT,
+            point TEXT,
+            prefix TEXT,
+            reference TEXT,
+            start_date TEXT,
+            typology TEXT
+        );
+    """
+    with spatialite.connect(dataset_path) as con:
+        con.execute(create_entity_table_sql)
+        con.executemany(
+            "INSERT INTO entity (entity, reference, name, organisation_entity, json)"
+            " VALUES (?, ?, ?, ?, ?)",
+            [
+                (
+                    1,
+                    "LBO-A",
+                    "No name for this Entry",
+                    "122",
+                    json.dumps({"listed-building": "1234567"}),
+                ),
+                (
+                    2,
+                    "LBO-C",
+                    "NORTH LODGE",
+                    "122",
+                    json.dumps({"listed-building": "2222222"}),
+                ),
+            ],
+        )
+
+    return dataset_path
+
+
+@pytest.fixture
+def listed_building_artifact_path(tmp_path):
+    """stands in for the listed-building sqlite fetched from S3 during assemble"""
+    artifact_path = tmp_path / "listed-building.sqlite3"
+    with spatialite.connect(artifact_path) as con:
+        con.execute(
+            """
+            CREATE TABLE entity (
+                entity INTEGER PRIMARY KEY,
+                name TEXT,
+                reference TEXT
+            );
+        """
+        )
+        con.executemany(
+            "INSERT INTO entity (entity, name, reference) VALUES (?, ?, ?)",
+            [
+                (900001, "33, 37 AND 39, BAYFORD GREEN", "1234567"),
+                (900002, "NORTH LODGE", "2222222"),
+            ],
+        )
+
+    return artifact_path
+
+
+@pytest.fixture
+def placeholder_check_config_path(
+    tmp_path, specification_dir, listed_building_artifact_path
+):
+    """a configuration enabling name_is_a_placeholder_check, carrying the artifact path
+    in parameters exactly as the rule will be written in config"""
+    config_path = tmp_path / "placeholder_check_config.sqlite3"
+    rules = [
+        {
+            "datasets": "test",
+            "organisations": "",
+            "name": "Check no entities have a placeholder name",
+            "operation": "name_is_a_placeholder_check",
+            "parameters": json.dumps(
+                {"listed_building_path": str(listed_building_artifact_path)}
+            ),
+            "responsibility": "external",
+            "severity": "error",
+        }
+    ]
+    expect_path = tmp_path / "expect.csv"
+    with open(expect_path, mode="w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=rules[0].keys())
+        writer.writeheader()
+        writer.writerows(rules)
+
+    spec = Specification(specification_dir)
+    config = Config(path=config_path, specification=spec)
+    config.create()
+    config.load({"expect": str(tmp_path)})
+    return config_path
+
+
 def test_run_some_expectations(
     tmp_path, organisation_path, dataset_path, config_path, specification_dir, mocker
 ):
@@ -348,3 +455,62 @@ def test_run_name_is_a_code_expectation(
     assert details["actual"] == 1
     assert [failure["name"] for failure in details["failures"]] == ["59"]
     assert details["failures"][0]["organisation_entity"] == "122"
+
+
+def test_run_name_is_a_placeholder_expectation(
+    tmp_path,
+    organisation_path,
+    placeholder_check_dataset_path,
+    placeholder_check_config_path,
+    specification_dir,
+):
+    dataset = "test"
+    runner = CliRunner()
+
+    result = runner.invoke(
+        expectations_run_dataset_checkpoint,
+        [
+            "--dataset",
+            dataset,
+            "--file-path",
+            str(placeholder_check_dataset_path),
+            "--log-dir",
+            str(tmp_path / "log"),
+            "--configuration-path",
+            str(placeholder_check_config_path),
+            "--organisation-path",
+            str(organisation_path),
+            "--specification-dir",
+            str(specification_dir),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, result.output
+
+    log_path = tmp_path / f"log/expectation/dataset={dataset}/{dataset}.parquet"
+    assert log_path.exists(), "no logs created"
+
+    conn = duckdb.connect()
+    cursor = conn.execute(f"SELECT * FROM read_parquet('{str(log_path)}')")
+    columns = [desc[0] for desc in cursor.description]
+    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    assert len(results) == 1, "expected one expectation to have run"
+    log = results[0]
+    assert log["operation"] == "name_is_a_placeholder_check"
+    assert log["passed"] == "False", "the placeholder name should have failed the check"
+    assert log["severity"] == "error"
+    assert log["responsibility"] == "external"
+    assert (
+        log["organisation"] == ""
+    ), "a rule with no organisations logs a blank organisation"
+
+    details = json.loads(log["details"])
+    assert details["actual"] == 1
+    assert [failure["name"] for failure in details["failures"]] == [
+        "No name for this Entry"
+    ]
+    assert (
+        details["failures"][0]["listed_building_name"] == "33, 37 AND 39, BAYFORD GREEN"
+    ), "the real name must reach details so the bridge can quote it back to the LPA"
