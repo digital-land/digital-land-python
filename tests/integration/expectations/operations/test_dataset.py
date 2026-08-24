@@ -11,6 +11,7 @@ from digital_land.expectations.operations.dataset import (
     count_deleted_entities,
     duplicate_geometry_check,
     fetch_active_resources_for_dataset,
+    name_is_a_code_check,
 )
 
 
@@ -722,3 +723,72 @@ def test_check_fields_required_after_plan_event_null_value(
             "actual-date": "2024-12-12",
         }
     ]
+
+
+def test_name_is_a_code_check(dataset_path):
+    entities = [
+        # bare codes, should be flagged
+        (1, "A4D-59", "59", "600001", "local-authority:EXE"),
+        (2, "CA-3B", "3B", "600002", "local-authority:ARU"),
+        (3, "LBO-802", "11/802", "600002", "local-authority:ARU"),
+        # descriptive names, should not be flagged
+        (4, "CA-WYM", "Wymondham Conservation Area", "600001", "local-authority:EXE"),
+        (5, "LBO-GOODGE", "56, GOODGE STREET", "600002", "local-authority:ARU"),
+        # no digit, should not be flagged - this is what the lookahead is for
+        (6, "CA-NAP", "Napsbury", "600001", "local-authority:EXE"),
+        # over 20 characters, should not be flagged
+        (7, "CA-LONG", "123456789012345678901", "600001", "local-authority:EXE"),
+        # blank, belongs to the missing values issue not this check
+        (8, "CA-BLANK", "", "600001", "local-authority:EXE"),
+    ]
+    with spatialite.connect(dataset_path) as con:
+        for entity, reference, name, organisation_entity, _organisation in entities:
+            con.execute(
+                "INSERT INTO entity (entity, reference, name, organisation_entity)"
+                " VALUES (?, ?, ?, ?)",
+                (entity, reference, name, organisation_entity),
+            )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = name_is_a_code_check(conn=con)
+
+    assert not passed, message
+    assert details["actual"] == 3
+    assert details["expected"] == 0
+    assert details["field"] == "name"
+    assert details["failures"] == [
+        {
+            "organisation_entity": "600001",
+            "entity": 1,
+            "reference": "A4D-59",
+            "name": "59",
+        },
+        {
+            "organisation_entity": "600002",
+            "entity": 2,
+            "reference": "CA-3B",
+            "name": "3B",
+        },
+        {
+            "organisation_entity": "600002",
+            "entity": 3,
+            "reference": "LBO-802",
+            "name": "11/802",
+        },
+    ]
+
+
+def test_name_is_a_code_check_all_descriptive(dataset_path):
+    with spatialite.connect(dataset_path) as con:
+        con.execute(
+            "INSERT INTO entity (entity, reference, name, organisation_entity)"
+            " VALUES (?, ?, ?, ?)",
+            (1, "CA-WYM", "Wymondham Conservation Area", "600001"),
+        )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = name_is_a_code_check(conn=con)
+
+    assert passed, message
+    assert details["failures"] == []
+    assert details["actual"] == 0
