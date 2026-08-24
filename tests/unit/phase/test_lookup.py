@@ -243,6 +243,26 @@ class TestLookupPhase:
 
 
 class TestPrintLookupPhase:
+    def test_process_produces_lookup_without_organisation(self):
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "dataset",
+                    "reference": "1",
+                    "organisation": "",
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        phase = PrintLookupPhase()
+
+        list(phase.process(input_stream))
+
+        assert phase.new_lookup_entries == [
+            [{"prefix": "dataset", "organisation": "", "reference": "1"}]
+        ]
+
     def test_process_does_not_produce_new_lookup(self, get_input_stream, get_lookup):
         input_stream = get_input_stream
         lookups = get_lookup

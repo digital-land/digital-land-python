@@ -478,7 +478,7 @@ class PrintLookupPhase(LookupPhase):
                     row[self.entity_field] = self.get_entity(block)
 
             if not row[self.entity_field]:
-                if prefix and organisation and reference:
+                if prefix and reference:
                     new_lookup = {
                         "prefix": prefix,
                         "organisation": organisation,
