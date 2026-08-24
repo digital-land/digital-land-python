@@ -206,6 +206,26 @@ class TestPipeLine:
         actual_result = lookups.validate_entry(entry)
         assert actual_result == expected_result
 
+    def test_lookups_validate_entry_success_without_organisation(self):
+        """
+        PrintLookupPhase emits entries for rows with no organisation, so an
+        otherwise complete entry must validate with a blank organisation
+        :return:
+        """
+        lookups = Lookups("")
+
+        entry = {
+            "prefix": "ancient-woodland",
+            "resource": "",
+            "organisation": "",
+            "reference": "1",
+            "entity": "",
+        }
+
+        expected_result = True
+        actual_result = lookups.validate_entry(entry)
+        assert actual_result == expected_result
+
     @pytest.mark.parametrize(
         "entry",
         [

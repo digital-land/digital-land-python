@@ -943,7 +943,7 @@ class Lookups:
     # @staticmethod
     def validate_entry(self, entry) -> bool:
         # ensures minimum expected fields exist and are not empty strings
-        expected_fields = ["prefix", "organisation", "reference"]
+        expected_fields = ["prefix", "reference"]
         for field in expected_fields:
             if not entry.get(field, ""):
                 raise ValueError(f"ERROR: expected {field} not found in lookup entry")
