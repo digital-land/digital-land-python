@@ -10,6 +10,7 @@ from digital_land.expectations.operations.dataset import (
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
+    duplicate_name_check,
     fetch_active_resources_for_dataset,
     name_is_a_code_check,
     name_is_a_placeholder_check,
@@ -968,3 +969,114 @@ def test_name_is_a_placeholder_check_single_string_placeholder(
 
     assert not passed
     assert [failure["reference"] for failure in details["failures"]] == ["LBO-J"]
+
+
+def _insert_named(con, entity, reference, name, organisation_entity):
+    con.execute(
+        "INSERT INTO entity (entity, reference, name, organisation_entity)"
+        " VALUES (?, ?, ?, ?)",
+        (entity, reference, name, organisation_entity),
+    )
+
+
+def test_duplicate_name_check(dataset_path):
+    entities = [
+        # same name twice in one org, should be flagged
+        (1, "A4D-1", "Site allocation NSP30", "600001"),
+        (2, "A4D-2", "Site allocation NSP30", "600001"),
+        # three in one org, should be flagged with a count of 3
+        (3, "A4D-3", "District Centre related A4D", "600001"),
+        (4, "A4D-4", "District Centre related A4D", "600001"),
+        (5, "A4D-5", "District Centre related A4D", "600001"),
+        # used once, should not be flagged
+        (6, "A4D-6", "Queen's Park", "600001"),
+    ]
+    with spatialite.connect(dataset_path) as con:
+        for entity, reference, name, organisation_entity in entities:
+            _insert_named(con, entity, reference, name, organisation_entity)
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = duplicate_name_check(conn=con)
+
+    assert not passed, message
+    assert details["actual"] == 2
+    assert details["expected"] == 0
+    assert details["field"] == "name"
+    # sorted by organisation then count descending, so the group of 3 comes first
+    assert details["failures"] == [
+        {
+            "organisation_entity": "600001",
+            "name": "District Centre related A4D",
+            "count": 3,
+            "entities": [3, 4, 5],
+            "references": ["A4D-3", "A4D-4", "A4D-5"],
+        },
+        {
+            "organisation_entity": "600001",
+            "name": "Site allocation NSP30",
+            "count": 2,
+            "entities": [1, 2],
+            "references": ["A4D-1", "A4D-2"],
+        },
+    ]
+
+
+def test_duplicate_name_check_is_scoped_per_organisation(dataset_path):
+    """the same name in two authorities is coincidence, not a defect neither can fix"""
+    with spatialite.connect(dataset_path) as con:
+        _insert_named(con, 1, "CA-1", "City Centre", "600001")
+        _insert_named(con, 2, "CA-2", "City Centre", "600002")
+        _insert_named(con, 3, "CA-3", "City Centre", "600003")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = duplicate_name_check(conn=con)
+
+    assert passed, message
+    assert details["failures"] == []
+
+
+def test_duplicate_name_check_ignores_case_and_spacing(dataset_path):
+    """grouping uses _normalise_name, but the raw spelling is what gets reported"""
+    with spatialite.connect(dataset_path) as con:
+        _insert_named(con, 1, "A4D-1", "POTENTIAL LEISURE PLOTS", "600001")
+        _insert_named(con, 2, "A4D-2", "Potential  Leisure Plots", "600001")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = duplicate_name_check(conn=con)
+
+    assert not passed, message
+    assert details["actual"] == 1
+    failure = details["failures"][0]
+    assert failure["count"] == 2
+    # the normalised key would be unrecognisable to the authority that wrote it
+    assert failure["name"] == "POTENTIAL LEISURE PLOTS"
+
+
+def test_duplicate_name_check_ignores_blank_names(dataset_path):
+    """blanks belong to the missing values issue, and would all match each other"""
+    with spatialite.connect(dataset_path) as con:
+        _insert_named(con, 1, "CA-1", "", "600001")
+        _insert_named(con, 2, "CA-2", "   ", "600001")
+        _insert_named(con, 3, "CA-3", None, "600001")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = duplicate_name_check(conn=con)
+
+    assert passed, message
+    assert details["failures"] == []
+
+
+def test_duplicate_name_check_threshold_from_config(dataset_path):
+    with spatialite.connect(dataset_path) as con:
+        _insert_named(con, 1, "A4D-1", "Pair", "600001")
+        _insert_named(con, 2, "A4D-2", "Pair", "600001")
+        _insert_named(con, 3, "A4D-3", "Trio", "600001")
+        _insert_named(con, 4, "A4D-4", "Trio", "600001")
+        _insert_named(con, 5, "A4D-5", "Trio", "600001")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = duplicate_name_check(conn=con, threshold=3)
+
+    assert not passed, message
+    assert [failure["name"] for failure in details["failures"]] == ["Trio"]
+    assert "3 or more entities" in message

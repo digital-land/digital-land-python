@@ -16,6 +16,7 @@ from ..operations.dataset import (
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
+    duplicate_name_check,
     fetch_active_resources_for_dataset,
     name_is_a_code_check,
     name_is_a_placeholder_check,
@@ -44,6 +45,7 @@ class DatasetCheckpoint(BaseCheckpoint):
             "count_lpa_boundary": count_lpa_boundary,
             "count_deleted_entities": count_deleted_entities,
             "duplicate_geometry_check": duplicate_geometry_check,
+            "duplicate_name_check": duplicate_name_check,
             "name_is_a_code_check": name_is_a_code_check,
             "name_is_a_placeholder_check": name_is_a_placeholder_check,
         }
