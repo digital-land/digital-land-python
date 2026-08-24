@@ -1053,11 +1053,15 @@ def test_duplicate_name_check_ignores_case_and_spacing(dataset_path):
 
 
 def test_duplicate_name_check_ignores_blank_names(dataset_path):
-    """blanks belong to the missing values issue, and would all match each other"""
+    """blanks belong to the missing values issue, and would all match each other.
+    sqlite's trim() only strips spaces, so tabs and newlines must be caught in python"""
     with spatialite.connect(dataset_path) as con:
         _insert_named(con, 1, "CA-1", "", "600001")
         _insert_named(con, 2, "CA-2", "   ", "600001")
         _insert_named(con, 3, "CA-3", None, "600001")
+        _insert_named(con, 4, "CA-4", "\t", "600001")
+        _insert_named(con, 5, "CA-5", "\n", "600001")
+        _insert_named(con, 6, "CA-6", "  \t  ", "600001")
 
     with spatialite.connect(dataset_path) as con:
         passed, message, details = duplicate_name_check(conn=con)
