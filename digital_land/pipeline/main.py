@@ -955,7 +955,7 @@ class Lookups:
                     1
                     for item in self.entries
                     if item["prefix"] == entry["prefix"]
-                    and item["organisation"] == entry["organisation"]
+                    and item.get("organisation", "") == entry.get("organisation", "")
                     and item["reference"] == entry["reference"]
                 ]
             )
