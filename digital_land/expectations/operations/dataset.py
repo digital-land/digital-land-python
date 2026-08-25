@@ -668,7 +668,7 @@ def duplicate_name_check(conn, threshold=2):
             Exposed so it can be raised from config without a code release.
     """
     query = """
-        select entity, reference, name, organisation_entity
+        select entity, reference, name, organisation_entity, dataset
         from entity
         where name is not null
             and trim(name) != ''
@@ -677,13 +677,13 @@ def duplicate_name_check(conn, threshold=2):
     rows = conn.execute(query).fetchall()
 
     groups = {}
-    for entity, reference, name, organisation_entity in rows:
+    for entity, reference, name, organisation_entity, dataset in rows:
         normalised = _normalise_name(name)
         # sqlite's trim() only strips spaces, so a tab- or newline-only name survives
         # the query. left in, every such row would group together under an empty key.
         if not normalised:
             continue
-        key = (organisation_entity, normalised)
+        key = (dataset, organisation_entity, normalised)
         # keep the raw spelling of the lowest entity id: the normalised key is not worth
         # showing to an LPA, and two rows differing only in case would otherwise look
         # identical. the order by makes which spelling wins stable across rebuilds.
@@ -701,7 +701,7 @@ def duplicate_name_check(conn, threshold=2):
                 reference for reference in group["references"] if reference
             ),
         }
-        for (organisation_entity, _), group in groups.items()
+        for (_, organisation_entity, _), group in groups.items()
         if len(group["entities"]) >= threshold
     ]
 

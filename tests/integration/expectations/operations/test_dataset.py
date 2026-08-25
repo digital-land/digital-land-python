@@ -971,11 +971,11 @@ def test_name_is_a_placeholder_check_single_string_placeholder(
     assert [failure["reference"] for failure in details["failures"]] == ["LBO-J"]
 
 
-def _insert_named(con, entity, reference, name, organisation_entity):
+def _insert_named(con, entity, reference, name, organisation_entity, dataset=None):
     con.execute(
-        "INSERT INTO entity (entity, reference, name, organisation_entity)"
-        " VALUES (?, ?, ?, ?)",
-        (entity, reference, name, organisation_entity),
+        "INSERT INTO entity (entity, reference, name, organisation_entity, dataset)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (entity, reference, name, organisation_entity, dataset),
     )
 
 
@@ -1033,6 +1033,45 @@ def test_duplicate_name_check_is_scoped_per_organisation(dataset_path):
 
     assert passed, message
     assert details["failures"] == []
+
+
+def test_duplicate_name_check_is_scoped_per_dataset(dataset_path):
+    """one connection may hold more than one dataset. the same name in two of them is
+    not a duplicate - grouping is per provision, which is dataset and organisation"""
+    with spatialite.connect(dataset_path) as con:
+        _insert_named(
+            con, 1, "A4D-1", "Town Centre", "600001", "article-4-direction-area"
+        )
+        _insert_named(con, 2, "CA-1", "Town Centre", "600001", "conservation-area")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = duplicate_name_check(conn=con)
+
+    assert passed, message
+    assert details["failures"] == []
+
+
+def test_duplicate_name_check_still_flags_within_one_dataset(dataset_path):
+    """the dataset partition must not suppress a genuine duplicate sitting alongside
+    the same name in another dataset"""
+    with spatialite.connect(dataset_path) as con:
+        _insert_named(
+            con, 1, "A4D-1", "Town Centre", "600001", "article-4-direction-area"
+        )
+        _insert_named(
+            con, 2, "A4D-2", "Town Centre", "600001", "article-4-direction-area"
+        )
+        _insert_named(con, 3, "CA-1", "Town Centre", "600001", "conservation-area")
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = duplicate_name_check(conn=con)
+
+    assert not passed, message
+    assert details["actual"] == 1
+    failure = details["failures"][0]
+    assert failure["count"] == 2
+    assert failure["entities"] == [1, 2]
+    assert failure["references"] == ["A4D-1", "A4D-2"]
 
 
 def test_duplicate_name_check_ignores_case_and_spacing(dataset_path):
