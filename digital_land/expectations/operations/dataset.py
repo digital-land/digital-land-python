@@ -641,6 +641,90 @@ def name_is_a_placeholder_check(conn, listed_building_path, placeholders=None):
     return result, message, details
 
 
+def duplicate_name_check(conn, threshold=2):
+    """
+    Checks for names reused across several entities within the same provision, i.e.
+    the same dataset and organisation. Usually means one feature was split into
+    several polygons and the parts were never distinguished.
+
+    Grouping is per organisation, not dataset-wide. The published dataset is every
+    LPA's file concatenated together, so a dataset-wide comparison flags authorities
+    for other authorities' word choices - 'City Centre' appears once each in seven
+    different councils, and none of them can act on that.
+
+    Failures are one entry per duplicated name rather than per entity, matching the
+    analysis this came from. Member entity ids are nested under 'entities' so a
+    drill-down page can page through them without re-running the check.
+
+    Matching is case- and whitespace-insensitive via _normalise_name, but not
+    otherwise fuzzy: two directions differing only by year are different names.
+
+    Blank names are not compared - they are already covered by the missing values
+    issue, and every blank would otherwise be a duplicate of every other blank.
+
+    args:
+        conn: connection to the dataset being checked, created by the checkpoint class
+        threshold: how many entities must share a name before it is reported.
+            Exposed so it can be raised from config without a code release.
+    """
+    query = """
+        select entity, reference, name, organisation_entity, dataset
+        from entity
+        where name is not null
+            and trim(name) != ''
+        order by entity
+    """
+    rows = conn.execute(query).fetchall()
+
+    groups = {}
+    for entity, reference, name, organisation_entity, dataset in rows:
+        normalised = _normalise_name(name)
+        # sqlite's trim() only strips spaces, so a tab- or newline-only name survives
+        # the query. left in, every such row would group together under an empty key.
+        if not normalised:
+            continue
+        key = (dataset, organisation_entity, normalised)
+        # keep the raw spelling of the lowest entity id: the normalised key is not worth
+        # showing to an LPA, and two rows differing only in case would otherwise look
+        # identical. the order by makes which spelling wins stable across rebuilds.
+        group = groups.setdefault(key, {"name": name, "entities": [], "references": []})
+        group["entities"].append(entity)
+        group["references"].append(reference)
+
+    failures = [
+        {
+            "organisation_entity": organisation_entity,
+            "name": group["name"],
+            "count": len(group["entities"]),
+            "entities": sorted(group["entities"]),
+            "references": sorted(
+                reference for reference in group["references"] if reference
+            ),
+        }
+        for (_, organisation_entity, _), group in groups.items()
+        if len(group["entities"]) >= threshold
+    ]
+
+    failures.sort(
+        key=lambda failure: (
+            failure["organisation_entity"] or "",
+            -failure["count"],
+            failure["name"],
+        )
+    )
+
+    result = len(failures) == 0
+    message = f"{len(failures)} names are used by {threshold} or more entities"
+    details = {
+        "failures": failures,
+        "field": "name",
+        "actual": len(failures),
+        "expected": 0,
+    }
+
+    return result, message, details
+
+
 def check_fields_required_after_plan_event(
     conn,
     fields: list,
