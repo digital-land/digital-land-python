@@ -7,6 +7,7 @@ import pandas as pd
 import urllib
 import os
 import time
+from collections import defaultdict
 from datetime import datetime
 
 
@@ -46,7 +47,7 @@ def count_lpa_boundary(
     except requests.exceptions.RequestException as err:
         passed = False
         message = f"An error occurred when retrieving lpa geometry from platform {err}"
-        details = {}
+        details = {"error": str(err)}
         return passed, message, details
 
     # now deal with spatial options
@@ -87,7 +88,7 @@ def count_lpa_boundary(
 
     # set up initial query
     query = """
-        SELECT entity
+        SELECT entity, organisation_entity
         FROM entity
         WHERE (geometry != '' OR point != '')
     """
@@ -99,6 +100,9 @@ def count_lpa_boundary(
     rows = conn.execute(query).fetchall()
     entities = [row[0] for row in rows]
     actual = len(entities)
+    # one failure per offending entity, carrying the organisation from the data rather
+    # than the optional organisation_entity parameter, which not every config row supplies
+    failures = [{"organisation_entity": row[1], "entity": row[0]} for row in rows]
 
     # compare expected to actual
     # Define comparison rules
@@ -122,6 +126,7 @@ def count_lpa_boundary(
     message = f"there were {actual} entities found"
 
     details = {
+        "failures": failures,
         "actual": actual,
         "expected": expected,
         "entities": entities,
@@ -226,10 +231,16 @@ def count_deleted_entities(
     # identify entities present in the entity table but missing from the resource
     entities = [item for item in get_entities if item not in get_active_entities]
     actual = len(entities)
+    failures = (
+        [{"organisation_entity": str(organisation_entity), "count": actual}]
+        if actual
+        else []
+    )
 
     result = bool(actual == expected)
     message = f"there were {actual} entities found"
     details = {
+        "failures": failures,
         "actual": actual,
         "expected": expected,
         "entities": entities,
@@ -455,7 +466,45 @@ def duplicate_geometry_check(conn, spatial_field: str):
         complete_matches = []
         single_matches = []
         any_matches = []
+
+    match_counts = defaultdict(
+        lambda: {"complete_matches": 0, "single_matches": 0, "any_matches": 0}
+    )
+    for match_type, matches in (
+        ("complete_matches", complete_matches),
+        ("single_matches", single_matches),
+        ("any_matches", any_matches),
+    ):
+        for match in matches:
+            for org in {
+                match["organisation_entity_a"],
+                match["organisation_entity_b"],
+            }:
+                if org in (None, ""):
+                    continue
+                match_counts[org][match_type] += 1
+
+    # any_matches are polygons that merely intersect, neither covering 95% of the other -
+    # adjacency, not duplication. an organisation with only those has nothing to act on.
+    failures = [
+        {
+            "organisation_entity": str(org),
+            "complete_matches": counts["complete_matches"],
+            "single_matches": counts["single_matches"],
+            "any_matches": counts["any_matches"],
+            "count": counts["complete_matches"] + counts["single_matches"],
+        }
+        for org, counts in match_counts.items()
+        if counts["complete_matches"] + counts["single_matches"] > 0
+    ]
+    failures.sort(
+        key=lambda failure: (-failure["count"], failure["organisation_entity"])
+    )
+
+    # a dataset with only any_matches comes back passed=False with failures=[]: it has
+    # overlaps, but none of them actionable.
     details = {
+        "failures": failures,
         "actual": len(rows),
         "expected": 0,
         "complete_matches": complete_matches,
@@ -812,6 +861,8 @@ def check_fields_required_after_plan_event(
     )
     details = {
         "failures": failures,
+        "actual": len(failures),
+        "expected": 0,
         "fields": fields,
         "plan_event": plan_event,
         "plans_past_event": len(rows),

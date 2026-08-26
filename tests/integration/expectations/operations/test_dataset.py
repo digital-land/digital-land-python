@@ -3,6 +3,7 @@ import spatialite
 import sqlite3
 import pytest
 import pandas as pd
+import requests
 
 from digital_land.expectations.operations.dataset import (
     check_columns,
@@ -1123,3 +1124,163 @@ def test_duplicate_name_check_threshold_from_config(dataset_path):
     assert not passed, message
     assert [failure["name"] for failure in details["failures"]] == ["Trio"]
     assert "3 or more entities" in message
+
+
+def test_count_lpa_boundary_failures_carry_organisation_from_the_data(
+    dataset_path, mocker
+):
+    """the organisation must come from the entity row, not the optional
+    organisation_entity parameter, which not every config row supplies"""
+    geometry = "MULTIPOLYGON(((-0.4914554581046105 53.80708847427775,-0.5012039467692374 53.773842823566696,-0.4584064520895481 53.783669118729875,-0.4914554581046105 53.80708847427775)))"  # noqa E501
+    lpa_geometry = "MULTIPOLYGON(((-0.49901924973862233 53.81622315189787,-0.5177418530633007 53.76114469621959,-0.4268378912177833 53.78454002743749,-0.49901924973862233 53.81622315189787)))"  # noqa E501
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": [1, 2],
+            "name": ["test1", "test2"],
+            "organisation_entity": [122, 456],
+            "geometry": [geometry, geometry],
+            "point": ["POINT(-0.4850078825017034 53.786407721600625)"] * 2,
+        }
+    )
+    mock_response = mocker.Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"geometry": lpa_geometry}
+    mocker.patch("requests.get", return_value=mock_response)
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="append", index=False)
+        # deliberately no organisation_entity parameter
+        passed, message, details = count_lpa_boundary(
+            conn, lpa="test", expected=2, geometric_relation="within"
+        )
+
+    assert passed, message
+    assert details["failures"] == [
+        {"organisation_entity": "122", "entity": 1},
+        {"organisation_entity": "456", "entity": 2},
+    ]
+    # retained for submit's dataset-failed-expectation-entry middleware
+    assert details["entities"] == [1, 2]
+
+
+def test_count_lpa_boundary_marks_a_failed_geometry_fetch_as_an_error(
+    dataset_path, mocker
+):
+    """a check that could not run must be distinguishable from a real finding without
+    string-matching the message"""
+    mocker.patch(
+        "requests.get",
+        side_effect=requests.exceptions.RequestException("404 Client Error"),
+    )
+
+    with spatialite.connect(dataset_path) as conn:
+        passed, message, details = count_lpa_boundary(conn, lpa="test", expected=0)
+
+    assert not passed
+    assert "error" in details
+    assert "404 Client Error" in details["error"]
+    assert "failures" not in details
+
+
+def test_count_deleted_entities_failures_carry_organisation_as_a_string(
+    dataset_path, mocker
+):
+    """one aggregated record rather than one per entity, since the check is already scoped
+    to a single organisation and the entity list can be very large. config renders
+    organisation_entity as a number, but every other check emits it as a string - a mixed
+    type would silently drop rows in the downstream join"""
+    organisation_entity = 109
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002"],
+            "name": ["test1", "test2"],
+            "organisation_entity": [109, 109],
+            "reference": ["ref1", "ref2"],
+        }
+    )
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
+            "entry_number": ["1", "1"],
+        }
+    )
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["036d2b946bd41", "16bf38800aafd"],
+            "entity": ["1001", "1001"],
+            "field": ["name", "reference"],
+            "value": ["abc", "ref1"],
+        }
+    )
+    mock_read_csv = mocker.patch("pandas.read_csv")
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+        passed, _message, details = count_deleted_entities(
+            conn,
+            expected=0,
+            organisation_entity=organisation_entity,
+            resources_cache={109: ["2f7d900dd48fd02"]},
+        )
+
+    mock_read_csv.assert_not_called()
+    assert not passed
+    assert details["failures"] == [{"organisation_entity": "109", "count": 1}]
+    # retained for reporting-task/check_deleted_entities.py
+    assert details["entities"] == ["1002"]
+
+
+def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_path):
+    """a cross-organisation pair counts for both sides, and an organisation with only
+    any_matches has nothing to act on so produces no failure record"""
+    rows = [
+        (1, "POLYGON((0 0, 0 2, 2 2, 2 0, 0 0))", 100),
+        (2, "POLYGON((0 0, 0 2, 2 2, 2 0, 0 0))", 101),
+        (3, "POLYGON((0.5 0.5, 0.5 1.5, 1.5 1.5, 1.5 0.5, 0.5 0.5))", 102),
+        (4, "POLYGON((1 1, 1 3, 3 3, 3 1, 1 1))", 103),
+    ]
+    with spatialite.connect(dataset_path) as conn:
+        for entity, geometry, organisation_entity in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, geometry, organisation_entity)"
+                " VALUES (?, ?, ?)",
+                (entity, geometry, organisation_entity),
+            )
+        conn.commit()
+        result, _message, details = duplicate_geometry_check(conn, "geometry")
+
+    assert not result
+    assert details["failures"] == [
+        {
+            "organisation_entity": "100",
+            "complete_matches": 1,
+            "single_matches": 1,
+            "any_matches": 1,
+            "count": 2,
+        },
+        {
+            "organisation_entity": "101",
+            "complete_matches": 1,
+            "single_matches": 1,
+            "any_matches": 1,
+            "count": 2,
+        },
+        {
+            "organisation_entity": "102",
+            "complete_matches": 0,
+            "single_matches": 2,
+            "any_matches": 1,
+            "count": 2,
+        },
+    ]
+    # 103 overlaps three entities but never by more than 95%, so it is not reported
+    assert "103" not in [f["organisation_entity"] for f in details["failures"]]
+    # retained for reporting-task/duplicate_geometry_expectations.py
+    assert len(details["complete_matches"]) == 1
+    assert len(details["single_matches"]) == 2
+    assert len(details["any_matches"]) == 3
