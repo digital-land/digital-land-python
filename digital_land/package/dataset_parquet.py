@@ -600,15 +600,14 @@ class DatasetParquetPackage(Package):
             SELECT {fields_str}{optional_org_str}, priority FROM (
                 SELECT {fields_str},
                 MAX(priority) OVER (PARTITION BY entity) AS priority,
-                CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date,
-                CASE WHEN resource_csv."start-date" IS NULL THEN '0001-01-01' ELSE resource_csv."start-date" END AS resource_start_date
+                CASE WHEN resource_csv."end-date" IS NULL THEN '2999-12-31' ELSE resource_csv."end-date" END AS resource_end_date
                 FROM parquet_scan('{transformed_parquet_dir}/{parquet_str}') tf
                 LEFT JOIN read_csv_auto('{resource_path}', max_line_size=40000000) resource_csv
                 ON tf.resource = resource_csv.resource
                 {entity_where_clause}
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY entity, field
-                    ORDER BY priority DESC, entry_date DESC, resource_end_date DESC, resource_start_date DESC, entry_number DESC, tf.resource, fact
+                    ORDER BY priority DESC, entry_date DESC, resource_end_date DESC, resource_csv."start-date" DESC, entry_number DESC, tf.resource, fact
                 ) = 1
             )
         """
