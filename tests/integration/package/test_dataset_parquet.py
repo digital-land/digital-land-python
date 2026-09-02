@@ -50,7 +50,7 @@ def org_path(tmp_path):
 @pytest.fixture
 def resource_path(tmp_path):
     resource_path = tmp_path / "resource.csv"
-    resource_columns = ["resource", "end-date"]
+    resource_columns = ["resource", "start-date", "end-date"]
     with open(resource_path, "w") as f:
         f.write(",".join(resource_columns) + "\n")
 
@@ -1178,3 +1178,184 @@ def test_deduplicate_buckets_creates_correct_files(tmp_path):
 
     df_01 = pd.read_parquet(result_paths[1])
     assert len(df_01) == 2, "bucket_01 has 2 distinct facts, both should be kept"
+
+
+# ---------------------------------------------------------------------------
+# Entity value selection: resource end-date vs entry-number ordering.
+#
+# The shared `resource_path` fixture above writes a header-only resource.csv, so
+# every resource left-joins to a NULL end-date and coalesces to the same
+# '2999-12-31' sentinel. That makes `resource_end_date` a constant across
+# candidate rows in those tests, so the criterion cannot discriminate and they
+# cannot tell the two orderings apart. These tests supply real resource rows.
+# ---------------------------------------------------------------------------
+
+# Two valid, distinct polygons. Compared via a marker coordinate rather than by
+# string equality because duckdb re-serialises the geometry type on output.
+STALE_GEOMETRY = "MULTIPOLYGON(((-1.135252 52.637731,-1.135319 52.637816,-1.135345 52.637806,-1.135252 52.637731)))"
+CURRENT_GEOMETRY = "MULTIPOLYGON(((-1.135252 52.637731,-1.135462 52.637966,-1.135723 52.637864,-1.135252 52.637731)))"
+
+
+def _which_geometry(value):
+    if "52.637864" in value:
+        return "current"
+    if "52.637806" in value:
+        return "stale"
+    return f"unrecognised geometry: {value}"
+
+
+@pytest.fixture
+def dated_resource_path(tmp_path):
+    """resource.csv carrying real end-dates, including one still-live resource."""
+    resource_path = tmp_path / "dated_resource.csv"
+    rows = [
+        # resource, start-date, end-date ("" end-date means still live)
+        ["res_ended_early", "2025-01-01", "2026-08-10"],
+        ["res_ended_late", "2025-06-01", "2026-08-12"],
+        ["res_live", "2026-01-01", ""],
+        ["res_live_newer", "2026-06-01", ""],
+    ]
+    with open(resource_path, "w") as f:
+        f.write("resource,start-date,end-date\n")
+        for row in rows:
+            f.write(",".join(row) + "\n")
+    return resource_path
+
+
+def _competing_geometry_rows(resources, entry_numbers, values):
+    """Two candidate geometry facts for one entity, tying on priority and entry_date."""
+    return {
+        "end_date": [np.nan] * 2,
+        "entity": [11, 11],
+        # Equal entry_date is the crux: in the reported case this is the listed
+        # building's own designation date, identical in both resources, so the
+        # tie falls straight through to the criteria under test.
+        "entry_date": ["1975-03-14"] * 2,
+        "entry_number": entry_numbers,
+        "fact": ["fact_a", "fact_b"],
+        "field": ["geometry"] * 2,
+        "reference_entity": [np.nan] * 2,
+        "resource": resources,
+        "start_date": [np.nan] * 2,
+        "value": values,
+        "priority": [2, 2],
+    }
+
+
+def _load_single_entity(data, tmp_path, org_path, resource_path):
+    """Run load_entities over one transformed frame and return the single entity row."""
+    transformed_parquet_dir = tmp_path / "transformed"
+    transformed_parquet_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame.from_dict(data).to_parquet(
+        transformed_parquet_dir / "transformed_resource.parquet", index=False
+    )
+
+    package = DatasetParquetPackage(
+        dataset="conservation-area",
+        path=tmp_path / "conservation-area",
+        specification_dir=None,
+    )
+    package.load_entities(transformed_parquet_dir, resource_path, org_path)
+
+    df = pd.read_parquet(
+        tmp_path
+        / "conservation-area"
+        / "entity"
+        / "dataset=conservation-area"
+        / "entity.parquet"
+    )
+    assert len(df) == 1, f"Expected exactly one entity, got {len(df)}"
+    return df.iloc[0]
+
+
+def test_load_entities_prefers_later_resource_over_higher_entry_number(
+    tmp_path, org_path, dated_resource_path
+):
+    """A later-ended resource wins even when its row has the lower entry_number.
+
+    Reproduces config#2945: a Leicester listed-building-outline entity kept
+    publishing its April 2025 geometry because `entry_number` was ranked above
+    `resource_end_date`, letting row position within a file decide the value
+    instead of which resource was more recent.
+    """
+    data = _competing_geometry_rows(
+        resources=["res_ended_early", "res_ended_late"],
+        entry_numbers=[99, 1],
+        values=[STALE_GEOMETRY, CURRENT_GEOMETRY],
+    )
+
+    entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
+
+    assert _which_geometry(entity["geometry"]) == "current", (
+        "Expected the value from the resource with the later end-date, but got the "
+        "earlier resource's value -- entry_number is outranking resource end-date"
+    )
+
+
+def test_load_entities_prefers_live_resource_over_ended_resource(
+    tmp_path, org_path, dated_resource_path
+):
+    """A live resource (no end-date) beats an end-dated one.
+
+    This is the production shape of config#2945: the current Leicester resource
+    carries no end-date and so coalesces to the '2999-12-31' sentinel. Every
+    other test in this file leaves end-date NULL for all resources, so that
+    branch never actually decides anything there.
+    """
+    data = _competing_geometry_rows(
+        resources=["res_ended_late", "res_live"],
+        entry_numbers=[99, 1],
+        values=[STALE_GEOMETRY, CURRENT_GEOMETRY],
+    )
+
+    entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
+
+    assert (
+        _which_geometry(entity["geometry"]) == "current"
+    ), "Expected the live resource's value to beat the end-dated resource's value"
+
+
+def test_load_entities_breaks_ties_on_entry_number_within_one_resource(
+    tmp_path, org_path, dated_resource_path
+):
+    """Within a single resource the higher entry_number still wins.
+
+    Guards the tie-breaker itself: with `resource_end_date` equal, `entry_number`
+    is the only remaining criterion that can discriminate, so dropping it from
+    the ORDER BY must not pass silently.
+    """
+    data = _competing_geometry_rows(
+        resources=["res_ended_late", "res_ended_late"],
+        entry_numbers=[1, 99],
+        values=[STALE_GEOMETRY, CURRENT_GEOMETRY],
+    )
+
+    entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
+
+    assert (
+        _which_geometry(entity["geometry"]) == "current"
+    ), "Within one resource the row with the higher entry_number should win"
+
+
+def test_load_entities_prefers_later_starting_live_resource(
+    tmp_path, org_path, dated_resource_path
+):
+    """Between two live resources, the one that started later wins.
+
+    `resource_end_date` cannot separate live resources -- they both coalesce to
+    the '2999-12-31' sentinel -- so without `resource_start_date` the decision
+    falls back to `entry_number`. Measured on production data, this is the case
+    start-date uniquely resolves (config#2945 criterion 3).
+    """
+    data = _competing_geometry_rows(
+        resources=["res_live", "res_live_newer"],
+        entry_numbers=[99, 1],
+        values=[STALE_GEOMETRY, CURRENT_GEOMETRY],
+    )
+
+    entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
+
+    assert _which_geometry(entity["geometry"]) == "current", (
+        "Both resources are live so end-date ties; expected the later-starting "
+        "resource to win, but entry_number decided it"
+    )

@@ -607,7 +607,7 @@ class DatasetParquetPackage(Package):
                 {entity_where_clause}
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY entity, field
-                    ORDER BY priority DESC, entry_date DESC, entry_number DESC, resource_end_date DESC, tf.resource, fact
+                    ORDER BY priority DESC, entry_date DESC, resource_end_date DESC, resource_csv."start-date" DESC, entry_number DESC, tf.resource, fact
                 ) = 1
             )
         """

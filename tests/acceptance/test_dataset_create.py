@@ -254,7 +254,7 @@ def issue_dir(session_tmp_path):
 @pytest.fixture
 def resource_path(session_tmp_path):
     resource_path = session_tmp_path / "resource.csv"
-    columns = ["resource", "end-date"]
+    columns = ["resource", "start-date", "end-date"]
     with open(resource_path, "w") as f:
         f.write(",".join(columns) + "\n")
     return resource_path
