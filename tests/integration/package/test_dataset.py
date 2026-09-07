@@ -565,6 +565,8 @@ def test_insert_newest_date(
             "priority": None,
             "resource": "",
             "start_date": "",
+            "entity": 44006677,
+            "field": "name",
         },
         {
             "end_date": "",
@@ -574,6 +576,8 @@ def test_insert_newest_date(
             "priority": None,
             "resource": "",
             "start_date": "",
+            "entity": 44006677,
+            "field": "name",
         },
     ]
 
@@ -609,6 +613,8 @@ def test_insert_newest_date(
             "priority": None,
             "resource": "",
             "start_date": "",
+            "entity": 44006677,
+            "field": "name",
         },
         {
             "end_date": "",
@@ -618,6 +624,8 @@ def test_insert_newest_date(
             "priority": None,
             "resource": "",
             "start_date": "",
+            "entity": 44006677,
+            "field": "name",
         },
     ]
 
