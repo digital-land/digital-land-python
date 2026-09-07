@@ -7,9 +7,11 @@ import os
 import json
 import pyarrow.parquet as pq
 import pyarrow as pa
-from digital_land.package.dataset_parquet import DatasetParquetPackage
 import random
 import string
+
+from digital_land.package.dataset_parquet import DatasetParquetPackage
+from digital_land.specification import Specification
 
 
 class MockOrganisation(object):
@@ -293,6 +295,14 @@ transformed_2_data = {
 }
 
 
+def fact_resource_fields():
+    """fact-resource field names, underscored, in specification order."""
+    return [
+        field.replace("-", "_")
+        for field in Specification().schema["fact-resource"]["fields"]
+    ]
+
+
 @pytest.fixture
 def dataset_sqlite_path(tmp_path):
     """
@@ -337,16 +347,17 @@ def dataset_sqlite_path(tmp_path):
             );
     """
     )
+    # Built from the specification rather than hardcoded, so this fixture tracks
+    # fact-resource gaining or losing fields without needing an edit here.
+    integer_fields = {"entry_number", "priority", "entity"}
+    fact_resource_columns = ",\n            ".join(
+        f"{name} {'INTEGER' if name in integer_fields else 'TEXT'}"
+        for name in fact_resource_fields()
+    )
     conn.execute(
-        """
+        f"""
         CREATE TABLE fact_resource(
-            end_date TEXT,
-            fact TEXT,
-            entry_date TEXT,
-            entry_number INTEGER,
-            priority INTEGER,
-            resource TEXT,
-            start_date TEXT,
+            {fact_resource_columns},
             FOREIGN KEY(fact) REFERENCES fact(fact)
         );
     """
@@ -397,7 +408,13 @@ def test_load_facts_single_file(data: dict, expected: int, tmp_path):
     assert (
         len(df) == expected
     ), "No. of facts does not match expected"  # No of unique facts
-    assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize(
@@ -442,7 +459,13 @@ def test_load_facts_multiple_files(data1, data2, expected, tmp_path):
     assert (
         len(df) == expected
     ), "No. of facts does not match expected"  # No of unique facts
-    assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize("data,expected", [(transformed_1_data, 16)])
@@ -497,7 +520,13 @@ def test_load_facts_one_file_with_empty_file(data, expected, tmp_path):
     assert (
         len(df) == expected
     ), "No. of facts does not match expected"  # No of unique facts
-    assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize(
@@ -581,7 +610,13 @@ def test_load_functions_batch(
     assert (
         len(df) == expected_facts
     ), "No. of facts does not match expected"  # No of unique facts
-    assert df.shape[1] == 9, "Not all columns saved in fact.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact.parquet columns do not match the specification"
 
     # test fact_resource
     output_file = (
@@ -598,7 +633,13 @@ def test_load_functions_batch(
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected_facts, "Not all data saved in fact-resource.parquet file"
 
-    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact-resource"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact-resource.parquet columns do not match the specification"
 
     # test entities
     output_file = (
@@ -648,7 +689,13 @@ def test_load_fact_resource_single_file(data, expected, tmp_path):
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected, "Not all data saved in fact-resource.parquet file"
 
-    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact-resource"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact-resource.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize(
@@ -689,7 +736,13 @@ def test_load_fact_resource_two_filea(data_1, data_2, expected, tmp_path):
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected, "Not all data saved in fact-resource.parquet file"
 
-    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact-resource"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact-resource.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize("data,expected", [(transformed_1_data, 16)])
@@ -742,7 +795,13 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected, "Not all data saved in fact-resource.parquet file"
 
-    assert df.shape[1] == 7, "Not all columns saved in fact-resource.parquet file"
+    expected_columns = [
+        field.replace("-", "_")
+        for field in package.specification.schema["fact-resource"]["fields"]
+    ]
+    assert (
+        list(df.columns) == expected_columns
+    ), "fact-resource.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize(
@@ -866,6 +925,8 @@ def test_load_entities_single_file(
                 "priority": [1],
                 "resource": [""],
                 "start_date": [1],
+                "entity": [1],
+                "field": [""],
             },
             {
                 "entity": [1],
@@ -897,7 +958,9 @@ def test_load_pq_to_sqlite_basic(
     )
     # write data to parquet files in the dataset path
     fact_df = pd.DataFrame.from_dict(fact_data)
-    fact_resource_df = pd.DataFrame.from_dict(fact_resource_data)
+    fact_resource_df = pd.DataFrame.from_dict(fact_resource_data)[
+        fact_resource_fields()
+    ]
     entity_df = pd.DataFrame.from_dict(entity_data)
 
     (dataset_parquet_path / "fact" / "dataset=conservation-area").mkdir(
