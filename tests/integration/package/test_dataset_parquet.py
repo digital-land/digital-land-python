@@ -7,9 +7,11 @@ import os
 import json
 import pyarrow.parquet as pq
 import pyarrow as pa
-from digital_land.package.dataset_parquet import DatasetParquetPackage
 import random
 import string
+
+from digital_land.package.dataset_parquet import DatasetParquetPackage
+from digital_land.specification import Specification
 
 
 class MockOrganisation(object):
@@ -293,6 +295,14 @@ transformed_2_data = {
 }
 
 
+def fact_resource_fields():
+    """fact-resource field names, underscored, in specification order."""
+    return [
+        field.replace("-", "_")
+        for field in Specification().schema["fact-resource"]["fields"]
+    ]
+
+
 @pytest.fixture
 def dataset_sqlite_path(tmp_path):
     """
@@ -337,16 +347,17 @@ def dataset_sqlite_path(tmp_path):
             );
     """
     )
+    # Built from the specification rather than hardcoded, so this fixture tracks
+    # fact-resource gaining or losing fields without needing an edit here.
+    integer_fields = {"entry_number", "priority", "entity"}
+    fact_resource_columns = ",\n            ".join(
+        f"{name} {'INTEGER' if name in integer_fields else 'TEXT'}"
+        for name in fact_resource_fields()
+    )
     conn.execute(
-        """
+        f"""
         CREATE TABLE fact_resource(
-            end_date TEXT,
-            fact TEXT,
-            entry_date TEXT,
-            entry_number INTEGER,
-            priority INTEGER,
-            resource TEXT,
-            start_date TEXT,
+            {fact_resource_columns},
             FOREIGN KEY(fact) REFERENCES fact(fact)
         );
     """
@@ -914,6 +925,8 @@ def test_load_entities_single_file(
                 "priority": [1],
                 "resource": [""],
                 "start_date": [1],
+                "entity": [1],
+                "field": [""],
             },
             {
                 "entity": [1],
@@ -945,7 +958,9 @@ def test_load_pq_to_sqlite_basic(
     )
     # write data to parquet files in the dataset path
     fact_df = pd.DataFrame.from_dict(fact_data)
-    fact_resource_df = pd.DataFrame.from_dict(fact_resource_data)
+    fact_resource_df = pd.DataFrame.from_dict(fact_resource_data)[
+        fact_resource_fields()
+    ]
     entity_df = pd.DataFrame.from_dict(entity_data)
 
     (dataset_parquet_path / "fact" / "dataset=conservation-area").mkdir(
