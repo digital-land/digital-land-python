@@ -31,14 +31,12 @@ class LookupPhase(Phase):
         lookups={},
         redirect_lookups={},
         issue_log=None,
-        operational_issue_log=None,
         entity_range=[],
         lookup_rules=None,
     ):
         self.lookups = lookups
         self.redirect_lookups = redirect_lookups
         self.issues = issue_log
-        self.operational_issues = operational_issue_log
         self.reverse_lookups = self.build_reverse_lookups()
         self.entity_range = entity_range
         self.lookup_rules = lookup_rules or []
@@ -174,13 +172,6 @@ class LookupPhase(Phase):
                 curie,
                 line_number=line_number,
             )
-            if self.operational_issues:
-                self.operational_issues.log_issue(
-                    "entity",
-                    "unknown entity",
-                    curie,
-                    line_number=line_number,
-                )
 
     def process(self, stream):
         for block in stream:
@@ -211,13 +202,6 @@ class LookupPhase(Phase):
                                     curie,
                                     line_number=line_number,
                                 )
-                                if self.operational_issues:
-                                    self.operational_issues.log_issue(
-                                        "entity",
-                                        "unknown entity",
-                                        curie,
-                                        line_number=line_number,
-                                    )
                     else:
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]
@@ -248,7 +232,6 @@ class EntityLookupPhase(LookupPhase):
         lookups={},
         redirect_lookups={},
         issue_log=None,
-        operational_issue_log=None,
         entity_range=[],
         lookup_rules=None,
         providers=None,
@@ -264,7 +247,6 @@ class EntityLookupPhase(LookupPhase):
             lookups=lookups,
             redirect_lookups=redirect_lookups,
             issue_log=issue_log,
-            operational_issue_log=operational_issue_log,
             entity_range=entity_range,
             lookup_rules=lookup_rules,
         )

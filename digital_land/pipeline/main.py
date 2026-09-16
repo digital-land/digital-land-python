@@ -42,7 +42,6 @@ from digital_land.log import (
     DatasetResourceLog,
     IssueLog,
     ColumnFieldLog,
-    OperationalIssueLog,
     ConvertedResourceLog,
 )
 
@@ -494,9 +493,6 @@ class Pipeline:
     def init_logs(self, dataset, resource):
         self._status = PipelineStatus.RUNNING
         self.issue_log = IssueLog(dataset=dataset, resource=resource)
-        self.operational_issue_log = OperationalIssueLog(
-            dataset=dataset, resource=resource
-        )
         self.column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
         self.dataset_resource_log = DatasetResourceLog(
             dataset=dataset, resource=resource
@@ -522,7 +518,6 @@ class Pipeline:
     def save_logs(
         self,
         issue_path=None,
-        operational_issue_path=None,
         column_field_path=None,
         dataset_resource_path=None,
         converted_resource_path=None,
@@ -542,8 +537,6 @@ class Pipeline:
             if issue_path:
                 self.issue_log.apply_entity_map()
                 self.issue_log.save(issue_path)
-            if operational_issue_path:
-                self.operational_issue_log.save(operational_issue_path)
             if column_field_path:
                 self.column_field_log.save(column_field_path)
             if dataset_resource_path:
@@ -712,7 +705,6 @@ class Pipeline:
                         lookups=lookups,
                         redirect_lookups=redirect_lookups,
                         issue_log=self.issue_log,
-                        operational_issue_log=self.operational_issue_log,
                         entity_range=[entity_range_min, entity_range_max],
                         lookup_rules=lookup_rules,
                         providers=organisations,

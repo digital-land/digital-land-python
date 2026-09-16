@@ -25,7 +25,6 @@ from digital_land.log import (
     DatasetResourceLog,
     IssueLog,
     ColumnFieldLog,
-    OperationalIssueLog,
     ConvertedResourceLog,
 )
 from digital_land.organisation import Organisation
@@ -132,15 +131,6 @@ def collection_save_csv(collection_dir, refill_todays_logs=False):
     collection.save_csv()
 
 
-def operational_issue_save_csv(operational_issue_dir, dataset):
-    operationalIssues = OperationalIssueLog(
-        operational_issue_dir=operational_issue_dir, dataset=dataset
-    )
-    operationalIssues.load()
-    operationalIssues.update()
-    operationalIssues.save_csv()
-
-
 def collection_retire_endpoints_and_sources(
     config_collections_dir, endpoints_sources_to_retire_csv_path
 ):
@@ -216,7 +206,6 @@ def pipeline_run(
     output_path: Path,
     collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
     issue_dir=None,
-    operational_issue_dir="performance/operational_issue/",
     organisation_path=None,
     save_harmonised=False,
     #  TBD save all logs in  a log directory, this will mean only one path passed in.
@@ -284,7 +273,6 @@ def pipeline_run(
     # Save logs in pipeline
     pipeline.save_logs(
         issue_path=os.path.join(issue_dir, resource + ".csv"),
-        operational_issue_path=os.path.join(operational_issue_dir, resource + ".csv"),
         column_field_path=os.path.join(column_field_dir, resource + ".csv"),
         dataset_resource_path=os.path.join(dataset_resource_dir, resource + ".csv"),
         converted_resource_path=os.path.join(converted_resource_dir, resource + ".csv"),
@@ -982,9 +970,6 @@ def add_data(
         converted_resource_dir = add_data_cache_dir / "converted_resource/"
         converted_dir = add_data_cache_dir / "converted/"
         output_log_dir = add_data_cache_dir / "log/"
-        operational_issue_dir = (
-            add_data_cache_dir / "performance/ " / "operational_issue/"
-        )
         output_path = (
             add_data_cache_dir
             / "transformed/"
@@ -999,7 +984,6 @@ def add_data(
         converted_resource_dir.mkdir(parents=True, exist_ok=True)
         converted_dir.mkdir(parents=True, exist_ok=True)
         output_log_dir.mkdir(parents=True, exist_ok=True)
-        operational_issue_dir.mkdir(parents=True, exist_ok=True)
         print("======================================================================")
         print("Run pipeline")
         print("======================================================================")
@@ -1012,7 +996,6 @@ def add_data(
                 output_path=output_path,
                 collection_dir=collection_dir,
                 issue_dir=issue_dir,
-                operational_issue_dir=operational_issue_dir,
                 column_field_dir=column_field_dir,
                 dataset_resource_dir=dataset_resource_dir,
                 converted_resource_dir=converted_resource_dir,
@@ -1103,7 +1086,6 @@ def add_data(
                     output_path=output_path,
                     collection_dir=collection_dir,
                     issue_dir=issue_dir,
-                    operational_issue_dir=operational_issue_dir,
                     column_field_dir=column_field_dir,
                     dataset_resource_dir=dataset_resource_dir,
                     converted_resource_dir=converted_resource_dir,
@@ -1700,9 +1682,6 @@ def check_and_assign_entities(
     converted_resource_dir = assign_entities_cache_dir / "converted_resource/"
     converted_dir = assign_entities_cache_dir / "converted/"
     output_log_dir = assign_entities_cache_dir / "log/"
-    operational_issue_dir = (
-        assign_entities_cache_dir / "performance " / "operational_issue/"
-    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     issue_dir.mkdir(parents=True, exist_ok=True)
@@ -1711,7 +1690,6 @@ def check_and_assign_entities(
     converted_resource_dir.mkdir(parents=True, exist_ok=True)
     converted_dir.mkdir(parents=True, exist_ok=True)
     output_log_dir.mkdir(parents=True, exist_ok=True)
-    operational_issue_dir.mkdir(parents=True, exist_ok=True)
 
     cache_pipeline_dir = assign_entities_cache_dir / collection.name / "pipeline"
     copy_tree(str(pipeline_dir), str(cache_pipeline_dir))
@@ -1738,7 +1716,6 @@ def check_and_assign_entities(
             output_path=output_path,
             collection_dir=collection_dir,
             issue_dir=issue_dir,
-            operational_issue_dir=operational_issue_dir,
             column_field_dir=column_field_dir,
             dataset_resource_dir=dataset_resource_dir,
             converted_resource_dir=converted_resource_dir,

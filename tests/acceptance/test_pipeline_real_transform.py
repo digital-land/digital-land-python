@@ -129,9 +129,6 @@ def _download_real_resource_and_transform(test_dirs, resource_hash, dataset):
     # Save logs in pipeline
     pipeline.save_logs(
         issue_path=os.path.join(test_dirs["issues_log_dir"], resource_hash + ".csv"),
-        operational_issue_path=os.path.join(
-            test_dirs["operational_issues_dir"], resource_hash + ".csv"
-        ),
         column_field_path=os.path.join(
             test_dirs["column_field_dir"], resource_hash + ".csv"
         ),
@@ -171,8 +168,6 @@ def transformed_resource(request, test_dirs):
         "resource_path": resource_path,
         "source_path": source_path,
         "issue_path": test_dirs["issues_log_dir"] / f"{resource_hash}.csv",
-        "operational_issue_path": test_dirs["operational_issues_dir"]
-        / f"{resource_hash}.csv",
         "column_field_path": test_dirs["column_field_dir"] / f"{resource_hash}.csv",
         "dataset_resource_path": test_dirs["dataset_resource_dir"]
         / f"{resource_hash}.csv",
@@ -185,7 +180,6 @@ def test_files_created(transformed_resource):
     transformed_path = transformed_resource["transformed_path"]
     expected_transformed_path = transformed_resource["expected_transformed_path"]
     issue_path = transformed_resource["issue_path"]
-    operational_issue_path = transformed_resource["operational_issue_path"]
     column_field_path = transformed_resource["column_field_path"]
     dataset_resource_path = transformed_resource["dataset_resource_path"]
     source_path = transformed_resource["source_path"]
@@ -202,9 +196,6 @@ def test_files_created(transformed_resource):
         expected_transformed_path.exists()
     ), f"Expected transformed file {expected_transformed_path} does not exist"
     assert issue_path.exists(), f"Issue log file {issue_path} does not exist"
-    assert (
-        operational_issue_path.exists()
-    ), f"Operational issue log file {operational_issue_path} does not exist"
     assert (
         column_field_path.exists()
     ), f"Column field log file {column_field_path} does not exist"
