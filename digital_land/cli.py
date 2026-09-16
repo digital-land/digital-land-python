@@ -19,7 +19,6 @@ from digital_land.commands import (
     dataset_dump,
     dataset_dump_flattened,
     collection_save_csv,
-    operational_issue_save_csv,
     convert,
     dataset_create,
     dataset_update,
@@ -36,7 +35,6 @@ from digital_land.commands import (
 from digital_land.command_arguments import (
     collection_dir,
     config_collections_dir,
-    operational_issue_dir,
     organisation_path,
     input_output_path,
     issue_dir,
@@ -174,16 +172,6 @@ def collection_pipeline_makerules_cmd(
 @collection_dir
 def collection_save_csv_cmd(collection_dir, refill_todays_logs):
     return collection_save_csv(collection_dir, refill_todays_logs)
-
-
-@cli.command(
-    "operational-issue-save-csv", short_help="save Operational Issues as CSV package"
-)
-@operational_issue_dir
-@click.pass_context
-def operational_issue_save_csv_cmd(ctx, operational_issue_dir):
-    dataset = ctx.obj["DATASET"]
-    return operational_issue_save_csv(operational_issue_dir, dataset)
 
 
 #
@@ -338,7 +326,6 @@ def dataset_dump_flattened_cmd(ctx, input_path, output_path):
 @converted_resource_dir
 @organisation_path
 @collection_dir
-@operational_issue_dir
 @output_log_dir
 @click.pass_context
 def pipeline_command(
@@ -356,7 +343,6 @@ def pipeline_command(
     entry_date,
     cache_dir,
     collection_dir,
-    operational_issue_dir,
     config_path,
     resource,
     output_log_dir,
@@ -376,7 +362,6 @@ def pipeline_command(
         output_path,
         collection_dir=collection_dir,
         issue_dir=issue_dir,
-        operational_issue_dir=operational_issue_dir,
         column_field_dir=column_field_dir,
         dataset_resource_dir=dataset_resource_dir,
         converted_resource_dir=converted_resource_dir,

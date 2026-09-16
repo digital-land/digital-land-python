@@ -89,8 +89,6 @@ def test_transformation_performance(
     # create logs
     issue_dir = data_dir / "issues" / dataset
     issue_dir.mkdir(parents=True, exist_ok=True)
-    operational_issue_dir = data_dir / "performance" / "operational_issues"
-    operational_issue_dir.mkdir(parents=True, exist_ok=True)
     column_field_dir = cache_dir / "column_field" / dataset
     column_field_dir.mkdir(parents=True, exist_ok=True)
     dataset_resource_dir = cache_dir / "dataset_resource" / dataset
@@ -127,7 +125,6 @@ def test_transformation_performance(
         output_path=output_path,
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
         issue_dir=issue_dir,
-        operational_issue_dir=operational_issue_dir,
         organisation_path=org_path,
         save_harmonised=False,
         column_field_dir=column_field_dir,

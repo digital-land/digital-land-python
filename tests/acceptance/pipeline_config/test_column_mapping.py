@@ -123,7 +123,6 @@ def test_pipeline_run(test_dirs):
     output_path = test_dirs["pipeline_dir"] / f"{test_resource}.csv"
     collection_dir = test_dirs["collection_dir"]
     issue_dir = test_dirs["issues_log_dir"]
-    operational_issue_dir = test_dirs["operational_issues_dir"]
     organisation_path = "tests/data/listed-building/organisation.csv"
     dataset_resource_dir = test_dirs["dataset_resource_dir"]
     converted_resource_dir = test_dirs["converted_resource_dir"]
@@ -139,7 +138,6 @@ def test_pipeline_run(test_dirs):
         output_path=output_path,
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
         issue_dir=issue_dir,
-        operational_issue_dir=operational_issue_dir,
         organisation_path=organisation_path,
         save_harmonised=False,
         column_field_dir=test_dirs["column_field_dir"],
@@ -246,7 +244,6 @@ def test_pipeline_run_with_default_values(test_dirs):
     output_path = test_dirs["pipeline_dir"] / f"{test_resource}.csv"
     collection_dir = test_dirs["collection_dir"]
     issue_dir = test_dirs["issues_log_dir"]
-    operational_issue_dir = test_dirs["operational_issues_dir"]
     organisation_path = "tests/data/listed-building/organisation.csv"
     dataset_resource_dir = test_dirs["dataset_resource_dir"]
     converted_resource_dir = test_dirs["converted_resource_dir"]
@@ -262,7 +259,6 @@ def test_pipeline_run_with_default_values(test_dirs):
         output_path=output_path,
         collection_dir=collection_dir,  # TBD: remove, replaced by endpoints, organisations and entry_date
         issue_dir=issue_dir,
-        operational_issue_dir=operational_issue_dir,
         organisation_path=organisation_path,
         save_harmonised=False,
         column_field_dir=test_dirs["column_field_dir"],

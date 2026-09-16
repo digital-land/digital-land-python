@@ -118,8 +118,6 @@ def test_pipeline_command_runs_successfully(
             str(test_dirs["cache_dir"]),
             "--collection-dir",
             str(test_dirs["collection_dir"]),
-            "--operational-issue-dir",
-            str(test_dirs["operational_issues_dir"]),
             "--output-log-dir",
             str(output_log_dir),
             "--config-path",
