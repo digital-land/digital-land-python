@@ -579,6 +579,7 @@ class Pipeline:
         resource: str,
         valid_category_values: Dict,
         endpoints: Optional[List[str]] = None,
+        endpoint_plugins: Optional[List[str]] = None,
         organisations: Optional[List[str]] = None,
         entry_date: str = "",
         converted_path: Optional[str] = None,
@@ -598,6 +599,8 @@ class Pipeline:
             resource (str): Resource file identifier (hash), TBD can be removed.
             valid_category_values (dict): Dictionary of valid category values per field from the API/specification.
             endpoints (list, optional): List of endpoint hashes/identifiers for this resource. Defaults to None.
+            endpoint_plugins (list, optional): Collector plugins used by those endpoints, e.g. ["arcgis"]. Lets date
+                values be decoded by their known encoding instead of inferred. Defaults to None.
             organisations (list, optional): List of organisation codes/identifiers associated with the resource. Defaults to None.
                 If one is passed it becomes the default organisation for every row; if more than one, no default is applied and
                 EntityLookupPhase resolves the entity once per organisation.
@@ -615,6 +618,7 @@ class Pipeline:
             logging.info("Pipeline running without config set")
 
         endpoints = endpoints or []
+        endpoint_plugins = endpoint_plugins or []
         organisations = organisations or []
 
         dataset = self.name
@@ -677,6 +681,7 @@ class Pipeline:
                 issues=self.issue_log,
                 dataset=dataset,
                 valid_category_values=valid_category_values,
+                endpoint_plugins=endpoint_plugins,
             ),
             DefaultPhase(
                 default_fields=default_fields,

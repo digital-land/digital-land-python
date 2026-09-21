@@ -404,3 +404,39 @@ def test_harmonise_geox_geoy():
 
     assert len(issues.rows) == 1
     assert "out of bounds" in issues.rows[0]["issue-type"]
+
+
+@pytest.mark.parametrize(
+    "endpoint_plugins,expected",
+    [
+        (["arcgis"], "1970-01-01"),
+        (["arcgis", ""], "1970-01-01"),
+        (["wfs", "arcgis"], "1970-01-01"),
+        ([], ""),
+        ([""], ""),
+        (["wfs"], ""),
+    ],
+)
+def test_harmonise_uses_the_arcgis_encoding_when_any_endpoint_supplies_it(
+    endpoint_plugins, expected
+):
+    """A resource can be collected from more than one endpoint and those endpoints need not share
+    a plugin, so this has to make a choice. ArcGIS wins if any of them used it: requiring all of
+    them would leave a single mixed resource still guessing, which is the behaviour being removed.
+    """
+    h = HarmonisePhase(
+        field_datatype_map={"start-date": "datetime"},
+        issues=IssueLog(),
+        endpoint_plugins=endpoint_plugins,
+    )
+
+    assert h.harmonise_field("start-date", "0") == expected
+
+
+def test_harmonise_defaults_to_no_endpoint_plugins():
+    """Every existing caller omits endpoint_plugins, so the default has to leave behaviour
+    exactly as it was."""
+    h = HarmonisePhase(field_datatype_map={"start-date": "datetime"}, issues=IssueLog())
+
+    assert h.endpoint_plugins == set()
+    assert h.date_plugin() == ""

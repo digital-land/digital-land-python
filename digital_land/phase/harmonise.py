@@ -138,17 +138,27 @@ class HarmonisePhase(Phase):
         issues=None,
         dataset=None,
         valid_category_values={},  # { field: list of valid values }
+        endpoint_plugins=(),  # collector plugins of the endpoints this resource came from
     ):
         self.field_datatype_map = field_datatype_map
         self.issues = issues
         self.dataset = dataset
         self.valid_category_values = valid_category_values
+        self.endpoint_plugins = set(endpoint_plugins)
 
     def get_field_datatype_name(self, fieldname):
         try:
             return self.field_datatype_map[fieldname]
         except KeyError:
             raise ValueError(f"field {fieldname} does not have a datatype mapping")
+
+    def date_plugin(self):
+        """The collector plugin to interpret date values with, or "" to fall back to guessing.
+
+        A resource can be collected from more than one endpoint and those endpoints need not share
+        a plugin, so this has to make a choice.
+        """
+        return "arcgis" if "arcgis" in self.endpoint_plugins else ""
 
     def harmonise_field(self, fieldname, value):
         if not value:
@@ -164,6 +174,7 @@ class HarmonisePhase(Phase):
                 datatype_name=datatype_name,
                 far_past_date=far_past_date,
                 far_future_date=far_future_date,
+                plugin=self.date_plugin(),
             )
         # for datetimes add default far past and far future issue types
         else:

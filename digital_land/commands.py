@@ -20,7 +20,7 @@ import duckdb
 from digital_land.package.organisation import OrganisationPackage
 from digital_land.specification import Specification
 from digital_land.collect import Collector, FetchStatus
-from digital_land.collection import Collection, resource_path
+from digital_land.collection import Collection, endpoint_plugins_for, resource_path
 from digital_land.log import (
     DatasetResourceLog,
     IssueLog,
@@ -252,6 +252,10 @@ def pipeline_run(
         organisations = collection.resource_organisations(resource)
         entry_date = collection.resource_start_date(resource)
 
+    # the collector plugin behind each endpoint, so ArcGIS date values can be decoded rather
+    # than guessed at - see DateDataType.normalise()
+    endpoint_plugins = endpoint_plugins_for(collection_dir, endpoints)
+
     api = API(specification=specification)
     valid_category_values = api.get_valid_category_values(dataset, pipeline)
 
@@ -261,6 +265,7 @@ def pipeline_run(
         output_path=output_path,
         organisation=organisation,
         endpoints=endpoints,
+        endpoint_plugins=endpoint_plugins,
         organisations=organisations,
         entry_date=entry_date,
         resource=resource,

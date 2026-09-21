@@ -1,18 +1,23 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from .datatype import DataType
+
+EPOCH = datetime(1970, 1, 1)
 
 
 class DateDataType(DataType):
 
-    def __init__(self, far_past_date=None, far_future_date=None):
+    def __init__(self, far_past_date=None, far_future_date=None, plugin=""):
         """
         far_past_cutoff: dates strictly before this log 'far-past-date'
         future_years_ahead: how many years ahead from 'today' counts as far-future
         today_provider: callable returning today's date (inject in tests for determinism)
+        plugin: the collector plugin behind the endpoint this value came from, where known.
+            "arcgis" tells us the encoding outright - see the %s branch in normalise()
         """
         self.far_past_date = far_past_date
         self.far_future_date = far_future_date
+        self.plugin = plugin
 
     def normalise(self, fieldvalue, issues=None):
         value = fieldvalue.strip().strip('",')
@@ -78,6 +83,15 @@ class DateDataType(DataType):
                 if pattern == "%s":
                     if not timestamp_pattern.fullmatch(value):
                         continue
+
+                    # ArcGIS REST always encodes dates as Unix milliseconds, so where the endpoint
+                    # was collected with that plugin there is nothing to infer. The heuristic below
+                    # exists only for the general case, and its nine-digit floor silently rejects
+                    # everything near the epoch - 0 (1970-01-01), any negative pre-epoch value, and
+                    # in fact every seconds timestamp before March 1973.
+                    if self.plugin == "arcgis":
+                        date = EPOCH + timedelta(milliseconds=float(value))
+                        break
 
                     int_part = value.split(".", 1)[0].lstrip("+-")
                     if len(int_part) not in (9, 10, 11, 12, 13):
