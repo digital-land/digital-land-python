@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 from digital_land.commands import collection_save_csv
-from digital_land.collection import Collection
+from digital_land.collection import Collection, endpoint_plugins_for
 
 
 def _get_filename_without_suffix_from_path(path):
@@ -814,3 +814,52 @@ def test_filter_sources_pipeline_filter(tmp_path):
 
     assert len(filtered_sources) == 1
     assert all("test4" in source["pipelines"] for source in filtered_sources)
+
+
+@pytest.fixture
+def endpoint_csv_dir(tmp_path):
+    """A collection directory holding just an endpoint.csv, with one endpoint per plugin."""
+    with open(tmp_path / "endpoint.csv", "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["endpoint", "endpoint-url", "plugin", "entry-date", "end-date"],
+        )
+        writer.writeheader()
+        for endpoint, plugin in [("aaa", "arcgis"), ("bbb", ""), ("ccc", "wfs")]:
+            writer.writerow(
+                {
+                    "endpoint": endpoint,
+                    "endpoint-url": f"https://example.com/{endpoint}",
+                    "plugin": plugin,
+                    "entry-date": "2024-09-13T00:00:00Z",
+                    "end-date": "",
+                }
+            )
+    return tmp_path
+
+
+@pytest.mark.parametrize(
+    "endpoints,expected",
+    [
+        (["aaa"], {"arcgis"}),
+        (["ccc"], {"wfs"}),
+        (["bbb"], set()),  # a plugin-less endpoint contributes nothing
+        (["aaa", "bbb"], {"arcgis"}),  # a mixed resource still reports arcgis
+        (["bbb", "ccc"], {"wfs"}),
+        (["zzz"], set()),  # unknown hash
+        ([], set()),
+    ],
+)
+def test_endpoint_plugins_for(endpoint_csv_dir, endpoints, expected):
+    assert endpoint_plugins_for(endpoint_csv_dir, endpoints) == expected
+
+
+def test_endpoint_plugins_for_missing_file_degrades_rather_than_raising(
+    tmp_path, caplog
+):
+    """pipeline_run calls this on every transform, so a collection directory without an
+    endpoint.csv must fall back to the existing guessing behaviour rather than fail the run -
+    but it has to say so, because silently losing the plugin would reinstate the bug invisibly.
+    """
+    assert endpoint_plugins_for(tmp_path / "not-a-collection", ["aaa"]) == set()
+    assert "endpoint.csv" in caplog.text

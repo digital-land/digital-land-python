@@ -721,3 +721,25 @@ class Collection:
                 f"{source_url}/{csv}",
                 path / csv,
             )
+
+
+def endpoint_plugins_for(directory, endpoints):
+    """The set of collector plugins used by the given endpoint hashes.
+
+    Reads endpoint.csv on its own rather than loading a whole Collection: pipeline_run only builds
+    one when it has to derive the endpoints itself, and the log and resource stores are not wanted
+    here. Returns an empty set if endpoint.csv cannot be read, so a missing file degrades to the
+    existing guessing behaviour rather than failing the transform - but says so in the log.
+    """
+    try:
+        store = EndpointStore()
+        store.load(directory=directory)
+    except FileNotFoundError:
+        logging.warning(
+            "no endpoint.csv under %s, date values will fall back to guessing",
+            directory,
+        )
+        return set()
+
+    plugins = {entry["endpoint"]: entry.get("plugin", "") for entry in store.entries}
+    return {plugins.get(endpoint, "") for endpoint in endpoints} - {""}
