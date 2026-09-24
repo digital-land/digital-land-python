@@ -4,6 +4,7 @@ from shapely.validation import explain_validity, make_valid
 import pytest
 
 from digital_land.datatype.wkt import WktDataType
+from digital_land.datatype.multipolygon import MultiPolygonDataType
 from digital_land.log import IssueLog
 from shapely.geometry import MultiPolygon
 
@@ -22,6 +23,24 @@ def test_normalise_returns_empty_geometry():
     issue_log = IssueLog()
     output_wkt = WktDataType().normalise(input_wkt, issues=issue_log)
     assert output_wkt == ""
+    # the geometry is dropped, so the reason must be logged rather than lost
+    assert issue_log.rows[-1]["issue-type"] == "invalid geometry - not fixable"
+    assert issue_log.rows[-1]["value"].startswith("Too few points")
+
+
+def test_normalise_logs_not_fixable_when_ring_collapses_to_a_line():
+    # a circle published as centre -> edge -> centre, as seen in config#2860.
+    # make_valid turns it into a LineString, which cannot be kept as a polygon
+    input_wkt = (
+        "POLYGON ((423802.93 567226.36, 423792.93 567226.36, 423802.93 567226.36))"
+    )
+    issue_log = IssueLog()
+    output_wkt = MultiPolygonDataType().normalise(input_wkt, issues=issue_log)
+    assert output_wkt == ""
+    assert [row["issue-type"] for row in issue_log.rows] == [
+        "OSGB",
+        "invalid geometry - not fixable",
+    ]
 
 
 @pytest.mark.parametrize(
