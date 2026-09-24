@@ -282,3 +282,10 @@ def test_normalise_without_issues_argument():
     output_geometry = shapely.wkt.loads(output_wkt)
 
     assert output_geometry.is_valid
+
+
+def test_normalise_geojson_multipoint_is_rejected_without_error():
+    issues = IssueLog()
+    value = '{"type":"MultiPoint","coordinates":[[-1.0,52.0],[-1.1,52.0]]}'
+    assert MultiPolygonDataType().normalise(value, issues=issues) == ""
+    assert [row["issue-type"] for row in issues.rows] == ["Unexpected geom type"]
