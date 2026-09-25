@@ -263,19 +263,19 @@ class WktDataType(DataType):
 
             geometry, issue = normalise_geometry(geometry)
 
-            if geometry:
-                if geometry.is_valid:
-                    # if the geometry is valid at this point log any issue that has been fixed
-                    if issues and issue:
-                        issues.log("invalid geometry - fixed", issue)
-                else:
-                    # if the geometry is not valid, mark as not fixable
-                    if issues and issue:
-                        issues.log(
-                            "invalid geometry - not fixable",
-                            issue,
-                            "Geometry must be correctly formatted",
-                        )
+            if geometry and geometry.is_valid:
+                # if the geometry is valid at this point log any issue that has been fixed
+                if issues and issue:
+                    issues.log("invalid geometry - fixed", issue)
+            elif issues and issue:
+                # the geometry is still invalid, or could not be repaired into a polygon
+                # at all (e.g. a collapsed ring becomes a line and is dropped) - either
+                # way it has not been fixed, so mark as not fixable
+                issues.log(
+                    "invalid geometry - not fixable",
+                    issue,
+                    "Geometry must be correctly formatted",
+                )
 
         if not geometry:
             return default
