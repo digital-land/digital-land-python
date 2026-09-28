@@ -3,7 +3,8 @@ import platform
 from shapely.validation import explain_validity, make_valid
 import pytest
 
-from digital_land.datatype.wkt import WktDataType
+from digital_land.datatype.wkt import WktDataType, parse_wkt, flip, metres_like
+from digital_land.datatype.wkt import DEFAULT_BOUNDARY
 from digital_land.datatype.multipolygon import MultiPolygonDataType
 from digital_land.log import IssueLog
 from shapely.geometry import MultiPolygon
@@ -260,7 +261,8 @@ def test_normalise_custom_boundary_mercator_point_not_within():
 
     wkt.normalise(input_wkt, issues=issues, boundary=boundary)
     assert len(issues.rows) == 1
-    assert issues.rows[0]["issue-type"] == "invalid coordinates"
+    assert issues.rows[0]["issue-type"] == "Mercator out of bounds of custom boundary"
+    assert issues.rows[0]["message"] == "Geometry must be within the specified boundary"
 
 
 def issue_type(issues):
@@ -548,3 +550,90 @@ def test_normalise_without_issues_argument():
     output_geometry = shapely.wkt.loads(output_wkt)
 
     assert output_geometry.is_valid
+
+
+def test_wkt_point_mercator_out_of_bounds_of_england():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # Point is Paris - valid Mercator, but outside England
+    # https://epsg.io/map#srs=3857&x=261600.80&y=6249447.75&z=12&layer=streets
+    assert wkt.normalise("POINT (261600.80 6249447.75)", issues=issues) == ""
+    assert len(issues.rows) == 1
+    assert issues.rows[0]["issue-type"] == "Mercator out of bounds of England"
+    assert issues.rows[0]["message"] == "Geometry must be in England"
+
+
+def test_wkt_point_mercator_flipped_out_of_bounds_of_england():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    assert wkt.normalise("POINT (6249447.75 261600.80)", issues=issues) == ""
+    assert issue_type(issues) == "Mercator out of bounds of England"
+
+
+def test_normalise_custom_boundary_wgs84_point_not_within_message():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    boundary = "POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))"
+    wkt.normalise("POINT (2 2)", issues=issues, boundary=boundary)
+    assert issues.rows[0]["message"] == "Geometry must be within the specified boundary"
+
+
+def test_normalise_geojson_osgb_is_converted_to_wgs84():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # a square around Nelson's column in OSGB eastings and northings
+    value = (
+        '{"type":"Polygon","coordinates":[[[530000,180400],[530030,180400],'
+        "[530030,180430],[530000,180430],[530000,180400]]]}"
+    )
+    output = shapely.wkt.loads(wkt.normalise(value, issues=issues))
+    assert [row["issue-type"] for row in issues.rows] == [
+        "invalid type geojson",
+        "OSGB",
+    ]
+    # the output must be degrees, not the raw metres
+    x, y = output.centroid.coords[0]
+    assert -0.2 < x < 0.0 and 51.4 < y < 51.6
+
+
+def test_normalise_geojson_out_of_bounds():
+    wkt = WktDataType()
+    issues = IssueLog()
+
+    # Paris
+    value = '{"type":"Point","coordinates":[2.35,48.85]}'
+    assert wkt.normalise(value, issues=issues) == ""
+    assert [row["issue-type"] for row in issues.rows] == [
+        "invalid type geojson",
+        "WGS84 out of bounds of England",
+    ]
+
+
+@pytest.mark.parametrize("value", [None, 123, ["-1", "52"]])
+def test_parse_wkt_non_string_value(value):
+    geometry, issues = parse_wkt(value, DEFAULT_BOUNDARY)
+    assert geometry is None
+    assert [issue for issue, message in issues] == ["invalid WKT"]
+
+
+@pytest.mark.parametrize(
+    "value", ["POINT EMPTY", "POLYGON EMPTY", "GEOMETRYCOLLECTION EMPTY"]
+)
+def test_parse_wkt_empty_geometry(value):
+    assert parse_wkt(value, DEFAULT_BOUNDARY) == (None, [])
+
+
+def test_flip_keeps_zero_coordinates():
+    assert flip(0.0, 51.5) == (51.5, 0.0)
+    assert flip(-0.1, 0.0) == (0.0, -0.1)
+    assert flip(0.0, 51.5, 0.0) == (51.5, 0.0, 0.0)
+
+
+def test_metres_like_checks_both_axes():
+    assert metres_like(-14245.78, 6711600.07)
+    assert not metres_like(30000000.0, 6711600.07)
+    assert not metres_like(-30000000.0, 6711600.07)

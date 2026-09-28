@@ -19,7 +19,7 @@ class MultiPolygonDataType(WktDataType):
                 )
                 return default
 
-        except shapely.errors.WKTReadingError:
+        except shapely.errors.ShapelyError:
             # If loading as WKT fails, try if it's in a json format
             try:
                 geometry = shapely.wkt.loads(shape(json.loads(values)).wkt)
@@ -31,6 +31,7 @@ class MultiPolygonDataType(WktDataType):
                         values,
                         "Geometry must be a multipolygon",
                     )
+                    return default
                 multipolygon = values
             except Exception:
                 issues.log(
