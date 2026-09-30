@@ -1,12 +1,8 @@
 """
 Utility functions to support functions in the expectation module
-
-notes:
-- might want to remove QueryRunner at a future date as it loads spatialite which may
-not be useful for everything
 """
 
-import spatialite
+import sqlite3
 import yaml
 import pandas as pd
 
@@ -49,10 +45,14 @@ class QueryRunner:
         would mean having to dev thread-lcoal connection pools. For more
         info see: https://stackoverflow.com/a/14520670
         """
-        with spatialite.connect(self.tested_dataset_path) as con:
-            cursor = con.execute(sql_query)
-            cols = [column[0] for column in cursor.description]
-            results = pd.DataFrame.from_records(data=cursor.fetchall(), columns=cols)
+        con = sqlite3.connect(self.tested_dataset_path)
+        con.enable_load_extension(True)
+        con.load_extension("mod_spatialite")
+        con.enable_load_extension(False)
+        cursor = con.execute(sql_query)
+        cols = [column[0] for column in cursor.description]
+        results = pd.DataFrame.from_records(data=cursor.fetchall(), columns=cols)
+        con.close()
 
         if return_only_first_col_as_set:
             return transform_df_first_column_into_set(results)
