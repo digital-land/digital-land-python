@@ -2,6 +2,7 @@ import pytest
 import json
 import csv
 import os
+import shutil
 import urllib.request
 
 from digital_land.package.organisation import OrganisationPackage
@@ -267,3 +268,38 @@ def test_organisation_package_from_dataset(
 
         assert len(rows) == 1
         check_row(rows[0], expected_row)
+
+
+def test_organisation_package_skips_datasets_not_in_environment(
+    tmp_path,
+    specification_dir,
+    dataset_dir,
+):
+    """A dataset switched off for an environment in the specification must drop
+    out of organisation.csv there, without changing any code"""
+    staging_specification_dir = tmp_path / "specification"
+    shutil.copytree(specification_dir, staging_specification_dir)
+    dataset_csv = staging_specification_dir / "dataset.csv"
+    with open(dataset_csv, newline="") as f:
+        reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames
+        rows = list(reader)
+    for row in rows:
+        if row["dataset"] == "government-organisation":
+            row["environment"] = "staging"
+    with open(dataset_csv, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    for environment, expected_rows in (("production", 0), ("staging", 1)):
+        package = OrganisationPackage(
+            specification_dir=str(staging_specification_dir),
+            dataset_dir=dataset_dir,
+            path=os.path.join(tmp_path, f"{environment}-organisation.csv"),
+            environment=environment,
+        )
+        package.create()
+
+        with open(package.path, "r", encoding="UTF8", newline="") as f:
+            assert len(list(csv.DictReader(f))) == expected_rows
