@@ -697,8 +697,20 @@ def add_redirections_cmd(csv_path, pipeline_dir):
     help="Directory of specification files.",
 )
 @click.option("--output-path", type=click.Path(), default=None, help="Output CSV path.")
+@click.option(
+    "--environment",
+    type=click.STRING,
+    default=None,
+    help="Only combine organisation datasets built in this environment.",
+)
 def organisation_create_cmd(
-    flattened_dir, dataset_dir, specification_dir, download_url, cache_dir, output_path
+    flattened_dir,
+    dataset_dir,
+    specification_dir,
+    download_url,
+    cache_dir,
+    output_path,
+    environment,
 ):
     return organisation_create(
         specification_dir=specification_dir,
@@ -707,6 +719,7 @@ def organisation_create_cmd(
         download_url=download_url,
         cache_dir=cache_dir,
         path=output_path,
+        environment=environment,
     )
 
 

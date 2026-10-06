@@ -10,22 +10,31 @@ from .csv import CsvPackage
 
 logger = logging.getLogger(__name__)
 
-# TODO: These files should be read from the spec, rather than being hard-coded.
 
-source_filenames = [
-    "development-corporation.csv",
-    "government-organisation.csv",
-    "local-authority.csv",
-    "national-park-authority.csv",
-    "nonprofit.csv",
-    "public-authority.csv",
-    "passenger-transport-executive.csv",
-    "regional-park-authority.csv",
-    "waste-authority.csv",
-    "local-planning-group.csv",
-    "local-resilience-forum.csv",
-    "company.csv",
-]
+def organisation_datasets(rows, environment=None):
+    """The organisation datasets to combine into organisation.csv.
+
+    rows are the specification's dataset.csv rows. A dataset is used when it has
+    the organisation typology, a collection and no end-date. When environment is
+    set it must also be built there, using the same rules as
+    is_dataset_available in airflow-dags (dags/utils.py): production everywhere,
+    staging in staging and development, development only in development, and a
+    blank environment nowhere.
+    """
+    available = {"production"}
+    if environment in ("staging", "development"):
+        available.add("staging")
+    if environment == "development":
+        available.add("development")
+
+    return [
+        row["dataset"]
+        for row in rows
+        if row["typology"] == "organisation"
+        and row["collection"]
+        and not row["end-date"]
+        and (not environment or row.get("environment", "") in available)
+    ]
 
 
 def load_lpas(path):
@@ -90,6 +99,7 @@ class OrganisationPackage(CsvPackage):
         self.dataset_dir = kwargs.pop("dataset_dir", None)
         self.download_url = kwargs.pop("download_url", None)
         self.cache_dir = kwargs.pop("cache_dir", None)
+        self.environment = kwargs.pop("environment", None)
         if self.download_url and self.download_url[-1] != "/":
             self.download_url += "/"
         super().__init__("organisation", tables={"organisation": None}, **kwargs)
@@ -110,12 +120,21 @@ class OrganisationPackage(CsvPackage):
             "One of download-url, dataset-dir or flatteneed-dir must be specified"
         )
 
+    def source_filenames(self):
+        with open(
+            os.path.join(self.specification.specification_dir, "dataset.csv"),
+            newline="",
+        ) as f:
+            datasets = organisation_datasets(csv.DictReader(f), self.environment)
+        logger.info(f"combining organisation datasets: {datasets}")
+        return [f"{dataset}.csv" for dataset in datasets]
+
     def create_from_flattened(self):
         # get field names
         org_field_names = self.specification.schema["organisation"]["fields"]
 
         orgs = []
-        for file in source_filenames:
+        for file in self.source_filenames():
             filepath = Path(self.flattened_dir) / file
 
             if not os.path.exists(filepath):
@@ -141,7 +160,7 @@ class OrganisationPackage(CsvPackage):
         org_field_names = self.specification.schema["organisation"]["fields"]
 
         orgs = []
-        for file in source_filenames:
+        for file in self.source_filenames():
             filepath = Path(self.dataset_dir) / file
 
             if not os.path.exists(filepath):
@@ -277,14 +296,8 @@ class OrganisationPackage(CsvPackage):
     def fetch_dataset(self):
         os.makedirs(self.cache_dir, exist_ok=True)
 
-        with open(
-            os.path.join(self.specification.specification_dir, "dataset.csv"), "r"
-        ) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["typology"] == "organisation" and row["end-date"] == "":
-                    csv_name = row["dataset"] + ".csv"
-                    r = requests.get(self.download_url + csv_name)
-                    if r.status_code == 200:
-                        with open(os.path.join(self.cache_dir, csv_name), "wb") as t:
-                            t.write(r.content)
+        for csv_name in self.source_filenames():
+            r = requests.get(self.download_url + csv_name)
+            if r.status_code == 200:
+                with open(os.path.join(self.cache_dir, csv_name), "wb") as t:
+                    t.write(r.content)
