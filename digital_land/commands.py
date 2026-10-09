@@ -1050,10 +1050,7 @@ def add_data(
 
         entities_assigned = False
         # Check for unknown entities and assign them
-        if (
-            "unknown entity" in issue_summary
-            or "unknown entity - missing reference" in issue_summary
-        ):
+        if "unknown entity" in issue_summary or "missing reference" in issue_summary:
             # Ask if user wants to proceed
             print("\nThere are unknown entities")
             if not get_user_response(
@@ -1121,7 +1118,7 @@ def add_data(
             issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
             if (
                 "unknown entity" in issue_summary
-                or "unknown entity - missing reference" in issue_summary
+                or "missing reference" in issue_summary
             ):
                 print(issue_summary)
                 raise Exception(

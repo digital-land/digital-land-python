@@ -696,6 +696,18 @@ def get_test_resource_data_with_unmapped_reference():
     }
 
 
+def get_test_resource_data_with_blank_reference():
+    """Test resource data where one row has no reference."""
+    return {
+        "WKT": [
+            "POLYGON ((-0.1 51.5, -0.1 51.51, -0.09 51.51, -0.09 51.5, -0.1 51.5))",
+            "POLYGON ((-0.11 51.5, -0.11 51.51, -0.10 51.51, -0.10 51.5, -0.11 51.5))",
+        ],
+        "ID": ["0", ""],
+        "TITLE": ["Test Zone 1", "Test Zone 2 No Reference"],
+    }
+
+
 def get_test_column_config(dataset_name):
     """Test column mapping configuration."""
     return {
@@ -860,7 +872,7 @@ def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
 ):
     """
     Test that when lookups are enabled and data has unmapped references,
-    issue log contains 'unknown entity - missing reference' errors.
+    issue log contains 'unknown entity' errors.
     """
     # -- Arrange --
     pipeline_dir = tmp_path / "pipeline"
@@ -905,7 +917,7 @@ def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
     # -- Assert --
     assert output_path.exists(), "Output file should be created"
 
-    # Check that issue log contains "unknown entity - missing reference"
+    # Check that issue log contains "unknown entity"
     issues = issue_log.rows
     issue_types = [issue["issue-type"] for issue in issues if "issue-type" in issue]
     assert (
@@ -924,7 +936,7 @@ def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
 ):
     """
     Test that when lookups are disabled and data has unmapped references,
-    issue log does NOT contain 'unknown entity - missing reference' errors,
+    issue log does NOT contain 'unknown entity' errors,
     and data is created with empty entity column.
     """
     # -- Arrange --
@@ -970,12 +982,12 @@ def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
     # -- Assert --
     assert output_path.exists(), "Output file should be created"
 
-    # Check that issue log does NOT contain "unknown entity - missing reference"
+    # Check that issue log does NOT contain "unknown entity"
     issues = issue_log.rows
     issue_types = [issue["issue-type"] for issue in issues if "issue-type" in issue]
     assert (
-        "unknown entity - missing reference" not in issue_types
-    ), "Should NOT have 'unknown entity - missing reference' error when lookups disabled"
+        "unknown entity" not in issue_types
+    ), "Should NOT have 'unknown entity' error when lookups disabled"
 
     # Verify all data was created including unmapped reference
     output_df = pd.read_csv(output_path)
@@ -991,3 +1003,64 @@ def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
     # Verify reference field for unmapped data exists in output
     reference_values = output_df[output_df["field"] == "reference"]["value"].tolist()
     assert "99" in reference_values, "Unmapped reference 99 should be in output"
+
+
+@pytest.mark.parametrize("disable_lookups", [True, False])
+def test_pipeline_transform_raises_one_missing_reference_for_a_blank_reference(
+    specification_dir, organisation_path, tmp_path, disable_lookups
+):
+    """
+    A row with no reference raises a single missing reference issue, whether lookups
+    are disabled (as the check tool runs) or enabled (as the full pipeline runs),
+    and no unknown entity or missing value issue for the same row.
+    """
+    # -- Arrange --
+    pipeline_dir = tmp_path / "pipeline"
+    pipeline_dir.mkdir()
+
+    dataset_name = "central-activities-zone"
+
+    test_file = tmp_path / "test_resource.csv"
+    pd.DataFrame(get_test_resource_data_with_blank_reference()).to_csv(
+        test_file, index=False
+    )
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
+        f"{pipeline_dir}/column.csv", index=False
+    )
+    pd.DataFrame(get_test_lookup_config()).to_csv(
+        f"{pipeline_dir}/lookup.csv", index=False
+    )
+
+    spec = Specification(specification_dir)
+    org = Organisation(organisation_path=organisation_path)
+    pipeline = Pipeline(str(pipeline_dir), dataset_name, specification=spec)
+
+    output_path = tmp_path / "output" / "transformed.csv"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # -- Act --
+    issue_log = pipeline.transform(
+        input_path=str(test_file),
+        output_path=output_path,
+        organisation=org,
+        resource=str(test_file),
+        valid_category_values={},
+        organisations=["local-authority:LBH"],
+        disable_lookups=disable_lookups,
+    )
+
+    # -- Assert --
+    missing_references = [
+        issue for issue in issue_log.rows if issue["issue-type"] == "missing reference"
+    ]
+    assert len(missing_references) == 1
+    assert missing_references[0]["field"] == "reference"
+    assert missing_references[0]["line-number"] == 3
+
+    issue_types = [issue["issue-type"] for issue in issue_log.rows]
+    assert "unknown entity" not in issue_types
+    assert "unknown entity - missing reference" not in issue_types
+    assert not any(
+        issue["issue-type"] == "missing value" and issue["field"] == "reference"
+        for issue in issue_log.rows
+    )

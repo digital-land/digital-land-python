@@ -282,7 +282,9 @@ def test_pipeline_run_with_default_values(test_dirs):
     assert "ep-col-one" in df["field"].values
     assert "entry-date" not in df["field"].values  # not saved, at present, in issues
     assert "organisation" not in df["field"].values
-    assert "entity" in df["field"].values
+    # the test resource has no reference, so it can't be given an entity
+    assert "missing reference" in df["issue-type"].values
+    assert "reference" in df["field"].values
 
     assert "default1" in df["value"].values
     assert "ep_field_new" in df["value"].values
