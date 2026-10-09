@@ -440,3 +440,19 @@ def test_harmonise_defaults_to_no_endpoint_plugins():
 
     assert h.endpoint_plugins == set()
     assert h.date_plugin() == ""
+
+
+def test_harmonise_blank_site_reference_is_not_a_missing_value():
+    """SiteReference is brownfield-land's name for reference, raised as missing reference instead"""
+    issues = IssueLog()
+    h = HarmonisePhase(
+        field_datatype_map={"SiteReference": "string", "SiteNameAddress": "string"},
+        issues=issues,
+        dataset="brownfield-land",
+    )
+    reader = FakeDictReader([{"SiteReference": "", "SiteNameAddress": ""}])
+
+    output = list(h.process(reader))
+
+    assert len(output) == 1
+    assert [issue["field"] for issue in issues.rows] == ["SiteNameAddress"]
