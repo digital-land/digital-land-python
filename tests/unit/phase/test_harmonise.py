@@ -144,12 +144,12 @@ def test_harmonise_missing_mandatory_values():
     output = list(h.process(reader))
 
     assert len(output) == 1
-    assert len(issues.rows) == 3
+    assert len(issues.rows) == 2
 
-    # It should have an issue logged for the empty mandatory fields except name for article-4-direction
+    # It should have an issue logged for the empty mandatory fields, except reference,
+    # which EntityReferencePhase raises as missing reference
     for issue in issues.rows:
         assert issue["field"] in [
-            "reference",
             "document-url",
             "documentation-url",
         ]

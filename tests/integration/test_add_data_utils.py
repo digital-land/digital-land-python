@@ -153,9 +153,9 @@ def test_get_entity_summary(tmp_path_factory):
             "line-number": 1,
         },
         {
-            "issue-type": "unknown entity - missing reference",
-            "field": "field1",
-            "value": "dataset:",
+            "issue-type": "missing reference",
+            "field": "reference",
+            "value": "",
             "line-number": 2,
         },
         {"issue-type": "known entity", "field": "field1", "value": "n/a"},

@@ -48,6 +48,17 @@ class EntityReferencePhase(Phase):
         for block in stream:
             row = block["row"]
             (row["prefix"], row["reference"]) = self.process_row(row)
+            # An entry with no reference can't be given an entity, so it never reaches the platform.
+            # Raised here rather than in the lookup phase, as the check tool runs without lookups.
+            if self.issues and not row["reference"] and not row.get("entity", ""):
+                self.issues.log_issue(
+                    "reference",
+                    "missing reference",
+                    "",
+                    line_number=block["line-number"],
+                    entry_number=block["entry-number"],
+                )
+
             yield block
 
 
@@ -70,6 +81,8 @@ class FactReferencePhase(EntityReferencePhase):
         self.specification = specification
         self.field_typology_map = field_typology_map
         self.field_prefix_map = field_prefix_map
+        # facts are not entries, so a fact without a reference is not a missing reference
+        self.issues = None
 
     def get_field_typology_name(self, field_name):
         if self.field_typology_map:
