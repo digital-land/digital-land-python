@@ -283,7 +283,13 @@ class HarmonisePhase(Phase):
                             "",
                             f"{field} missing",
                         )
-                elif mandatory_fields and field in mandatory_fields:
+                # a blank reference is raised as missing reference by EntityReferencePhase
+                # (SiteReference is brownfield-land's name for reference until it is migrated)
+                elif (
+                    mandatory_fields
+                    and field in mandatory_fields
+                    and field not in ["reference", "SiteReference"]
+                ):
                     if row.get(field) == "" or row.get(field) is None:
                         self.issues.log_issue(
                             field,

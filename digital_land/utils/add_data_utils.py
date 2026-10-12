@@ -219,9 +219,7 @@ def get_entity_summary(
         os.path.join(issue_dir, endpoint_resource_info["resource"] + ".csv")
     )
     new_entities_df = issue_df[
-        issue_df["issue-type"].isin(
-            ["unknown entity", "unknown entity - missing reference"]
-        )
+        issue_df["issue-type"].isin(["unknown entity", "missing reference"])
     ]
     new_entity_count = len(new_entities_df)
 

@@ -2,6 +2,7 @@
 import pytest
 
 
+from digital_land.log import IssueLog
 from digital_land.specification import Specification
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.reference import split_curie
@@ -29,6 +30,56 @@ def test_entity_reference():
     assert ("foo", "Q1234") != phase.process_row(
         {"prefix": "foo", "reference": "wikidata:Q1234"}
     )
+
+
+def entry(row, line_number=2, entry_number=1):
+    return {"row": row, "line-number": line_number, "entry-number": entry_number}
+
+
+def test_entity_reference_raises_missing_reference():
+    issues = IssueLog()
+    phase = EntityReferencePhase(dataset="tree", prefix="tree", issues=issues)
+
+    output = list(
+        phase.process([entry({"reference": ""}, line_number=3, entry_number=2)])
+    )
+
+    assert len(output) == 1
+    assert len(issues.rows) == 1
+    issue = issues.rows[0]
+    assert issue["issue-type"] == "missing reference"
+    assert issue["field"] == "reference"
+    assert issue["value"] == ""
+    assert issue["line-number"] == 3
+    assert issue["entry-number"] == 2
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        {"reference": "31"},
+        # a column named after the dataset stands in for the reference
+        {"tree": "31"},
+        # an entry given its entity directly doesn't need a reference to find one
+        {"reference": "", "entity": "44000001"},
+    ],
+)
+def test_entity_reference_does_not_raise_missing_reference(row):
+    issues = IssueLog()
+    phase = EntityReferencePhase(dataset="tree", prefix="tree", issues=issues)
+
+    list(phase.process([entry(row)]))
+
+    assert issues.rows == []
+
+
+def test_fact_reference_does_not_raise_missing_reference():
+    """Facts are not entries, and most have no reference"""
+    phase = FactReferencePhase(field_typology_map={"name": "value"})
+
+    output = list(phase.process([entry({"field": "name", "value": "A name"})]))
+
+    assert output[0]["row"]["reference"] == ""
 
 
 def test_fact_reference():

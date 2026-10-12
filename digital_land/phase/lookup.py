@@ -155,23 +155,18 @@ class LookupPhase(Phase):
         return entity
 
     def _log_unknown_entity(self, reference, curie, line_number):
-        """Raise an unknown-entity issue, distinguishing a missing reference."""
-        if not self.issues:
+        """
+        Raise an unknown-entity issue. An entry with no reference has already been
+        reported as missing reference by EntityReferencePhase, so isn't reported again.
+        """
+        if not self.issues or not reference:
             return
-        if not reference:
-            self.issues.log_issue(
-                "entity",
-                "unknown entity - missing reference",
-                curie,
-                line_number=line_number,
-            )
-        else:
-            self.issues.log_issue(
-                "entity",
-                "unknown entity",
-                curie,
-                line_number=line_number,
-            )
+        self.issues.log_issue(
+            "entity",
+            "unknown entity",
+            curie,
+            line_number=line_number,
+        )
 
     def process(self, stream):
         for block in stream:
@@ -187,21 +182,7 @@ class LookupPhase(Phase):
                     row[self.entity_field] = self.get_entity(block)
 
                     if not row[self.entity_field]:
-                        if self.issues:
-                            if not reference:
-                                self.issues.log_issue(
-                                    "entity",
-                                    "unknown entity - missing reference",
-                                    curie,
-                                    line_number=line_number,
-                                )
-                            else:
-                                self.issues.log_issue(
-                                    "entity",
-                                    "unknown entity",
-                                    curie,
-                                    line_number=line_number,
-                                )
+                        self._log_unknown_entity(reference, curie, line_number)
                     else:
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]

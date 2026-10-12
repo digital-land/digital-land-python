@@ -107,6 +107,23 @@ class TestLookupPhase:
         assert output[0]["row"]["entity"] == ""
         assert issues.rows[0]["issue-type"] == "unknown entity"
 
+    def test_process_blank_reference_raises_no_issue(self):
+        """EntityReferencePhase has already raised missing reference for the entry"""
+        input_stream = [
+            {
+                "row": {"prefix": "dataset", "reference": "", "organisation": "test"},
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        issues = IssueLog()
+        phase = LookupPhase(lookups={}, redirect_lookups={}, issue_log=issues)
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == ""
+        assert issues.rows == []
+
     def test_process_raise_range_issue(self, get_input_stream):
         input_stream = get_input_stream
         lookups = {",dataset,1,test": "1"}
@@ -456,6 +473,26 @@ class TestEntityLookupPhase:
         # nothing resolved at all, so one issue for the entry -- not one per
         # organisation, which would fan out into a task for each of them
         assert [i["issue-type"] for i in issues.rows] == ["unknown entity"]
+
+    def test_multi_org_blank_reference_raises_no_issue(self):
+        """EntityReferencePhase has already raised missing reference for the entry"""
+        input_stream = [
+            {
+                "row": {"prefix": "local-plan", "reference": "", "organisation": ""},
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        issues = IssueLog()
+        phase = EntityLookupPhase(
+            lookups={},
+            issue_log=issues,
+            providers=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert output == []
+        assert issues.rows == []
 
     def test_multi_org_row_with_own_organisation_is_not_fanned_out(self):
         # Some collections map a source column to the organisation (e.g.
