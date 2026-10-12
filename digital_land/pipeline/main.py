@@ -838,13 +838,18 @@ class Lookups:
             if not self.validate_entry(entry):
                 return
 
-        self.entries.append(entry)
-        # .get(), not [] - is_new_entry=False (load_csv) skips validate_entry's field
-        # check above, so an older lookup.csv missing a column (e.g. no "reference")
-        # must still load rather than KeyError here.
-        self._entry_keys.add(
-            (entry.get("prefix", ""), entry.get("organisation", ""), entry.get("reference", ""))
+        # Build the key before touching either collection, so self.entries and
+        # self._entry_keys can never end up out of sync if this ever raises. .get(),
+        # not [] - is_new_entry=False (load_csv) skips validate_entry's field check
+        # above, so an older lookup.csv missing a column (e.g. no "reference") must
+        # still load rather than raise here.
+        key = (
+            entry.get("prefix", ""),
+            entry.get("organisation", ""),
+            entry.get("reference", ""),
         )
+        self.entries.append(entry)
+        self._entry_keys.add(key)
 
     def load_csv(self, lookups_path=None):
         """
