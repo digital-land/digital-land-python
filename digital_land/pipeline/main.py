@@ -810,6 +810,12 @@ class Lookups:
         self.lookups_path = Path(directory) / "lookup.csv"
         self.old_entity_path = Path(directory) / "old-entity.csv"
         self.entries = []
+        # Mirrors the (prefix, organisation, reference) of every entry in self.entries,
+        # so validate_entry can check for a duplicate in O(1) instead of scanning the
+        # whole list - on a large dataset (500k+ existing lookups) that scan, repeated
+        # once per new entry, made entity assignment O(n^2) and dominated whole-resource
+        # processing time (minutes per resource).
+        self._entry_keys = set()
         self.schema = Schema("lookup")
         self.entity_num_gen = EntityNumGen()
 
@@ -827,6 +833,9 @@ class Lookups:
                 return
 
         self.entries.append(entry)
+        self._entry_keys.add(
+            (entry["prefix"], entry.get("organisation", ""), entry["reference"])
+        )
 
     def load_csv(self, lookups_path=None):
         """
@@ -867,11 +876,14 @@ class Lookups:
     def save_csv(self, lookups_path=None, entries=None, old_entity_path=None):
         path = lookups_path or self.lookups_path
 
-        entity_values = []
+        # A set, not a list - it's only ever used for membership testing below, and on
+        # a large dataset a list made the "is this generated number already taken"
+        # check (run once per new entity) O(n) each time, so O(n^2) overall.
+        entity_values = set()
         if os.path.exists(path):
             reader = csv.DictReader(open(path, newline=""))
             for row in reader:
-                entity_values.append(row["entity"])
+                entity_values.add(row["entity"])
 
         if entries is None:
             entries = self.entries
@@ -890,8 +902,8 @@ class Lookups:
             reader = csv.DictReader(open(old_entity_file_path, newline=""))
 
             for row in reader:
-                entity_values.append(row["old-entity"])
-                entity_values.append(row["entity"])
+                entity_values.add(row["old-entity"])
+                entity_values.add(row["entity"])
 
         new_entities = []
         get_entity = None
@@ -925,7 +937,7 @@ class Lookups:
                             ) or generated_entity > maximum_generated_entity:
                                 maximum_generated_entity = generated_entity
                             new_entities.append(entry)
-                            entity_values.append(str(generated_entity))
+                            entity_values.add(str(generated_entity))
                             writer.writerow(entry)
                             break
                 else:
@@ -945,20 +957,12 @@ class Lookups:
             if not entry.get(field, ""):
                 raise ValueError(f"ERROR: expected {field} not found in lookup entry")
 
-        if len(self.entries) > 0:
-            # check entry does not already exist
-            existing_entries = len(
-                [
-                    1
-                    for item in self.entries
-                    if item["prefix"] == entry["prefix"]
-                    and item.get("organisation", "") == entry.get("organisation", "")
-                    and item["reference"] == entry["reference"]
-                ]
-            )
-
-            if existing_entries > 0:
-                # print(f">>> ERROR: lookup already exists - {entry['organisation']} {entry['reference']}")
-                return False
+        # check entry does not already exist - O(1) via _entry_keys rather than scanning
+        # self.entries, which on a large dataset made this (called once per new entry)
+        # O(n^2) overall.
+        key = (entry["prefix"], entry.get("organisation", ""), entry["reference"])
+        if key in self._entry_keys:
+            # print(f">>> ERROR: lookup already exists - {entry['organisation']} {entry['reference']}")
+            return False
 
         return True
