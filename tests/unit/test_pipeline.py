@@ -308,6 +308,23 @@ class TestPipeLine:
         expected_length = 0
         assert len(lookups.entries) == expected_length
 
+    def test_lookups_add_entry_tolerates_legacy_entry_missing_reference(self):
+        """
+        is_new_entry=False (the load_csv path) skips validate_entry's required-field
+        check, so an older lookup.csv missing a column (e.g. no "reference") must still
+        load rather than raising when add_entry builds the duplicate-check key.
+        """
+        lookups = Lookups("")
+
+        entry = {
+            "prefix": "ancient-woodland",
+            "organisation": "government-organisation:D1342",
+        }
+
+        lookups.add_entry(entry, is_new_entry=False)
+
+        assert lookups.entries == [entry]
+
     def test_lookups_with_old_entity_numbers(self):
         lookups = Lookups("")
         new_lookup = [

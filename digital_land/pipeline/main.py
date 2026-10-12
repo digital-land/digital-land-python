@@ -806,27 +806,53 @@ class EntityNumGen:
 
 class Lookups:
     def __init__(self, directory=None) -> None:
+        """
+        Initialise an empty collection of lookup entries for a pipeline directory.
+        Existing CSV files are not loaded until load_csv() is called.
+        :param directory: directory used to resolve lookup.csv and old-entity.csv;
+            an empty string resolves paths relative to the current directory.
+        :raises TypeError: if directory is omitted, None, or not accepted by Path.
+        """
         self.directory = directory or "pipeline"
         self.lookups_path = Path(directory) / "lookup.csv"
         self.old_entity_path = Path(directory) / "old-entity.csv"
         self.entries = []
+        # Mirrors the (prefix, organisation, reference) of every entry in self.entries,
+        # so validate_entry can check for a duplicate in O(1) instead of scanning the
+        # whole list - on a large dataset (500k+ existing lookups) that scan, repeated
+        # once per new entry, made entity assignment O(n^2) and dominated whole-resource
+        # processing time (minutes per resource).
+        self._entry_keys = set()
         self.schema = Schema("lookup")
         self.entity_num_gen = EntityNumGen()
 
     def add_entry(self, entry, is_new_entry=True):
         """
-        is_new_entry is an addition to allow for backward compatibility.
-        Older lookups may not be valid in accordance with the current
-        minimal column requirements
-        :param entry:
-        :param is_new_entry:
-        :return:
+        Add a lookup entry, ignoring duplicates when validating a new entry.
+
+        :param entry: lookup mapping, stored without copying it.
+        :param is_new_entry: if False, skip required-field and duplicate checks to
+            accept older lookups that may lack the currently required columns.
+        :raises ValueError: if validation is enabled and prefix or reference is
+            missing or false-valued.
+        :raises TypeError: if prefix, organisation or reference is unhashable.
         """
         if is_new_entry:
             if not self.validate_entry(entry):
                 return
 
+        # Build the key before touching either collection, so self.entries and
+        # self._entry_keys can never end up out of sync if this ever raises. .get(),
+        # not [] - is_new_entry=False (load_csv) skips validate_entry's field check
+        # above, so an older lookup.csv missing a column (e.g. no "reference") must
+        # still load rather than raise here.
+        key = (
+            entry.get("prefix", ""),
+            entry.get("organisation", ""),
+            entry.get("reference", ""),
+        )
         self.entries.append(entry)
+        self._entry_keys.add(key)
 
     def load_csv(self, lookups_path=None):
         """
@@ -845,6 +871,15 @@ class Lookups:
             self.add_entry(row, is_new_entry=False)
 
     def get_max_entity(self, prefix, specification) -> int:
+        """
+        Find the highest entity number already assigned to this dataset, so a new
+        EntityNumGen can be told where to carry on from.
+        :param prefix: the dataset's own prefix, or its dataset_prefix alias, to match
+            entries against.
+        :param specification: Specification, used to resolve prefix's dataset_prefix.
+        :return: the highest existing entity number for this dataset, or 0 if there are
+            no entries, no prefix, or none of the entries have a usable entity number.
+        """
         if len(self.entries) == 0:
             return 0
         if not prefix:
@@ -865,13 +900,35 @@ class Lookups:
             return 0
 
     def save_csv(self, lookups_path=None, entries=None, old_entity_path=None):
+        """
+        Overwrite the lookup CSV, creating its parent directories as needed.
+        Assign entity numbers in place via self.entity_num_gen to entries with a
+        missing or false-valued entity. Skip numbers in the existing lookup CSV,
+        both old-entity and entity columns in old-entity.csv, and numbers assigned
+        by this call. Existing entity values supplied only in entries are not
+        reserved. Empty entries and entries for which the available number range
+        is exhausted are omitted without raising.
+        :param lookups_path: where to write the CSV - defaults to self.lookups_path.
+        :param entries: the entries to write - None uses self.entries.
+        :param old_entity_path: CSV containing retired and replacement numbers -
+            defaults to self.old_entity_path.
+        :return: a list of the original entry mappings assigned a new entity
+            number by this call; an empty list if none were assigned.
+        :raises OSError: if directory creation or file access fails. The output
+            may already have been overwritten when an error occurs.
+        :raises KeyError: if a row read from an existing CSV lacks a required
+            entity or old-entity column.
+        """
         path = lookups_path or self.lookups_path
 
-        entity_values = []
+        # A set, not a list - it's only ever used for membership testing below, and on
+        # a large dataset a list made the "is this generated number already taken"
+        # check (run once per new entity) O(n) each time, so O(n^2) overall.
+        entity_values = set()
         if os.path.exists(path):
             reader = csv.DictReader(open(path, newline=""))
             for row in reader:
-                entity_values.append(row["entity"])
+                entity_values.add(row["entity"])
 
         if entries is None:
             entries = self.entries
@@ -890,8 +947,8 @@ class Lookups:
             reader = csv.DictReader(open(old_entity_file_path, newline=""))
 
             for row in reader:
-                entity_values.append(row["old-entity"])
-                entity_values.append(row["entity"])
+                entity_values.add(row["old-entity"])
+                entity_values.add(row["entity"])
 
         new_entities = []
         get_entity = None
@@ -925,7 +982,7 @@ class Lookups:
                             ) or generated_entity > maximum_generated_entity:
                                 maximum_generated_entity = generated_entity
                             new_entities.append(entry)
-                            entity_values.append(str(generated_entity))
+                            entity_values.add(str(generated_entity))
                             writer.writerow(entry)
                             break
                 else:
@@ -939,26 +996,33 @@ class Lookups:
 
     # @staticmethod
     def validate_entry(self, entry) -> bool:
+        """
+        Check a new entry has the minimum required fields and isn't already present.
+        :param entry: the lookup entry to check.
+        :return: True if entry is new and valid; False if an entry with the same
+            (prefix, organisation, reference) already exists in self.entries.
+            A missing organisation is treated as an empty string.
+        :raises ValueError: if entry is missing a non-empty "prefix" or "reference".
+        :raises TypeError: if prefix, organisation or reference is unhashable.
+        """
         # ensures minimum expected fields exist and are not empty strings
         expected_fields = ["prefix", "reference"]
         for field in expected_fields:
             if not entry.get(field, ""):
                 raise ValueError(f"ERROR: expected {field} not found in lookup entry")
 
-        if len(self.entries) > 0:
-            # check entry does not already exist
-            existing_entries = len(
-                [
-                    1
-                    for item in self.entries
-                    if item["prefix"] == entry["prefix"]
-                    and item.get("organisation", "") == entry.get("organisation", "")
-                    and item["reference"] == entry["reference"]
-                ]
-            )
-
-            if existing_entries > 0:
-                # print(f">>> ERROR: lookup already exists - {entry['organisation']} {entry['reference']}")
-                return False
+        # check entry does not already exist - O(1) via _entry_keys rather than scanning
+        # self.entries, which on a large dataset made this (called once per new entry)
+        # O(n^2) overall. entry["prefix"]/["reference"] are guaranteed present by the
+        # check above, but .get() keeps this consistent with the same lookup in
+        # add_entry, which can't make that guarantee for older, pre-existing entries.
+        key = (
+            entry.get("prefix", ""),
+            entry.get("organisation", ""),
+            entry.get("reference", ""),
+        )
+        if key in self._entry_keys:
+            # print(f">>> ERROR: lookup already exists - {entry['organisation']} {entry['reference']}")
+            return False
 
         return True
