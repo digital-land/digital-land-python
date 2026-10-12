@@ -1003,7 +1003,11 @@ class Lookups:
         # O(n^2) overall. entry["prefix"]/["reference"] are guaranteed present by the
         # check above, but .get() keeps this consistent with the same lookup in
         # add_entry, which can't make that guarantee for older, pre-existing entries.
-        key = (entry.get("prefix", ""), entry.get("organisation", ""), entry.get("reference", ""))
+        key = (
+            entry.get("prefix", ""),
+            entry.get("organisation", ""),
+            entry.get("reference", ""),
+        )
         if key in self._entry_keys:
             # print(f">>> ERROR: lookup already exists - {entry['organisation']} {entry['reference']}")
             return False

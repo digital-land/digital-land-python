@@ -316,7 +316,10 @@ class TestPipeLine:
         """
         lookups = Lookups("")
 
-        entry = {"prefix": "ancient-woodland", "organisation": "government-organisation:D1342"}
+        entry = {
+            "prefix": "ancient-woodland",
+            "organisation": "government-organisation:D1342",
+        }
 
         lookups.add_entry(entry, is_new_entry=False)
 
