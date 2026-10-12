@@ -807,10 +807,11 @@ class EntityNumGen:
 class Lookups:
     def __init__(self, directory=None) -> None:
         """
-        Load and build up lookup entries (prefix/organisation/reference -> entity) for
-        a single pipeline directory, ready to validate, add to, and save back out.
-        :param directory: pipeline directory containing lookup.csv and old-entity.csv -
-            defaults to "pipeline" if not given.
+        Initialise an empty collection of lookup entries for a pipeline directory.
+        Existing CSV files are not loaded until load_csv() is called.
+        :param directory: directory used to resolve lookup.csv and old-entity.csv;
+            an empty string resolves paths relative to the current directory.
+        :raises TypeError: if directory is omitted, None, or not accepted by Path.
         """
         self.directory = directory or "pipeline"
         self.lookups_path = Path(directory) / "lookup.csv"
@@ -827,12 +828,14 @@ class Lookups:
 
     def add_entry(self, entry, is_new_entry=True):
         """
-        is_new_entry is an addition to allow for backward compatibility.
-        Older lookups may not be valid in accordance with the current
-        minimal column requirements
-        :param entry:
-        :param is_new_entry:
-        :return:
+        Add a lookup entry, ignoring duplicates when validating a new entry.
+
+        :param entry: lookup mapping, stored without copying it.
+        :param is_new_entry: if False, skip required-field and duplicate checks to
+            accept older lookups that may lack the currently required columns.
+        :raises ValueError: if validation is enabled and prefix or reference is
+            missing or false-valued.
+        :raises TypeError: if prefix, organisation or reference is unhashable.
         """
         if is_new_entry:
             if not self.validate_entry(entry):
@@ -898,15 +901,23 @@ class Lookups:
 
     def save_csv(self, lookups_path=None, entries=None, old_entity_path=None):
         """
-        Write entries out to lookups_path, generating and assigning a new entity
-        number (via self.entity_num_gen) to any entry that doesn't already have one -
-        skipping any number already taken in the existing lookup.csv or old-entity.csv.
+        Overwrite the lookup CSV, creating its parent directories as needed.
+        Assign entity numbers in place via self.entity_num_gen to entries with a
+        missing or false-valued entity. Skip numbers in the existing lookup CSV,
+        both old-entity and entity columns in old-entity.csv, and numbers assigned
+        by this call. Existing entity values supplied only in entries are not
+        reserved. Empty entries and entries for which the available number range
+        is exhausted are omitted without raising.
         :param lookups_path: where to write the CSV - defaults to self.lookups_path.
-        :param entries: the entries to write - defaults to self.entries.
-        :param old_entity_path: retired-entity numbers to also treat as taken -
+        :param entries: the entries to write - None uses self.entries.
+        :param old_entity_path: CSV containing retired and replacement numbers -
             defaults to self.old_entity_path.
-        :return: the subset of entries that were assigned a newly-generated entity
-            number by this call.
+        :return: a list of the original entry mappings assigned a new entity
+            number by this call; an empty list if none were assigned.
+        :raises OSError: if directory creation or file access fails. The output
+            may already have been overwritten when an error occurs.
+        :raises KeyError: if a row read from an existing CSV lacks a required
+            entity or old-entity column.
         """
         path = lookups_path or self.lookups_path
 
@@ -990,7 +1001,9 @@ class Lookups:
         :param entry: the lookup entry to check.
         :return: True if entry is new and valid; False if an entry with the same
             (prefix, organisation, reference) already exists in self.entries.
+            A missing organisation is treated as an empty string.
         :raises ValueError: if entry is missing a non-empty "prefix" or "reference".
+        :raises TypeError: if prefix, organisation or reference is unhashable.
         """
         # ensures minimum expected fields exist and are not empty strings
         expected_fields = ["prefix", "reference"]
