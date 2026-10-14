@@ -113,6 +113,10 @@ class TestDatasetCheckpoint:
             "digital_land.expectations.checkpoints.dataset.fetch_active_resources_for_dataset",
             return_value={101: ["resource_a"]},
         )
+        mock_fetch_all = mocker.patch(
+            "digital_land.expectations.checkpoints.dataset.fetch_all_resources_for_dataset",
+            return_value={101: ["resource_a", "resource_ended"]},
+        )
         mock_function = mocker.create_autospec(
             count_deleted_entities, return_value=(True, "passed", {})
         )
@@ -144,10 +148,14 @@ class TestDatasetCheckpoint:
 
         # datasette fetched exactly once despite two organisations
         mock_fetch.assert_called_once_with("test-dataset")
+        mock_fetch_all.assert_called_once_with("test-dataset")
 
-        # cache was injected into every operation call
+        # caches were injected into every operation call
         for call in mock_function.call_args_list:
             assert call.kwargs["resources_cache"] == {101: ["resource_a"]}
+            assert call.kwargs["all_resources_cache"] == {
+                101: ["resource_a", "resource_ended"]
+            }
 
         assert len(checkpoint.log.entries) == 2
 
@@ -162,6 +170,10 @@ class TestDatasetCheckpoint:
         """
         mocker.patch(
             "digital_land.expectations.checkpoints.dataset.fetch_active_resources_for_dataset",
+            return_value={101: ["resource_a"]},
+        )
+        mocker.patch(
+            "digital_land.expectations.checkpoints.dataset.fetch_all_resources_for_dataset",
             return_value={101: ["resource_a"]},
         )
 
