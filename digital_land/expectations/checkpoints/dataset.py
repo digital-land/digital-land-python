@@ -18,6 +18,7 @@ from ..operations.dataset import (
     duplicate_geometry_check,
     duplicate_name_check,
     fetch_active_resources_for_dataset,
+    fetch_all_resources_for_dataset,
     name_is_a_code_check,
     name_is_a_placeholder_check,
 )
@@ -169,16 +170,23 @@ class DatasetCheckpoint(BaseCheckpoint):
         )
 
         resources_cache = None
+        all_resources_cache = None
         if prefetch_resources:
             resources_cache = fetch_active_resources_for_dataset(self.dataset)
+            all_resources_cache = fetch_all_resources_for_dataset(self.dataset)
             logger.warning("[expectations] Prefetched resources cache")
 
         for i, expectation in enumerate(self.expectations):
             if resources_cache is not None:
                 operation = expectation["operation"]
-                # only pass resources_cache to operations that explicitly accept it
-                if "resources_cache" in inspect.signature(operation).parameters:
+                operation_parameters = inspect.signature(operation).parameters
+                # only pass the caches to operations that explicitly accept them
+                if "resources_cache" in operation_parameters:
                     expectation["parameters"]["resources_cache"] = resources_cache
+                if "all_resources_cache" in operation_parameters:
+                    expectation["parameters"][
+                        "all_resources_cache"
+                    ] = all_resources_cache
 
             passed, message, details = self.run_expectation(expectation)
 

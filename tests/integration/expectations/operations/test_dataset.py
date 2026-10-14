@@ -13,6 +13,7 @@ from digital_land.expectations.operations.dataset import (
     duplicate_geometry_check,
     duplicate_name_check,
     fetch_active_resources_for_dataset,
+    fetch_all_resources_for_dataset,
     name_is_a_code_check,
     name_is_a_placeholder_check,
 )
@@ -138,13 +139,29 @@ def test_fetch_active_resources_for_dataset(mocker):
     assert result == {101: ["resource_a", "resource_b"], 102: ["resource_c"]}
 
 
+def test_fetch_all_resources_for_dataset_includes_ended_resources(mocker):
+    mock_df = pd.DataFrame(
+        {
+            "organisation_entity": [101, 101, 102],
+            "resource": ["resource_a", "resource_ended", "resource_c"],
+        }
+    )
+    mock_read_csv = mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    result = fetch_all_resources_for_dataset("test-dataset")
+
+    assert result == {101: ["resource_a", "resource_ended"], 102: ["resource_c"]}
+    assert "resource_end_date" not in mock_read_csv.call_args.args[0]
+
+
 def test_count_deleted_entities(dataset_path, mocker):
     """Entity with no facts in the active resource is reported as deleted."""
     organisation_entity = 109
     expected = 0
 
     # load data into sqlite for entity, fact_resource and fact table
-    # entity 1001 has facts in the active resource; entity 1002 does not
+    # entity 1001 has facts in the active resource; entity 1002 only has facts
+    # in an ended resource previously supplied by the same organisation
     test_entity_data = pd.DataFrame.from_dict(
         {
             "entity": ["1001", "1002"],
@@ -156,24 +173,29 @@ def test_count_deleted_entities(dataset_path, mocker):
 
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
-            "entry_number": ["1", "1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
+            "entry_number": ["1", "1", "1"],
         },
     )
 
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "entity": ["1001", "1001"],
-            "field": ["name", "reference"],
-            "value": ["abc", "ref1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "field": ["name", "reference", "name"],
+            "value": ["abc", "ref1", "test2"],
         }
     )
 
-    # mock `pandas.read_csv` to return the mock DataFrame
-    mock_df = pd.DataFrame({"resource": ["2f7d900dd48fd02"]})
-    mocker.patch("pandas.read_csv", return_value=mock_df)
+    # mock `pandas.read_csv` to return the active then all resources
+    mocker.patch(
+        "pandas.read_csv",
+        side_effect=[
+            pd.DataFrame({"resource": ["2f7d900dd48fd02"]}),
+            pd.DataFrame({"resource": ["2f7d900dd48fd02", "res-ended"]}),
+        ],
+    )
 
     with spatialite.connect(dataset_path) as conn:
         # load data into required tables
@@ -254,7 +276,8 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     Facts for a second organisation's entity in the same resource must not
     cause that entity to be counted as active for the queried organisation.
 
-    Setup: org 109 has entities 1001 (active) and 1002 (deleted). Org 200
+    Setup: org 109 has entities 1001 (active) and 1002 (deleted, last seen
+    in an ended resource). Org 200
     has entity 2001 with a fact in the same resource. Only 1002 should be
     reported as deleted for org 109; entity 2001 must be excluded entirely.
     """
@@ -271,24 +294,29 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
 
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["fact-a", "fact-x"],
-            "resource": ["res-active", "res-active"],
-            "entry_number": ["1", "2"],
+            "fact": ["fact-a", "fact-x", "fact-old"],
+            "resource": ["res-active", "res-active", "res-ended"],
+            "entry_number": ["1", "2", "1"],
         }
     )
 
     # fact-a belongs to org 109's entity 1001; fact-x belongs to org 200's entity 2001
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["fact-a", "fact-x"],
-            "entity": ["1001", "2001"],
-            "field": ["name", "name"],
-            "value": ["org109 tree A", "org200 tree"],
+            "fact": ["fact-a", "fact-x", "fact-old"],
+            "entity": ["1001", "2001", "1002"],
+            "field": ["name", "name", "name"],
+            "value": ["org109 tree A", "org200 tree", "org109 tree B"],
         }
     )
 
-    mock_df = pd.DataFrame({"resource": ["res-active"]})
-    mocker.patch("pandas.read_csv", return_value=mock_df)
+    mocker.patch(
+        "pandas.read_csv",
+        side_effect=[
+            pd.DataFrame({"resource": ["res-active"]}),
+            pd.DataFrame({"resource": ["res-active", "res-ended"]}),
+        ],
+    )
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
@@ -312,6 +340,66 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     assert "2001" not in details["entities"]
 
 
+def test_count_deleted_entities_ignores_entities_supplied_by_another_organisation(
+    dataset_path, mocker
+):
+    """
+    Entities assigned to an organisation but only ever supplied by another
+    organisation (e.g. MHCLG seeded plan-timetable data for an LPA) were never
+    in the organisation's own resources, so must not be reported as deleted.
+
+    Setup: org 109 has entity 1001 (active), 1002 (deleted, last seen in an
+    ended org 109 resource) and 1003 (only supplied in another organisation's
+    resource). Only 1002 should be reported as deleted.
+    """
+    organisation_entity = 109
+
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002", "1003"],
+            "name": ["test1", "test2", "test3"],
+            "organisation_entity": [109, 109, 109],
+            "reference": ["ref1", "ref2", "ref3"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b", "fact-c"],
+            "resource": ["res-active", "res-ended", "res-other-org"],
+            "entry_number": ["1", "1", "1"],
+        }
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b", "fact-c"],
+            "entity": ["1001", "1002", "1003"],
+            "field": ["name", "name", "name"],
+            "value": ["test1", "test2", "test3"],
+        }
+    )
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, _, details = count_deleted_entities(
+            conn,
+            expected=0,
+            organisation_entity=organisation_entity,
+            resources_cache={109: ["res-active"]},
+            all_resources_cache={109: ["res-active", "res-ended"]},
+        )
+
+    assert not passed
+    assert details["actual"] == 1
+    assert details["entities"] == ["1002"]
+
+
 def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker):
     organisation_entity = 109
     expected = 0
@@ -326,22 +414,23 @@ def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker)
     )
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
-            "entry_number": ["1", "1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
+            "entry_number": ["1", "1", "1"],
         }
     )
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "entity": ["1001", "1001"],
-            "field": ["name", "reference"],
-            "value": ["abc", "ref1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "field": ["name", "reference", "name"],
+            "value": ["abc", "ref1", "test2"],
         }
     )
 
     mock_read_csv = mocker.patch("pandas.read_csv")
     resources_cache = {109: ["2f7d900dd48fd02"]}
+    all_resources_cache = {109: ["2f7d900dd48fd02", "res-ended"]}
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
@@ -355,6 +444,7 @@ def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker)
             expected=expected,
             organisation_entity=organisation_entity,
             resources_cache=resources_cache,
+            all_resources_cache=all_resources_cache,
         )
 
     mock_read_csv.assert_not_called()
@@ -1200,17 +1290,17 @@ def test_count_deleted_entities_failures_carry_organisation_as_a_string(
     )
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
-            "entry_number": ["1", "1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
+            "entry_number": ["1", "1", "1"],
         }
     )
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "entity": ["1001", "1001"],
-            "field": ["name", "reference"],
-            "value": ["abc", "ref1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "field": ["name", "reference", "name"],
+            "value": ["abc", "ref1", "test2"],
         }
     )
     mock_read_csv = mocker.patch("pandas.read_csv")
@@ -1226,6 +1316,7 @@ def test_count_deleted_entities_failures_carry_organisation_as_a_string(
             expected=0,
             organisation_entity=organisation_entity,
             resources_cache={109: ["2f7d900dd48fd02"]},
+            all_resources_cache={109: ["2f7d900dd48fd02", "res-ended"]},
         )
 
     mock_read_csv.assert_not_called()

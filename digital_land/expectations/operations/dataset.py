@@ -135,18 +135,22 @@ def count_lpa_boundary(
     return result, message, details
 
 
-# Previously named count_deleted_entities() function
-def fetch_active_resources_for_dataset(dataset_name):
-    params = urllib.parse.urlencode(
-        {
-            "sql": f"""select o.entity as organisation_entity, rhe.resource
-                        from reporting_historic_endpoints rhe
-                        join organisation o on rhe.organisation=o.organisation
-                        where pipeline == '{dataset_name}' and (resource_end_date == "" or resource_end_date is null)
-                        group by o.entity, rhe.endpoint""",
-            "_size": "max",
-        }
-    )
+def _fetch_resources_for_dataset(dataset_name, active_only):
+    if active_only:
+        # one active resource per endpoint
+        sql = f"""select o.entity as organisation_entity, rhe.resource
+                  from reporting_historic_endpoints rhe
+                  join organisation o on rhe.organisation=o.organisation
+                  where pipeline == '{dataset_name}' and (resource_end_date == "" or resource_end_date is null)
+                  group by o.entity, rhe.endpoint"""
+    else:
+        # every resource each organisation has ever supplied, including ended ones
+        sql = f"""select o.entity as organisation_entity, rhe.resource
+                  from reporting_historic_endpoints rhe
+                  join organisation o on rhe.organisation=o.organisation
+                  where pipeline == '{dataset_name}' and rhe.resource != ""
+                  group by o.entity, rhe.resource"""
+    params = urllib.parse.urlencode({"sql": sql, "_size": "max"})
     base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
 
     max_retries = 60
@@ -154,7 +158,7 @@ def fetch_active_resources_for_dataset(dataset_name):
         try:
             df = pd.read_csv(base_url)
             logging.warning(
-                f"[expectations] Fetched {len(df)} active resources for '{dataset_name}' from datasette"
+                f"[expectations] Fetched {len(df)} {'active' if active_only else 'historic'} resources for '{dataset_name}' from datasette"
             )
             cache = {}
             for _, row in df.iterrows():
@@ -171,46 +175,74 @@ def fetch_active_resources_for_dataset(dataset_name):
     )
 
 
+# Previously named count_deleted_entities() function
+def fetch_active_resources_for_dataset(dataset_name):
+    return _fetch_resources_for_dataset(dataset_name, active_only=True)
+
+
+def fetch_all_resources_for_dataset(dataset_name):
+    return _fetch_resources_for_dataset(dataset_name, active_only=False)
+
+
+def _fetch_organisation_resources(db_name, organisation_entity, active_only):
+    end_date_filter = 'and resource_end_date == ""' if active_only else ""
+    params = urllib.parse.urlencode(
+        {
+            "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
+                        where pipeline == '{db_name}' and o.entity='{organisation_entity}' {end_date_filter} group by {'endpoint' if active_only else 'resource'}""",
+            "_size": "max",
+        }
+    )
+    base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
+
+    # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
+    max_retries = 60  # Retry for an hour
+    for attempt in range(max_retries):
+        try:
+            get_resource = pd.read_csv(base_url)
+            break
+        except urllib.error.HTTPError as e:
+            logging.warning(
+                f"HTTP error fetching datasette for organisation {organisation_entity}, "
+                f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s..."
+            )
+            time.sleep(60)
+    else:
+        raise Exception("Failed to fetch datasette after multiple attempts")
+
+    return get_resource["resource"].to_list()
+
+
 def count_deleted_entities(
     conn,
     expected: int,
     organisation_entity: int = None,
     resources_cache: dict = None,
+    all_resources_cache: dict = None,
 ):
+    """
+    Counts entities the organisation has supplied in the past which are missing
+    from its active resources. Entities assigned to the organisation but only
+    ever supplied by another organisation (e.g. MHCLG seeded data) are ignored.
+    """
     # get database name to identify dataset
     db_path = conn.execute("PRAGMA database_list").fetchall()[0][2]
     db_name = os.path.splitext(os.path.basename(db_path))[0]
 
-    # check if entity data has been fetched from datasette and stored in the cache
+    # check if resources have been fetched from datasette and stored in the cache
     if resources_cache is not None:
         resource_list = resources_cache.get(organisation_entity, [])
     else:
-        # get dataset specific active resource list if nothing is found it
-        params = urllib.parse.urlencode(
-            {
-                "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
-                            where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
-                "_size": "max",
-            }
+        resource_list = _fetch_organisation_resources(
+            db_name, organisation_entity, active_only=True
         )
-        base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
 
-        # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
-        max_retries = 60  # Retry for an hour
-        for attempt in range(max_retries):
-            try:
-                get_resource = pd.read_csv(base_url)
-                break
-            except urllib.error.HTTPError as e:
-                logging.warning(
-                    f"HTTP error fetching datasette for organisation {organisation_entity}, "
-                    f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s..."
-                )
-                time.sleep(60)
-        else:
-            raise Exception("Failed to fetch datasette after multiple attempts")
-
-        resource_list = get_resource["resource"].to_list()
+    if all_resources_cache is not None:
+        all_resource_list = all_resources_cache.get(organisation_entity, [])
+    else:
+        all_resource_list = _fetch_organisation_resources(
+            db_name, organisation_entity, active_only=False
+        )
 
     # use resource list to get current entities
     query = f"""select f.entity
@@ -221,9 +253,13 @@ def count_deleted_entities(
     rows = conn.execute(query).fetchall()
     get_active_entities = [row[0] for row in rows]
 
-    # get entities from entity table to compare against resource entities
+    # get the organisation's entities which it has supplied itself at some point,
+    # using every resource it has ever provided, to compare against resource entities
     query = f"""
-    select entity from entity where organisation_entity = '{organisation_entity}';
+    select distinct e.entity
+    from entity e join fact f on f.entity=e.entity join fact_resource fe on fe.fact=f.fact
+    where e.organisation_entity = '{organisation_entity}'
+    and fe.resource in ({','.join(f"'{x}'" for x in all_resource_list)});
     """
     rows = conn.execute(query).fetchall()
     get_entities = [row[0] for row in rows]
