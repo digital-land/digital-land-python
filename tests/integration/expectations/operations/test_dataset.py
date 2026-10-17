@@ -4,6 +4,7 @@ import sqlite3
 import pytest
 import pandas as pd
 import requests
+import urllib
 
 from digital_land.expectations.operations.dataset import (
     check_columns,
@@ -152,6 +153,69 @@ def test_fetch_all_resources_for_dataset_includes_ended_resources(mocker):
 
     assert result == {101: ["resource_a", "resource_ended"], 102: ["resource_c"]}
     assert "resource_end_date" not in mock_read_csv.call_args.args[0]
+
+
+@pytest.fixture
+def fake_datasette(mocker):
+    """Answer datasette CSV queries from an in-memory reporting database, cut off at
+    datasette's max_returned_rows like the real service."""
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE organisation (organisation TEXT, entity INTEGER)")
+    conn.execute(
+        """CREATE TABLE reporting_historic_endpoints (
+            organisation TEXT, pipeline TEXT, endpoint TEXT, resource TEXT, resource_end_date TEXT
+        )"""
+    )
+
+    def read_csv(url):
+        sql = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["sql"][0]
+        return pd.read_sql_query(sql, conn).head(1000)
+
+    mocker.patch("pandas.read_csv", side_effect=read_csv)
+    return conn
+
+
+def test_fetch_active_resources_for_dataset_ignores_rows_without_a_resource(
+    fake_datasette,
+):
+    fake_datasette.execute(
+        "INSERT INTO organisation VALUES ('local-authority:LBH', 192)"
+    )
+    # log rows for days the endpoint returned no resource, then its active resource
+    fake_datasette.executemany(
+        "INSERT INTO reporting_historic_endpoints VALUES (?, ?, ?, ?, ?)",
+        [("local-authority:LBH", "test-dataset", "endpoint_a", "", None)] * 3
+        + [("local-authority:LBH", "test-dataset", "endpoint_a", "resource_a", "")],
+    )
+
+    result = fetch_active_resources_for_dataset("test-dataset")
+
+    assert result == {192: ["resource_a"]}
+
+
+def test_fetch_all_resources_for_dataset_reads_past_the_datasette_row_limit(
+    fake_datasette,
+):
+    fake_datasette.execute(
+        "INSERT INTO organisation VALUES ('local-authority:LBH', 192)"
+    )
+    fake_datasette.executemany(
+        "INSERT INTO reporting_historic_endpoints VALUES (?, ?, ?, ?, ?)",
+        [
+            (
+                "local-authority:LBH",
+                "test-dataset",
+                "endpoint_a",
+                f"resource_{i:04}",
+                "2026-01-01",
+            )
+            for i in range(2500)
+        ],
+    )
+
+    result = fetch_all_resources_for_dataset("test-dataset")
+
+    assert len(result[192]) == 2500
 
 
 def test_count_deleted_entities(dataset_path, mocker):
