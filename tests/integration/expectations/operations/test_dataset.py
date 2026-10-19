@@ -404,6 +404,72 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     assert "2001" not in details["entities"]
 
 
+@pytest.mark.parametrize(
+    "organisation_entity, expected_deleted",
+    [(61, []), (304, ["3002"])],
+)
+def test_count_deleted_entities_shared_resource_with_same_references(
+    dataset_path, organisation_entity, expected_deleted
+):
+    """
+    Organisations sharing a resource (e.g. a joint plan published by BRO and SNO)
+    each have their own entity for the same reference. Every organisation's
+    entities in the shared resource must count as active, not just one per reference.
+
+    Setup: org 61 and org 304 share res-shared, each with an entity for REF-A and
+    REF-B. Org 304 also has 3002, last seen in an ended resource, so is deleted.
+    """
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002", "3001", "3003", "3002"],
+            "name": ["BRO A", "BRO B", "SNO A", "SNO B", "SNO old"],
+            "organisation_entity": [61, 61, 304, 304, 304],
+            "reference": ["REF-A", "REF-B", "REF-A", "REF-B", "REF-OLD"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-1", "fact-2", "fact-3", "fact-4", "fact-5"],
+            "resource": [
+                "res-shared",
+                "res-shared",
+                "res-shared",
+                "res-shared",
+                "res-ended",
+            ],
+            "entry_number": ["1", "2", "1", "2", "1"],
+        }
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-1", "fact-2", "fact-3", "fact-4", "fact-5"],
+            "entity": ["1001", "1002", "3001", "3003", "3002"],
+            "field": ["reference", "reference", "reference", "reference", "reference"],
+            "value": ["REF-A", "REF-B", "REF-A", "REF-B", "REF-OLD"],
+        }
+    )
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, _, details = count_deleted_entities(
+            conn,
+            expected=0,
+            organisation_entity=organisation_entity,
+            resources_cache={61: ["res-shared"], 304: ["res-shared"]},
+            all_resources_cache={61: ["res-shared"], 304: ["res-shared", "res-ended"]},
+        )
+
+    assert details["entities"] == expected_deleted
+    assert passed == (expected_deleted == [])
+
+
 def test_count_deleted_entities_ignores_entities_supplied_by_another_organisation(
     dataset_path, mocker
 ):
