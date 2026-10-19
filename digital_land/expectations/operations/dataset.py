@@ -135,35 +135,58 @@ def count_lpa_boundary(
     return result, message, details
 
 
+# datasette's max_returned_rows, a query returning more rows than this is cut off without an error
+DATASETTE_PAGE_SIZE = 1000
+
+
 def _fetch_resources_for_dataset(dataset_name, active_only):
     if active_only:
-        # one active resource per endpoint
+        # one active resource per endpoint, ignoring log rows for days the endpoint returned no resource
         sql = f"""select o.entity as organisation_entity, rhe.resource
                   from reporting_historic_endpoints rhe
                   join organisation o on rhe.organisation=o.organisation
-                  where pipeline == '{dataset_name}' and (resource_end_date == "" or resource_end_date is null)
-                  group by o.entity, rhe.endpoint"""
+                  where pipeline == '{dataset_name}' and rhe.resource != ""
+                  and (resource_end_date == "" or resource_end_date is null)
+                  group by o.entity, rhe.endpoint
+                  order by o.entity, rhe.endpoint"""
     else:
         # every resource each organisation has ever supplied, including ended ones
         sql = f"""select o.entity as organisation_entity, rhe.resource
                   from reporting_historic_endpoints rhe
                   join organisation o on rhe.organisation=o.organisation
                   where pipeline == '{dataset_name}' and rhe.resource != ""
-                  group by o.entity, rhe.resource"""
+                  group by o.entity, rhe.resource
+                  order by o.entity, rhe.resource"""
+
+    pages = []
+    offset = 0
+    while True:
+        page = _read_datasette_csv(
+            f"{sql} limit {DATASETTE_PAGE_SIZE} offset {offset}", dataset_name
+        )
+        pages.append(page)
+        if len(page) < DATASETTE_PAGE_SIZE:
+            break
+        offset += DATASETTE_PAGE_SIZE
+    df = pd.concat(pages, ignore_index=True)
+
+    logging.warning(
+        f"[expectations] Fetched {len(df)} {'active' if active_only else 'historic'} resources for '{dataset_name}' from datasette"
+    )
+    cache = {}
+    for _, row in df.iterrows():
+        cache.setdefault(row["organisation_entity"], []).append(row["resource"])
+    return cache
+
+
+def _read_datasette_csv(sql, dataset_name):
     params = urllib.parse.urlencode({"sql": sql, "_size": "max"})
     base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
 
     max_retries = 60
     for attempt in range(max_retries):
         try:
-            df = pd.read_csv(base_url)
-            logging.warning(
-                f"[expectations] Fetched {len(df)} {'active' if active_only else 'historic'} resources for '{dataset_name}' from datasette"
-            )
-            cache = {}
-            for _, row in df.iterrows():
-                cache.setdefault(row["organisation_entity"], []).append(row["resource"])
-            return cache
+            return pd.read_csv(base_url)
         except urllib.error.HTTPError as e:
             logging.warning(
                 f"HTTP error fetching datasette for dataset {dataset_name}, "
