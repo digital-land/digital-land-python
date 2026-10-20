@@ -268,6 +268,31 @@ def check_no_overlapping_ranges(conn, file_path: Path, min_field: str, max_field
         """
     ).fetchall()
 
+    # The query above never compares rows that share the same minimum, so
+    # find those pairs separately. Rows are numbered so that each pair is
+    # reported once. This is a separate query because combining the two
+    # stops duckdb using a range join for the query above, which makes it
+    # very slow on large files.
+    result += conn.execute(
+        f"""
+        WITH ranges AS (
+            SELECT row_number() OVER () AS row_number, *
+            FROM {_read_csv(file_path)}
+        )
+        SELECT
+            a."{min_field}" as a_min,
+            a."{max_field}" as a_max,
+            b."{min_field}" as b_min,
+            b."{max_field}" as b_max
+        FROM ranges a
+        JOIN ranges b
+        ON CAST(a."{min_field}" AS BIGINT) = CAST(b."{min_field}" AS BIGINT)
+        AND a.row_number < b.row_number
+        WHERE CAST(a."{min_field}" AS BIGINT) <= CAST(b."{max_field}" AS BIGINT)
+        AND CAST(a."{max_field}" AS BIGINT) >= CAST(b."{min_field}" AS BIGINT)
+        """
+    ).fetchall()
+
     overlaps = [
         {"range_1": [row[0], row[1]], "range_2": [row[2], row[3]]} for row in result
     ]
