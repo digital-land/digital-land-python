@@ -795,6 +795,66 @@ def test_duplicate_geometry_check_no_dupes(dataset_path):
     assert details["expected"] == 0
 
 
+def test_duplicate_geometry_check_overlapping_bounding_boxes_only(dataset_path):
+    # The two triangles share a bounding box but do not touch, so the spatial index
+    # offers them as a candidate pair and the exact intersection test must reject it
+    with spatialite.connect(dataset_path) as conn:
+        rows = [
+            {
+                "entity": 1,
+                "geometry": "POLYGON((0 0, 2 0, 0 2, 0 0))",
+                "organisation_entity": 100,
+            },
+            {
+                "entity": 2,
+                "geometry": "POLYGON((2 0.1, 2 2, 0.1 2, 2 0.1))",
+                "organisation_entity": 101,
+            },
+        ]
+        for row in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, geometry, organisation_entity) VALUES (?, ?, ?)",
+                (row["entity"], row["geometry"], row["organisation_entity"]),
+            )
+        conn.commit()
+
+    result, message, details = duplicate_geometry_check(conn, "geometry")
+    conn.close()
+
+    assert result
+    assert not details["any_matches"]
+
+
+def test_duplicate_geometry_check_point_near_but_not_equal(dataset_path):
+    # The spatial index stores coordinates at lower precision, so these points share
+    # an index entry; they are not the same point and must not be flagged
+    with spatialite.connect(dataset_path) as conn:
+        rows = [
+            {
+                "entity": 1,
+                "point": "POINT(-1.5000001 52.5000001)",
+                "organisation_entity": 100,
+            },
+            {
+                "entity": 2,
+                "point": "POINT(-1.5000002 52.5000002)",
+                "organisation_entity": 101,
+            },
+        ]
+        for row in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, point, organisation_entity) VALUES (?, ?, ?)",
+                (row["entity"], row["point"], row["organisation_entity"]),
+            )
+        conn.commit()
+
+    result, message, details = duplicate_geometry_check(conn, "point")
+    conn.close()
+
+    assert result
+    assert not details["complete_matches"]
+
+
 @pytest.fixture
 def plan_timetable_path(tmp_path):
     """a minimal built plan-timetable sqlite, matching the dataset entity schema"""
