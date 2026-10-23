@@ -126,19 +126,30 @@ class LookupPhase(Phase):
             )
         )
 
-        if entity and self.entity_range:
-            if (
-                int(entity)
-                not in range(int(self.entity_range[0]), int(self.entity_range[1]))
-                and self.issues
-            ):
-                self.issues.log_issue(
-                    "entity",
-                    "entity number out of range",
-                    entity,
-                )
-
         return entity
+
+    def _check_entity_range(self, entity, line_number=0):
+        """
+        Raise an entity number out of range issue if the entity is outside the
+        dataset's range in the specification. This is checked for every entity,
+        whether it came from the lookups or was supplied in the resource itself.
+        """
+        if not entity or not self.issues or not self.entity_range:
+            return
+        entity_min, entity_max = self.entity_range
+        if entity_min in (None, "") or entity_max in (None, ""):
+            return
+        try:
+            out_of_range = not int(entity_min) <= int(entity) <= int(entity_max)
+        except (ValueError, TypeError):
+            return
+        if out_of_range:
+            self.issues.log_issue(
+                "entity",
+                "entity number out of range",
+                entity,
+                line_number=line_number,
+            )
 
     def redirect_entity(self, entity):
         """
@@ -187,6 +198,8 @@ class LookupPhase(Phase):
                         row[self.entity_field] = self.redirect_entity(
                             row[self.entity_field]
                         )
+
+                self._check_entity_range(row[self.entity_field], line_number)
             yield block
 
 
@@ -253,6 +266,10 @@ class EntityLookupPhase(LookupPhase):
             # Nothing to look up if there is no prefix, or an entity has
             # already been assigned upstream.
             if not row.get("prefix", "") or row.get(self.entity_field, ""):
+                if row.get("prefix", ""):
+                    self._check_entity_range(
+                        row.get(self.entity_field, ""), block["line-number"]
+                    )
                 if self.issues:
                     self.issues.record_entity_map(
                         block["entry-number"], row.get(self.entity_field, "")
@@ -314,6 +331,7 @@ class EntityLookupPhase(LookupPhase):
             if not entity or entity in emitted_entities:
                 continue
             emitted_entities.add(entity)
+            self._check_entity_range(entity, line_number)
 
             new_block = dict(block)
             new_block["row"] = dict(row)
