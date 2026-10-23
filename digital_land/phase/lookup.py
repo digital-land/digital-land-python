@@ -134,7 +134,7 @@ class LookupPhase(Phase):
         dataset's range in the specification. This is checked for every entity,
         whether it came from the lookups or was supplied in the resource itself.
         """
-        if not entity or not self.issues or not self.entity_range:
+        if not entity or not self.issues or len(self.entity_range or []) != 2:
             return
         entity_min, entity_max = self.entity_range
         if entity_min in (None, "") or entity_max in (None, ""):
