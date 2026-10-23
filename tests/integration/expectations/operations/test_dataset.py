@@ -238,6 +238,7 @@ def test_count_deleted_entities(dataset_path, mocker):
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
             "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
             "entry_number": ["1", "1", "1"],
         },
@@ -300,6 +301,7 @@ def test_count_deleted_entities_none_deleted(dataset_path, mocker):
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["fact-a", "fact-b"],
+            "entity": ["1001", "1002"],
             "resource": ["res-active", "res-active"],
             "entry_number": ["1", "2"],
         }
@@ -359,6 +361,7 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["fact-a", "fact-x", "fact-old"],
+            "entity": ["1001", "2001", "1002"],
             "resource": ["res-active", "res-active", "res-ended"],
             "entry_number": ["1", "2", "1"],
         }
@@ -431,6 +434,7 @@ def test_count_deleted_entities_shared_resource_with_same_references(
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["fact-1", "fact-2", "fact-3", "fact-4", "fact-5"],
+            "entity": ["1001", "1002", "3001", "3003", "3002"],
             "resource": [
                 "res-shared",
                 "res-shared",
@@ -496,6 +500,7 @@ def test_count_deleted_entities_ignores_entities_supplied_by_another_organisatio
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["fact-a", "fact-b", "fact-c"],
+            "entity": ["1001", "1002", "1003"],
             "resource": ["res-active", "res-ended", "res-other-org"],
             "entry_number": ["1", "1", "1"],
         }
@@ -545,6 +550,7 @@ def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker)
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
             "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
             "entry_number": ["1", "1", "1"],
         }
@@ -1481,6 +1487,7 @@ def test_count_deleted_entities_failures_carry_organisation_as_a_string(
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
             "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
             "entry_number": ["1", "1", "1"],
         }
