@@ -600,6 +600,10 @@ class TestEntityLookupPhase:
             assert issue["line-number"] == 2
 
     def test_process_shared_resource_looked_up_entity_range_issue(self):
+        """
+        An entity looked up per organisation for a shared resource is checked
+        against the dataset's range
+        """
         input_stream = [
             {
                 "row": {"prefix": "local-plan", "reference": "owen"},

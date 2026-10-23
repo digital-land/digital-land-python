@@ -180,6 +180,12 @@ class LookupPhase(Phase):
         )
 
     def process(self, stream):
+        """
+        Assign an entity to each row with a prefix that doesn't already have one,
+        applying any redirects, and raise an unknown entity issue when none is
+        found. Every entity, whether looked up or supplied in the resource, is
+        checked against the dataset's entity range.
+        """
         for block in stream:
             row = block["row"]
             prefix = row.get("prefix", "")
@@ -247,6 +253,12 @@ class EntityLookupPhase(LookupPhase):
         self.providers = providers or []
 
     def process(self, stream):
+        """
+        Assign entities to the stream, recording each entry's entity on the issue
+        log. A resource shared by several organisations has its entities resolved
+        once per organisation; an entity already supplied in the resource is kept
+        but still checked against the dataset's entity range.
+        """
         # With a single provider (or none) the row already carries the
         # organisation, so the inherited behaviour is used unchanged. Only a
         # resource shared by several organisations (e.g. a joint local plan)
