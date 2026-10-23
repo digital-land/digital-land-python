@@ -274,7 +274,7 @@ def count_deleted_entities(
                 where resource in ({','.join(f"'{x}'" for x in resource_list)})
     """
     rows = conn.execute(query).fetchall()
-    get_active_entities = [row[0] for row in rows]
+    get_active_entities = {row[0] for row in rows}
 
     # get the organisation's entities which it has supplied itself at some point,
     # using every resource it has ever provided, to compare against resource entities
