@@ -861,6 +861,39 @@ def test_duplicate_geometry_check_point_near_but_not_equal(dataset_path):
     assert not details["complete_matches"]
 
 
+@pytest.mark.parametrize(
+    "spatial_field,wkt",
+    [
+        ("geometry", "POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))"),
+        ("point", "POINT(0 0)"),
+    ],
+)
+def test_duplicate_geometry_check_searches_spatial_index_by_bounding_box(
+    dataset_path, spatial_field, wkt
+):
+    # The spatial index must be searched with each entity's bounding box; a scan of
+    # the index with no constraint compares every pair of entities in the dataset
+    with spatialite.connect(dataset_path) as conn:
+        conn.execute(
+            f"INSERT INTO entity (entity, {spatial_field}, organisation_entity) VALUES (1, ?, 100)",
+            (wkt,),
+        )
+        conn.commit()
+
+    queries = []
+    conn.set_trace_callback(queries.append)
+    duplicate_geometry_check(conn, spatial_field)
+    conn.set_trace_callback(None)
+
+    query = next(q for q in queries if "FROM entity_spatial a" in q)
+    plan = [row[3] for row in conn.execute("EXPLAIN QUERY PLAN " + query)]
+    conn.close()
+
+    index_scans = [step for step in plan if "VIRTUAL TABLE INDEX" in step]
+    assert index_scans
+    assert not [step for step in index_scans if step.endswith(":")], plan
+
+
 @pytest.fixture
 def plan_timetable_path(tmp_path):
     """a minimal built plan-timetable sqlite, matching the dataset entity schema"""

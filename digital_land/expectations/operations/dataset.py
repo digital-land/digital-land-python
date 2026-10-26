@@ -427,10 +427,10 @@ def duplicate_geometry_check(conn, spatial_field: str):
                     ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(a.geom) as pct_overlap_a,
                     ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(b.geom) as pct_overlap_b
                 FROM entity_spatial a
-                JOIN idx_entity_spatial_geom r
+                CROSS JOIN idx_entity_spatial_geom r
                     ON r.xmin <= MbrMaxX(a.geom) AND r.xmax >= MbrMinX(a.geom)
                     AND r.ymin <= MbrMaxY(a.geom) AND r.ymax >= MbrMinY(a.geom)
-                JOIN entity_spatial b
+                CROSS JOIN entity_spatial b
                     ON b.ROWID = r.pkid
                 WHERE a.entity < b.entity
                     AND ST_Intersects(a.geom, b.geom)
@@ -462,10 +462,10 @@ def duplicate_geometry_check(conn, spatial_field: str):
                 b.organisation_entity as organisation_entity_b,
                 CAST(MIN(a.entity, b.entity) AS TEXT) || '-' || CAST(MAX(a.entity, b.entity) AS TEXT) AS entity_join_key
             FROM entity_spatial a
-            JOIN idx_entity_spatial_point r
+            CROSS JOIN idx_entity_spatial_point r
                 ON r.xmin <= MbrMaxX(a.point) AND r.xmax >= MbrMinX(a.point)
                 AND r.ymin <= MbrMaxY(a.point) AND r.ymax >= MbrMinY(a.point)
-            JOIN entity_spatial b
+            CROSS JOIN entity_spatial b
                 ON b.ROWID = r.pkid
             WHERE a.entity < b.entity
                 AND ST_Equals(a.point, b.point)
