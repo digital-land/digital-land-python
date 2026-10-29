@@ -255,16 +255,23 @@ def test_validate_categorical_fields():
                 "description": "Test",
                 "tree-preservation-zone-type": "",
             },
+            {
+                "reference": "4",
+                "name": "Test TPO 4",
+                "description": "Test",
+                "tree-preservation-zone-type": "abc def",
+            },
         ],
     )
 
     output = list(h.process(reader))
 
-    assert len(output) == 3
+    assert len(output) == 4
     # check the fields are set in the output
     assert output[0]["row"]["tree-preservation-zone-type"] == "area"
     assert output[1]["row"]["tree-preservation-zone-type"] == "other"
     assert output[2]["row"]["tree-preservation-zone-type"] == ""
+    assert output[3]["row"]["tree-preservation-zone-type"] == "abc-def"
 
     assert len(issues.rows) == 1
     # but we get an issue generated
@@ -321,12 +328,16 @@ def test_validate_categorical_field_dataset():
                 "reference": "7",
                 "document-type": "MAP-TO-VALID-VALUE",
             },
+            {
+                "reference": "8",
+                "document-type": "MAP - TO-VALID-VALUE",
+            },
         ],
     )
 
     output = list(h.process(reader))
 
-    assert len(output) == 7
+    assert len(output) == 8
     # check the fields are set in the output
     assert output[0]["row"]["document-type"] == "notice"
     assert output[1]["row"]["document-type"] == "other"
@@ -334,6 +345,7 @@ def test_validate_categorical_field_dataset():
     assert output[3]["row"]["document-type"] == "area-appraisal"
     assert output[4]["row"]["document-type"] == "area-appraisal"
     assert output[5]["row"]["document-type"] == "MAP-TO-VALID-VALUE"
+    assert output[6]["row"]["document-type"] == "MAP-TO-VALID-VALUE"
     assert output[6]["row"]["document-type"] == "MAP-TO-VALID-VALUE"
 
     assert len(issues.rows) == 1
