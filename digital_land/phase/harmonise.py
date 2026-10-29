@@ -203,7 +203,8 @@ class HarmonisePhase(Phase):
                     if value:
                         harmonised_values = []
                         for raw_value in self.category_values(value):
-                            normalised_value = re.sub(r"(\b\s\-+\s\b)|(\b\s\b)","-",raw_value.replace(r"\s","-"))
+                            normalised_value = re.sub(r"(\b\s\-+\s\b)|(\b\s\b)",
+                                                      "-",raw_value.replace(r"\s","-"))
                             matching_value = next(
                                 (
                                     v
