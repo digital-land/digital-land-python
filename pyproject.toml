@@ -41,7 +41,9 @@ dependencies = [
     "duckdb>=0.10.0,<1.5.0",
     "dask",
     "dask[dataframe]",
-    "pyarrow",
+    # pyarrow 26 needs NumPy 2, which the numpy pin above rules out before Python 3.13
+    "pyarrow<26; python_version < '3.13'",
+    "pyarrow; python_version >= '3.13'",
     "pygit2",
     "boto3",
     "cloudpathlib[s3]",

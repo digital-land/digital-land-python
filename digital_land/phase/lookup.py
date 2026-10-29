@@ -133,6 +133,29 @@ class LookupPhase(Phase):
 
         return entity
 
+    def _check_entity_range(self, entity, line_number=0):
+        """
+        Raise an entity number out of range issue if the entity is outside the
+        dataset's range in the specification. This is checked for every entity,
+        whether it came from the lookups or was supplied in the resource itself.
+        """
+        if not entity or not self.issues or len(self.entity_range or []) != 2:
+            return
+        entity_min, entity_max = self.entity_range
+        if entity_min in (None, "") or entity_max in (None, ""):
+            return
+        try:
+            out_of_range = not int(entity_min) <= int(entity) <= int(entity_max)
+        except (ValueError, TypeError):
+            return
+        if out_of_range:
+            self.issues.log_issue(
+                "entity",
+                "entity number out of range",
+                entity,
+                line_number=line_number,
+            )
+
     def redirect_entity(self, entity):
         """
         Given an entity number can check the redirect lookups to see if the entity
@@ -148,25 +171,26 @@ class LookupPhase(Phase):
         return entity
 
     def _log_unknown_entity(self, reference, curie, line_number):
-        """Raise an unknown-entity issue, distinguishing a missing reference."""
-        if not self.issues:
+        """
+        Raise an unknown-entity issue. An entry with no reference has already been
+        reported as missing reference by EntityReferencePhase, so isn't reported again.
+        """
+        if not self.issues or not reference:
             return
-        if not reference:
-            self.issues.log_issue(
-                "entity",
-                "unknown entity - missing reference",
-                curie,
-                line_number=line_number,
-            )
-        else:
-            self.issues.log_issue(
-                "entity",
-                "unknown entity",
-                curie,
-                line_number=line_number,
-            )
+        self.issues.log_issue(
+            "entity",
+            "unknown entity",
+            curie,
+            line_number=line_number,
+        )
 
     def process(self, stream):
+        """
+        Assign an entity to each row with a prefix that doesn't already have one,
+        applying any redirects, and raise an unknown entity issue when none is
+        found. Every entity, whether looked up or supplied in the resource, is
+        checked against the dataset's entity range.
+        """
         for block in stream:
             row = block["row"]
             prefix = row.get("prefix", "")
@@ -180,21 +204,7 @@ class LookupPhase(Phase):
                     row[self.entity_field] = self.get_entity(block)
 
                     if not row[self.entity_field]:
-                        if self.issues:
-                            if not reference:
-                                self.issues.log_issue(
-                                    "entity",
-                                    "unknown entity - missing reference",
-                                    curie,
-                                    line_number=line_number,
-                                )
-                            else:
-                                self.issues.log_issue(
-                                    "entity",
-                                    "unknown entity",
-                                    curie,
-                                    line_number=line_number,
-                                )
+                        self._log_unknown_entity(reference, curie, line_number)
                     else:
                         row[self.entity_field] = self.redirect_entity(row[self.entity_field])
             yield block
@@ -244,6 +254,12 @@ class EntityLookupPhase(LookupPhase):
         self.providers = providers or []
 
     def process(self, stream):
+        """
+        Assign entities to the stream, recording each entry's entity on the issue
+        log. A resource shared by several organisations has its entities resolved
+        once per organisation; an entity already supplied in the resource is kept
+        but still checked against the dataset's entity range.
+        """
         # With a single provider (or none) the row already carries the
         # organisation, so the inherited behaviour is used unchanged. Only a
         # resource shared by several organisations (e.g. a joint local plan)
@@ -261,6 +277,10 @@ class EntityLookupPhase(LookupPhase):
             # Nothing to look up if there is no prefix, or an entity has
             # already been assigned upstream.
             if not row.get("prefix", "") or row.get(self.entity_field, ""):
+                if row.get("prefix", ""):
+                    self._check_entity_range(
+                        row.get(self.entity_field, ""), block["line-number"]
+                    )
                 if self.issues:
                     self.issues.record_entity_map(block["entry-number"], row.get(self.entity_field, ""))
                 yield block
@@ -318,6 +338,7 @@ class EntityLookupPhase(LookupPhase):
             if not entity or entity in emitted_entities:
                 continue
             emitted_entities.add(entity)
+            self._check_entity_range(entity, line_number)
 
             new_block = dict(block)
             new_block["row"] = dict(row)

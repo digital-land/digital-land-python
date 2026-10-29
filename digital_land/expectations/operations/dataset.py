@@ -131,21 +131,91 @@ def count_lpa_boundary(
     return result, message, details
 
 
+# datasette's max_returned_rows, a query returning more rows than this is cut off without an error
+DATASETTE_PAGE_SIZE = 1000
+
+
+def _fetch_resources_for_dataset(dataset_name, active_only):
+    if active_only:
+        # one active resource per endpoint, ignoring log rows for days the endpoint returned no resource
+        sql = f"""select o.entity as organisation_entity, rhe.resource
+                  from reporting_historic_endpoints rhe
+                  join organisation o on rhe.organisation=o.organisation
+                  where pipeline == '{dataset_name}' and rhe.resource != ""
+                  and (resource_end_date == "" or resource_end_date is null)
+                  group by o.entity, rhe.endpoint
+                  order by o.entity, rhe.endpoint"""
+    else:
+        # every resource each organisation has ever supplied, including ended ones
+        sql = f"""select o.entity as organisation_entity, rhe.resource
+                  from reporting_historic_endpoints rhe
+                  join organisation o on rhe.organisation=o.organisation
+                  where pipeline == '{dataset_name}' and rhe.resource != ""
+                  group by o.entity, rhe.resource
+                  order by o.entity, rhe.resource"""
+
+    pages = []
+    offset = 0
+    while True:
+        page = _read_datasette_csv(
+            f"{sql} limit {DATASETTE_PAGE_SIZE} offset {offset}", dataset_name
+        )
+        pages.append(page)
+        if len(page) < DATASETTE_PAGE_SIZE:
+            break
+        offset += DATASETTE_PAGE_SIZE
+    df = pd.concat(pages, ignore_index=True)
+
+    logging.warning(
+        f"[expectations] Fetched {len(df)} {'active' if active_only else 'historic'} resources for '{dataset_name}' from datasette"
+    )
+    cache = {}
+    for _, row in df.iterrows():
+        cache.setdefault(row["organisation_entity"], []).append(row["resource"])
+    return cache
+
+
+def _read_datasette_csv(sql, dataset_name):
+    params = urllib.parse.urlencode({"sql": sql, "_size": "max"})
+    base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
+
+    max_retries = 60
+    for attempt in range(max_retries):
+        try:
+            return pd.read_csv(base_url)
+        except urllib.error.HTTPError as e:
+            logging.warning(
+                f"HTTP error fetching datasette for dataset {dataset_name}, "
+                f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s..."
+            )
+            time.sleep(60)
+    raise Exception(
+        f"Failed to fetch datasette for dataset {dataset_name} after multiple attempts"
+    )
+
+
 # Previously named count_deleted_entities() function
 def fetch_active_resources_for_dataset(dataset_name):
+    return _fetch_resources_for_dataset(dataset_name, active_only=True)
+
+
+def fetch_all_resources_for_dataset(dataset_name):
+    return _fetch_resources_for_dataset(dataset_name, active_only=False)
+
+
+def _fetch_organisation_resources(db_name, organisation_entity, active_only):
+    end_date_filter = 'and resource_end_date == ""' if active_only else ""
     params = urllib.parse.urlencode(
         {
-            "sql": f"""select o.entity as organisation_entity, rhe.resource
-                        from reporting_historic_endpoints rhe
-                        join organisation o on rhe.organisation=o.organisation
-                        where pipeline == '{dataset_name}' and (resource_end_date == "" or resource_end_date is null)
-                        group by o.entity, rhe.endpoint""",
+            "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
+                        where pipeline == '{db_name}' and o.entity='{organisation_entity}' {end_date_filter} group by {'endpoint' if active_only else 'resource'}""",
             "_size": "max",
         }
     )
     base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
 
-    max_retries = 60
+    # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
+    max_retries = 60  # Retry for an hour
     for attempt in range(max_retries):
         try:
             df = pd.read_csv(base_url)
@@ -165,22 +235,23 @@ def count_deleted_entities(
     expected: int,
     organisation_entity: int = None,
     resources_cache: dict = None,
+    all_resources_cache: dict = None,
 ):
+    """
+    Counts entities the organisation has supplied in the past which are missing
+    from its active resources. Entities assigned to the organisation but only
+    ever supplied by another organisation (e.g. MHCLG seeded data) are ignored.
+    """
     # get database name to identify dataset
     db_path = conn.execute("PRAGMA database_list").fetchall()[0][2]
     db_name = os.path.splitext(os.path.basename(db_path))[0]
 
-    # check if entity data has been fetched from datasette and stored in the cache
+    # check if resources have been fetched from datasette and stored in the cache
     if resources_cache is not None:
         resource_list = resources_cache.get(organisation_entity, [])
     else:
-        # get dataset specific active resource list if nothing is found it
-        params = urllib.parse.urlencode(
-            {
-                "sql": f"""select * from reporting_historic_endpoints rhe join organisation o on rhe.organisation=o.organisation
-                            where pipeline == '{db_name}' and o.entity='{organisation_entity}' and resource_end_date == "" group by endpoint""",
-                "_size": "max",
-            }
+        resource_list = _fetch_organisation_resources(
+            db_name, organisation_entity, active_only=True
         )
         base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
 
@@ -196,20 +267,29 @@ def count_deleted_entities(
         else:
             raise Exception("Failed to fetch datasette after multiple attempts")
 
-        resource_list = get_resource["resource"].to_list()
+    if all_resources_cache is not None:
+        all_resource_list = all_resources_cache.get(organisation_entity, [])
+    else:
+        all_resource_list = _fetch_organisation_resources(
+            db_name, organisation_entity, active_only=False
+        )
 
-    # use resource list to get current entities
-    query = f"""select f.entity
-                from fact_resource fe join fact f on fe.fact=f.fact join entity e on f.entity=e.entity
-                where resource in ({','.join(f"'{x}'" for x in resource_list)})
-                group by reference
+    # use resource list to get current entities, organisations sharing a resource
+    # (e.g. joint plans) each have their own entity for the same reference
+    query = f"""select distinct fe.entity
+                from fact_resource fe join entity e on fe.entity=e.entity
+                where fe.resource in ({','.join(f"'{x}'" for x in resource_list)})
     """
     rows = conn.execute(query).fetchall()
-    get_active_entities = [row[0] for row in rows]
+    get_active_entities = {row[0] for row in rows}
 
-    # get entities from entity table to compare against resource entities
+    # get the organisation's entities which it has supplied itself at some point,
+    # using every resource it has ever provided, to compare against resource entities
     query = f"""
-    select entity from entity where organisation_entity = '{organisation_entity}';
+    select distinct fe.entity
+    from fact_resource fe join entity e on fe.entity=e.entity
+    where e.organisation_entity = '{organisation_entity}'
+    and fe.resource in ({','.join(f"'{x}'" for x in all_resource_list)});
     """
     rows = conn.execute(query).fetchall()
     get_entities = [row[0] for row in rows]
@@ -344,9 +424,13 @@ def duplicate_geometry_check(conn, spatial_field: str):
                     ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(a.geom) as pct_overlap_a,
                     ST_Area(ST_Intersection(a.geom, b.geom)) / ST_Area(b.geom) as pct_overlap_b
                 FROM entity_spatial a
-                JOIN entity_spatial b
-                    ON ST_Intersects(a.geom, b.geom)
-                    AND a.entity < b.entity
+                CROSS JOIN idx_entity_spatial_geom r
+                    ON r.xmin <= MbrMaxX(a.geom) AND r.xmax >= MbrMinX(a.geom)
+                    AND r.ymin <= MbrMaxY(a.geom) AND r.ymax >= MbrMinY(a.geom)
+                CROSS JOIN entity_spatial b
+                    ON b.ROWID = r.pkid
+                WHERE a.entity < b.entity
+                    AND ST_Intersects(a.geom, b.geom)
                 ),
 
             categorised as (
@@ -375,9 +459,13 @@ def duplicate_geometry_check(conn, spatial_field: str):
                 b.organisation_entity as organisation_entity_b,
                 CAST(MIN(a.entity, b.entity) AS TEXT) || '-' || CAST(MAX(a.entity, b.entity) AS TEXT) AS entity_join_key
             FROM entity_spatial a
-            JOIN entity_spatial b
-                ON ST_Equals(a.point, b.point)
-                AND a.entity < b.entity
+            CROSS JOIN idx_entity_spatial_point r
+                ON r.xmin <= MbrMaxX(a.point) AND r.xmax >= MbrMinX(a.point)
+                AND r.ymin <= MbrMaxY(a.point) AND r.ymax >= MbrMinY(a.point)
+            CROSS JOIN entity_spatial b
+                ON b.ROWID = r.pkid
+            WHERE a.entity < b.entity
+                AND ST_Equals(a.point, b.point)
             GROUP BY entity_join_key;
         """
 

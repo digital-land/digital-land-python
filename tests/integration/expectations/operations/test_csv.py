@@ -203,6 +203,31 @@ def test_check_no_overlapping_ranges_adjacent_fails(tmp_path):
     assert len(details["overlaps"]) == 1
 
 
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [["1", "1"], ["1", "1"]],  # identical ranges
+        [["1", "10"], ["1", "1"]],  # same minimum, different maximum
+        [["1", "1"], ["1", "10"]],  # same minimum, shorter range first
+    ],
+)
+def test_check_no_overlapping_ranges_same_minimum_fails(tmp_path, rows):
+    """Ranges that start on the same value overlap, whatever their maximum."""
+    file_path = tmp_path / "same_minimum.csv"
+    with open(file_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["min", "max"])
+        for row in rows:
+            writer.writerow(row)
+
+    conn = duckdb.connect()
+    passed, message, details = check_no_overlapping_ranges(
+        conn, file_path=file_path, min_field="min", max_field="max"
+    )
+    assert passed is False
+    assert len(details["overlaps"]) == 1
+
+
 def test_check_field_is_within_ranges_fails(tmp_path):
     lookup_file = tmp_path / "lookup.csv"
     with open(lookup_file, "w", newline="") as f:

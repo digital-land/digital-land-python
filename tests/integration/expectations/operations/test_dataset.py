@@ -4,6 +4,7 @@ import sqlite3
 import pytest
 import pandas as pd
 import requests
+import urllib
 
 from digital_land.expectations.operations.dataset import (
     check_columns,
@@ -13,6 +14,7 @@ from digital_land.expectations.operations.dataset import (
     duplicate_geometry_check,
     duplicate_name_check,
     fetch_active_resources_for_dataset,
+    fetch_all_resources_for_dataset,
     name_is_a_code_check,
     name_is_a_placeholder_check,
 )
@@ -134,13 +136,92 @@ def test_fetch_active_resources_for_dataset(mocker):
     assert result == {101: ["resource_a", "resource_b"], 102: ["resource_c"]}
 
 
+def test_fetch_all_resources_for_dataset_includes_ended_resources(mocker):
+    mock_df = pd.DataFrame(
+        {
+            "organisation_entity": [101, 101, 102],
+            "resource": ["resource_a", "resource_ended", "resource_c"],
+        }
+    )
+    mock_read_csv = mocker.patch("pandas.read_csv", return_value=mock_df)
+
+    result = fetch_all_resources_for_dataset("test-dataset")
+
+    assert result == {101: ["resource_a", "resource_ended"], 102: ["resource_c"]}
+    assert "resource_end_date" not in mock_read_csv.call_args.args[0]
+
+
+@pytest.fixture
+def fake_datasette(mocker):
+    """Answer datasette CSV queries from an in-memory reporting database, cut off at
+    datasette's max_returned_rows like the real service."""
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE organisation (organisation TEXT, entity INTEGER)")
+    conn.execute(
+        """CREATE TABLE reporting_historic_endpoints (
+            organisation TEXT, pipeline TEXT, endpoint TEXT, resource TEXT, resource_end_date TEXT
+        )"""
+    )
+
+    def read_csv(url):
+        sql = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["sql"][0]
+        return pd.read_sql_query(sql, conn).head(1000)
+
+    mocker.patch("pandas.read_csv", side_effect=read_csv)
+    return conn
+
+
+def test_fetch_active_resources_for_dataset_ignores_rows_without_a_resource(
+    fake_datasette,
+):
+    fake_datasette.execute(
+        "INSERT INTO organisation VALUES ('local-authority:LBH', 192)"
+    )
+    # log rows for days the endpoint returned no resource, then its active resource
+    fake_datasette.executemany(
+        "INSERT INTO reporting_historic_endpoints VALUES (?, ?, ?, ?, ?)",
+        [("local-authority:LBH", "test-dataset", "endpoint_a", "", None)] * 3
+        + [("local-authority:LBH", "test-dataset", "endpoint_a", "resource_a", "")],
+    )
+
+    result = fetch_active_resources_for_dataset("test-dataset")
+
+    assert result == {192: ["resource_a"]}
+
+
+def test_fetch_all_resources_for_dataset_reads_past_the_datasette_row_limit(
+    fake_datasette,
+):
+    fake_datasette.execute(
+        "INSERT INTO organisation VALUES ('local-authority:LBH', 192)"
+    )
+    fake_datasette.executemany(
+        "INSERT INTO reporting_historic_endpoints VALUES (?, ?, ?, ?, ?)",
+        [
+            (
+                "local-authority:LBH",
+                "test-dataset",
+                "endpoint_a",
+                f"resource_{i:04}",
+                "2026-01-01",
+            )
+            for i in range(2500)
+        ],
+    )
+
+    result = fetch_all_resources_for_dataset("test-dataset")
+
+    assert len(result[192]) == 2500
+
+
 def test_count_deleted_entities(dataset_path, mocker):
     """Entity with no facts in the active resource is reported as deleted."""
     organisation_entity = 109
     expected = 0
 
     # load data into sqlite for entity, fact_resource and fact table
-    # entity 1001 has facts in the active resource; entity 1002 does not
+    # entity 1001 has facts in the active resource; entity 1002 only has facts
+    # in an ended resource previously supplied by the same organisation
     test_entity_data = pd.DataFrame.from_dict(
         {
             "entity": ["1001", "1002"],
@@ -152,24 +233,30 @@ def test_count_deleted_entities(dataset_path, mocker):
 
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
-            "entry_number": ["1", "1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
+            "entry_number": ["1", "1", "1"],
         },
     )
 
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "entity": ["1001", "1001"],
-            "field": ["name", "reference"],
-            "value": ["abc", "ref1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "field": ["name", "reference", "name"],
+            "value": ["abc", "ref1", "test2"],
         }
     )
 
-    # mock `pandas.read_csv` to return the mock DataFrame
-    mock_df = pd.DataFrame({"resource": ["2f7d900dd48fd02"]})
-    mocker.patch("pandas.read_csv", return_value=mock_df)
+    # mock `pandas.read_csv` to return the active then all resources
+    mocker.patch(
+        "pandas.read_csv",
+        side_effect=[
+            pd.DataFrame({"resource": ["2f7d900dd48fd02"]}),
+            pd.DataFrame({"resource": ["2f7d900dd48fd02", "res-ended"]}),
+        ],
+    )
 
     with spatialite.connect(dataset_path) as conn:
         # load data into required tables
@@ -208,6 +295,7 @@ def test_count_deleted_entities_none_deleted(dataset_path, mocker):
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
             "fact": ["fact-a", "fact-b"],
+            "entity": ["1001", "1002"],
             "resource": ["res-active", "res-active"],
             "entry_number": ["1", "2"],
         }
@@ -246,7 +334,8 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     Facts for a second organisation's entity in the same resource must not
     cause that entity to be counted as active for the queried organisation.
 
-    Setup: org 109 has entities 1001 (active) and 1002 (deleted). Org 200
+    Setup: org 109 has entities 1001 (active) and 1002 (deleted, last seen
+    in an ended resource). Org 200
     has entity 2001 with a fact in the same resource. Only 1002 should be
     reported as deleted for org 109; entity 2001 must be excluded entirely.
     """
@@ -263,24 +352,30 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
 
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["fact-a", "fact-x"],
-            "resource": ["res-active", "res-active"],
-            "entry_number": ["1", "2"],
+            "fact": ["fact-a", "fact-x", "fact-old"],
+            "entity": ["1001", "2001", "1002"],
+            "resource": ["res-active", "res-active", "res-ended"],
+            "entry_number": ["1", "2", "1"],
         }
     )
 
     # fact-a belongs to org 109's entity 1001; fact-x belongs to org 200's entity 2001
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["fact-a", "fact-x"],
-            "entity": ["1001", "2001"],
-            "field": ["name", "name"],
-            "value": ["org109 tree A", "org200 tree"],
+            "fact": ["fact-a", "fact-x", "fact-old"],
+            "entity": ["1001", "2001", "1002"],
+            "field": ["name", "name", "name"],
+            "value": ["org109 tree A", "org200 tree", "org109 tree B"],
         }
     )
 
-    mock_df = pd.DataFrame({"resource": ["res-active"]})
-    mocker.patch("pandas.read_csv", return_value=mock_df)
+    mocker.patch(
+        "pandas.read_csv",
+        side_effect=[
+            pd.DataFrame({"resource": ["res-active"]}),
+            pd.DataFrame({"resource": ["res-active", "res-ended"]}),
+        ],
+    )
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
@@ -299,6 +394,134 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     assert "2001" not in details["entities"]
 
 
+@pytest.mark.parametrize(
+    "organisation_entity, expected_deleted",
+    [(61, []), (304, ["3002"])],
+)
+def test_count_deleted_entities_shared_resource_with_same_references(
+    dataset_path, organisation_entity, expected_deleted
+):
+    """
+    Organisations sharing a resource (e.g. a joint plan published by BRO and SNO)
+    each have their own entity for the same reference. Every organisation's
+    entities in the shared resource must count as active, not just one per reference.
+
+    Setup: org 61 and org 304 share res-shared, each with an entity for REF-A and
+    REF-B. Org 304 also has 3002, last seen in an ended resource, so is deleted.
+    """
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002", "3001", "3003", "3002"],
+            "name": ["BRO A", "BRO B", "SNO A", "SNO B", "SNO old"],
+            "organisation_entity": [61, 61, 304, 304, 304],
+            "reference": ["REF-A", "REF-B", "REF-A", "REF-B", "REF-OLD"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-1", "fact-2", "fact-3", "fact-4", "fact-5"],
+            "entity": ["1001", "1002", "3001", "3003", "3002"],
+            "resource": [
+                "res-shared",
+                "res-shared",
+                "res-shared",
+                "res-shared",
+                "res-ended",
+            ],
+            "entry_number": ["1", "2", "1", "2", "1"],
+        }
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-1", "fact-2", "fact-3", "fact-4", "fact-5"],
+            "entity": ["1001", "1002", "3001", "3003", "3002"],
+            "field": ["reference", "reference", "reference", "reference", "reference"],
+            "value": ["REF-A", "REF-B", "REF-A", "REF-B", "REF-OLD"],
+        }
+    )
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, _, details = count_deleted_entities(
+            conn,
+            expected=0,
+            organisation_entity=organisation_entity,
+            resources_cache={61: ["res-shared"], 304: ["res-shared"]},
+            all_resources_cache={61: ["res-shared"], 304: ["res-shared", "res-ended"]},
+        )
+
+    assert details["entities"] == expected_deleted
+    assert passed == (expected_deleted == [])
+
+
+def test_count_deleted_entities_ignores_entities_supplied_by_another_organisation(
+    dataset_path, mocker
+):
+    """
+    Entities assigned to an organisation but only ever supplied by another
+    organisation (e.g. MHCLG seeded plan-timetable data for an LPA) were never
+    in the organisation's own resources, so must not be reported as deleted.
+
+    Setup: org 109 has entity 1001 (active), 1002 (deleted, last seen in an
+    ended org 109 resource) and 1003 (only supplied in another organisation's
+    resource). Only 1002 should be reported as deleted.
+    """
+    organisation_entity = 109
+
+    test_entity_data = pd.DataFrame.from_dict(
+        {
+            "entity": ["1001", "1002", "1003"],
+            "name": ["test1", "test2", "test3"],
+            "organisation_entity": [109, 109, 109],
+            "reference": ["ref1", "ref2", "ref3"],
+        }
+    )
+
+    test_fact_resource_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b", "fact-c"],
+            "entity": ["1001", "1002", "1003"],
+            "resource": ["res-active", "res-ended", "res-other-org"],
+            "entry_number": ["1", "1", "1"],
+        }
+    )
+
+    test_fact_data = pd.DataFrame.from_dict(
+        {
+            "fact": ["fact-a", "fact-b", "fact-c"],
+            "entity": ["1001", "1002", "1003"],
+            "field": ["name", "name", "name"],
+            "value": ["test1", "test2", "test3"],
+        }
+    )
+
+    with spatialite.connect(dataset_path) as conn:
+        test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
+        test_fact_resource_data.to_sql(
+            "fact_resource", conn, if_exists="replace", index=False
+        )
+        test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
+
+        passed, _, details = count_deleted_entities(
+            conn,
+            expected=0,
+            organisation_entity=organisation_entity,
+            resources_cache={109: ["res-active"]},
+            all_resources_cache={109: ["res-active", "res-ended"]},
+        )
+
+    assert not passed
+    assert details["actual"] == 1
+    assert details["entities"] == ["1002"]
+
+
 def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker):
     organisation_entity = 109
     expected = 0
@@ -313,22 +536,24 @@ def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker)
     )
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
-            "entry_number": ["1", "1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
+            "entry_number": ["1", "1", "1"],
         }
     )
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "entity": ["1001", "1001"],
-            "field": ["name", "reference"],
-            "value": ["abc", "ref1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "field": ["name", "reference", "name"],
+            "value": ["abc", "ref1", "test2"],
         }
     )
 
     mock_read_csv = mocker.patch("pandas.read_csv")
     resources_cache = {109: ["2f7d900dd48fd02"]}
+    all_resources_cache = {109: ["2f7d900dd48fd02", "res-ended"]}
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
@@ -340,6 +565,7 @@ def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker)
             expected=expected,
             organisation_entity=organisation_entity,
             resources_cache=resources_cache,
+            all_resources_cache=all_resources_cache,
         )
 
     mock_read_csv.assert_not_called()
@@ -547,6 +773,99 @@ def test_duplicate_geometry_check_no_dupes(dataset_path):
     assert not details["any_matches"]
     assert details["actual"] == 0
     assert details["expected"] == 0
+
+
+def test_duplicate_geometry_check_overlapping_bounding_boxes_only(dataset_path):
+    # The two triangles share a bounding box but do not touch, so the spatial index
+    # offers them as a candidate pair and the exact intersection test must reject it
+    with spatialite.connect(dataset_path) as conn:
+        rows = [
+            {
+                "entity": 1,
+                "geometry": "POLYGON((0 0, 2 0, 0 2, 0 0))",
+                "organisation_entity": 100,
+            },
+            {
+                "entity": 2,
+                "geometry": "POLYGON((2 0.1, 2 2, 0.1 2, 2 0.1))",
+                "organisation_entity": 101,
+            },
+        ]
+        for row in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, geometry, organisation_entity) VALUES (?, ?, ?)",
+                (row["entity"], row["geometry"], row["organisation_entity"]),
+            )
+        conn.commit()
+
+    result, message, details = duplicate_geometry_check(conn, "geometry")
+    conn.close()
+
+    assert result
+    assert not details["any_matches"]
+
+
+def test_duplicate_geometry_check_point_near_but_not_equal(dataset_path):
+    # The spatial index stores coordinates at lower precision, so these points share
+    # an index entry; they are not the same point and must not be flagged
+    with spatialite.connect(dataset_path) as conn:
+        rows = [
+            {
+                "entity": 1,
+                "point": "POINT(-1.5000001 52.5000001)",
+                "organisation_entity": 100,
+            },
+            {
+                "entity": 2,
+                "point": "POINT(-1.5000002 52.5000002)",
+                "organisation_entity": 101,
+            },
+        ]
+        for row in rows:
+            conn.execute(
+                "INSERT INTO entity (entity, point, organisation_entity) VALUES (?, ?, ?)",
+                (row["entity"], row["point"], row["organisation_entity"]),
+            )
+        conn.commit()
+
+    result, message, details = duplicate_geometry_check(conn, "point")
+    conn.close()
+
+    assert result
+    assert not details["complete_matches"]
+
+
+@pytest.mark.parametrize(
+    "spatial_field,wkt",
+    [
+        ("geometry", "POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))"),
+        ("point", "POINT(0 0)"),
+    ],
+)
+def test_duplicate_geometry_check_searches_spatial_index_by_bounding_box(
+    dataset_path, spatial_field, wkt
+):
+    # The spatial index must be searched with each entity's bounding box; a scan of
+    # the index with no constraint compares every pair of entities in the dataset
+    with spatialite.connect(dataset_path) as conn:
+        conn.execute(
+            f"INSERT INTO entity (entity, {spatial_field}, organisation_entity) VALUES (1, ?, 100)",
+            (wkt,),
+        )
+        conn.commit()
+
+    queries = []
+    conn.set_trace_callback(queries.append)
+    duplicate_geometry_check(conn, spatial_field)
+    conn.set_trace_callback(None)
+
+    query = next(q for q in queries if "FROM entity_spatial a" in q)
+    plan = [row[3] for row in conn.execute("EXPLAIN QUERY PLAN " + query)]
+    conn.close()
+
+    index_scans = [step for step in plan if "VIRTUAL TABLE INDEX" in step]
+    assert index_scans
+    assert not [step for step in index_scans if step.endswith(":")], plan
 
 
 @pytest.fixture
@@ -1140,17 +1459,18 @@ def test_count_deleted_entities_failures_carry_organisation_as_a_string(dataset_
     )
     test_fact_resource_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02"],
-            "entry_number": ["1", "1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "resource": ["2f7d900dd48fd02", "2f7d900dd48fd02", "res-ended"],
+            "entry_number": ["1", "1", "1"],
         }
     )
     test_fact_data = pd.DataFrame.from_dict(
         {
-            "fact": ["036d2b946bd41", "16bf38800aafd"],
-            "entity": ["1001", "1001"],
-            "field": ["name", "reference"],
-            "value": ["abc", "ref1"],
+            "fact": ["036d2b946bd41", "16bf38800aafd", "fact-old"],
+            "entity": ["1001", "1001", "1002"],
+            "field": ["name", "reference", "name"],
+            "value": ["abc", "ref1", "test2"],
         }
     )
     mock_read_csv = mocker.patch("pandas.read_csv")
@@ -1164,6 +1484,7 @@ def test_count_deleted_entities_failures_carry_organisation_as_a_string(dataset_
             expected=0,
             organisation_entity=organisation_entity,
             resources_cache={109: ["2f7d900dd48fd02"]},
+            all_resources_cache={109: ["2f7d900dd48fd02", "res-ended"]},
         )
 
     mock_read_csv.assert_not_called()

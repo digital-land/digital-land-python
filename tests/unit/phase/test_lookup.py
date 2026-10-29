@@ -101,6 +101,23 @@ class TestLookupPhase:
         assert output[0]["row"]["entity"] == ""
         assert issues.rows[0]["issue-type"] == "unknown entity"
 
+    def test_process_blank_reference_raises_no_issue(self):
+        """EntityReferencePhase has already raised missing reference for the entry"""
+        input_stream = [
+            {
+                "row": {"prefix": "dataset", "reference": "", "organisation": "test"},
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        issues = IssueLog()
+        phase = LookupPhase(lookups={}, redirect_lookups={}, issue_log=issues)
+        phase.entity_field = "entity"
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == ""
+        assert issues.rows == []
+
     def test_process_raise_range_issue(self, get_input_stream):
         input_stream = get_input_stream
         lookups = {",dataset,1,test": "1"}
@@ -437,6 +454,26 @@ class TestEntityLookupPhase:
         # organisation, which would fan out into a task for each of them
         assert [i["issue-type"] for i in issues.rows] == ["unknown entity"]
 
+    def test_multi_org_blank_reference_raises_no_issue(self):
+        """EntityReferencePhase has already raised missing reference for the entry"""
+        input_stream = [
+            {
+                "row": {"prefix": "local-plan", "reference": "", "organisation": ""},
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        issues = IssueLog()
+        phase = EntityLookupPhase(
+            lookups={},
+            issue_log=issues,
+            providers=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert output == []
+        assert issues.rows == []
+
     def test_multi_org_row_with_own_organisation_is_not_fanned_out(self):
         # Some collections map a source column to the organisation (e.g.
         # conservation-area's `borough`), and it need not be one of the
@@ -495,6 +532,78 @@ class TestEntityLookupPhase:
 
         assert len(output) == 1
         assert output[0]["row"]["entity"] == "101"
+
+    @pytest.mark.parametrize(
+        "providers", [[], ["local-authority:OE", "local-authority:TB"]]
+    )
+    @pytest.mark.parametrize(
+        "entity, expected_issue_count",
+        [("5", 1), ("21", 1), ("10", 0), ("15", 0), ("20", 0)],
+    )
+    def test_process_supplied_entity_range_issue(
+        self, providers, entity, expected_issue_count
+    ):
+        """
+        An entity supplied in the resource (not from the lookups) is still
+        checked against the dataset's range, including both range boundaries
+        """
+        input_stream = [
+            {
+                "row": {
+                    "prefix": "dataset",
+                    "reference": "1",
+                    "organisation": "",
+                    "entity": entity,
+                },
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        issues = IssueLog()
+        phase = EntityLookupPhase(
+            lookups={},
+            issue_log=issues,
+            entity_range=["10", "20"],
+            providers=providers,
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == entity
+        range_issues = [
+            issue
+            for issue in issues.rows
+            if issue["issue-type"] == "entity number out of range"
+        ]
+        assert len(range_issues) == expected_issue_count
+        for issue in range_issues:
+            assert issue["value"] == entity
+            assert issue["line-number"] == 2
+
+    def test_process_shared_resource_looked_up_entity_range_issue(self):
+        """
+        An entity looked up per organisation for a shared resource is checked
+        against the dataset's range
+        """
+        input_stream = [
+            {
+                "row": {"prefix": "local-plan", "reference": "owen"},
+                "entry-number": 1,
+                "line-number": 2,
+            }
+        ]
+        issues = IssueLog()
+        phase = EntityLookupPhase(
+            lookups={",local-plan,owen,local-authorityoe": "101"},
+            issue_log=issues,
+            entity_range=["10", "20"],
+            providers=["local-authority:OE", "local-authority:TB"],
+        )
+        output = [block for block in phase.process(input_stream)]
+
+        assert output[0]["row"]["entity"] == "101"
+        assert [issue["issue-type"] for issue in issues.rows] == [
+            "entity number out of range"
+        ]
 
 
 class TestFactLookupPhase:
