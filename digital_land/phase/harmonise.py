@@ -5,6 +5,7 @@ from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +203,8 @@ class HarmonisePhase(Phase):
                     if value:
                         harmonised_values = []
                         for raw_value in self.category_values(value):
-                            normalised_value = raw_value.replace(" ", "-")
+                            #normalised_value = raw_value.replace(" ", "-")
+                            normalised_value = re.sub(r"(\b\s\-\s\b)|(\b\s\b)","-",raw_value.replace(r"\s","-"))#.lower())
                             matching_value = next(
                                 (
                                     v
