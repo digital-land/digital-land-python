@@ -313,27 +313,9 @@ def test_acceptance_dataset_create(
 
     # get filepath for each parquet file
 
-    entity_parquet_path = (
-        cache_path
-        / "provenance"
-        / "entity"
-        / "dataset=conservation-area"
-        / "entity.parquet"
-    )
-    fact_parquet_path = (
-        cache_path
-        / "provenance"
-        / "fact"
-        / "dataset=conservation-area"
-        / "fact.parquet"
-    )
-    fact_resource_parquet_path = (
-        cache_path
-        / "provenance"
-        / "fact-resource"
-        / "dataset=conservation-area"
-        / "fact-resource.parquet"
-    )
+    entity_parquet_path = cache_path / "provenance" / "entity" / "dataset=conservation-area" / "entity.parquet"
+    fact_parquet_path = cache_path / "provenance" / "fact" / "dataset=conservation-area" / "fact.parquet"
+    fact_resource_parquet_path = cache_path / "provenance" / "fact-resource" / "dataset=conservation-area" / "fact-resource.parquet"
     files = [
         entity_parquet_path,
         fact_parquet_path,
@@ -352,28 +334,20 @@ def test_acceptance_dataset_create(
 
     conn = sqlite3.connect(output_path)
     cursor = conn.cursor()
-    tables = cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table';"
-    ).fetchall()
+    tables = cursor.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
     expected_tables = {"fact", "fact_resource", "entity"}
     actual_tables = {table[0] for table in tables}
     missing_tables = expected_tables - actual_tables
-    assert (
-        len(missing_tables) == 0
-    ), f"Missing following tables in sqlite database: {missing_tables}"
+    assert len(missing_tables) == 0, f"Missing following tables in sqlite database: {missing_tables}"
 
     for file in files:
 
         pq_rows = len(pd.read_parquet(file))
 
         assert pq_rows > 0, f"parquet file {file.stem} is empty"
-        sql_rows = cursor.execute(
-            f"SELECT COUNT(*) FROM {file.stem.replace('-', '_')};"
-        ).fetchone()[0]
+        sql_rows = cursor.execute(f"SELECT COUNT(*) FROM {file.stem.replace('-', '_')};").fetchone()[0]
         assert sql_rows > 0, f"database table {file.stem} is empty"
-        assert (
-            pq_rows == sql_rows
-        ), f"Different rows between the parquet files and database table for {file.stem}"
+        assert pq_rows == sql_rows, f"Different rows between the parquet files and database table for {file.stem}"
 
     # entity table specific tests to check how we expect the data to be used
 
@@ -387,9 +361,7 @@ def test_acceptance_dataset_create(
         ;"""
 
     results = cursor.execute(sql).fetchall()
-    assert (
-        len(results) == 0
-    ), "there should be no rows where json is an empty json bracket"
+    assert len(results) == 0, "there should be no rows where json is an empty json bracket"
 
     # check no json values are arrays
     sql = """

@@ -25,9 +25,7 @@ DATA_DIRECTORY = None
         ),
     ],
 )
-def test_transformation_performance(
-    resource_hash: str, dataset: str, capsys, tmp_path: Path
-):
+def test_transformation_performance(resource_hash: str, dataset: str, capsys, tmp_path: Path):
     # endpoint hash TODO we should look at automating the retrieval of this in the future
     # endpoint_hash = 'f4bfb0e3a3f0f0e2e5e1f3c6e4b2a7d8c9e0f1a2b3c4d5e6f7g8h9i0j1k2l3m4'
     if DATA_DIRECTORY:
@@ -46,9 +44,7 @@ def test_transformation_performance(
     collection = spec.dataset[dataset]["collection"]
 
     if not collection:
-        raise ValueError(
-            f"Dataset {dataset} does not have a collection defined in the specification"
-        )
+        raise ValueError(f"Dataset {dataset} does not have a collection defined in the specification")
 
     # download the configuration files for that collection
     pipeline_dir = data_dir / "pipeline"

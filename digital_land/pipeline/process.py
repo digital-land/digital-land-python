@@ -29,11 +29,7 @@ def convert_tranformed_csv_to_pq(input_path, output_path):
         chunksize=chunk_size,
         dtype={
             "entity": int,
-            **{
-                col: str
-                for col in pd.read_csv(input_path, nrows=1).columns
-                if col != "entity"
-            },
+            **{col: str for col in pd.read_csv(input_path, nrows=1).columns if col != "entity"},
         },
         na_filter=False,
     )

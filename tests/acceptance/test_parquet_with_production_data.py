@@ -53,9 +53,7 @@ def test_dataset_dump_flattened_with_border_dataset(tmp_path, specification_dir)
 
     # Execute _create_parquet_from_csv directly
     print("Creating parquet file from production border.csv...")
-    _create_parquet_from_csv(
-        str(csv_path), str(output_dir), dataset_name, specification, field_names
-    )
+    _create_parquet_from_csv(str(csv_path), str(output_dir), dataset_name, specification, field_names)
 
     # Assert parquet file was created
     parquet_path = output_dir / "border.parquet"
@@ -65,9 +63,7 @@ def test_dataset_dump_flattened_with_border_dataset(tmp_path, specification_dir)
     conn = duckdb.connect()
 
     # Get row count
-    row_count = conn.execute(
-        f"SELECT COUNT(*) FROM read_parquet('{parquet_path}')"
-    ).fetchone()[0]
+    row_count = conn.execute(f"SELECT COUNT(*) FROM read_parquet('{parquet_path}')").fetchone()[0]
 
     print(f"Parquet file contains {row_count} rows")
     assert row_count > 0, "Parquet file should contain data"
@@ -93,9 +89,7 @@ def test_dataset_dump_flattened_with_border_dataset(tmp_path, specification_dir)
         assert geom_length > 100000, "Should contain large geometries (>100KB)"
 
     # Verify schema has correct types
-    schema = conn.execute(
-        f"DESCRIBE SELECT * FROM read_parquet('{parquet_path}')"
-    ).fetchall()
+    schema = conn.execute(f"DESCRIBE SELECT * FROM read_parquet('{parquet_path}')").fetchall()
 
     schema_dict = {row[0]: row[1] for row in schema}
 
@@ -141,9 +135,7 @@ def test_parquet_compression_efficiency(tmp_path, specification_dir):
 
     specification = Specification(specification_dir)
 
-    _create_parquet_from_csv(
-        str(csv_path), str(output_dir), "border", specification, field_names
-    )
+    _create_parquet_from_csv(str(csv_path), str(output_dir), "border", specification, field_names)
 
     # Compare sizes
     parquet_path = output_dir / "border.parquet"

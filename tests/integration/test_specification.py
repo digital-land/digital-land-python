@@ -55,24 +55,18 @@ def test_schema_field_csv(spec_dir):
 
 
 class TestSpecification:
-    def test_load_schema_loads_successfully(
-        self, spec_dir: Path, test_schema_csv: Path, mocker
-    ):
+    def test_load_schema_loads_successfully(self, spec_dir: Path, test_schema_csv: Path, mocker):
         # create spec without folder to just test loading on schema check no schema loaded
         mocker.patch("digital_land.specification.Specification.__init__", mock_init)
         spec = Specification()
-        assert (
-            len(spec.schema) == 0
-        ), f"schema  has  been loaded when it shouldnt have: {spec.schema}"
+        assert len(spec.schema) == 0, f"schema  has  been loaded when it shouldnt have: {spec.schema}"
 
         # load schema
         spec.load_schema(spec_dir)
 
         assert len(spec.schema) > 0, "not schemas have been loaded"
 
-    def test_load_schema_field_loads_successfully(
-        self, spec_dir: Path, test_schema_csv: Path, test_schema_field_csv: Path, mocker
-    ):
+    def test_load_schema_field_loads_successfully(self, spec_dir: Path, test_schema_csv: Path, test_schema_field_csv: Path, mocker):
         # create spec without folder to just test loading on schema check no schema loaded
         mocker.patch("digital_land.specification.Specification.__init__", mock_init)
         spec = Specification()
@@ -82,6 +76,4 @@ class TestSpecification:
         spec.load_schema_field(spec_dir)
 
         assert len(spec.schema_field) > 0, "not schemas have been loaded"
-        assert (
-            len(spec.schema["battlefield"]["fields"]) > 0
-        ), "no fields added to schema"
+        assert len(spec.schema["battlefield"]["fields"]) > 0, "no fields added to schema"

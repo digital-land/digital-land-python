@@ -82,9 +82,7 @@ class API:
 
         logging.info(f"Downloaded dataset {dataset} from {url} to {path}")
 
-    def get_valid_category_values(
-        self, dataset: str, pipeline: Pipeline
-    ) -> typing.Mapping[str, typing.Iterable[str]]:
+    def get_valid_category_values(self, dataset: str, pipeline: Pipeline) -> typing.Mapping[str, typing.Iterable[str]]:
         """gets the valid caregory values.
         category_fields: Iterable category fields to get valid values for
         Returns: Mapping of field to valid values.
@@ -93,10 +91,7 @@ class API:
         valid_category_values = {}
 
         for category_field in self.specification.get_category_fields(dataset=dataset):
-            field_dataset = (
-                self.specification.dataset_field_dataset[dataset][category_field]
-                or category_field
-            )
+            field_dataset = self.specification.dataset_field_dataset[dataset][category_field] or category_field
 
             csv_path = os.path.join(self.cache_dir, "dataset", f"{field_dataset}.csv")
 
@@ -105,9 +100,7 @@ class API:
                 try:
                     self.download_dataset(field_dataset, overwrite=False, path=csv_path)
                 except Exception as ex:
-                    logging.warning(
-                        f"Unable to download category values '{field_dataset}' ({ex}). These will not be checked."
-                    )
+                    logging.warning(f"Unable to download category values '{field_dataset}' ({ex}). These will not be checked.")
                     # Write an empty file do we don't try again
                     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
                     with open(csv_path, mode="w") as file:
@@ -116,11 +109,7 @@ class API:
             # Don't bother trying to load empty files
             if os.stat(csv_path).st_size > 0:
                 with open(csv_path, mode="r") as file:
-                    values = [
-                        row["reference"]
-                        for row in csv.DictReader(file)
-                        if row.get("reference")
-                    ]
+                    values = [row["reference"] for row in csv.DictReader(file) if row.get("reference")]
                     valid_category_values[category_field] = values
 
                     # Check for replacement field

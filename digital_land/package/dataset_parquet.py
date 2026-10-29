@@ -31,9 +31,7 @@ indexes = {
 
 
 class DatasetParquetPackage(Package):
-    def __init__(
-        self, dataset, path, duckdb_path=None, transformed_parquet_dir=None, **kwargs
-    ):
+    def __init__(self, dataset, path, duckdb_path=None, transformed_parquet_dir=None, **kwargs):
         """
         Initialisation method to set up information as needed
 
@@ -60,21 +58,12 @@ class DatasetParquetPackage(Package):
 
         # set up key file paths
         self.fact_path = self.path / "fact" / f"dataset={self.dataset}" / "fact.parquet"
-        self.fact_resource_path = (
-            self.path
-            / "fact-resource"
-            / f"dataset={self.dataset}"
-            / "fact-resource.parquet"
-        )
-        self.entity_path = (
-            self.path / "entity" / f"dataset={self.dataset}" / "entity.parquet"
-        )
+        self.fact_resource_path = self.path / "fact-resource" / f"dataset={self.dataset}" / "fact-resource.parquet"
+        self.entity_path = self.path / "entity" / f"dataset={self.dataset}" / "entity.parquet"
         if transformed_parquet_dir is None:
             self.strategy = "direct"
         else:
-            self.parquet_dir_details = self.analyze_parquet_dir(
-                transformed_parquet_dir=transformed_parquet_dir
-            )
+            self.parquet_dir_details = self.analyze_parquet_dir(transformed_parquet_dir=transformed_parquet_dir)
             self.strategy = self.choose_strategy(self.parquet_dir_details)
 
     def get_schema(self):
@@ -83,13 +72,7 @@ class DatasetParquetPackage(Package):
         # Get DuckDB type mapping from specification
         field_duckdb_type_map = self.specification.get_field_duckdb_type_map()
 
-        for field in sorted(
-            list(
-                set(self.specification.schema["fact"]["fields"]).union(
-                    set(self.specification.schema["fact-resource"]["fields"])
-                )
-            )
-        ):
+        for field in sorted(list(set(self.specification.schema["fact"]["fields"]).union(set(self.specification.schema["fact-resource"]["fields"])))):
             schema[field] = field_duckdb_type_map.get(field, "VARCHAR")
 
         return schema
@@ -175,10 +158,7 @@ class DatasetParquetPackage(Package):
         # If memory is less than 2GB (or 1/4 of available memory, whichever is smaller) then can potentially process
         # them directly
         memory_check = min(2048, parquet_dir_details["memory_available"] / 4)
-        if (
-            parquet_dir_details["total_size_mb"] < memory_check
-            and parquet_dir_details["no_parquet_files"] < 100
-        ) or (parquet_dir_details["no_parquet_files"] < 4):
+        if (parquet_dir_details["total_size_mb"] < memory_check and parquet_dir_details["no_parquet_files"] < 100) or (parquet_dir_details["no_parquet_files"] < 4):
             return "direct"
 
         # if parquet_dir_details["no_parquet_files"] > 500 or parquet_dir_details[
@@ -188,9 +168,7 @@ class DatasetParquetPackage(Package):
 
         return "batch"
 
-    def group_parquet_files(
-        self, transformed_parquet_dir, target_mb=256, delete_originals=False
-    ):
+    def group_parquet_files(self, transformed_parquet_dir, target_mb=256, delete_originals=False):
         """
         group parquet files into batches, each aiming for approximately 'target_mb' in size.
         """
@@ -245,18 +223,12 @@ class DatasetParquetPackage(Package):
         logger.info(f"[Memory usage] After grouping: {mem:.2f} MB")
 
         # temporary diagnostic: verify row count is preserved across batching
-        source_count = self.conn.execute(
-            f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/*.parquet')"
-        ).fetchone()[0]
-        batch_count = self.conn.execute(
-            f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/batch/batch_*.parquet')"
-        ).fetchone()[0]
+        source_count = self.conn.execute(f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/*.parquet')").fetchone()[0]
+        batch_count = self.conn.execute(f"SELECT COUNT(*) FROM read_parquet('{str(transformed_parquet_dir)}/batch/batch_*.parquet')").fetchone()[0]
         logger.info(f"row count in source parquet files: {source_count}")
         logger.info(f"row count in batch files after grouping: {batch_count}")
         if source_count != batch_count:
-            logger.warning(
-                f"row count mismatch after grouping: {source_count} source rows vs {batch_count} batch rows"
-            )
+            logger.warning(f"row count mismatch after grouping: {source_count} source rows vs {batch_count} batch rows")
 
     def _assign_to_buckets(self, batch_dir, bucket_dir, n_buckets):
         """
@@ -267,9 +239,7 @@ class DatasetParquetPackage(Package):
         Returns the list of bucket file paths.
         """
         digits = max(2, len(str(n_buckets - 1)))
-        bucket_paths = [
-            bucket_dir / f"bucket_{i:0{digits}}.parquet" for i in range(n_buckets)
-        ]
+        bucket_paths = [bucket_dir / f"bucket_{i:0{digits}}.parquet" for i in range(n_buckets)]
         for i in range(n_buckets):
             self.conn.execute(
                 f"""
@@ -290,10 +260,7 @@ class DatasetParquetPackage(Package):
         Returns the list of result file paths.
         """
         digits = max(2, len(str(len(bucket_paths) - 1)))
-        result_paths = [
-            result_dir / f"result_{i:0{digits}}.parquet"
-            for i in range(len(bucket_paths))
-        ]
+        result_paths = [result_dir / f"result_{i:0{digits}}.parquet" for i in range(len(bucket_paths))]
         for i, bucket_path in enumerate(bucket_paths):
             self.conn.execute(
                 f"""
@@ -342,28 +309,17 @@ class DatasetParquetPackage(Package):
             """
             )
         else:
-            no_of_batched_files = len(
-                list(transformed_parquet_dir.glob("batch/batch_*.parquet"))
-            )
+            no_of_batched_files = len(list(transformed_parquet_dir.glob("batch/batch_*.parquet")))
             if no_of_batched_files == 1:
-                logger.info(
-                    "Only have one batched file for facts - using 'simple' query"
-                )
+                logger.info("Only have one batched file for facts - using 'simple' query")
                 n_buckets = 1
             else:
                 # Max partition size should the smallest value of either be 2GB or 1/4 of the available memory
-                max_partition_memory_mb = min(
-                    2048, self.parquet_dir_details["memory_available"] / 4
-                )
-                n_buckets = (
-                    self.parquet_dir_details["total_size_mb"] // max_partition_memory_mb
-                    + 1
-                )
+                max_partition_memory_mb = min(2048, self.parquet_dir_details["memory_available"] / 4)
+                n_buckets = self.parquet_dir_details["total_size_mb"] // max_partition_memory_mb + 1
                 n_buckets = int(min(n_buckets, no_of_batched_files))
                 if n_buckets == 0:
-                    sys.exit(
-                        "Have got a value of zero for n_buckets in `load_facts`. Cannot continue."
-                    )
+                    sys.exit("Have got a value of zero for n_buckets in `load_facts`. Cannot continue.")
                 if n_buckets == 1:
                     logger.info("Only need one bucket for facts - using 'simple' query")
             if no_of_batched_files == 1 or n_buckets == 1:
@@ -383,13 +339,9 @@ class DatasetParquetPackage(Package):
                 )
             else:
                 # Multiple buckets and batched files used
-                logger.info(
-                    "Need to use multiple buckets in windowed function for facts"
-                )
+                logger.info("Need to use multiple buckets in windowed function for facts")
                 batch_dir = transformed_parquet_dir / "batch"
-                logger.info(
-                    f"Have {len(list(batch_dir.glob('batch_*.parquet')))} batch files"
-                )
+                logger.info(f"Have {len(list(batch_dir.glob('batch_*.parquet')))} batch files")
 
                 bucket_dir = transformed_parquet_dir / "bucket"
                 bucket_dir.mkdir(parents=True, exist_ok=True)
@@ -397,20 +349,12 @@ class DatasetParquetPackage(Package):
                 bucket_paths = self._assign_to_buckets(batch_dir, bucket_dir, n_buckets)
                 logger.info(f"Have {len(bucket_paths)} bucket files")
 
-                batch_total = self.conn.execute(
-                    f"SELECT COUNT(*) FROM read_parquet('{str(batch_dir)}/batch_*.parquet')"
-                ).fetchone()[0]
-                bucket_total = self.conn.execute(
-                    f"SELECT COUNT(*) FROM read_parquet('{str(bucket_dir)}/bucket_*.parquet')"
-                ).fetchone()[0]
+                batch_total = self.conn.execute(f"SELECT COUNT(*) FROM read_parquet('{str(batch_dir)}/batch_*.parquet')").fetchone()[0]
+                bucket_total = self.conn.execute(f"SELECT COUNT(*) FROM read_parquet('{str(bucket_dir)}/bucket_*.parquet')").fetchone()[0]
                 logger.info(f"row count in batch files: {batch_total}")
-                logger.info(
-                    f"row count in bucket files after assignment: {bucket_total}"
-                )
+                logger.info(f"row count in bucket files after assignment: {bucket_total}")
                 if bucket_total != batch_total:
-                    logger.warning(
-                        f"row count mismatch after bucketing: {batch_total} batch rows vs {bucket_total} bucket rows"
-                    )
+                    logger.warning(f"row count mismatch after bucketing: {batch_total} batch rows vs {bucket_total} bucket rows")
 
                 process = psutil.Process(os.getpid())
                 mem = process.memory_info().rss / 1024**2
@@ -444,9 +388,7 @@ class DatasetParquetPackage(Package):
         output_path = self.fact_resource_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
-        fields_str = ", ".join(
-            [field.replace("-", "_") for field in fact_resource_fields]
-        )
+        fields_str = ", ".join([field.replace("-", "_") for field in fact_resource_fields])
 
         process = psutil.Process(os.getpid())
         mem = process.memory_info().rss / 1024**2  # Memory in MB
@@ -497,9 +439,7 @@ class DatasetParquetPackage(Package):
         entity_fields = [e.replace("-", "_") for e in entity_fields]
         # input_paths_str = f"{self.cache_dir}/fact{self.suffix}"
         if entity_range is not None:
-            entity_where_clause = (
-                f"WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}"
-            )
+            entity_where_clause = f"WHERE entity >= {entity_range[0]} AND entity < {entity_range[1]}"
         else:
             entity_where_clause = ""
 
@@ -517,9 +457,7 @@ class DatasetParquetPackage(Package):
         rows = self.conn.execute(query).fetchall()
         # if there are no entities in the entity range then we don't need to proceed
         if len(rows) == 0:
-            logger.info(
-                f"skipping entity numbers {entity_range[0]} to {entity_range[1]} as there are no entities"
-            )
+            logger.info(f"skipping entity numbers {entity_range[0]} to {entity_range[1]} as there are no entities")
             return
 
         distinct_fields = [row[0] for row in rows]
@@ -527,11 +465,7 @@ class DatasetParquetPackage(Package):
         # json fields - list of fields which are present in the fact table which
         # do not exist separately in the entity table so need to be included in the json field
         # Need to ensure that 'organisation' is not included either so  that it  is  excluded
-        json_fields = [
-            field
-            for field in distinct_fields
-            if field not in entity_fields + ["organisation"]
-        ]
+        json_fields = [field for field in distinct_fields if field not in entity_fields + ["organisation"]]
 
         # null fields - list of fields which are not present in the fact tables which have
         # to be in the entity table as a column
@@ -544,11 +478,7 @@ class DatasetParquetPackage(Package):
             "organisation",
             "quality",
         ]
-        null_fields = [
-            field
-            for field in entity_fields
-            if field not in (distinct_fields + extra_fields)
-        ]
+        null_fields = [field for field in entity_fields if field not in (distinct_fields + extra_fields)]
 
         if "organisation" not in distinct_fields:
             null_fields.append("organisation")
@@ -564,9 +494,7 @@ class DatasetParquetPackage(Package):
             "quality",
         ]
 
-        select_fields = [
-            field for field in entity_fields if field not in null_fields + extra_fields
-        ]
+        select_fields = [field for field in entity_fields if field not in null_fields + extra_fields]
         # set fields
         fields_to_include = ["entity", "field", "value"]
         fields_str = ", ".join(fields_to_include)
@@ -625,19 +553,8 @@ class DatasetParquetPackage(Package):
         # Collate list of fields which don't exist but need to be in the final table
         select_statement = ", ".join([f"t1.{field}" for field in select_fields])
         # Don't want to include anything that ends with "_geom"
-        null_fields_statement = ", ".join(
-            [
-                f"''::VARCHAR AS \"{field}\""
-                for field in null_fields
-                if not field.endswith("_geom")
-            ]
-        )
-        json_statement = ", ".join(
-            [
-                f"CASE WHEN t1.{field} IS NOT NULL THEN REPLACE('{field}', '_', '-') ELSE NULL END, t1.{field}"
-                for field in json_fields
-            ]
-        )
+        null_fields_statement = ", ".join([f"''::VARCHAR AS \"{field}\"" for field in null_fields if not field.endswith("_geom")])
+        json_statement = ", ".join([f"CASE WHEN t1.{field} IS NOT NULL THEN REPLACE('{field}', '_', '-') ELSE NULL END, t1.{field}" for field in json_fields])
 
         # define organisation query
         org_csv = organisation_path
@@ -715,12 +632,7 @@ class DatasetParquetPackage(Package):
         entity_limit = 100000
         if total_entities > entity_limit:
             # create a temparary output path to store separate entity file in
-            temp_dir = (
-                output_path.parent
-                / "temp_parquet_files"
-                / "title-boundaries"
-                / "entity_files"
-            )
+            temp_dir = output_path.parent / "temp_parquet_files" / "title-boundaries" / "entity_files"
             temp_dir.mkdir(parents=True, exist_ok=True)
             logger.info(f"total entities {total_entities} exceeds limit {entity_limit}")
             _ = min_entity
@@ -728,9 +640,7 @@ class DatasetParquetPackage(Package):
             while _ < max_entity:
                 temp_output_path = temp_dir / f"entity_{file_count}.parquet"
                 entity_range = [_, _ + entity_limit]
-                logger.info(
-                    f"loading entities from {entity_range[0]} to {entity_range[1]}"
-                )
+                logger.info(f"loading entities from {entity_range[0]} to {entity_range[1]}")
                 self.load_entities_range(
                     transformed_parquet_dir,
                     resource_path,
@@ -761,22 +671,16 @@ class DatasetParquetPackage(Package):
         # At present we are saving the parquet files in 'cache' but saving the sqlite files produced in 'dataset'
         # In future when parquet files are saved to 'dataset' remove the 'cache_dir' in the function arguments and
         # replace 'cache_dir' with 'output_path' in this function's code
-        logger.info(
-            f"loading sqlite3 tables in {sqlite_path} from parquet files in {self.path}"
-        )
+        logger.info(f"loading sqlite3 tables in {sqlite_path} from parquet files in {self.path}")
         # migrate to connection creation
         query = "INSTALL sqlite; LOAD sqlite;"
         self.conn.execute(query)
 
         # attache the sqlite db to duckdb
-        self.conn.execute(
-            f"ATTACH DATABASE '{sqlite_path}' AS sqlite_db (TYPE SQLITE);"
-        )
+        self.conn.execute(f"ATTACH DATABASE '{sqlite_path}' AS sqlite_db (TYPE SQLITE);")
 
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
-        fields_str = ", ".join(
-            [field.replace("-", "_") for field in fact_resource_fields]
-        )
+        fields_str = ", ".join([field.replace("-", "_") for field in fact_resource_fields])
 
         logger.info("loading fact_resource data")
         # insert fact_resource data
@@ -803,13 +707,7 @@ class DatasetParquetPackage(Package):
         logger.info("loading entity data")
         # insert entity data
         entity_fields = self.specification.schema["entity"]["fields"]
-        fields_str = ", ".join(
-            [
-                field.replace("-", "_")
-                for field in entity_fields
-                if field not in ["geometry-geom", "point-geom"]
-            ]
-        )
+        fields_str = ", ".join([field.replace("-", "_") for field in entity_fields if field not in ["geometry-geom", "point-geom"]])
         self.conn.execute(
             f"""
                 INSERT INTO sqlite_db.entity

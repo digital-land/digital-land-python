@@ -82,12 +82,8 @@ class TestConvertPhase:
         assert files_before == files_after
 
     def test_process_efficient_json_format(self, tmp_path):
-        path = os.path.join(
-            os.getcwd(), "tests/data/resource_examples/json_efficient_format.resource"
-        )
-        output_path = os.path.join(
-            tmp_path, "converted/json_efficient_format.resource.csv"
-        )
+        path = os.path.join(os.getcwd(), "tests/data/resource_examples/json_efficient_format.resource")
+        output_path = os.path.join(tmp_path, "converted/json_efficient_format.resource.csv")
         dataset_resource_log = DatasetResourceLog()
         converted_resource_log = ConvertedResourceLog()
         reader = ConvertPhase(
@@ -112,9 +108,7 @@ class TestConvertPhase:
             os.getcwd(),
             "tests/data/resource_examples/json_efficient_format_data_first.resource",
         )
-        output_path = os.path.join(
-            tmp_path, "converted/json_efficient_format_data_first.resource.csv"
-        )
+        output_path = os.path.join(tmp_path, "converted/json_efficient_format_data_first.resource.csv")
         dataset_resource_log = DatasetResourceLog()
         converted_resource_log = ConvertedResourceLog()
         reader = ConvertPhase(
@@ -156,10 +150,7 @@ class TestConvertPhase:
         assert headers["line"][1] == "Organisation Label"
 
         block = next(reader)
-        assert (
-            block["line"][0]
-            == "http://opendatacommunities.org/id/district-council/south-cambridgeshire"
-        )
+        assert block["line"][0] == "http://opendatacommunities.org/id/district-council/south-cambridgeshire"
         assert block["line"][1] == "South Cambridgeshire District Council"
 
     def test_conversion_throws_exception(self, tmp_path):

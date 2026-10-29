@@ -35,9 +35,7 @@ class MockSpecification:
             "conservation-area-document": ["document-type"],
         }
         self.dataset_field_dataset = {
-            "conservation-area-document": {
-                "document-type": "conservation-area-document-type"
-            },
+            "conservation-area-document": {"document-type": "conservation-area-document-type"},
         }
         self.dataset = {"test_dataset": {"collection": "test_collection"}}
 

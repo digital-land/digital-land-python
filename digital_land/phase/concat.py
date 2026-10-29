@@ -14,9 +14,7 @@ class ConcatFieldPhase(Phase):
             for fieldname, cat in self.concats.items():
                 log.add(
                     fieldname,
-                    cat["prepend"]
-                    + cat["separator"].join(cat["fields"])
-                    + cat["append"],
+                    cat["prepend"] + cat["separator"].join(cat["fields"]) + cat["append"],
                 )
 
     def process(self, stream):
@@ -31,11 +29,7 @@ class ConcatFieldPhase(Phase):
                             None,
                             itertools.chain(
                                 [row.get(fieldname, None)],
-                                [
-                                    row[h]
-                                    for h in cat["fields"]
-                                    if h in row and row[h].strip() != ""
-                                ],
+                                [row[h] for h in cat["fields"] if h in row and row[h].strip() != ""],
                             ),
                         )
                     )

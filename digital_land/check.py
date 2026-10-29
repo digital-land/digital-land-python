@@ -14,9 +14,7 @@ def duplicate_reference_check(issues=None, csv_path=None):
 
         filtered_df = ddf[ddf["field"] == "reference"].compute()  # noqa
         conn.execute("CREATE TABLE filtered_table AS SELECT * FROM filtered_df")
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, entry_date);"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_field_value_date ON filtered_table(field, value, entry_date);")
         # SQL query to identify duplicate references
         sql = """
         SELECT
@@ -45,8 +43,7 @@ def duplicate_reference_check(issues=None, csv_path=None):
                         row["value"],
                         entity=entity,
                         entry_number=int(entry_number),
-                        line_number=int(entry_number)
-                        + 1,  # TODO Check this makes sense in all cases
+                        line_number=int(entry_number) + 1,  # TODO Check this makes sense in all cases
                         message="Reference must be unique in resource",
                     )
     except Exception as e:

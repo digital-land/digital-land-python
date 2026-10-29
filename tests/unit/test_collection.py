@@ -14,9 +14,7 @@ def test_collection():
     url = "https://example.com/register/1.csv"
     endpoint = hash_value(url)
 
-    assert (
-        endpoint == "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e"
-    )
+    assert endpoint == "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e"
     assert endpoint in collection.endpoint.records
     assert endpoint in collection.source.records
 
@@ -38,13 +36,9 @@ def test_collection():
     resources = collection.resource.records
     assert len(resources) == 2
 
-    assert collection.resource_endpoints(
-        "ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf"
-    ) == ["7f72ae4d3152d220bb1786923c134cf286d4c42720c98dd269d067d461e18b70"]
+    assert collection.resource_endpoints("ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf") == ["7f72ae4d3152d220bb1786923c134cf286d4c42720c98dd269d067d461e18b70"]
 
-    assert collection.resource_organisations(
-        "ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf"
-    ) == ["organisation:2"]
+    assert collection.resource_organisations("ae191fd3dc6a892d82337d9045bf4c1043804a1961131b0a9271280f86b6a8cf") == ["organisation:2"]
 
 
 def test_check_item_path():
@@ -55,13 +49,9 @@ def test_check_item_path():
     """
 
     test_file_dir = "tests/data/collection/log/2020-02-12/"
-    test_file_name = (
-        "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e.json"
-    )
+    test_file_name = "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e.json"
 
-    expected_endpoint = (
-        "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e"
-    )
+    expected_endpoint = "50335d6703d9bebb683f1b27e02ad17e991ff527bed7e0ab620cd1b6e4b5689e"
     unexpected_endpoint = "ABCDE"
 
     test_file_path = test_file_dir + test_file_name

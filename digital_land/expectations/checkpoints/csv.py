@@ -66,9 +66,7 @@ class CsvCheckpoint(BaseCheckpoint):
             "expect_column_to_be_point": expect_column_to_be_point,
         }
         if operation_string not in operation_map:
-            raise ValueError(
-                f"Unknown operation: '{operation_string}'. Must be one of {list(operation_map.keys())}."
-            )
+            raise ValueError(f"Unknown operation: '{operation_string}'. Must be one of {list(operation_map.keys())}.")
         return operation_map[operation_string]
 
     def load(self, rules):
@@ -81,19 +79,13 @@ class CsvCheckpoint(BaseCheckpoint):
                 "dataset": self.dataset,
                 "severity": rule.get("severity", ""),
                 "responsibility": rule.get("responsibility", ""),
-                "parameters": (
-                    json.loads(rule["parameters"])
-                    if isinstance(rule["parameters"], str)
-                    else rule["parameters"]
-                ),
+                "parameters": (json.loads(rule["parameters"]) if isinstance(rule["parameters"], str) else rule["parameters"]),
             }
             self.expectations.append(expectation)
 
     def run_expectation(self, conn, expectation) -> tuple:
         params = expectation["parameters"]
-        passed, msg, details = expectation["operation"](
-            conn=conn, file_path=self.file_path, **params
-        )
+        passed, msg, details = expectation["operation"](conn=conn, file_path=self.file_path, **params)
         return passed, msg, details
 
     def get_connection(self):

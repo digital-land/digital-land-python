@@ -300,14 +300,8 @@ def test_command_assign_entities(
 
     out, err = capfd.readouterr()
 
-    assert (
-        "tree-preservation-zone , government-organisation:D1342 , Ref1 , 19100000"
-        in out
-    )
-    assert (
-        "tree-preservation-zone , government-organisation:D1342 , Ref2 , 19100001"
-        in out
-    )
+    assert "tree-preservation-zone , government-organisation:D1342 , Ref1 , 19100000" in out
+    assert "tree-preservation-zone , government-organisation:D1342 , Ref2 , 19100001" in out
     assert "tree , government-organisation:D1342 , Ref3 , 7002000000" in out
 
 
@@ -394,9 +388,7 @@ def test_check_and_assign_entities_prompt_flag_false(
         prompt_user=False,
     )
 
-    assert (
-        input_path.exists()
-    ), "Expected transformed file not found when prompt_user=False."
+    assert input_path.exists(), "Expected transformed file not found when prompt_user=False."
 
 
 def test_command_assign_entities_reference_with_comma(
@@ -433,10 +425,7 @@ def test_command_assign_entities_reference_with_comma(
         reader = csv.DictReader(f)
         rows = list(reader)
 
-    lookup_entries = [
-        (row["prefix"], row["organisation"], row["reference"], row["entity"])
-        for row in rows
-    ]
+    lookup_entries = [(row["prefix"], row["organisation"], row["reference"], row["entity"]) for row in rows]
 
     # assert reference value is 'ref,1' instead of '"ref,1"'
     assert (

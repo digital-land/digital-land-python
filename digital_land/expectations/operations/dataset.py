@@ -80,9 +80,7 @@ def count_lpa_boundary(
     }
 
     if geometric_relation not in spatial_options:
-        raise ValueError(
-            f"Invalid geometric_relation: '{geometric_relation}'. Must be one of {list(spatial_options.keys())}."
-        )
+        raise ValueError(f"Invalid geometric_relation: '{geometric_relation}'. Must be one of {list(spatial_options.keys())}.")
 
     spatial_condition = spatial_options[geometric_relation]
 
@@ -117,9 +115,7 @@ def count_lpa_boundary(
 
     # Perform comparison based on the specified operator
     if comparison_rule not in comparison_rules:
-        raise ValueError(
-            f"Invalid comparison_operator: '{comparison_rule}'. Must be one of {list(comparison_rules.keys())}."
-        )
+        raise ValueError(f"Invalid comparison_operator: '{comparison_rule}'. Must be one of {list(comparison_rules.keys())}.")
 
     result = comparison_rules[comparison_rule]
 
@@ -222,18 +218,16 @@ def _fetch_organisation_resources(db_name, organisation_entity, active_only):
     max_retries = 60  # Retry for an hour
     for attempt in range(max_retries):
         try:
-            get_resource = pd.read_csv(base_url)
-            break
+            df = pd.read_csv(base_url)
+            logging.warning(f"[expectations] Fetched {len(df)} active resources for '{dataset_name}' from datasette")
+            cache = {}
+            for _, row in df.iterrows():
+                cache.setdefault(row["organisation_entity"], []).append(row["resource"])
+            return cache
         except urllib.error.HTTPError as e:
-            logging.warning(
-                f"HTTP error fetching datasette for organisation {organisation_entity}, "
-                f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s..."
-            )
+            logging.warning(f"HTTP error fetching datasette for dataset {dataset_name}, " f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s...")
             time.sleep(60)
-    else:
-        raise Exception("Failed to fetch datasette after multiple attempts")
-
-    return get_resource["resource"].to_list()
+    raise Exception(f"Failed to fetch datasette for dataset {dataset_name} after multiple attempts")
 
 
 def count_deleted_entities(
@@ -259,6 +253,19 @@ def count_deleted_entities(
         resource_list = _fetch_organisation_resources(
             db_name, organisation_entity, active_only=True
         )
+        base_url = f"https://datasette.planning.data.gov.uk/digital-land.csv?{params}"
+
+        # Can have an issue getting data from datasette. If this occurs then wait a minute and retry
+        max_retries = 60  # Retry for an hour
+        for attempt in range(max_retries):
+            try:
+                get_resource = pd.read_csv(base_url)
+                break
+            except urllib.error.HTTPError as e:
+                logging.warning(f"HTTP error fetching datasette for organisation {organisation_entity}, " f"attempt {attempt + 1}/{max_retries}: {e}. Retrying in 60s...")
+                time.sleep(60)
+        else:
+            raise Exception("Failed to fetch datasette after multiple attempts")
 
     if all_resources_cache is not None:
         all_resource_list = all_resources_cache.get(organisation_entity, [])
@@ -290,11 +297,7 @@ def count_deleted_entities(
     # identify entities present in the entity table but missing from the resource
     entities = [item for item in get_entities if item not in get_active_entities]
     actual = len(entities)
-    failures = (
-        [{"organisation_entity": str(organisation_entity), "count": actual}]
-        if actual
-        else []
-    )
+    failures = [{"organisation_entity": str(organisation_entity), "count": actual}] if actual else []
 
     result = bool(actual == expected)
     message = f"there were {actual} entities found"
@@ -365,9 +368,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
     # Create new table with spatial index on spatial field
 
     conn.execute("DROP TABLE IF EXISTS entity_spatial;")
-    conn.execute(
-        "SELECT InitSpatialMetadata(1);"
-    )  # Initialise spatial metadata if it hasn't already, required to use AddGeometryColumn
+    conn.execute("SELECT InitSpatialMetadata(1);")  # Initialise spatial metadata if it hasn't already, required to use AddGeometryColumn
     conn.execute(
         """
         CREATE TABLE entity_spatial (
@@ -379,9 +380,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
     )
     # Add geometry column with SRID 0 (ie no co-ordinate reference system)
     if spatial_field == "geometry":
-        conn.execute(
-            "SELECT AddGeometryColumn('entity_spatial', 'geom', 0, 'GEOMETRY', 'XY');"
-        )
+        conn.execute("SELECT AddGeometryColumn('entity_spatial', 'geom', 0, 'GEOMETRY', 'XY');")
         # Insert data into new table
         conn.execute(
             f"""
@@ -394,9 +393,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
         # Create the spatial index
         conn.execute("SELECT CreateSpatialIndex('entity_spatial', 'geom');")
     elif spatial_field == "point":
-        conn.execute(
-            "SELECT AddGeometryColumn('entity_spatial', 'point', 0, 'POINT', 'XY');"
-        )
+        conn.execute("SELECT AddGeometryColumn('entity_spatial', 'point', 0, 'POINT', 'XY');")
         # Insert data into new table
         conn.execute(
             f"""
@@ -524,9 +521,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
             ]
             single_matches = []
             any_matches = []
-            message = (
-                f"There are {len(complete_matches)} complete matches in the dataset"
-            )
+            message = f"There are {len(complete_matches)} complete matches in the dataset"
     else:
         result = True
         message = "There are no duplicate geometries/points in the dataset"
@@ -534,9 +529,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
         single_matches = []
         any_matches = []
 
-    match_counts = defaultdict(
-        lambda: {"complete_matches": 0, "single_matches": 0, "any_matches": 0}
-    )
+    match_counts = defaultdict(lambda: {"complete_matches": 0, "single_matches": 0, "any_matches": 0})
     for match_type, matches in (
         ("complete_matches", complete_matches),
         ("single_matches", single_matches),
@@ -564,9 +557,7 @@ def duplicate_geometry_check(conn, spatial_field: str):
         for org, counts in match_counts.items()
         if counts["complete_matches"] + counts["single_matches"] > 0
     ]
-    failures.sort(
-        key=lambda failure: (-failure["count"], failure["organisation_entity"])
-    )
+    failures.sort(key=lambda failure: (-failure["count"], failure["organisation_entity"]))
 
     # a dataset with only any_matches comes back passed=False with failures=[]: it has
     # overlaps, but none of them actionable.
@@ -690,9 +681,7 @@ def name_is_a_placeholder_check(conn, listed_building_path, placeholders=None):
 
     # a missing artifact must never fail the build, the check just can't run
     if not listed_building_path or not os.path.isfile(listed_building_path):
-        message = (
-            f"listed-building not available at '{listed_building_path}', check skipped"
-        )
+        message = f"listed-building not available at '{listed_building_path}', check skipped"
         logging.warning(message)
         return True, message, {"skipped": True, "failures": []}
 
@@ -730,8 +719,7 @@ def name_is_a_placeholder_check(conn, listed_building_path, placeholders=None):
         for entity, reference, name, organisation_entity, listed_building_name in rows
         # the listed-building name must be a real name too - swapping one placeholder
         # for another is not a fix worth asking an organisation to make
-        if _normalise_name(name) in placeholder_set
-        and _normalise_name(listed_building_name) not in placeholder_set
+        if _normalise_name(name) in placeholder_set and _normalise_name(listed_building_name) not in placeholder_set
     ]
 
     failures.sort(
@@ -743,10 +731,7 @@ def name_is_a_placeholder_check(conn, listed_building_path, placeholders=None):
     )
 
     result = len(failures) == 0
-    message = (
-        f"{len(failures)} entities have a placeholder name where the listed building "
-        "record holds a real name"
-    )
+    message = f"{len(failures)} entities have a placeholder name where the listed building " "record holds a real name"
     details = {
         "failures": failures,
         "field": "name",
@@ -813,9 +798,7 @@ def duplicate_name_check(conn, threshold=2):
             "name": group["name"],
             "count": len(group["entities"]),
             "entities": sorted(group["entities"]),
-            "references": sorted(
-                reference for reference in group["references"] if reference
-            ),
+            "references": sorted(reference for reference in group["references"] if reference),
         }
         for (_, organisation_entity, _), group in groups.items()
         if len(group["entities"]) >= threshold
@@ -873,9 +856,7 @@ def check_fields_required_after_plan_event(
 
     # a missing timetable artifact must never fail the build, the check just can't run
     if not plan_timetable_path or not os.path.isfile(plan_timetable_path):
-        message = (
-            f"plan-timetable not available at '{plan_timetable_path}', check skipped"
-        )
+        message = f"plan-timetable not available at '{plan_timetable_path}', check skipped"
         logging.warning(message)
         return True, message, {"skipped": True, "failures": []}
 
@@ -922,10 +903,7 @@ def check_fields_required_after_plan_event(
     failures.sort(key=lambda failure: (failure["reference"], failure["field"]))
 
     result = len(failures) == 0
-    message = (
-        f"{len(failures)} missing values found across {len(rows)} plans "
-        f"which have passed {plan_event}"
-    )
+    message = f"{len(failures)} missing values found across {len(rows)} plans " f"which have passed {plan_event}"
     details = {
         "failures": failures,
         "actual": len(failures),

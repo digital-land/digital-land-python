@@ -60,9 +60,7 @@ class TestDatasetCheckpoint:
             organisations=test_organisations,
         )
         rule_orgs = checkpoint.get_rule_orgs({"organisations": organisations})
-        assert (
-            len(rule_orgs) == expected_count
-        ), "incorrect number of organisations provided"
+        assert len(rule_orgs) == expected_count, "incorrect number of organisations provided"
 
     def test_parse_rule_formates_strings(self, test_organisations):
         """
@@ -178,9 +176,7 @@ class TestDatasetCheckpoint:
 
         assert len(checkpoint.expectations) == 1
 
-    def test_save_carries_forward_skipped_rule_results(
-        self, tmp_path, test_organisations
-    ):
+    def test_save_carries_forward_skipped_rule_results(self, tmp_path, test_organisations):
         import pyarrow.parquet as pq
         from digital_land.expectations.log import ExpectationLog
 
@@ -206,9 +202,7 @@ class TestDatasetCheckpoint:
         )
         previous_log.save_parquet(output_path)
 
-        checkpoint = DatasetCheckpoint(
-            dataset=dataset, file_path="", organisations=test_organisations
-        )
+        checkpoint = DatasetCheckpoint(dataset=dataset, file_path="", organisations=test_organisations)
         checkpoint.skipped_rule_names = ["Check no duplicate geometries"]
         checkpoint.log.add(
             {
@@ -238,9 +232,7 @@ class TestDatasetCheckpoint:
         dataset = "test-dataset"
         output_path = tmp_path / "expectations"
 
-        checkpoint = DatasetCheckpoint(
-            dataset=dataset, file_path="", organisations=test_organisations
-        )
+        checkpoint = DatasetCheckpoint(dataset=dataset, file_path="", organisations=test_organisations)
         checkpoint.skipped_rule_names = ["some skipped rule"]
         checkpoint.log.add(
             {
@@ -259,11 +251,7 @@ class TestDatasetCheckpoint:
 
         checkpoint.save(str(output_path))
 
-        result = (
-            pq.ParquetFile(output_path / f"dataset={dataset}" / f"{dataset}.parquet")
-            .read()
-            .to_pylist()
-        )
+        result = pq.ParquetFile(output_path / f"dataset={dataset}" / f"{dataset}.parquet").read().to_pylist()
         assert len(result) == 1
         assert result[0]["name"] == "A fresh check"
 
@@ -296,6 +284,4 @@ class TestDatasetCheckpoint:
 
         checkpoint.save(str(output_path))
 
-        assert (
-            output_path / f"dataset={dataset}/{dataset}.parquet"
-        ).exists(), "csv has not been created in temporaty directory"
+        assert (output_path / f"dataset={dataset}/{dataset}.parquet").exists(), "csv has not been created in temporaty directory"

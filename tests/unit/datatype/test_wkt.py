@@ -32,9 +32,7 @@ def test_normalise_returns_empty_geometry():
 def test_normalise_logs_not_fixable_when_ring_collapses_to_a_line():
     # a circle published as centre -> edge -> centre, as seen in config#2860.
     # make_valid turns it into a LineString, which cannot be kept as a polygon
-    input_wkt = (
-        "POLYGON ((423802.93 567226.36, 423792.93 567226.36, 423802.93 567226.36))"
-    )
+    input_wkt = "POLYGON ((423802.93 567226.36, 423792.93 567226.36, 423802.93 567226.36))"
     issue_log = IssueLog()
     output_wkt = MultiPolygonDataType().normalise(input_wkt, issues=issue_log)
     assert output_wkt == ""
@@ -163,10 +161,7 @@ def test_normalise_invalid_boundary_geometry_type_throws_error():
     value = "POINT(0 0)"
     boundary = "POINT(0 0)"
     assert wkt.normalise(value, issues=issues, boundary=boundary) == ""
-    assert (
-        issues.rows[0]["issue-type"]
-        == "Invalid boundary provided - boundary must be of type Polygon or MultiPolygon"
-    )
+    assert issues.rows[0]["issue-type"] == "Invalid boundary provided - boundary must be of type Polygon or MultiPolygon"
 
 
 def test_normalise_invalid_boundary_type_throws_error():
@@ -292,10 +287,7 @@ def test_wkt_point_wgs84():
     issues = IssueLog()
 
     # Nelson's colum
-    assert (
-        wkt.normalise("POINT( -0.127972   51.507722 )", issues=issues)
-        == "POINT (-0.127972 51.507722)"
-    )
+    assert wkt.normalise("POINT( -0.127972   51.507722 )", issues=issues) == "POINT (-0.127972 51.507722)"
     assert issue_type(issues) is None
 
 
@@ -304,10 +296,7 @@ def test_wkt_point_wgs84_south_west():
     issues = IssueLog()
 
     # Scilly Isles
-    assert (
-        wkt.normalise("POINT (-6.322778 49.936111)", issues=issues)
-        == "POINT (-6.322778 49.936111)"
-    )
+    assert wkt.normalise("POINT (-6.322778 49.936111)", issues=issues) == "POINT (-6.322778 49.936111)"
     assert issue_type(issues) is None
 
 
@@ -316,10 +305,7 @@ def test_wkt_point_wgs84_north_east():
     issues = IssueLog()
 
     # Berwick-upon-Tweed
-    assert (
-        wkt.normalise("POINT (-2.007 55.771)", issues=issues)
-        == "POINT (-2.007000 55.771000)"
-    )
+    assert wkt.normalise("POINT (-2.007 55.771)", issues=issues) == "POINT (-2.007000 55.771000)"
     assert issue_type(issues) is None
 
 
@@ -328,10 +314,7 @@ def test_wkt_point_wgs84_flipped():
     issues = IssueLog()
 
     # Nelson's colum
-    assert (
-        wkt.normalise("POINT (51.507722 -0.127972)", issues=issues)
-        == "POINT (-0.127972 51.507722)"
-    )
+    assert wkt.normalise("POINT (51.507722 -0.127972)", issues=issues) == "POINT (-0.127972 51.507722)"
     assert issue_type(issues) == "WGS84 flipped"
 
 
@@ -351,10 +334,7 @@ def test_wkt_point_northings_eastings():
     issues = IssueLog()
 
     # Nelson's column TQ 30015 80415
-    assert (
-        wkt.normalise("POINT (530015 180415)", issues=issues)
-        == "POINT (-0.127960 51.507718)"
-    )
+    assert wkt.normalise("POINT (530015 180415)", issues=issues) == "POINT (-0.127960 51.507718)"
     assert issue_type(issues) == "OSGB"
 
 
@@ -377,10 +357,7 @@ def test_wkt_point_flipped_northings_eastings():
     issues = IssueLog()
 
     # Nelson's column TQ 30015 80415
-    assert (
-        wkt.normalise("POINT (180415 530015)", issues=issues)
-        == "POINT (-0.127960 51.507718)"
-    )
+    assert wkt.normalise("POINT (180415 530015)", issues=issues) == "POINT (-0.127960 51.507718)"
     assert issue_type(issues) == "OSGB flipped"
 
 
@@ -390,10 +367,7 @@ def test_wkt_point_mercator():
 
     # Nelson's Column
     # https://epsg.io/map#srs=3857&x=-14245.780102&y=6711600.069496&z=17&layer=streets
-    assert (
-        wkt.normalise("POINT (-14245.780102 6711600.069496)", issues=issues)
-        == "POINT (-0.127972 51.507722)"
-    )
+    assert wkt.normalise("POINT (-14245.780102 6711600.069496)", issues=issues) == "POINT (-0.127972 51.507722)"
     assert issue_type(issues) == "Mercator"
 
 
@@ -403,15 +377,10 @@ def test_wkt_point_mercator_flipped():
 
     # Nelson's Column
     # https://epsg.io/map#srs=3857&x=-14245.780102&y=6711600.069496&z=17&layer=streets
-    assert (
-        wkt.normalise("POINT (6711600.069496 -14245.780102)", issues=issues)
-        == "POINT (-0.127972 51.507722)"
-    )
+    assert wkt.normalise("POINT (6711600.069496 -14245.780102)", issues=issues) == "POINT (-0.127972 51.507722)"
 
 
-@pytest.mark.skipif(
-    platform.system() == "Darwin", reason="Test causes shapely/geos to segfault on OSX"
-)
+@pytest.mark.skipif(platform.system() == "Darwin", reason="Test causes shapely/geos to segfault on OSX")
 def test_wkt_point_missing_values():
     wkt = WktDataType()
     issues = IssueLog()
@@ -586,10 +555,7 @@ def test_normalise_geojson_osgb_is_converted_to_wgs84():
     issues = IssueLog()
 
     # a square around Nelson's column in OSGB eastings and northings
-    value = (
-        '{"type":"Polygon","coordinates":[[[530000,180400],[530030,180400],'
-        "[530030,180430],[530000,180430],[530000,180400]]]}"
-    )
+    value = '{"type":"Polygon","coordinates":[[[530000,180400],[530030,180400],' "[530030,180430],[530000,180430],[530000,180400]]]}"
     output = shapely.wkt.loads(wkt.normalise(value, issues=issues))
     assert [row["issue-type"] for row in issues.rows] == [
         "invalid type geojson",
@@ -620,9 +586,7 @@ def test_parse_wkt_non_string_value(value):
     assert [issue for issue, message in issues] == ["invalid WKT"]
 
 
-@pytest.mark.parametrize(
-    "value", ["POINT EMPTY", "POLYGON EMPTY", "GEOMETRYCOLLECTION EMPTY"]
-)
+@pytest.mark.parametrize("value", ["POINT EMPTY", "POLYGON EMPTY", "GEOMETRYCOLLECTION EMPTY"])
 def test_parse_wkt_empty_geometry(value):
     assert parse_wkt(value, DEFAULT_BOUNDARY) == (None, [])
 

@@ -45,9 +45,7 @@ def get(collector, url, log={}, plugin="wfs", parameters=None):
     if parameters is None:
         parameters = WFSParameters()
     elif not isinstance(parameters, WFSParameters):
-        logging.warning(
-            "WFS get expects parameters to be a WFSParameters instance. using default parameters"
-        )
+        logging.warning("WFS get expects parameters to be a WFSParameters instance. using default parameters")
         parameters = WFSParameters()
 
     if parameters.page_size:

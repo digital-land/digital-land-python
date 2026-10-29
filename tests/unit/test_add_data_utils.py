@@ -103,9 +103,7 @@ def test_normalise_json():
 
     # ensure json is sorted
     assert isinstance(sorted_json_string, str)
-    assert sorted_json_string.find("firstproperty") < sorted_json_string.find(
-        "secondproperty"
-    )
+    assert sorted_json_string.find("firstproperty") < sorted_json_string.find("secondproperty")
 
 
 def test_get_provision_entities_from_duckdb(tmp_path):
@@ -124,8 +122,6 @@ def test_get_provision_entities_from_duckdb(tmp_path):
     pipeline = "tree"
     endpoint_resource_info = {"organisation": "organisation"}
 
-    result = get_provision_entities_from_duckdb(
-        csv_file, pipeline, endpoint_resource_info
-    )
+    result = get_provision_entities_from_duckdb(csv_file, pipeline, endpoint_resource_info)
 
     assert list(result) == [10, 11]

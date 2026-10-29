@@ -9,9 +9,7 @@ try:
     __version__ = version(PACKAGE_NAME)
 except PackageNotFoundError:
     # package is not installed
-    logger.error(
-        f"Package '{PACKAGE_NAME}' is not installed. So can not retieve version."
-    )
+    logger.error(f"Package '{PACKAGE_NAME}' is not installed. So can not retieve version.")
     pass
 
 

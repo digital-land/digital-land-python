@@ -38,10 +38,7 @@ def test_concat_log():
         ),
         "part1,part2\r\nfirst,second\r\nthird,fourth\r\n",
     )
-    assert (
-        output
-        == "CombinedField,part1,part2\r\nfirst.second,first,second\r\nthird.fourth,third,fourth\r\n"
-    )
+    assert output == "CombinedField,part1,part2\r\nfirst.second,first,second\r\nthird.fourth,third,fourth\r\n"
     assert log.rows == [
         {
             "dataset": "",
@@ -68,10 +65,5 @@ def test_concat_prepend_append():
         ),
         "posX,posY\r\n1.02,2.04\r\n3.06,4.08\r\n",
     )
-    assert (
-        output
-        == "point,posX,posY\r\nPOINT(1.02 2.04),1.02,2.04\r\nPOINT(3.06 4.08),3.06,4.08\r\n"
-    )
-    assert log.rows == [
-        {"dataset": "", "resource": "", "column": "point", "field": "POINT(posX posY)"}
-    ]
+    assert output == "point,posX,posY\r\nPOINT(1.02 2.04),1.02,2.04\r\nPOINT(3.06 4.08),3.06,4.08\r\n"
+    assert log.rows == [{"dataset": "", "resource": "", "column": "point", "field": "POINT(posX posY)"}]

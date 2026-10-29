@@ -28,12 +28,8 @@ def test_filter_in():
 
 
 def test_negative_filtering():
-    pattern = {
-        "somefield": "^(?!Individual|\\.).*"
-    }  # NOT starting with Individual. Watch out for the pipe character preceding the \\.
-    input = (
-        "reference,somefield\r\n" + "1,Group\r\n" + "2,Individual\r\n" + "3,Zone\r\n"
-    )  # We want 1 and 3
+    pattern = {"somefield": "^(?!Individual|\\.).*"}  # NOT starting with Individual. Watch out for the pipe character preceding the \\.
+    input = "reference,somefield\r\n" + "1,Group\r\n" + "2,Individual\r\n" + "3,Zone\r\n"  # We want 1 and 3
 
     phase = FilterPhase(filters=pattern)
     stream = _reader(input)

@@ -45,22 +45,16 @@ class Organisation:
                 self.organisation_uri[uri] = uri
                 self.organisation_uri[uri.replace("http:", "https:")] = uri
                 self.organisation_uri[uri.replace("/id/", "/doc/")] = uri
-                self.organisation_uri[
-                    uri.replace("/id/", "/doc/").replace("http:", "https:")
-                ] = uri
+                self.organisation_uri[uri.replace("/id/", "/doc/").replace("http:", "https:")] = uri
                 self.organisation_uri[uri_basename(uri)] = uri
                 self.organisation_uri[row["statistical-geography"].lower()] = uri
                 if "local-authority-eng" in row["organisation"]:
-                    dl_url = "https://digital-land.github.io/organisation/%s/" % (
-                        row["organisation"]
-                    )
+                    dl_url = "https://digital-land.github.io/organisation/%s/" % (row["organisation"])
                     dl_url = dl_url.lower().replace("-eng:", "-eng/")
                     self.organisation_uri[dl_url] = uri
 
         for key, uri in self.organisation_uri.items():
-            self.organisation_lookup[key] = self.organisation_lookup[
-                self.organisation_uri[uri]
-            ]
+            self.organisation_lookup[key] = self.organisation_lookup[self.organisation_uri[uri]]
 
         # TODO get the patch details from Pipeline
         if Path(self.pipeline_patch_path).exists():
@@ -86,9 +80,7 @@ class Organisation:
 
         if organisation.lower() not in self.organisation_lookup:
             if organisation.lower().replace("-eng", "") in self.organisation_lookup:
-                return self.organisation_lookup[
-                    organisation.lower().replace("-eng", "")
-                ]
+                return self.organisation_lookup[organisation.lower().replace("-eng", "")]
             else:
                 logging.info(f"unknown organisation {organisation}")
                 return ""
@@ -98,11 +90,7 @@ class Organisation:
         """
         gets a list of dictionaries where each entry represents an organisation
         """
-        dataset_orgs = [
-            org
-            for org in self.organisation.values()
-            if org.get("dataset", "") == dataset
-        ]
+        dataset_orgs = [org for org in self.organisation.values() if org.get("dataset", "") == dataset]
         return dataset_orgs
 
     def get(self, org: str):

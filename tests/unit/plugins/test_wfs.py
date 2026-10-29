@@ -21,10 +21,7 @@ def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(cap
 
     assert log["status"] == "200"
     assert content == b"reference"
-    assert (
-        "WFS get expects parameters to be a WFSParameters instance. using default parameters"
-        in caplog.text
-    )
+    assert "WFS get expects parameters to be a WFSParameters instance. using default parameters" in caplog.text
 
 
 def test_get_does_not_crash_on_empty_content():
@@ -127,9 +124,7 @@ def test_get_paged_wfs_derives_layer_name_from_endpoint_url(tmp_path, mocker):
 
 
 def test_wfs_source_and_layer_extracts_case_insensitive_typename():
-    source_url, layer_name = wfs_source_and_layer(
-        "https://example.com/wfs?request=GetFeature&TYPENAME=dataset:Flood_Zones"
-    )
+    source_url, layer_name = wfs_source_and_layer("https://example.com/wfs?request=GetFeature&TYPENAME=dataset:Flood_Zones")
 
     assert source_url == "https://example.com/wfs"
     assert layer_name == "dataset:Flood_Zones"

@@ -20,9 +20,7 @@ def hash_directory(dir, exclude=[]):
         RuntimeError: If dir does not exist or is not a directory.
     """
     if not os.path.isdir(dir):
-        raise RuntimeError(
-            f"Can't hash {dir} as it doesn't exist or is not a directory"
-        )
+        raise RuntimeError(f"Can't hash {dir} as it doesn't exist or is not a directory")
 
     hash = hashlib.sha1()
     all_files = []

@@ -36,9 +36,7 @@ def collection_with_transforms(tmp_path):
     endpoint_file = collection_dir / "endpoint.csv"
     with open(endpoint_file, "w", newline="") as f:
         writer = f
-        writer.write(
-            "endpoint,endpoint-url,plugin,parameters,entry-date,start-date,end-date\n"
-        )
+        writer.write("endpoint,endpoint-url,plugin,parameters,entry-date,start-date,end-date\n")
         writer.write("endpoint1,https://example.com/data1,,,2024-01-01,,\n")
         writer.write("endpoint2,https://example.com/data2,,,2024-01-01,,\n")
         writer.write("endpoint3,https://example.com/data3,,,2024-01-01,,\n")
@@ -47,29 +45,19 @@ def collection_with_transforms(tmp_path):
     source_file = collection_dir / "source.csv"
     with open(source_file, "w", newline="") as f:
         writer = f
-        writer.write(
-            "source,attribution,collection,documentation-url,endpoint,licence,organisation,pipelines,entry-date,start-date,end-date\n"
-        )
+        writer.write("source,attribution,collection,documentation-url,endpoint,licence,organisation,pipelines,entry-date,start-date,end-date\n")
         # endpoint1 -> dataset1
-        writer.write(
-            "source1,,test-collection,,endpoint1,ogl3,org1,dataset1,2024-01-01,,\n"
-        )
+        writer.write("source1,,test-collection,,endpoint1,ogl3,org1,dataset1,2024-01-01,,\n")
         # endpoint2 -> dataset1 and dataset2
-        writer.write(
-            "source2,,test-collection,,endpoint2,ogl3,org2,dataset1;dataset2,2024-01-01,,\n"
-        )
+        writer.write("source2,,test-collection,,endpoint2,ogl3,org2,dataset1;dataset2,2024-01-01,,\n")
         # endpoint3 -> dataset2
-        writer.write(
-            "source3,,test-collection,,endpoint3,ogl3,org3,dataset2,2024-01-01,,\n"
-        )
+        writer.write("source3,,test-collection,,endpoint3,ogl3,org3,dataset2,2024-01-01,,\n")
 
     # Create resource.csv with 3 resources
     resource_file = collection_dir / "resource.csv"
     with open(resource_file, "w", newline="") as f:
         writer = f
-        writer.write(
-            "resource,bytes,organisations,datasets,endpoints,start-date,end-date\n"
-        )
+        writer.write("resource,bytes,organisations,datasets,endpoints,start-date,end-date\n")
         # resource1 from endpoint1 (dataset1)
         writer.write("resource1,1000,org1,dataset1,endpoint1,2024-01-01,\n")
         # resource2 from endpoint2 (dataset1 and dataset2)
@@ -87,9 +75,7 @@ def collection_with_transforms(tmp_path):
     log_file = collection_dir / "log.csv"
     with open(log_file, "w", newline="") as f:
         writer = f
-        writer.write(
-            "bytes,content-type,elapsed,endpoint,entry-date,resource,status,exception,ssl,resource-organisation,endpoint-organisation\n"
-        )
+        writer.write("bytes,content-type,elapsed,endpoint,entry-date,resource,status,exception,ssl,resource-organisation,endpoint-organisation\n")
         writer.write("1000,text/csv,1.0,endpoint1,2024-01-01,resource1,200,,,org1,\n")
         writer.write("2000,text/csv,1.0,endpoint2,2024-01-01,resource2,200,,,org2,\n")
         writer.write("3000,text/csv,1.0,endpoint3,2024-01-01,resource3,200,,,org3,\n")
@@ -119,9 +105,7 @@ def collection_with_retired_resource(collection_with_transforms):
 
 
 def test_get_code_hash():
-    proc = subprocess.run(
-        "git log -n 1".split(), cwd=os.path.dirname(__file__), stdout=subprocess.PIPE
-    )
+    proc = subprocess.run("git log -n 1".split(), cwd=os.path.dirname(__file__), stdout=subprocess.PIPE)
     # the first line of this is "commit <hash>"
     hash = proc.stdout.splitlines()[0].split()[1].decode()
 
@@ -148,9 +132,7 @@ def test_hash_directory_with_exclude():
 
 
 def test_different_dirs_have_different_hashes():
-    assert State.get_dir_hash("tests/data/state/collection") != State.get_dir_hash(
-        "tests/data/state/collection_blank"
-    )
+    assert State.get_dir_hash("tests/data/state/collection") != State.get_dir_hash("tests/data/state/collection_blank")
 
 
 def test_state_build_persist(tmp_path):
@@ -239,15 +221,11 @@ def test_state_build_has_transform_count(collection_with_transforms, tmp_path):
     assert isinstance(test_state["transform_count"], int)
     assert test_state["transform_count"] >= 0
     # Should match expected count
-    assert (
-        test_state["transform_count"] == expected_count
-    ), f"Expected {expected_count} transforms, got {test_state['transform_count']}"
+    assert test_state["transform_count"] == expected_count, f"Expected {expected_count} transforms, got {test_state['transform_count']}"
 
 
 class TestState:
-    def test_get_transform_resources_by_dataset_returns_all_resources(
-        self, collection_with_transforms
-    ):
+    def test_get_transform_resources_by_dataset_returns_all_resources(self, collection_with_transforms):
         collection_dir, _ = collection_with_transforms
         collection = Collection(directory=str(collection_dir))
         collection.load()
@@ -257,9 +235,7 @@ class TestState:
         assert set(result["dataset1"]) == {"resource1", "resource2"}
         assert set(result["dataset2"]) == {"resource2", "resource3"}
 
-    def test_get_transform_resources_by_dataset_returns_sorted_lists(
-        self, collection_with_transforms
-    ):
+    def test_get_transform_resources_by_dataset_returns_sorted_lists(self, collection_with_transforms):
         collection_dir, _ = collection_with_transforms
         collection = Collection(directory=str(collection_dir))
         collection.load()
@@ -269,9 +245,7 @@ class TestState:
         for resources in result.values():
             assert resources == sorted(resources)
 
-    def test_get_transform_resources_by_dataset_excludes_retired_resources(
-        self, collection_with_retired_resource
-    ):
+    def test_get_transform_resources_by_dataset_excludes_retired_resources(self, collection_with_retired_resource):
         collection_dir = collection_with_retired_resource
         collection = Collection(directory=str(collection_dir))
         collection.load()
@@ -283,9 +257,7 @@ class TestState:
         # resource2 is still active
         assert "resource2" in result["dataset1"]
 
-    def test_build_includes_transform_resources(
-        self, collection_with_transforms, tmp_path
-    ):
+    def test_build_includes_transform_resources(self, collection_with_transforms, tmp_path):
         collection_dir, _ = collection_with_transforms
         specification_dir = tmp_path / "specification"
         specification_dir.mkdir()

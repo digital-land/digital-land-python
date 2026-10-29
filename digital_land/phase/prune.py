@@ -9,9 +9,7 @@ class FieldPrunePhase(Phase):
     """
 
     def __init__(self, fields):
-        self.fields = list(
-            set(fields + ["entity", "organisation", "prefix", "reference"])
-        )
+        self.fields = list(set(fields + ["entity", "organisation", "prefix", "reference"]))
         logging.debug(f"pruning fields to {self.fields}")
 
     def process(self, stream):
@@ -35,9 +33,7 @@ class EntityPrunePhase(Phase):
     def __init__(self, issue_log=None, dataset_resource_log=None):
         self.issues = issue_log
         if issue_log is not None:
-            warnings.warn(
-                "The 'issue_log' parameter is deprecated.", DeprecationWarning
-            )
+            warnings.warn("The 'issue_log' parameter is deprecated.", DeprecationWarning)
         self.log = dataset_resource_log
 
     def process(self, stream):
@@ -51,9 +47,7 @@ class EntityPrunePhase(Phase):
                 curie = f"{prefix}:{reference}"
                 entry_number = block["entry-number"]
 
-                logging.info(
-                    f"{resource} row {entry_number}: missing entity for {curie}"
-                )
+                logging.info(f"{resource} row {entry_number}: missing entity for {curie}")
                 logging.debug(block)
                 continue
 

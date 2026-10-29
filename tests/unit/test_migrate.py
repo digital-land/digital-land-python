@@ -32,9 +32,7 @@ def test_migrate_migrateation():
 def test_migrate_point():
     fields = ["point"]
     t = MigratePhase(fields, {})
-    reader = FakeDictReader(
-        [{"GeoX": "-2.218153", "GeoY": "50.747808"}], "some-resource"
-    )
+    reader = FakeDictReader([{"GeoX": "-2.218153", "GeoY": "50.747808"}], "some-resource")
 
     output = list(t.process(reader))
 

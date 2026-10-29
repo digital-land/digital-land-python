@@ -83,16 +83,10 @@ def get_column_field_summary(
     pipeline_dir,
 ):
     column_field_summary = ""
-    column_field_summary += (
-        "\n======================================================================"
-    )
+    column_field_summary += "\n======================================================================"
     column_field_summary += "\nColumn Field Summary"
-    column_field_summary += (
-        "\n======================================================================"
-    )
-    column_field_path = os.path.join(
-        column_field_dir, endpoint_resource_info["resource"] + ".csv"
-    )
+    column_field_summary += "\n======================================================================"
+    column_field_path = os.path.join(column_field_dir, endpoint_resource_info["resource"] + ".csv")
     column_field_df = pd.read_csv(column_field_path)
 
     column_field_summary += "\nMapped Columns:"
@@ -116,11 +110,7 @@ def get_column_field_summary(
             converted_resource_columns = reader.fieldnames
 
     # Find columns that are in resource that aren't in the column field log
-    unmapped_columns = [
-        column
-        for column in converted_resource_columns
-        if column not in column_field_df["column"].values
-    ]
+    unmapped_columns = [column for column in converted_resource_columns if column not in column_field_df["column"].values]
 
     if len(unmapped_columns) > 0:
         column_field_summary += "\n"
@@ -149,30 +139,19 @@ def get_column_field_summary(
     pipeline = Pipeline(pipeline_dir, dataset)
     transformed_fields = pipeline.migrate
 
-    if "reference" not in mapped_fields and (
-        not transformed_fields
-        or transformed_fields.get("reference") not in mapped_fields
-    ):
-        raise ValueError(
-            "Reference not found in the mapped fields - does this need mapping?"
-        )
+    if "reference" not in mapped_fields and (not transformed_fields or transformed_fields.get("reference") not in mapped_fields):
+        raise ValueError("Reference not found in the mapped fields - does this need mapping?")
 
     return column_field_summary
 
 
 def get_issue_summary(endpoint_resource_info, issue_dir, new_entities=None):
     issue_summary = ""
-    issue_summary += (
-        "\n======================================================================"
-    )
+    issue_summary += "\n======================================================================"
     issue_summary += "\nIssue Summary"
-    issue_summary += (
-        "\n======================================================================"
-    )
+    issue_summary += "\n======================================================================"
 
-    issue_df = pd.read_csv(
-        os.path.join(issue_dir, endpoint_resource_info["resource"] + ".csv")
-    )
+    issue_df = pd.read_csv(os.path.join(issue_dir, endpoint_resource_info["resource"] + ".csv"))
 
     issue_summary += "\n"
     if len(issue_df) > 0:
@@ -194,33 +173,21 @@ def get_provision_entities_from_duckdb(lookup_path, pipeline, endpoint_resource_
     return provision_entity_df["entity"].values if len(provision_entity_df) > 0 else []
 
 
-def get_entity_summary(
-    endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
-):
+def get_entity_summary(endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir):
     entity_summary = ""
-    entity_summary += (
-        "\n======================================================================"
-    )
+    entity_summary += "\n======================================================================"
     entity_summary += "\nEntity Summary"
-    entity_summary += (
-        "\n======================================================================"
-    )
+    entity_summary += "\n======================================================================"
 
     # Get number of entities in resource from transformed file
     transformed_df = pd.read_csv(output_path)
     existing_entities = transformed_df["entity"].unique().tolist()
     existing_entity_count = len(existing_entities)
-    entity_summary += (
-        f"\nNumber of existing entities in resource: {existing_entity_count}"
-    )
+    entity_summary += f"\nNumber of existing entities in resource: {existing_entity_count}"
 
     # Get new entities by looking at unknown entity issues
-    issue_df = pd.read_csv(
-        os.path.join(issue_dir, endpoint_resource_info["resource"] + ".csv")
-    )
-    new_entities_df = issue_df[
-        issue_df["issue-type"].isin(["unknown entity", "missing reference"])
-    ]
+    issue_df = pd.read_csv(os.path.join(issue_dir, endpoint_resource_info["resource"] + ".csv"))
+    new_entities_df = issue_df[issue_df["issue-type"].isin(["unknown entity", "unknown entity - missing reference"])]
     new_entity_count = len(new_entities_df)
 
     if new_entity_count == 0:
@@ -229,27 +196,18 @@ def get_entity_summary(
         entity_summary += f"\nNumber of new entities in resource: {new_entity_count}"
         entity_summary += "\n\nNew entity breakdown:\n"
         # Remove prefix from value column to get just reference
-        new_entities_df.loc[:, "value"] = new_entities_df[
-            new_entities_df["issue-type"] == "unknown entity"
-        ]["value"].apply(lambda x: x.split(":")[1])
+        new_entities_df.loc[:, "value"] = new_entities_df[new_entities_df["issue-type"] == "unknown entity"]["value"].apply(lambda x: x.split(":")[1])
         entity_summary += (
-            new_entities_df[["value", "line-number"]]
-            .astype({"line-number": int})
-            .rename({"value": "reference", "line-number": "line-number"}, axis=1)
-            .to_string(index=False)
+            new_entities_df[["value", "line-number"]].astype({"line-number": int}).rename({"value": "reference", "line-number": "line-number"}, axis=1).to_string(index=False)
         )
 
     # Get list of entities for this provision from lookup.csv
     # Potential for failure here when reading huge lookup file
     lookup_path = pipeline_dir / "lookup.csv"
-    provision_entities = get_provision_entities_from_duckdb(
-        lookup_path, pipeline, endpoint_resource_info
-    )
+    provision_entities = get_provision_entities_from_duckdb(lookup_path, pipeline, endpoint_resource_info)
 
     # Compare entities found in resource with entities in lookup.csv
-    missing_entity_count = len(
-        [entity for entity in provision_entities if entity not in existing_entities]
-    )
+    missing_entity_count = len([entity for entity in provision_entities if entity not in existing_entities])
     if missing_entity_count == len(provision_entities) and len(provision_entities) > 0:
         entity_summary += f"\nWARNING: NONE of the {len(provision_entities)} entities on the platform for this provision are in the resource - is this correct?"
     elif missing_entity_count != 0:
@@ -259,9 +217,7 @@ def get_entity_summary(
 
 
 def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
-    existing_sources = collection.filtered_sources(
-        {"organisation": endpoint_resource_info["organisation"], "pipelines": dataset}
-    )
+    existing_sources = collection.filtered_sources({"organisation": endpoint_resource_info["organisation"], "pipelines": dataset})
 
     existing_sources_without_endpoint = []
     retirable_sources = []
@@ -269,21 +225,13 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
     for source in existing_sources:
         endpoint = source.get("endpoint", "")
         is_source_ended = source["end-date"] != ""
-        is_endpoint_ended = (
-            endpoint
-            and collection.endpoint.records.get(endpoint, [{}])[0].get("end-date", "")
-            != ""
-        )
+        is_endpoint_ended = endpoint and collection.endpoint.records.get(endpoint, [{}])[0].get("end-date", "") != ""
 
         # edge cases where source has no endpoint hash
         if not endpoint and not is_source_ended:
             existing_sources_without_endpoint.append(source)
         # if either endpoint or source hasn't been ended it can be retired
-        elif (
-            endpoint
-            and endpoint != endpoint_resource_info["endpoint"]
-            and (not is_source_ended or not is_endpoint_ended)
-        ):
+        elif endpoint and endpoint != endpoint_resource_info["endpoint"] and (not is_source_ended or not is_endpoint_ended):
             retirable_sources.append(source)
 
     existing_endpoints_summary = ""
@@ -295,13 +243,9 @@ def get_existing_endpoints_summary(endpoint_resource_info, collection, dataset):
         existing_endpoints_summary += "\nentry-date, endpoint-url"
         for source in retirable_sources:
             endpoint_hash = source.get("endpoint", "")
-            endpoint_url = collection.endpoint.records.get(endpoint_hash, [{}])[0].get(
-                "endpoint-url", ""
-            )
+            endpoint_url = collection.endpoint.records.get(endpoint_hash, [{}])[0].get("endpoint-url", "")
             source["endpoint-url"] = endpoint_url
-            existing_endpoints_summary += (
-                f"\n{source['entry-date']}, {source['endpoint-url']}"
-            )
+            existing_endpoints_summary += f"\n{source['entry-date']}, {source['endpoint-url']}"
 
     return existing_endpoints_summary, retirable_sources
 
@@ -314,9 +258,7 @@ def download_dataset(dataset, specification, cache_dir):
     download = True
     if os.path.exists(dataset_path):
         print(f"\nExisting dataset at {dataset_path} detected")
-        if get_user_response(
-            "Do you want to use the existing dataset (otherwise download a fresh version)? (yes/no): "
-        ):
+        if get_user_response("Do you want to use the existing dataset (otherwise download a fresh version)? (yes/no): "):
             download = False
     if download:
         print(f"Downloading {dataset}.sqlite3...")
@@ -369,12 +311,8 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
     updated_entity_df = updated_entity_df.set_index("entity").sort_index()
 
     # filter out newly added entities, store them in a separate df
-    new_entities_df = updated_entity_df.loc[
-        ~updated_entity_df.index.isin(original_entity_df.index)
-    ]
-    updated_entity_df = updated_entity_df.loc[
-        updated_entity_df.index.isin(original_entity_df.index)
-    ]
+    new_entities_df = updated_entity_df.loc[~updated_entity_df.index.isin(original_entity_df.index)]
+    updated_entity_df = updated_entity_df.loc[updated_entity_df.index.isin(original_entity_df.index)]
 
     # the json column can get reordered in the update dataset process
     # load json into dict and sort keys to ensure comparison is correct
@@ -384,10 +322,7 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
         new_entities_df["json"] = new_entities_df["json"].apply(normalise_json)
 
     # find differences
-    mask = ~(
-        (original_entity_df == updated_entity_df)
-        | (original_entity_df.isna() & updated_entity_df.isna())
-    )
+    mask = ~((original_entity_df == updated_entity_df) | (original_entity_df.isna() & updated_entity_df.isna()))
     diff_positions = mask.stack()
     # dataframe of which values have changed.
     changed = diff_positions[diff_positions]
@@ -403,15 +338,11 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
 
     # add diffs for new entities
     if not new_entities_df.empty:
-        new_diffs = new_entities_df.reset_index().melt(
-            id_vars=["entity"], var_name="field", value_name="updated_value"
-        )
+        new_diffs = new_entities_df.reset_index().melt(id_vars=["entity"], var_name="field", value_name="updated_value")
         new_diffs["original_value"] = None
         new_diffs["new_entity"] = True
         # Reorder columns to match
-        new_diffs = new_diffs[
-            ["entity", "field", "original_value", "updated_value", "new_entity"]
-        ]
+        new_diffs = new_diffs[["entity", "field", "original_value", "updated_value", "new_entity"]]
 
         # Concatenate with existing diffs
         diffs = pd.concat([diffs, new_diffs], ignore_index=True)
@@ -422,9 +353,7 @@ def get_updated_entities_summary(original_entity_df, updated_entity_df):
         grouped_diffs = diffs_df.groupby("entity")["field"].apply(list).reset_index()
         updated_entities_summary += "\nChanged fields by entity:\n"
         for _, row in grouped_diffs.iterrows():
-            updated_entities_summary += (
-                f"\nEntity: {row['entity']}, Fields changed: {', '.join(row['field'])}"
-            )
+            updated_entities_summary += f"\nEntity: {row['entity']}, Fields changed: {', '.join(row['field'])}"
         return updated_entities_summary, diffs_df
     else:
         updated_entities_summary += "\nNo differences found in updated dataset"

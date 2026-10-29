@@ -57,9 +57,7 @@ def test_resource_file(test_dirs):
     return resource_path
 
 
-def test_pipeline_command_runs_successfully(
-    cli_runner, test_dirs, test_resource_file, organisation_path, tmp_path
-):
+def test_pipeline_command_runs_successfully(cli_runner, test_dirs, test_resource_file, organisation_path, tmp_path):
     """
     Test that pipeline command executes successfully with standard usage.
 
@@ -70,11 +68,7 @@ def test_pipeline_command_runs_successfully(
     """
     # Arrange
     input_path = str(test_resource_file)
-    output_file_path = (
-        test_dirs["transformed_dir"]
-        / "national-park"
-        / f"{test_resource_file.stem}.csv"
-    )
+    output_file_path = test_dirs["transformed_dir"] / "national-park" / f"{test_resource_file.stem}.csv"
     output_path = str(output_file_path)
     output_log_dir = tmp_path / "output-logs"
     config_path = str(tmp_path / "config.sqlite3")
@@ -136,9 +130,7 @@ def test_pipeline_command_runs_successfully(
             import traceback
 
             print("\n=== Full Traceback ===")
-            traceback.print_exception(
-                type(result.exception), result.exception, result.exception.__traceback__
-            )
+            traceback.print_exception(type(result.exception), result.exception, result.exception.__traceback__)
     assert result.exit_code == 0, f"Command failed with: {result.output}"
 
     # Verify expected directories were created/used

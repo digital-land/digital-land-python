@@ -156,17 +156,11 @@ class Collector:
             log["status"] = str(response.status_code)
             log["request-headers"] = dict(response.request.headers)
             log["response-headers"] = dict(response.headers)
-            if log["status"] == "200" and not response.headers.get(
-                "Content-Type", ""
-            ).startswith("text/html"):
+            if log["status"] == "200" and not response.headers.get("Content-Type", "").startswith("text/html"):
                 content = response.content
                 # Apply timestamp stripping for JSON/GeoJSON/XML formats
-                content_type = (
-                    response.headers.get("Content-Type", "").lower().replace(" ", "")
-                )
-                if content_type.startswith(
-                    ("application/json", "application/geo+json", "application/xml")
-                ):
+                content_type = response.headers.get("Content-Type", "").lower().replace(" ", "")
+                if content_type.startswith(("application/json", "application/geo+json", "application/xml")):
                     content = self.strip_variable_content(content)
         return log, content
 
@@ -192,9 +186,7 @@ class Collector:
         if not endpoint:
             endpoint = url_endpoint
         elif endpoint != url_endpoint:
-            logging.error(
-                "url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint)
-            )
+            logging.error("url '%s' given endpoint %s expected %s" % (url, endpoint, url_endpoint))
             return FetchStatus.HASH_FAILURE, None
 
         if self.log_dir:
@@ -250,9 +242,7 @@ class Collector:
 
     def collect(self, endpoint_path, refill_todays_logs=False):
         if not self.log_dir:
-            raise ValueError(
-                "log_dir must be set in the Collector class and not empty to be used in the collect function"
-            )
+            raise ValueError("log_dir must be set in the Collector class and not empty to be used in the collect function")
         for row in csv.DictReader(open(endpoint_path, newline="")):
             endpoint = row["endpoint"]
             url = row["endpoint-url"]
@@ -282,17 +272,11 @@ class Collector:
         try:
             parameters = json.loads(raw_parameters)
         except json.JSONDecodeError as exc:
-            logging.warning(
-                f"Invalid parameters JSON for endpoint {endpoint}: {raw_parameters}. "
-                f"Error: {exc}. Falling back to defaults."
-            )
+            logging.warning(f"Invalid parameters JSON for endpoint {endpoint}: {raw_parameters}. " f"Error: {exc}. Falling back to defaults.")
             return None
 
         if not isinstance(parameters, dict):
-            logging.warning(
-                f"Parameters must be a JSON object for endpoint {endpoint}: {raw_parameters}. "
-                "Falling back to defaults."
-            )
+            logging.warning(f"Parameters must be a JSON object for endpoint {endpoint}: {raw_parameters}. " "Falling back to defaults.")
             return None
 
         return parameters
@@ -309,14 +293,10 @@ class Collector:
         plugin_name, parameter_model = config
 
         if not isinstance(parameters, dict):
-            logging.warning(
-                f"{plugin_name} parameters must be a dictionary. Falling back to defaults"
-            )
+            logging.warning(f"{plugin_name} parameters must be a dictionary. Falling back to defaults")
             return None
         try:
             return parameter_model(**parameters)
         except ValidationError as exc:
-            logging.warning(
-                f"Invalid {plugin_name} parameters. Falling back to defaults. Errors: {exc.errors()}"
-            )
+            logging.warning(f"Invalid {plugin_name} parameters. Falling back to defaults. Errors: {exc.errors()}")
             return None

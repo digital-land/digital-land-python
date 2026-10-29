@@ -107,10 +107,7 @@ class LookupPhase(Phase):
 
         entity = (
             # by the resource and row number
-            (
-                self.entity_field == "entity"
-                and self.lookup(prefix=prefix, entry_number=entry_number)
-            )
+            (self.entity_field == "entity" and self.lookup(prefix=prefix, entry_number=entry_number))
             # TBD: fixup prefixes so this isn't needed ..
             # or by the organisation and the reference
             or self.lookup(
@@ -125,6 +122,14 @@ class LookupPhase(Phase):
                 reference=reference,
             )
         )
+
+        if entity and self.entity_range:
+            if int(entity) not in range(int(self.entity_range[0]), int(self.entity_range[1])) and self.issues:
+                self.issues.log_issue(
+                    "entity",
+                    "entity number out of range",
+                    entity,
+                )
 
         return entity
 
@@ -201,11 +206,7 @@ class LookupPhase(Phase):
                     if not row[self.entity_field]:
                         self._log_unknown_entity(reference, curie, line_number)
                     else:
-                        row[self.entity_field] = self.redirect_entity(
-                            row[self.entity_field]
-                        )
-
-                self._check_entity_range(row[self.entity_field], line_number)
+                        row[self.entity_field] = self.redirect_entity(row[self.entity_field])
             yield block
 
 
@@ -266,9 +267,7 @@ class EntityLookupPhase(LookupPhase):
         if len(self.providers) <= 1:
             for block in super().process(stream):
                 if self.issues:
-                    self.issues.record_entity_map(
-                        block["entry-number"], block["row"]["entity"]
-                    )
+                    self.issues.record_entity_map(block["entry-number"], block["row"]["entity"])
                 yield block
             return
 
@@ -283,9 +282,7 @@ class EntityLookupPhase(LookupPhase):
                         row.get(self.entity_field, ""), block["line-number"]
                     )
                 if self.issues:
-                    self.issues.record_entity_map(
-                        block["entry-number"], row.get(self.entity_field, "")
-                    )
+                    self.issues.record_entity_map(block["entry-number"], row.get(self.entity_field, ""))
                 yield block
                 continue
 
@@ -327,9 +324,7 @@ class EntityLookupPhase(LookupPhase):
         # conservation-area's `borough`), so a row may already say which
         # authority it belongs to — and it need not be one of the providers.
         # Trust the row when it knows; only try every provider when it doesn't.
-        organisations = (
-            [row["organisation"]] if row.get("organisation", "") else self.providers
-        )
+        organisations = [row["organisation"]] if row.get("organisation", "") else self.providers
 
         emitted_entities = set()
         for organisation in organisations:
@@ -370,9 +365,7 @@ class FactLookupPhase(LookupPhase):
         package_prefixes=None,
         lookup_rules=None,
     ):
-        super().__init__(
-            lookups, redirect_lookups, issue_log, lookup_rules=lookup_rules
-        )
+        super().__init__(lookups, redirect_lookups, issue_log, lookup_rules=lookup_rules)
         self.entity_field = "reference-entity"
         self.odp_collections = odp_collections
         self.package_prefixes = package_prefixes or {}
@@ -390,9 +383,7 @@ class FactLookupPhase(LookupPhase):
                 continue
 
             # Get organisation from block metadata (set by OrganisationPhase)
-            organisation = block.get("organisation", "").replace(
-                "local-authority-eng", "local-authority"
-            )
+            organisation = block.get("organisation", "").replace("local-authority-eng", "local-authority")
 
             find_entity = self.lookup(
                 prefix=prefix,
@@ -420,9 +411,7 @@ class FactLookupPhase(LookupPhase):
                     reference=reference,
                 )
                 if not find_entity:
-                    find_entity = self.lookup(
-                        prefix=package_prefix, reference=reference
-                    )
+                    find_entity = self.lookup(prefix=package_prefix, reference=reference)
                     find_entity = self.check_associated_organisation(find_entity)
 
             if not find_entity:
@@ -432,13 +421,8 @@ class FactLookupPhase(LookupPhase):
                     reference=reference,
                 )
 
-            if not find_entity or (
-                str(find_entity) in self.redirect_lookups
-                and int(self.redirect_lookups[str(find_entity)].get("status", 0)) == 410
-            ):
-                if (self.odp_collections and prefix in self.odp_collections) or (
-                    prefix in self.package_prefixes
-                ):
+            if not find_entity or (str(find_entity) in self.redirect_lookups and int(self.redirect_lookups[str(find_entity)].get("status", 0)) == 410):
+                if (self.odp_collections and prefix in self.odp_collections) or (prefix in self.package_prefixes):
                     self.issues.log_issue(
                         prefix,
                         "missing associated entity",
@@ -479,10 +463,5 @@ class PrintLookupPhase(LookupPhase):
                     }
                     self.new_lookup_entries.append([new_lookup])
                 elif not reference:
-                    logging.info(
-                        "No reference found for entry: "
-                        + str(entry_number)
-                        + " in resource: "
-                        + block["resource"]
-                    )
+                    logging.info("No reference found for entry: " + str(entry_number) + " in resource: " + block["resource"])
         yield

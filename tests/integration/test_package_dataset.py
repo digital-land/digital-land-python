@@ -32,10 +32,7 @@ def test_package_dataset(
     # Setup
     expected_csv_result = dataset_dir.joinpath(f"{dataset_name}.csv")
 
-    input_paths = [
-        str(transformed_path)
-        for transformed_path in transformed_dir.joinpath(dataset_name).iterdir()
-    ]
+    input_paths = [str(transformed_path) for transformed_path in transformed_dir.joinpath(dataset_name).iterdir()]
 
     output_dir = tmp_path.joinpath("dataset_output")
     output_dir.mkdir()

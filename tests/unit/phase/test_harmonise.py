@@ -94,9 +94,7 @@ def test_harmonise_geometry_present_no_point_field():
     specification = Specification("tests/data/specification")
     issues = IssueLog()
 
-    h = HarmonisePhase(
-        specification.get_field_datatype_map(), issues=issues, dataset="tree"
-    )
+    h = HarmonisePhase(specification.get_field_datatype_map(), issues=issues, dataset="tree")
     reader = FakeDictReader(
         [
             {
@@ -230,9 +228,7 @@ def test_validate_categorical_fields():
         specification.get_field_datatype_map(),
         issues=issues,
         dataset="tree-preservation-zone",
-        valid_category_values={
-            "tree-preservation-zone-type": ["area", "group", "woodland"]
-        },
+        valid_category_values={"tree-preservation-zone-type": ["area", "group", "woodland"]},
     )
 
     reader = FakeDictReader(
@@ -352,9 +348,7 @@ def test_validate_categorical_field_with_semicolon_separated_values():
         field_datatype_map,
         issues=issues,
         dataset="article-4-direction-area",
-        valid_category_values={
-            "permitted-development-rights": ["6A", "6B", "6C", "6E"]
-        },
+        valid_category_values={"permitted-development-rights": ["6A", "6B", "6C", "6E"]},
     )
 
     reader = FakeDictReader(
@@ -417,9 +411,7 @@ def test_harmonise_geox_geoy():
         (["wfs"], ""),
     ],
 )
-def test_harmonise_uses_the_arcgis_encoding_when_any_endpoint_supplies_it(
-    endpoint_plugins, expected
-):
+def test_harmonise_uses_the_arcgis_encoding_when_any_endpoint_supplies_it(endpoint_plugins, expected):
     """A resource can be collected from more than one endpoint and those endpoints need not share
     a plugin, so this has to make a choice. ArcGIS wins if any of them used it: requiring all of
     them would leave a single mixed resource still guessing, which is the behaviour being removed.

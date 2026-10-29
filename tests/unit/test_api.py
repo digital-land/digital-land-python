@@ -52,9 +52,7 @@ class MockSpecification:
         }
         self.dataset_field_dataset = {
             "tree-preservation-zone": {"tree-preservation-zone-type": ""},
-            "conservation-area-document": {
-                "document-type": "conservation-area-document-type"
-            },
+            "conservation-area-document": {"document-type": "conservation-area-document-type"},
         }
 
     def get_category_fields(self, dataset):
@@ -98,9 +96,7 @@ def test_download_dataset_overwrite(mocker, tmp_path):
     path = tmp_path / "test.csv"
     path.write_bytes(b"stale")
 
-    API(Mock(), "http://test", str(tmp_path)).download_dataset(
-        "test", overwrite=True, path=str(path)
-    )
+    API(Mock(), "http://test", str(tmp_path)).download_dataset("test", overwrite=True, path=str(path))
 
     assert path.read_bytes() == _tpz_type_data
 
