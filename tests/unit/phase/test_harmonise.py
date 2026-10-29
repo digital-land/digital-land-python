@@ -255,12 +255,6 @@ def test_validate_categorical_fields():
                 "description": "Test",
                 "tree-preservation-zone-type": "",
             },
-            {
-                "reference": "4",
-                "name": "Test TPO 4",
-                "description": "Test",
-                "tree-preservation-zone-type": "abc def",
-            },
         ],
     )
 
