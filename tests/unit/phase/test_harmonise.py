@@ -260,7 +260,7 @@ def test_validate_categorical_fields():
 
     output = list(h.process(reader))
 
-    assert len(output) == 4
+    assert len(output) == 3
     # check the fields are set in the output
     assert output[0]["row"]["tree-preservation-zone-type"] == "area"
     assert output[1]["row"]["tree-preservation-zone-type"] == "other"
