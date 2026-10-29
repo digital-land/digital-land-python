@@ -207,7 +207,7 @@ class HarmonisePhase(Phase):
                             normalised_value = re.sub(
                                 r"(\b\s\-+\s\b)|(\b\s\b)",
                                 "-",
-                                raw_value.replace(r"\s","-"),
+                                raw_value.replace(r"\s", "-"),
                             )
                             matching_value = next(
                                 (
