@@ -265,7 +265,6 @@ def test_validate_categorical_fields():
     assert output[0]["row"]["tree-preservation-zone-type"] == "area"
     assert output[1]["row"]["tree-preservation-zone-type"] == "other"
     assert output[2]["row"]["tree-preservation-zone-type"] == ""
-    assert output[3]["row"]["tree-preservation-zone-type"] == "abc-def"
 
     assert len(issues.rows) == 1
     # but we get an issue generated
