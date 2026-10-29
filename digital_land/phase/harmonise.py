@@ -204,7 +204,9 @@ class HarmonisePhase(Phase):
                         harmonised_values = []
                         for raw_value in self.category_values(value):
                             normalised_value = re.sub(
-                                r"(\b\s\-+\s\b)|(\b\s\b)","-",raw_value.replace(r"\s","-")
+                                r"(\b\s\-+\s\b)|(\b\s\b)",
+                                "-",
+                                raw_value.replace(r"\s","-"),
                             )
                             matching_value = next(
                                 (
