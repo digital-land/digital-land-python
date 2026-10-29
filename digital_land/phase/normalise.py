@@ -24,9 +24,7 @@ class NormalisePhase(Phase):
             self.null_patterns.append(re.compile(row["pattern"]))
 
     def normalise_whitespace(self, row):
-        return [
-            v.strip(self.spaces).replace("\r", "").replace("\n", "\r\n") for v in row
-        ]
+        return [v.strip(self.spaces).replace("\r", "").replace("\n", "\r\n") for v in row]
 
     def strip_nulls(self, row):
         for pattern in self.null_patterns:

@@ -7,7 +7,7 @@ lint:: black-check flake8
 black-check:
 	black --check .
 
-black:
+format::
 	black .
 
 flake8:

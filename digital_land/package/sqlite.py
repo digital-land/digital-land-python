@@ -95,15 +95,9 @@ class SqlitePackage(Package):
 
         if self._spatialite:
             if "geometry-geom" in fields:
-                self.execute(
-                    "SELECT AddGeometryColumn('%s', 'geometry_geom', 4326, 'MULTIPOLYGON', 2);"
-                    % (table)
-                )
+                self.execute("SELECT AddGeometryColumn('%s', 'geometry_geom', 4326, 'MULTIPOLYGON', 2);" % (table))
             if "point-geom" in fields:
-                self.execute(
-                    "SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);"
-                    % (table)
-                )
+                self.execute("SELECT AddGeometryColumn('%s', 'point_geom', 4326, 'POINT', 2);" % (table))
 
     def create_cursor(self):
         self.cursor = self.connection.cursor()
@@ -254,22 +248,14 @@ class SqlitePackage(Package):
             name = colname(table) + "_on_" + "__".join(cols) + "_index"
         if cols:
             logging.info("creating index %s" % (name))
-            self.execute(
-                "CREATE INDEX IF NOT EXISTS %s on %s (%s);"
-                % (name, colname(table), ", ".join(cols))
-            )
+            self.execute("CREATE INDEX IF NOT EXISTS %s on %s (%s);" % (name, colname(table), ", ".join(cols)))
 
         if self._spatialite:
             logging.info("creating spatial indexes %s" % (name))
             for col in [colname(field) for field in fields if field.endswith("-geom")]:
-                self.execute(
-                    "SELECT CreateSpatialIndex('%s', '%s');" % (colname(table), col)
-                )
+                self.execute("SELECT CreateSpatialIndex('%s', '%s');" % (colname(table), col))
                 self.create_cursor()
-                self.execute(
-                    "UPDATE %s SET %s = GeomFromText(%s, 4326);"
-                    % (colname(table), col, col[: -len("-geom")])
-                )
+                self.execute("UPDATE %s SET %s = GeomFromText(%s, 4326);" % (colname(table), col, col[: -len("-geom")]))
                 self.commit()
 
     def create_indexes(self, tables=None):
@@ -332,9 +318,7 @@ class SqlitePackage(Package):
             os.makedirs(local_path, exist_ok=True)  # Ensure local directory exists
             s3.download_file(bucket_name, object_key + "/" + file_key, local_file_path)
         except botocore.exceptions.NoCredentialsError:
-            logger.error(
-                "❌ AWS credentials not found. Run `aws configure` to set them."
-            )
+            logger.error("❌ AWS credentials not found. Run `aws configure` to set them.")
         except botocore.exceptions.ParamValidationError as e:
             logger.error(f"❌ Parameter validation error: {e}")
         except botocore.exceptions.ClientError as e:

@@ -29,10 +29,7 @@ def resource_path(resource, directory=DEFAULT_COLLECTION_DIR):
 
 
 def resource_url(collection, resource):
-    return (
-        "https://raw.githubusercontent.com/digital-land/"
-        + "%s-collection/master/collection/resource/%s" % (collection, resource)
-    )
+    return "https://raw.githubusercontent.com/digital-land/" + "%s-collection/master/collection/resource/%s" % (collection, resource)
 
 
 # a store of log files created by the collector
@@ -82,16 +79,11 @@ class LogStore(ItemStore):
         endpoint = path.parts[-1].split(".")[0]
 
         if not item.get("entry-date", "").startswith(date):
-            logging.warning(
-                "incorrect date in path %s for entry-date %s"
-                % (path, item["entry-date"])
-            )
+            logging.warning("incorrect date in path %s for entry-date %s" % (path, item["entry-date"]))
             return False
 
         if endpoint != item["endpoint"]:
-            logging.warning(
-                "incorrect endpoint in path %s expected %s" % (path, item["endpoint"])
-            )
+            logging.warning("incorrect endpoint in path %s expected %s" % (path, item["endpoint"]))
             return False
 
         return True
@@ -100,10 +92,7 @@ class LogStore(ItemStore):
         super().add_entry(item)
         # Update the _latest_entry_date
         if "entry-date" in item:
-            if (
-                not self._latest_entry_date
-                or item["entry-date"] > self._latest_entry_date
-            ):
+            if not self._latest_entry_date or item["entry-date"] > self._latest_entry_date:
                 self._latest_entry_date = item["entry-date"]
 
     def latest_entry_date(self):
@@ -157,12 +146,8 @@ class ResourceLogStore(CSVStore):
                         "end-date": entry["entry-date"],
                     }
                 else:
-                    resources[resource]["start-date"] = min(
-                        resources[resource]["start-date"], entry["entry-date"]
-                    )
-                    resources[resource]["end-date"] = max(
-                        resources[resource]["end-date"], entry["entry-date"]
-                    )
+                    resources[resource]["start-date"] = min(resources[resource]["start-date"], entry["entry-date"])
+                    resources[resource]["end-date"] = max(resources[resource]["end-date"], entry["entry-date"])
                 resources[resource]["endpoints"].add(entry["endpoint"])
 
         # Convert these into resource entries to be added
@@ -181,19 +166,11 @@ class ResourceLogStore(CSVStore):
             datasets = set()
             for endpoint in resource["endpoints"]:
                 if endpoint not in source.records:
-                    raise RuntimeError(
-                        f"Endpoint '{endpoint}' not found in source. Check the endpoint.csv and source.csv files."
-                    )
+                    raise RuntimeError(f"Endpoint '{endpoint}' not found in source. Check the endpoint.csv and source.csv files.")
 
                 for entry in source.records[endpoint]:
                     organisations.add(entry["organisation"])
-                    datasets |= {
-                        dataset
-                        for dataset in entry.get(
-                            "datasets", entry.get("pipelines", "")
-                        ).split(";")
-                        if dataset
-                    }
+                    datasets |= {dataset for dataset in entry.get("datasets", entry.get("pipelines", "")).split(";") if dataset}
 
             new_entries[key] = {
                 "bytes": resource["bytes"],
@@ -209,9 +186,7 @@ class ResourceLogStore(CSVStore):
             resource = entry["resource"]
             if resource in new_entries:
                 new_entry = new_entries[resource]
-                endpoints = set(entry["endpoints"].split(";")).union(
-                    new_entry["endpoints"]
-                )
+                endpoints = set(entry["endpoints"].split(";")).union(new_entry["endpoints"])
                 organisations = set(new_entry["organisations"])
                 datasets = set(new_entry["datasets"])
                 start_date = min(entry["start-date"], new_entry["start-date"])
@@ -231,13 +206,7 @@ class ResourceLogStore(CSVStore):
                 for endpoint in entry["endpoints"].split(";"):
                     for r_source in source.records[endpoint]:
                         organisations.add(r_source["organisation"])
-                        datasets |= {
-                            dataset
-                            for dataset in r_source.get(
-                                "datasets", r_source.get("pipelines", "")
-                            ).split(";")
-                            if dataset
-                        }
+                        datasets |= {dataset for dataset in r_source.get("datasets", r_source.get("pipelines", "")).split(";") if dataset}
 
                 entry["organisations"] = ";".join(sorted(organisations))
                 entry["datasets"] = ";".join(sorted(datasets))
@@ -252,9 +221,7 @@ class ResourceLogStore(CSVStore):
                     "organisations": ";".join(sorted(new_entry["organisations"])),
                     "datasets": ";".join(sorted(new_entry["datasets"])),
                     "start-date": new_entry["start-date"],
-                    "end-date": (
-                        "" if new_entry["end-date"] >= today else new_entry["end-date"]
-                    ),
+                    "end-date": ("" if new_entry["end-date"] >= today else new_entry["end-date"]),
                 }
             )
 
@@ -274,10 +241,7 @@ class SourceStore(CSVStore):
             return False
         if not source_item["collection"]:
             return False
-        if (
-            not source_item["organisation"]
-            and type(source_item["organisation"]) is not str
-        ):
+        if not source_item["organisation"] and type(source_item["organisation"]) is not str:
             return False
         if not source_item["endpoint"]:
             return False
@@ -300,10 +264,7 @@ class EndpointStore(CSVStore):
             return False
         if not endpoint_item["endpoint"]:
             return False
-        if (
-            not endpoint_item["endpoint-url"]
-            and type(endpoint_item["endpoint-url"]) is not str
-        ):
+        if not endpoint_item["endpoint-url"] and type(endpoint_item["endpoint-url"]) is not str:
             return False
 
         return True
@@ -314,14 +275,7 @@ class EndpointStore(CSVStore):
         :param endpoint_item:
         :return:
         """
-        existing_entries = len(
-            [
-                1
-                for item in self.entries
-                if item["endpoint"] == endpoint_item["endpoint"]
-                and item["endpoint-url"] == endpoint_item["endpoint-url"]
-            ]
-        )
+        existing_entries = len([1 for item in self.entries if item["endpoint"] == endpoint_item["endpoint"] and item["endpoint-url"] == endpoint_item["endpoint-url"]])
 
         if existing_entries > 0:
             print(">>> INFO: endpoint already exists")
@@ -360,9 +314,7 @@ class Collection:
         self.log.load(directory=log_directory, after=after)
 
         logging.info("indexing resources")
-        self.resource.load(
-            log=self.log, source=self.source, directory=directory, after=after
-        )
+        self.resource.load(log=self.log, source=self.source, directory=directory, after=after)
 
     def save_csv(self, directory=None):
         directory = directory or self.dir
@@ -382,9 +334,7 @@ class Collection:
 
         # Try to load log store from csv first
         try:
-            self.log.load_csv(
-                directory=directory, refill_todays_logs=refill_todays_logs
-            )
+            self.log.load_csv(directory=directory, refill_todays_logs=refill_todays_logs)
             logging.info(f"Log loaded from CSV - {len(self.log.entries)} entries")
         except FileNotFoundError:
             logging.info("No log.csv - building from log items")
@@ -395,9 +345,7 @@ class Collection:
         if not regenerate_resources:
             try:
                 self.resource.load_csv(directory=directory)
-                logging.info(
-                    f"Resource loaded from CSV - {len(self.resource.entries)} entries"
-                )
+                logging.info(f"Resource loaded from CSV - {len(self.resource.entries)} entries")
             except FileNotFoundError:
                 logging.info("No resources.csv - generating from log.csv")
                 regenerate_resources = True
@@ -435,14 +383,7 @@ class Collection:
         return [
             entry
             for entry in self.source.entries
-            if all(
-                (
-                    v in entry.get(k, "").split(";")
-                    if k == "pipelines" and ";" in str(entry.get(k, ""))
-                    else entry.get(k) == v
-                )
-                for k, v in filter.items()
-            )
+            if all((v in entry.get(k, "").split(";") if k == "pipelines" and ";" in str(entry.get(k, "")) else entry.get(k) == v) for k, v in filter.items())
         ]
 
     def pipeline_makerules(
@@ -533,9 +474,7 @@ class Collection:
             entry["collection"] = self.name
 
         # check that entry contains allowed columns names
-        allowed_names = set(
-            list(self.endpoint.schema.fieldnames) + list(self.source.schema.fieldnames)
-        )
+        allowed_names = set(list(self.endpoint.schema.fieldnames) + list(self.source.schema.fieldnames))
 
         # do we care if there are extra columns? we only really care if they're missing the ones we need I suppose it can't hurt
         for entry_key in entry.keys():
@@ -620,9 +559,7 @@ class Collection:
         return ""
 
     def entry_date(self, entry):
-        return entry.get(
-            "entry-date", datetime.utcnow().strftime("%Y-%m-%dT%H:%H:%M:%SZ")
-        )
+        return entry.get("entry-date", datetime.utcnow().strftime("%Y-%m-%dT%H:%H:%M:%SZ"))
 
     def retire_endpoints_and_sources(collection, collection_df_to_retire) -> None:
         """
@@ -642,26 +579,18 @@ class Collection:
             # end-date is read as object (not left to dtype inference) so an
             # all-blank column doesn't get inferred as float64 -- assigning a
             # date string into a float64 column is an error under pandas 3.0
-            endpoint_csv_df = pd.read_csv(
-                endpoint_csv_path, dtype={"end-date": "object"}
-            )
+            endpoint_csv_df = pd.read_csv(endpoint_csv_path, dtype={"end-date": "object"})
             source_csv_df = pd.read_csv(source_csv_path, dtype={"end-date": "object"})
 
             # Get today's date in the format YYYY-MM-DD
             today_date = datetime.now().strftime("%Y-%m-%d")
 
             # Check if all endpoints and sources in collection_df_to_retire exist in CSV files
-            missing_endpoints = collection_df_to_retire[
-                ~collection_df_to_retire["endpoint"].isin(endpoint_csv_df["endpoint"])
-            ]
-            missing_sources = collection_df_to_retire[
-                ~collection_df_to_retire["source"].isin(source_csv_df["source"])
-            ]
+            missing_endpoints = collection_df_to_retire[~collection_df_to_retire["endpoint"].isin(endpoint_csv_df["endpoint"])]
+            missing_sources = collection_df_to_retire[~collection_df_to_retire["source"].isin(source_csv_df["source"])]
 
             if not missing_endpoints.empty or not missing_sources.empty:
-                print(
-                    "Error: Some endpoints or sources were not found in the CSV files:"
-                )
+                print("Error: Some endpoints or sources were not found in the CSV files:")
                 if not missing_endpoints.empty:
                     print("Missing Endpoints:")
                     print(missing_endpoints)
@@ -700,9 +629,7 @@ class Collection:
             collection (str): The collection name to download the files for.
         """
         path = Path(path)
-        source_url = (
-            f"https://files.planning.data.gov.uk/{collection}-collection/collection"
-        )
+        source_url = f"https://files.planning.data.gov.uk/{collection}-collection/collection"
         input_csvs = ["source.csv", "endpoint.csv", "old-resource.csv"]
         output_csvs = [
             "log.csv",

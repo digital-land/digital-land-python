@@ -14,9 +14,7 @@ class OpenMocker:
         self.file_data = file_data
 
     def __call__(self, filename):
-        return mock_open(
-            read_data=self.file_data[filename] if filename in self.file_data else ""
-        )()
+        return mock_open(read_data=self.file_data[filename] if filename in self.file_data else "")()
 
 
 class TestPipeLine:
@@ -79,9 +77,7 @@ class TestPipeLine:
 
     def test_endpoint_specific_default_fields(self):
         p = Pipeline("tests/data/pipeline", "pipeline-four")
-        assert p.default_fields("test_resource", ["test_endpoint"]) == {
-            "description": "desc"
-        }
+        assert p.default_fields("test_resource", ["test_endpoint"]) == {"description": "desc"}
 
     def test_resource_specific_default_fields(self):
         p = Pipeline("tests/data/pipeline", "pipeline-one")
@@ -148,9 +144,7 @@ class TestPipeLine:
         lookups.entries.append(entry)
         expected_entity_num = 12344
 
-        assert (
-            lookups.get_max_entity(pipeline_name, specification) == expected_entity_num
-        )
+        assert lookups.get_max_entity(pipeline_name, specification) == expected_entity_num
 
         max_entity_num = lookups.get_max_entity(pipeline_name, specification)
         lookups.entity_num_gen.state["current"] = max_entity_num
@@ -183,9 +177,7 @@ class TestPipeLine:
         lookups.entries.append(entry)
         expected_entity_num = 1000
 
-        assert (
-            lookups.get_max_entity(pipeline_name, specification) == expected_entity_num
-        )
+        assert lookups.get_max_entity(pipeline_name, specification) == expected_entity_num
 
     def test_lookups_validate_entry_success(self):
         """
@@ -325,26 +317,20 @@ class TestPipeLine:
         mock_old_entity_file = Path("pipeline") / "old-entity.csv"
         mock_old_entity_file_content = "old-entity,status,entity\n1,301,2\n3,301,4"
 
-        with patch(
-            "builtins.open", mock_open(read_data=mock_lookups_file_content), create=True
-        ):
+        with patch("builtins.open", mock_open(read_data=mock_lookups_file_content), create=True):
             with patch("os.path.exists", return_value=True):
                 with patch(
                     "builtins.open",
                     mock_open(read_data=mock_old_entity_file_content),
                     create=True,
                 ):
-                    lookups.save_csv(
-                        mock_lookups_file, new_lookup, mock_old_entity_file
-                    )
+                    lookups.save_csv(mock_lookups_file, new_lookup, mock_old_entity_file)
 
         assert new_lookup[0]["entity"] == 5
 
     def test_lookups_no_available_entity_numbers(self):
         lookups = Lookups("")
-        lookups.entity_num_gen = EntityNumGen(
-            {"range_min": 1, "range_max": 5, "current": 0}
-        )
+        lookups.entity_num_gen = EntityNumGen({"range_min": 1, "range_max": 5, "current": 0})
 
         new_lookup = [
             {
@@ -375,15 +361,10 @@ class TestPipeLine:
         with patch("builtins.open", open_mock, create=True):
             with patch("os.path.exists", return_value=True):
                 with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
-                    lookups.save_csv(
-                        mock_lookups_file, new_lookup, mock_old_entity_file
-                    )
+                    lookups.save_csv(mock_lookups_file, new_lookup, mock_old_entity_file)
 
                     output = mock_stdout.getvalue()
-                    assert (
-                        "There are no more entity numbers available within this dataset."
-                        in output
-                    )
+                    assert "There are no more entity numbers available within this dataset." in output
 
         if new_lookup[0]["entity"] is None:
             assert True
@@ -604,9 +585,7 @@ class TestPipeLine:
 
     def test_init_logs_sets_specification_hash(self, mocker):
         mocker.patch("digital_land.pipeline.Pipeline.file_reader", lambda self, f: [])
-        mocker.patch(
-            "digital_land.pipeline.main.hash_directory", return_value="spec-hash-value"
-        )
+        mocker.patch("digital_land.pipeline.main.hash_directory", return_value="spec-hash-value")
 
         spec = mocker.MagicMock()
         spec.path = "/some/spec/path"

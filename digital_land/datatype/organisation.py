@@ -24,9 +24,7 @@ class OrganisationURIDataType(EnumDataType):
         super().__init__(name=name, dataset=dataset, patches_path=patches_path)
 
     def load_dataset(self, dataset):
-        for row in csv.DictReader(
-            open(fetch(datasets[dataset]["resource-url"]), newline="")
-        ):
+        for row in csv.DictReader(open(fetch(datasets[dataset]["resource-url"]), newline="")):
             if "opendatacommunities" in row:
                 uri = row["opendatacommunities"]
 
@@ -40,9 +38,7 @@ class OrganisationURIDataType(EnumDataType):
 
                 # some publishers have used the digital-land URL
                 if "local-authority-eng" in row["organisation"]:
-                    dl_url = "https://digital-land.github.io/organisation/%s/" % (
-                        row["organisation"]
-                    )
+                    dl_url = "https://digital-land.github.io/organisation/%s/" % (row["organisation"])
                     self.add_value(uri, dl_url.replace("-eng:", "-eng/"))
 
     def normalise(self, fieldvalue, issues=None):

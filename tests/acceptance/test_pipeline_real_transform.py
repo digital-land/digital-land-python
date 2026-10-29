@@ -44,17 +44,13 @@ def _download_real_resource_and_transform(test_dirs, resource_hash, dataset):
     specification_dir = test_dirs["specification_dir"]
     pipeline_dir = test_dirs["pipeline_dir"]
     collection_dir = test_dirs["collection_dir"]
-    cache_dir = test_dirs[
-        "cache_dir"
-    ]  # Cache stores the config sqlite and organisation data
+    cache_dir = test_dirs["cache_dir"]  # Cache stores the config sqlite and organisation data
     config_path = cache_dir / "config.sqlite3"
     converted_path = test_dirs["converted_resource_dir"] / f"{resource_hash}.csv"
     org_path = cache_dir / "organisation.csv"
     output_path = test_dirs["transformed_dir"] / f"{resource_hash}.csv"
     resource_path = test_dirs["collection_dir"] / "resource" / f"{resource_hash}"
-    expected_transformed_path = (
-        test_dirs["transformed_dir"] / f"{resource_hash}-expected.csv"
-    )
+    expected_transformed_path = test_dirs["transformed_dir"] / f"{resource_hash}-expected.csv"
 
     specification_dir.mkdir(parents=True, exist_ok=True)
     pipeline_dir.mkdir(parents=True, exist_ok=True)
@@ -69,9 +65,7 @@ def _download_real_resource_and_transform(test_dirs, resource_hash, dataset):
     spec = Specification(specification_dir)
     collection = spec.dataset[dataset]["collection"]
     if not collection:
-        raise ValueError(
-            f"Dataset {dataset} does not have a collection defined in the specification"
-        )
+        raise ValueError(f"Dataset {dataset} does not have a collection defined in the specification")
 
     # URLs for resource data and expected transformed data - Need to know collection and dataset
     resource_url = f"{data_collection_url}{collection}-collection/collection/resource/{resource_hash}"
@@ -129,12 +123,8 @@ def _download_real_resource_and_transform(test_dirs, resource_hash, dataset):
     # Save logs in pipeline
     pipeline.save_logs(
         issue_path=os.path.join(test_dirs["issues_log_dir"], resource_hash + ".csv"),
-        column_field_path=os.path.join(
-            test_dirs["column_field_dir"], resource_hash + ".csv"
-        ),
-        dataset_resource_path=os.path.join(
-            test_dirs["dataset_resource_dir"], resource_hash + ".csv"
-        ),
+        column_field_path=os.path.join(test_dirs["column_field_dir"], resource_hash + ".csv"),
+        dataset_resource_path=os.path.join(test_dirs["dataset_resource_dir"], resource_hash + ".csv"),
     )
 
     # Finally store the acutal transformed data from Planning Files for some comparison
@@ -148,9 +138,7 @@ def transformed_resource(request, test_dirs):
     resource_hash, dataset = request.param
     _download_real_resource_and_transform(test_dirs, resource_hash, dataset)
 
-    converted_resource_path = (
-        test_dirs["converted_resource_dir"] / f"{resource_hash}.csv"
-    )
+    converted_resource_path = test_dirs["converted_resource_dir"] / f"{resource_hash}.csv"
     resource_path = test_dirs["collection_dir"] / "resource" / f"{resource_hash}"
 
     # Use converted resource if it exists, otherwise use original resource (for CSV files that don't need conversion)
@@ -163,14 +151,12 @@ def transformed_resource(request, test_dirs):
         "resource_hash": resource_hash,
         "dataset": dataset,
         "transformed_path": test_dirs["transformed_dir"] / f"{resource_hash}.csv",
-        "expected_transformed_path": test_dirs["transformed_dir"]
-        / f"{resource_hash}-expected.csv",
+        "expected_transformed_path": test_dirs["transformed_dir"] / f"{resource_hash}-expected.csv",
         "resource_path": resource_path,
         "source_path": source_path,
         "issue_path": test_dirs["issues_log_dir"] / f"{resource_hash}.csv",
         "column_field_path": test_dirs["column_field_dir"] / f"{resource_hash}.csv",
-        "dataset_resource_path": test_dirs["dataset_resource_dir"]
-        / f"{resource_hash}.csv",
+        "dataset_resource_path": test_dirs["dataset_resource_dir"] / f"{resource_hash}.csv",
         "converted_resource_path": converted_resource_path,
     }
 
@@ -189,19 +175,11 @@ def test_files_created(transformed_resource):
     if not detected_encoding:
         detected_encoding = "utf-8"
 
-    assert (
-        transformed_path.exists()
-    ), f"Transformed file {transformed_path} does not exist"
-    assert (
-        expected_transformed_path.exists()
-    ), f"Expected transformed file {expected_transformed_path} does not exist"
+    assert transformed_path.exists(), f"Transformed file {transformed_path} does not exist"
+    assert expected_transformed_path.exists(), f"Expected transformed file {expected_transformed_path} does not exist"
     assert issue_path.exists(), f"Issue log file {issue_path} does not exist"
-    assert (
-        column_field_path.exists()
-    ), f"Column field log file {column_field_path} does not exist"
-    assert (
-        dataset_resource_path.exists()
-    ), f"Dataset resource log file {dataset_resource_path} does not exist"
+    assert column_field_path.exists(), f"Column field log file {column_field_path} does not exist"
+    assert dataset_resource_path.exists(), f"Dataset resource log file {dataset_resource_path} does not exist"
 
 
 # Test that some basic properties of the transformed data are correct
@@ -224,9 +202,7 @@ def test_transform_basic(transformed_resource):
     if len(entities) > 0:
         sample_entity = entities[0]
         entity_rows = output_df[output_df["entity"] == sample_entity]
-        assert (
-            len(entity_rows) > 1
-        ), f"Entity {sample_entity} should have multiple rows (one per field)"
+        assert len(entity_rows) > 1, f"Entity {sample_entity} should have multiple rows (one per field)"
 
 
 # Test that expected columns exist in the transformed output
@@ -259,9 +235,7 @@ def test_expected_columns_exist(transformed_resource):
         "resource",
     }
     missing_critical = critical_columns - output_columns
-    assert (
-        len(missing_critical) == 0
-    ), f"Missing critical long-format columns: {missing_critical}"
+    assert len(missing_critical) == 0, f"Missing critical long-format columns: {missing_critical}"
 
 
 # Test that every row has required non-null values
@@ -285,9 +259,7 @@ def test_all_rows_have_required_fields(transformed_resource):
 
     # Check that fact values are unique
     duplicate_facts = output_df["fact"].duplicated().sum()
-    assert (
-        duplicate_facts == 0
-    ), f"{duplicate_facts} duplicate fact values found (should be unique)"
+    assert duplicate_facts == 0, f"{duplicate_facts} duplicate fact values found (should be unique)"
 
     # Check field column
     assert "field" in output_df.columns, "Output must have 'field' column"
@@ -310,15 +282,11 @@ def test_date_fields_valid(transformed_resource):
     # Check entry-date
     assert "entry-date" in output_df.columns, "Output must have 'entry-date' column"
     null_entry_dates = output_df["entry-date"].isna().sum()
-    assert (
-        null_entry_dates == 0
-    ), f"{null_entry_dates} rows are missing entry-date values"
+    assert null_entry_dates == 0, f"{null_entry_dates} rows are missing entry-date values"
 
     # Verify date format (should be YYYY-MM-DD or similar)
     sample_entry_date = str(output_df["entry-date"].iloc[0])
-    assert (
-        len(sample_entry_date) >= 8
-    ), f"entry-date format seems invalid: {sample_entry_date}"
+    assert len(sample_entry_date) >= 8, f"entry-date format seems invalid: {sample_entry_date}"
 
     # Check start-date field rows (not all rows will have start-date values)
     if "start-date" in output_df.columns:

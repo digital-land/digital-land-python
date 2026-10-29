@@ -13,9 +13,7 @@ def test_makerules_removes_old_entities_410_removed(mocker, capsys):
 
     dataset_resourcce_map = {"teast_dataset": ["test1", "test2"]}
     # Mock required methods
-    fake_collection.dataset_resource_map = mocker.Mock(
-        return_value=dataset_resourcce_map
-    )
+    fake_collection.dataset_resource_map = mocker.Mock(return_value=dataset_resourcce_map)
     fake_collection.resource_endpoints = mocker.Mock(return_value=["endpoint"])
     fake_collection.resource_organisations = mocker.Mock(return_value=["org"])
     old_entities = [{"old-resource": "test1", "status": "410", "resource": ""}]
@@ -49,9 +47,7 @@ def test_makerules_removes_old_entities_310_both_resources_referenced(mocker, ca
 
     dataset_resourcce_map = {"test_dataset": ["test1", "test2"]}
     # Mock required methods of collection
-    fake_collection.dataset_resource_map = mocker.Mock(
-        return_value=dataset_resourcce_map
-    )
+    fake_collection.dataset_resource_map = mocker.Mock(return_value=dataset_resourcce_map)
     fake_collection.resource_endpoints = mocker.Mock(return_value=["endpoint"])
     fake_collection.resource_organisations = mocker.Mock(return_value=["org"])
     fake_collection.resource_path = mocker.Mock(side_effect=lambda x: x)
@@ -214,9 +210,7 @@ def test_pipeline_makerules_process_all(mocker, capsys):
 
     dataset_resource_map = {"test_dataset": ["test1", "test2"]}
     # Mock required methods
-    fake_collection.dataset_resource_map = mocker.Mock(
-        return_value=dataset_resource_map
-    )
+    fake_collection.dataset_resource_map = mocker.Mock(return_value=dataset_resource_map)
     fake_collection.resource_endpoints = mocker.Mock(return_value=["endpoint"])
     fake_collection.resource_organisations = mocker.Mock(return_value=["org"])
     fake_collection.old_resource.entries = []

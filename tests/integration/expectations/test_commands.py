@@ -45,9 +45,7 @@ def test_organisations(mocker):
     return organisations
 
 
-def test_run_dataset_checkpoint_success(
-    sqlite3_with_entity_tables_path, test_organisations, tmp_path, mocker
-):
+def test_run_dataset_checkpoint_success(sqlite3_with_entity_tables_path, test_organisations, tmp_path, mocker):
     """
     Test running the command to run the dataset checkpoint, uses a random
     operation as an examplel
@@ -71,9 +69,7 @@ def test_run_dataset_checkpoint_success(
     mock_config.get_expectation_rules.return_value = rules
 
     # mock operation so a simple operation can be used
-    mock_function = mocker.Mock(
-        return_value=(True, "this operation is a test and always passes", {})
-    )  # Configure the mock to return 10
+    mock_function = mocker.Mock(return_value=(True, "this operation is a test and always passes", {}))  # Configure the mock to return 10
     mock_function.__name__ = "test"
     # Mock the operation_factory to return the mock_function
     mocker.patch(
@@ -90,9 +86,7 @@ def test_run_dataset_checkpoint_success(
         act_on_critical_error=False,
     )
 
-    assert (
-        tmp_path / "log/expectations" / "dataset=test" / "test.parquet"
-    ).exists(), "the expected log parquet file doesn't exist"
+    assert (tmp_path / "log/expectations" / "dataset=test" / "test.parquet").exists(), "the expected log parquet file doesn't exist"
 
     # use duckdb to read in logs fromt the directory and test results
     # this ensures the output can be queried by duck db and the expected

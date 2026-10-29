@@ -89,9 +89,7 @@ def test_workflow(workspace):
     assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs
 
-    collected_resources = [
-        x for x in Path(workspace / "collection" / "resource").glob("*")
-    ]
+    collected_resources = [x for x in Path(workspace / "collection" / "resource").glob("*")]
     assert len(collected_resources) == 1
     resource = collected_resources[0]
 
@@ -143,6 +141,4 @@ def test_workflow(workspace):
     assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs
     assert result.is_file()
-    assert filecmp.cmp(result, "tests/data/expected_output/e2e.csv"), print_diffs(
-        result, "tests/data/expected_output/e2e.csv"
-    )
+    assert filecmp.cmp(result, "tests/data/expected_output/e2e.csv"), print_diffs(result, "tests/data/expected_output/e2e.csv")

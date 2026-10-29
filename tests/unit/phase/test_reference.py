@@ -18,17 +18,11 @@ def test_entity_reference():
     phase = EntityReferencePhase(dataset="tree", prefix="tree")
 
     assert ("tree", "31") == phase.process_row({"reference": "31"})
-    assert ("foo", "Q1234") == phase.process_row(
-        {"prefix": "foo", "reference": "Q1234"}
-    )
+    assert ("foo", "Q1234") == phase.process_row({"prefix": "foo", "reference": "Q1234"})
     assert ("wikidata", "Q1234") != phase.process_row({"reference": "wikidata:Q1234"})
-    assert ("tree", "NSP22: Not A CURIE") == phase.process_row(
-        {"reference": "NSP22: Not A CURIE"}
-    )
+    assert ("tree", "NSP22: Not A CURIE") == phase.process_row({"reference": "NSP22: Not A CURIE"})
     assert ("tree", "Not A CURIE:") == phase.process_row({"reference": "Not A CURIE:"})
-    assert ("foo", "Q1234") != phase.process_row(
-        {"prefix": "foo", "reference": "wikidata:Q1234"}
-    )
+    assert ("foo", "Q1234") != phase.process_row({"prefix": "foo", "reference": "wikidata:Q1234"})
 
 
 def test_fact_reference():
@@ -42,15 +36,9 @@ def test_fact_reference():
     phase = FactReferencePhase(field_typology_map=field_typology_map)
 
     assert ("tree", "Q1234") == phase.process_row({"field": "tree", "value": "Q1234"})
-    assert ("wikidata", "Q1234") == phase.process_row(
-        {"field": "tree", "value": "wikidata:Q1234"}
-    )
-    assert ("foo", "Q1234") == phase.process_row(
-        {"prefix": "foo", "reference": "Q1234", "field": "tree", "value": "Q1234"}
-    )
-    assert ("conservation-area", "CA01") == phase.process_row(
-        {"field": "conservation-area", "value": "CA01"}
-    )
+    assert ("wikidata", "Q1234") == phase.process_row({"field": "tree", "value": "wikidata:Q1234"})
+    assert ("foo", "Q1234") == phase.process_row({"prefix": "foo", "reference": "Q1234", "field": "tree", "value": "Q1234"})
+    assert ("conservation-area", "CA01") == phase.process_row({"field": "conservation-area", "value": "CA01"})
 
 
 def test_get_field_typology_name_works_with_field_typoogy_map():

@@ -64,9 +64,7 @@ class FileAdapter(BaseAdapter):
             # so that a directory separator can correctly be added to the real
             # path, and remove any empty path parts between the drive and the path.
             # Assume that a part ending with : or | (legacy) is a drive.
-            if path_parts and (
-                path_parts[0].endswith("|") or path_parts[0].endswith(":")
-            ):
+            if path_parts and (path_parts[0].endswith("|") or path_parts[0].endswith(":")):
                 path_drive = path_parts.pop(0)
                 if path_drive.endswith("|"):
                     path_drive = path_drive[:-1] + ":"
@@ -120,9 +118,7 @@ class FileAdapter(BaseAdapter):
                 resp.headers["Content-Length"] = resp_stat.st_size
 
                 # set Date in RFC 1123 from file mtime
-                resp.headers["Date"] = formatdate(
-                    timeval=resp_stat.st_mtime, localtime=False, usegmt=True
-                )
+                resp.headers["Date"] = formatdate(timeval=resp_stat.st_mtime, localtime=False, usegmt=True)
 
         return resp
 

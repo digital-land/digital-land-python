@@ -39,6 +39,4 @@ def test_convert_phase_process_converts_a_json_array(input_data, tmp_path: Path)
     assert output_path.exists(), "the output file hasn't been made"
 
     output_df = pd.read_csv(output_path)
-    assert len(input_df) == len(
-        output_df
-    ), "the number of rows in the input and output files should be the same"
+    assert len(input_df) == len(output_df), "the number of rows in the input and output files should be the same"

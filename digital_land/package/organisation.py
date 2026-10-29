@@ -30,10 +30,7 @@ def organisation_datasets(rows, environment=None):
     return [
         row["dataset"]
         for row in rows
-        if row["typology"] == "organisation"
-        and row["collection"]
-        and not row["end-date"]
-        and (not environment or row.get("environment", "") in available)
+        if row["typology"] == "organisation" and row["collection"] and not row["end-date"] and (not environment or row.get("environment", "") in available)
     ]
 
 
@@ -116,9 +113,7 @@ class OrganisationPackage(CsvPackage):
         if self.flattened_dir:
             return self.create_from_flattened()
 
-        raise RuntimeError(
-            "One of download-url, dataset-dir or flatteneed-dir must be specified"
-        )
+        raise RuntimeError("One of download-url, dataset-dir or flatteneed-dir must be specified")
 
     def source_filenames(self):
         with open(
@@ -147,9 +142,7 @@ class OrganisationPackage(CsvPackage):
                     if row["typology"] == "organisation":
                         row = {k.replace("_", "-"): v for k, v in row.items()}
                         if not row.get("organisation", None):
-                            row["organisation"] = (
-                                row["dataset"] + ":" + row["reference"]
-                            )
+                            row["organisation"] = row["dataset"] + ":" + row["reference"]
                         org = {k: v for k, v in row.items() if k in org_field_names}
                         orgs.append(org)
 
@@ -174,17 +167,13 @@ class OrganisationPackage(CsvPackage):
                         if row["typology"] == "organisation":
                             row = {k.replace("_", "-"): v for k, v in row.items()}
                             if not row.get("organisation", None):
-                                row["organisation"] = (
-                                    row["dataset"] + ":" + row["reference"]
-                                )
+                                row["organisation"] = row["dataset"] + ":" + row["reference"]
 
                             # Add in the stuff rom the JSON
                             for k, v in json.loads(row["json"]).items():
                                 row[k] = v
 
-                            orgs.append(
-                                {k: v for k, v in row.items() if k in org_field_names}
-                            )
+                            orgs.append({k: v for k, v in row.items() if k in org_field_names})
 
         self.write(org_field_names, orgs)
 
@@ -225,17 +214,9 @@ class OrganisationPackage(CsvPackage):
             # check LPA value against dataset
             lpa = row.get("local-planning-authority", "")
             if not lpa:
-                if (
-                    row["dataset"] in ["local-authority", "national-park-authority"]
-                ) and (
-                    row.get("local-authority-type", "") not in ["CTY", "COMB", "SRA"]
-                ):
+                if (row["dataset"] in ["local-authority", "national-park-authority"]) and (row.get("local-authority-type", "") not in ["CTY", "COMB", "SRA"]):
                     severity = "warning" if row.get("end-date", "") else "error"
-                    issues.append(
-                        issue(
-                            severity, row, "missing", field="local-planning-authority"
-                        )
-                    )
+                    issues.append(issue(severity, row, "missing", field="local-planning-authority"))
             elif lpa not in lpas:
                 issues.append(
                     issue(
@@ -254,9 +235,7 @@ class OrganisationPackage(CsvPackage):
             if not ba:
                 if row["dataset"] not in ["government-organisation"]:
                     severity = "warning" if row.get("end-date", "") else "error"
-                    issues.append(
-                        issue(severity, row, "missing", field="billing-authority")
-                    )
+                    issues.append(issue(severity, row, "missing", field="billing-authority"))
             elif ba in bas:
                 issues.append(
                     issue(
@@ -275,9 +254,7 @@ class OrganisationPackage(CsvPackage):
             if not odc:
                 if row["dataset"] not in ["government-organisation"]:
                     severity = "warning" if row.get("end-date", "") else "error"
-                    issues.append(
-                        issue(severity, row, "missing", field="opendatacommunities-uri")
-                    )
+                    issues.append(issue(severity, row, "missing", field="opendatacommunities-uri"))
             elif odc in odcs:
                 issues.append(
                     issue(

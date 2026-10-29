@@ -423,9 +423,7 @@ def test_cli_add_data_pipeline_fail(
         )
 
     assert result.exit_code == 1
-    assert "Pipeline failed to process resource with the following error" in str(
-        result.exception
-    )
+    assert "Pipeline failed to process resource with the following error" in str(result.exception)
     assert "Exception while running pipeline" in str(result.exception)
 
 

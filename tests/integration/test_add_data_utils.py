@@ -121,13 +121,9 @@ def test_get_issue_summary_new_entities(tmp_path_factory):
         writer.writeheader()
         writer.writerows(rows)
 
-    filtered_issue_summary = get_issue_summary(
-        endpoint_resource_info, issue_dir, new_entities=[1, 3]
-    )
+    filtered_issue_summary = get_issue_summary(endpoint_resource_info, issue_dir, new_entities=[1, 3])
 
-    assert (
-        "issue-type1  field1    1\n             field2    1" in filtered_issue_summary
-    )
+    assert "issue-type1  field1    1\n             field2    1" in filtered_issue_summary
     assert "issue-type3  field3    1" in filtered_issue_summary
     assert "issue-type2" not in filtered_issue_summary
 
@@ -207,9 +203,7 @@ def test_get_entity_summary(tmp_path_factory):
         dictwriter.writeheader()
         dictwriter.writerows(rows)
 
-    entity_summary = get_entity_summary(
-        endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
-    )
+    entity_summary = get_entity_summary(endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir)
     assert "Number of existing entities in resource: 4" in entity_summary
     assert "Number of new entities in resource: 2" in entity_summary
     assert "reference  line-number" in entity_summary
@@ -280,13 +274,8 @@ def test_get_entity_summary_missing_entity(tmp_path_factory):
         dictwriter.writeheader()
         dictwriter.writerows(rows)
 
-    entity_summary = get_entity_summary(
-        endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
-    )
-    assert (
-        "WARNING: There are 1 entities on the platform for this provision that aren't present in this resource"
-        in entity_summary
-    )
+    entity_summary = get_entity_summary(endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir)
+    assert "WARNING: There are 1 entities on the platform for this provision that aren't present in this resource" in entity_summary
 
 
 def test_get_entity_summary_missing_all_entity(tmp_path_factory):
@@ -352,13 +341,8 @@ def test_get_entity_summary_missing_all_entity(tmp_path_factory):
         dictwriter.writeheader()
         dictwriter.writerows(rows)
 
-    entity_summary = get_entity_summary(
-        endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir
-    )
-    assert (
-        "WARNING: NONE of the 3 entities on the platform for this provision are in the resource - is this correct?"
-        in entity_summary
-    )
+    entity_summary = get_entity_summary(endpoint_resource_info, output_path, pipeline, issue_dir, pipeline_dir)
+    assert "WARNING: NONE of the 3 entities on the platform for this provision are in the resource - is this correct?" in entity_summary
 
 
 # This test also tests the 'exclude fields' functionality
@@ -517,9 +501,7 @@ def test_get_column_field_summary_get_reference_and_encoding(tmp_path_factory):
         writer.writeheader()
         writer.writerows(column_field_rows)
 
-    with open(
-        endpoint_resource_info["resource_path"], "w", encoding="windows-1252"
-    ) as f:
+    with open(endpoint_resource_info["resource_path"], "w", encoding="windows-1252") as f:
         f.write("""SiteReference,SiteNameAddress\nref,"name – BFL""")
 
     transform_file = pipeline_dir / "transform.csv"
@@ -645,9 +627,7 @@ def test_get_existing_endpoints_summary(tmp_path):
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-        endpoint_resource_info, collection, "test"
-    )
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, "test")
 
     assert "entry-date, endpoint-url" in existing_endpoints_summary
     assert "2019-01-01, test1.com" in existing_endpoints_summary
@@ -709,9 +689,7 @@ def test_get_existing_endpoints_summary_no_dataset_match(tmp_path):
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-        endpoint_resource_info, collection, "wrong_dataset"
-    )
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, "wrong_dataset")
 
     assert not existing_endpoints_summary
     assert not existing_sources
@@ -767,9 +745,7 @@ def test_get_existing_endpoints_summary_no_organisation_match(tmp_path):
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-        endpoint_resource_info, collection, "test"
-    )
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, "test")
 
     assert not existing_endpoints_summary
     assert not existing_sources
@@ -836,9 +812,7 @@ def test_get_existing_endpoints_summary_no_organisation_match(tmp_path):
         ),
     ],
 )
-def test_get_existing_endpoints_summary_ended_endpoint_or_source(
-    endpoints, sources, tmp_path
-):
+def test_get_existing_endpoints_summary_ended_endpoint_or_source(endpoints, sources, tmp_path):
     collection_dir = os.path.join(tmp_path, "collection")
     os.makedirs(collection_dir, exist_ok=True)
 
@@ -862,9 +836,7 @@ def test_get_existing_endpoints_summary_ended_endpoint_or_source(
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-        endpoint_resource_info, collection, "test"
-    )
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, "test")
     assert "test1.com" in existing_endpoints_summary
 
     assert existing_sources[0]["source"] == "test1"
@@ -921,9 +893,7 @@ def test_get_existing_endpoints_summary_ended_endpoint_and_source(tmp_path):
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-        endpoint_resource_info, collection, "test"
-    )
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, "test")
     assert not existing_endpoints_summary
 
     assert not existing_sources
@@ -980,9 +950,7 @@ def test_get_existing_endpoints_source_with_no_endpoint(tmp_path):
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-        endpoint_resource_info, collection, "test"
-    )
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, "test")
 
     assert "WARNING: No endpoint found for source test1" in existing_endpoints_summary
     assert len(existing_sources) == 0
@@ -1039,9 +1007,7 @@ def test_get_existing_endpoints_ended_source_with_no_endpoint(tmp_path):
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-        endpoint_resource_info, collection, "test"
-    )
+    existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, "test")
 
     assert not existing_endpoints_summary
     assert len(existing_sources) == 0
@@ -1085,9 +1051,7 @@ def test_download_dataset_use_cache_dataset(tmp_path_factory, mocker):
     shutil.copy(sqlite_file_path, path)
 
     # mock user response
-    mocker.patch(
-        "digital_land.utils.add_data_utils.get_user_response", return_value=True
-    )
+    mocker.patch("digital_land.utils.add_data_utils.get_user_response", return_value=True)
     mock_get = mocker.patch("requests.get")
 
     download_dataset(dataset, specification, cache_dir)
@@ -1189,9 +1153,7 @@ def test_get_updated_entities_summary_new_entity():
         ]
     )
 
-    updated_entities_summary, diffs_df = get_updated_entities_summary(
-        original_entity_df, updated_entity_df
-    )
+    updated_entities_summary, diffs_df = get_updated_entities_summary(original_entity_df, updated_entity_df)
 
     assert len(diffs_df) == 5
     assert "end-date" in diffs_df["field"].values
@@ -1208,10 +1170,7 @@ def test_get_updated_entities_summary_new_entity():
 
     assert all(value for value in diffs_df["new_entity"].values)
 
-    assert (
-        "Entity: 2200002, Fields changed: end-date, dataset, json, name, reference"
-        in updated_entities_summary
-    )
+    assert "Entity: 2200002, Fields changed: end-date, dataset, json, name, reference" in updated_entities_summary
     assert "Entity: 2200001" not in updated_entities_summary
 
 
@@ -1241,23 +1200,15 @@ def test_get_updated_entities_summary_updated_entity():
         ]
     )
 
-    updated_entities_summary, diffs_df = get_updated_entities_summary(
-        original_entity_df, updated_entity_df
-    )
+    updated_entities_summary, diffs_df = get_updated_entities_summary(original_entity_df, updated_entity_df)
 
     assert len(diffs_df) == 2
 
     assert diffs_df[diffs_df["field"] == "name"]["original_value"].values[0] == "name1"
-    assert (
-        diffs_df[diffs_df["field"] == "name"]["updated_value"].values[0]
-        == "updated name"
-    )
+    assert diffs_df[diffs_df["field"] == "name"]["updated_value"].values[0] == "updated name"
 
     assert diffs_df[diffs_df["field"] == "end-date"]["original_value"].values[0] == ""
-    assert (
-        diffs_df[diffs_df["field"] == "end-date"]["updated_value"].values[0]
-        == "updated end date"
-    )
+    assert diffs_df[diffs_df["field"] == "end-date"]["updated_value"].values[0] == "updated end date"
 
     assert not all(value == "" for value in diffs_df["new_entity"].values)
 
@@ -1290,9 +1241,7 @@ def test_get_updated_entities_summary_no_updates():
         ]
     )
 
-    updated_entities_summary, diffs_df = get_updated_entities_summary(
-        original_entity_df, updated_entity_df
-    )
+    updated_entities_summary, diffs_df = get_updated_entities_summary(original_entity_df, updated_entity_df)
 
     assert "No differences found in updated dataset" in updated_entities_summary
     assert not diffs_df
@@ -1324,9 +1273,7 @@ def test_get_updated_entities_summary_updated_entity_none_agnostic():
         ]
     )
 
-    updated_entities_summary, diffs_df = get_updated_entities_summary(
-        original_entity_df, updated_entity_df
-    )
+    updated_entities_summary, diffs_df = get_updated_entities_summary(original_entity_df, updated_entity_df)
 
     assert "No differences found in updated dataset" in updated_entities_summary
     assert not diffs_df

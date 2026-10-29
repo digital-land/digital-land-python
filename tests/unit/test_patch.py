@@ -62,8 +62,5 @@ def test_patch_regex():
     issue = issues.rows.pop()
     assert issue["field"] == "OrganisationURI"
     assert issue["issue-type"] == "patch"
-    assert (
-        issue["value"]
-        == "https://example.com/search?query=data&filter=name%20contains%20test"
-    )
+    assert issue["value"] == "https://example.com/search?query=data&filter=name%20contains%20test"
     assert issues.rows == []

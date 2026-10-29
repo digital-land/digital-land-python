@@ -9,12 +9,7 @@ def _read_csv(file_path: Path) -> str:
 
 def _get_csv_columns(conn, file_path: Path) -> list:
     """Get column names from CSV file."""
-    return [
-        col[0]
-        for col in conn.execute(
-            f"SELECT * FROM {_read_csv(file_path)} LIMIT 0"
-        ).description
-    ]
+    return [col[0] for col in conn.execute(f"SELECT * FROM {_read_csv(file_path)} LIMIT 0").description]
 
 
 def _sql_string(value) -> str:
@@ -27,9 +22,7 @@ def _build_field_condition(field_name: str, spec) -> str:
         op = str(spec.get("op", spec.get("operation", ""))).strip().lower()
         value = spec.get("value")
         if not op:
-            raise ValueError(
-                f"Condition for '{field_name}' must include 'op' when using dict format"
-            )
+            raise ValueError(f"Condition for '{field_name}' must include 'op' when using dict format")
     else:
         op = "="
         value = spec
@@ -40,15 +33,11 @@ def _build_field_condition(field_name: str, spec) -> str:
         return f'"{field_name}" != {_sql_string(value)}'
     if op in ("in", "not in"):
         if not isinstance(value, (list, tuple, set)) or len(value) == 0:
-            raise ValueError(
-                f"Condition for '{field_name}' with op '{op}' must use a non-empty list"
-            )
+            raise ValueError(f"Condition for '{field_name}' with op '{op}' must use a non-empty list")
         values_sql = ", ".join(_sql_string(item) for item in value)
         return f'"{field_name}" {op.upper()} ({values_sql})'
 
-    raise ValueError(
-        f"Unsupported operator '{op}' for field '{field_name}'. Supported: =, !=, in, not in"
-    )
+    raise ValueError(f"Unsupported operator '{op}' for field '{field_name}'. Supported: =, !=, in, not in")
 
 
 def _build_filter_clause(filter_spec, file_columns: list, name: str) -> str:
@@ -73,9 +62,7 @@ def _build_filter_clause(filter_spec, file_columns: list, name: str) -> str:
         parts = []
         for field_name, spec in group.items():
             if field_name not in file_columns:
-                raise ValueError(
-                    f"Column '{field_name}' not found in file. Available columns: {file_columns}"
-                )
+                raise ValueError(f"Column '{field_name}' not found in file. Available columns: {file_columns}")
             parts.append(_build_field_condition(field_name, spec))
 
         clauses.append(f"({' AND '.join(parts)})")
@@ -90,9 +77,7 @@ def _normalize_fields_for_validation(field_spec, file_columns: list) -> list:
     elif isinstance(field_spec, (list, tuple, set)):
         fields = [str(item).strip() for item in field_spec if str(item).strip()]
     else:
-        raise ValueError(
-            "field must be a string, comma-separated string, or list of strings"
-        )
+        raise ValueError("field must be a string, comma-separated string, or list of strings")
 
     if not fields:
         raise ValueError("field must include at least one column name")
@@ -104,13 +89,9 @@ def _normalize_fields_for_validation(field_spec, file_columns: list) -> list:
             seen.add(field_name)
             normalized_fields.append(field_name)
 
-    missing_fields = [
-        field_name for field_name in normalized_fields if field_name not in file_columns
-    ]
+    missing_fields = [field_name for field_name in normalized_fields if field_name not in file_columns]
     if missing_fields:
-        raise ValueError(
-            f"Column(s) {missing_fields} not found in file. Available columns: {file_columns}"
-        )
+        raise ValueError(f"Column(s) {missing_fields} not found in file. Available columns: {file_columns}")
 
     return normalized_fields
 
@@ -134,9 +115,7 @@ def _build_range_invalid_rows(
     return out_of_range_rows
 
 
-def count_rows(
-    conn, file_path: Path, expected: int, comparison_rule: str = "greater_than"
-):
+def count_rows(conn, file_path: Path, expected: int, comparison_rule: str = "greater_than"):
     """
     Counts the number of rows in the CSV and compares against an expected value.
 
@@ -159,9 +138,7 @@ def count_rows(
     }
 
     if comparison_rule not in comparison_rules:
-        raise ValueError(
-            f"Invalid comparison_rule: '{comparison_rule}'. Must be one of {list(comparison_rules.keys())}."
-        )
+        raise ValueError(f"Invalid comparison_rule: '{comparison_rule}'. Must be one of {list(comparison_rules.keys())}.")
 
     passed = comparison_rules[comparison_rule]
     message = f"there were {actual} rows found"
@@ -182,9 +159,7 @@ def check_unique(conn, file_path: Path, field: str):
         file_path: path to the CSV file
         field: the column name to check for uniqueness
     """
-    result = conn.execute(
-        f'SELECT "{field}", COUNT(*) as cnt FROM {_read_csv(file_path)} GROUP BY "{field}" HAVING cnt > 1'
-    ).fetchall()
+    result = conn.execute(f'SELECT "{field}", COUNT(*) as cnt FROM {_read_csv(file_path)} GROUP BY "{field}" HAVING cnt > 1').fetchall()
 
     duplicates = [{"value": row[0], "count": row[1]} for row in result]
 
@@ -268,9 +243,7 @@ def check_no_overlapping_ranges(conn, file_path: Path, min_field: str, max_field
         """
     ).fetchall()
 
-    overlaps = [
-        {"range_1": [row[0], row[1]], "range_2": [row[2], row[3]]} for row in result
-    ]
+    overlaps = [{"range_1": [row[0], row[1]], "range_2": [row[2], row[3]]} for row in result]
 
     if len(overlaps) == 0:
         passed = True
@@ -345,9 +318,7 @@ def check_no_blank_rows(conn, file_path: Path):
     if not file_columns:
         return True, "no blank rows found", {"invalid_rows": []}
 
-    blank_conditions = " AND ".join(
-        f"TRIM(COALESCE(\"{column_name}\", '')) = ''" for column_name in file_columns
-    )
+    blank_conditions = " AND ".join(f"TRIM(COALESCE(\"{column_name}\", '')) = ''" for column_name in file_columns)
 
     result = conn.execute(
         f"""
@@ -424,8 +395,7 @@ def check_fields_are_within_range(
     fields_to_validate = _normalize_fields_for_validation(field, file_columns)
     validating_multiple_fields = len(fields_to_validate) > 1
     lookup_values_sql = ",\n                    ".join(
-        f'({i}, {_sql_string(field_name)}, TRY_CAST(src."{field_name}" AS BIGINT))'
-        for i, field_name in enumerate(fields_to_validate)
+        f'({i}, {_sql_string(field_name)}, TRY_CAST(src."{field_name}" AS BIGINT))' for i, field_name in enumerate(fields_to_validate)
     )
 
     result = conn.execute(
@@ -679,16 +649,9 @@ def expect_column_to_be_integer(conn, file_path: Path, field: str):
           )
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "integer", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "integer", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'integer'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'integer' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'integer'" if passed else f"there were {len(invalid_rows)} invalid 'integer' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -705,16 +668,9 @@ def expect_column_to_be_decimal(conn, file_path: Path, field: str):
           AND TRY_CAST(TRIM(COALESCE("{field}", '')) AS DECIMAL) IS NULL
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "decimal", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "decimal", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'decimal'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'decimal' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'decimal'" if passed else f"there were {len(invalid_rows)} invalid 'decimal' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -731,16 +687,9 @@ def expect_column_to_be_flag(conn, file_path: Path, field: str):
           AND LOWER(TRIM(COALESCE("{field}", ''))) NOT IN ('yes', 'no', 'true', 'false')
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "flag", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "flag", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'flag'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'flag' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'flag'" if passed else f"there were {len(invalid_rows)} invalid 'flag' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -761,16 +710,9 @@ def expect_column_to_be_latitude(conn, file_path: Path, field: str):
           )
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "latitude", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "latitude", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'latitude'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'latitude' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'latitude'" if passed else f"there were {len(invalid_rows)} invalid 'latitude' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -801,11 +743,7 @@ def expect_column_to_be_longitude(conn, file_path: Path, field: str):
         for row in result
     ]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'longitude'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'longitude' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'longitude'" if passed else f"there were {len(invalid_rows)} invalid 'longitude' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -822,16 +760,9 @@ def expect_column_to_be_hash(conn, file_path: Path, field: str):
           AND NOT (REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), '^([a-z]+:)?[0-9a-fA-F]+$'))
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "hash", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "hash", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'hash'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'hash' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'hash'" if passed else f"there were {len(invalid_rows)} invalid 'hash' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -848,16 +779,9 @@ def expect_column_to_be_curie(conn, file_path: Path, field: str):
           AND NOT (REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), '^[a-z0-9-]+:[^\\s:][^\\s]*$'))
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "curie", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "curie", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'curie'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'curie' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'curie'" if passed else f"there were {len(invalid_rows)} invalid 'curie' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -884,11 +808,7 @@ def expect_column_to_be_curie_list(conn, file_path: Path, field: str):
         for row in result
     ]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'curie-list'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'curie-list' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'curie-list'" if passed else f"there were {len(invalid_rows)} invalid 'curie-list' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -905,16 +825,9 @@ def expect_column_to_be_json(conn, file_path: Path, field: str):
           AND TRY(json_extract(TRIM(COALESCE("{field}", '')), '$')) IS NULL
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "json", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "json", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'json'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'json' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'json'" if passed else f"there were {len(invalid_rows)} invalid 'json' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -931,16 +844,9 @@ def expect_column_to_be_url(conn, file_path: Path, field: str):
           AND NOT (REGEXP_MATCHES(TRIM(COALESCE("{field}", '')), '^[a-zA-Z][a-zA-Z0-9+.-]*://[^\\s/:?#]+(?::[0-9]+)?(?:[/?#][^\\s]*)?$'))
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "url", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "url", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'url'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'url' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'url'" if passed else f"there were {len(invalid_rows)} invalid 'url' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -957,16 +863,9 @@ def expect_column_to_be_date(conn, file_path: Path, field: str):
           AND TRY_CAST(TRIM(COALESCE("{field}", '')) AS DATE) IS NULL
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "date", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "date", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'date'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'date' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'date'" if passed else f"there were {len(invalid_rows)} invalid 'date' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -983,16 +882,9 @@ def expect_column_to_be_datetime(conn, file_path: Path, field: str):
           AND TRY_CAST(TRIM(COALESCE("{field}", '')) AS TIMESTAMP) IS NULL
         """
     ).fetchall()
-    invalid_rows = [
-        {"line_number": row[0], "field": field, "datatype": "datetime", "value": row[1]}
-        for row in result
-    ]
+    invalid_rows = [{"line_number": row[0], "field": field, "datatype": "datetime", "value": row[1]} for row in result]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'datetime'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'datetime' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'datetime'" if passed else f"there were {len(invalid_rows)} invalid 'datetime' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -1017,11 +909,7 @@ def expect_column_to_be_pattern(conn, file_path: Path, field: str):
                     }
                 )
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'pattern'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'pattern' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'pattern'" if passed else f"there were {len(invalid_rows)} invalid 'pattern' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -1125,11 +1013,7 @@ def expect_column_to_be_multipolygon(conn, file_path: Path, field: str):
         for row in result
     ]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'multipolygon'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'multipolygon' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'multipolygon'" if passed else f"there were {len(invalid_rows)} invalid 'multipolygon' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}
 
 
@@ -1188,9 +1072,5 @@ def expect_column_to_be_point(conn, file_path: Path, field: str):
         for row in result
     ]
     passed = len(invalid_rows) == 0
-    message = (
-        f"all values in '{field}' have datatype 'point'"
-        if passed
-        else f"there were {len(invalid_rows)} invalid 'point' value(s) in '{field}'"
-    )
+    message = f"all values in '{field}' have datatype 'point'" if passed else f"there were {len(invalid_rows)} invalid 'point' value(s) in '{field}'"
     return passed, message, {"invalid_rows": invalid_rows}

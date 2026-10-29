@@ -108,11 +108,7 @@ def pipeline_makerules(
             for dataset, resources in dataset_resource.items()
         }
         # Drop datasets with nothing left to process
-        dataset_resource = {
-            dataset: resources
-            for dataset, resources in dataset_resource.items()
-            if resources
-        }
+        dataset_resource = {dataset: resources for dataset, resources in dataset_resource.items() if resources}
     # process = get_processing_option(
     #     collection,
     #     specification_dir,
@@ -158,9 +154,7 @@ def pipeline_makerules(
                 # this should be the path to the resource being processed
                 resource_path = collection.resource_path(resource)
                 endpoints = " ".join(collection.resource_endpoints(old_resource))
-                organisations = " ".join(
-                    collection.resource_organisations(old_resource)
-                )
+                organisations = " ".join(collection.resource_organisations(old_resource))
                 entry_date = collection.resource_start_date(old_resource)
 
                 print(
@@ -171,12 +165,7 @@ def pipeline_makerules(
                     )
                 )
 
-                call_pipeline = (
-                    "\t$(call run-pipeline,"
-                    + " --endpoints '%s'" % endpoints
-                    + " --organisations '%s'" % organisations
-                    + " --entry-date '%s'" % entry_date
-                )
+                call_pipeline = "\t$(call run-pipeline," + " --endpoints '%s'" % endpoints + " --organisations '%s'" % organisations + " --entry-date '%s'" % entry_date
                 # we will include the resource argument if the old resource
                 # is  different so it's processed as the old_resource
                 if resource != old_resource:

@@ -49,16 +49,11 @@ def test_collection(
     with actual_log_csv.open() as log_file:
         log_csv = csv.DictReader(log_file)
         logs = list(log_csv)
-        assert {log["endpoint"] for log in logs} == set(
-            _get_filename_without_suffix_from_path(path)
-            for path in collection_payload_dir.iterdir()
-        )
+        assert {log["endpoint"] for log in logs} == set(_get_filename_without_suffix_from_path(path) for path in collection_payload_dir.iterdir())
 
         with actual_resource_csv.open() as resource_file:
             resource_csv = csv.DictReader(resource_file)
-            assert {log["resource"] for log in logs} == {
-                resource["resource"] for resource in resource_csv
-            }
+            assert {log["resource"] for log in logs} == {resource["resource"] for resource in resource_csv}
 
     with actual_log_csv.open() as actual, expected_log_csv.open() as expected:
         actual_dict_reader = csv.DictReader(actual)
@@ -237,9 +232,7 @@ def test_collection_without_log_and_resource_csvs(tmp_path):
             "User-Agent": "MHCLG Planning Data Collector",
         },
         "resource": "test",
-        "response-headers": {
-            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        },
+        "response-headers": {"Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
         "ssl-verify": "true",
         "status": "200",
     }
@@ -349,9 +342,7 @@ def test_collection_update_fixture(tmp_path):
                 "User-Agent": "MHCLG Planning Data Collector",
             },
             "resource": "test",
-            "response-headers": {
-                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            },
+            "response-headers": {"Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
             "ssl-verify": "true",
             "status": "200",
         }
@@ -370,9 +361,7 @@ def test_collection_update_fixture(tmp_path):
 
 
 def test_collection_update_older(test_collection_update_fixture):
-    test_collection_update = test_collection_update_fixture(
-        "2018-12-31T23:59:55.012345"
-    )
+    test_collection_update = test_collection_update_fixture("2018-12-31T23:59:55.012345")
 
     collection = Collection(directory=test_collection_update)
 
@@ -389,9 +378,7 @@ def test_collection_update_older(test_collection_update_fixture):
 
 
 def test_collection_update_newer(test_collection_update_fixture):
-    test_collection_update = test_collection_update_fixture(
-        "2019-01-02T12:45:56.789012"
-    )
+    test_collection_update = test_collection_update_fixture("2019-01-02T12:45:56.789012")
 
     collection = Collection(directory=test_collection_update)
 
@@ -408,9 +395,7 @@ def test_collection_update_newer(test_collection_update_fixture):
 
 def test_collection_update_today(test_collection_update_fixture):
     # Check that a successful collection today results in a blank end-date
-    test_collection_update = test_collection_update_fixture(
-        datetime.datetime.utcnow().isoformat()
-    )
+    test_collection_update = test_collection_update_fixture(datetime.datetime.utcnow().isoformat())
 
     collection = Collection(directory=test_collection_update)
 
@@ -523,9 +508,7 @@ def test_collection_retire_endpoints_and_sources(tmp_path):
     collection = Collection(directory=str(test_collection_dir))
 
     # Mock dataframe for collection_df_to_retire
-    collection_df_to_retire = pd.DataFrame(
-        {"endpoint": ["endpoint1", "endpoint3"], "source": ["source2", "source3"]}
-    )
+    collection_df_to_retire = pd.DataFrame({"endpoint": ["endpoint1", "endpoint3"], "source": ["source2", "source3"]})
 
     # Call the retire_endpoints_and_sources method
     collection.retire_endpoints_and_sources(collection_df_to_retire)
@@ -711,15 +694,10 @@ def test_filter_sources_multiple_filters(tmp_path):
     collection = Collection(directory=collection_dir)
     collection.load()
 
-    filtered_sources = collection.filtered_sources(
-        {"organisation": "test-org3", "pipelines": "test3"}
-    )
+    filtered_sources = collection.filtered_sources({"organisation": "test-org3", "pipelines": "test3"})
 
     assert len(filtered_sources) == 1
-    assert all(
-        source["organisation"] == "test-org3" and source["pipelines"] == "test3"
-        for source in filtered_sources
-    )
+    assert all(source["organisation"] == "test-org3" and source["pipelines"] == "test3" for source in filtered_sources)
 
 
 def test_filter_sources_pipeline_filter(tmp_path):
@@ -854,9 +832,7 @@ def test_endpoint_plugins_for(endpoint_csv_dir, endpoints, expected):
     assert endpoint_plugins_for(endpoint_csv_dir, endpoints) == expected
 
 
-def test_endpoint_plugins_for_missing_file_degrades_rather_than_raising(
-    tmp_path, caplog
-):
+def test_endpoint_plugins_for_missing_file_degrades_rather_than_raising(tmp_path, caplog):
     """pipeline_run calls this on every transform, so a collection directory without an
     endpoint.csv must fall back to the existing guessing behaviour rather than fail the run -
     but it has to say so, because silently losing the plugin would reinstate the bug invisibly.

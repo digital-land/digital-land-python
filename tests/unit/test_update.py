@@ -152,9 +152,7 @@ def test_add_source(source_register):
     add_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1]["endpoint"] == entry["endpoint"]
-    assert (
-        source_register.entries[-1]["documentation-url"] == entry["documentation-url"]
-    )
+    assert source_register.entries[-1]["documentation-url"] == entry["documentation-url"]
     assert source_register.entries[-1]["start-date"] == entry["start-date"]
 
 
@@ -172,9 +170,7 @@ def test_add_source_existing_endpoint(source_register):
     add_source(entry, source_register)
     assert expected_result == source_register.entries[0:-1]
     assert source_register.entries[-1]["endpoint"] == entry["endpoint"]
-    assert (
-        source_register.entries[-1]["documentation-url"] == entry["documentation-url"]
-    )
+    assert source_register.entries[-1]["documentation-url"] == entry["documentation-url"]
 
 
 def test_add_source_existing_end_date(source_register):

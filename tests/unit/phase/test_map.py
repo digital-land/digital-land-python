@@ -12,9 +12,7 @@ from digital_land.phase.save import SavePhase
 
 def TestPipeline(phase, inputs):
     output = StringIO()
-    run_pipeline(
-        LoadPhase(f=StringIO(inputs)), ParsePhase(), phase, SavePhase(f=output)
-    )
+    run_pipeline(LoadPhase(f=StringIO(inputs)), ParsePhase(), phase, SavePhase(f=output))
     return output.getvalue()
 
 
@@ -104,9 +102,7 @@ def test_map_column_names_with_underscores_when_column_not_in_specification():
     columns = {"address": "SiteNameAddress", "ownership": "OwnershipStatus"}
 
     m = MapPhase(fieldnames, columns)
-    output = TestPipeline(
-        m, "Organisation_Label,PermissionDate,test\r\ncol-1-val,col-2-val,\r\n"
-    )
+    output = TestPipeline(m, "Organisation_Label,PermissionDate,test\r\ncol-1-val,col-2-val,\r\n")
     assert output == "Organisation_Label,PermissionDate\r\ncol-1-val,col-2-val\r\n"
 
 
@@ -124,13 +120,8 @@ def test_map_column_names_with_underscores_when_column_in_specification():
     }
 
     m = MapPhase(fieldnames, columns)
-    output = TestPipeline(
-        m, "Organisation_Label,end_date,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n"
-    )
-    assert (
-        output
-        == "Organisation-Label,SiteNameAddress,end-date\r\ncol-1-val,,col-2-val\r\n"
-    )
+    output = TestPipeline(m, "Organisation_Label,end_date,SiteNameAddress\r\ncol-1-val,col-2-val,\r\n")
+    assert output == "Organisation-Label,SiteNameAddress,end-date\r\ncol-1-val,,col-2-val\r\n"
 
 
 def test_null_to_empty_string():

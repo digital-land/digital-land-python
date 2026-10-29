@@ -162,8 +162,7 @@ def name_check_dataset_path(tmp_path):
     with spatialite.connect(dataset_path) as con:
         con.execute(create_entity_table_sql)
         con.executemany(
-            "INSERT INTO entity (entity, reference, name, organisation_entity)"
-            " VALUES (?, ?, ?, ?)",
+            "INSERT INTO entity (entity, reference, name, organisation_entity)" " VALUES (?, ?, ?, ?)",
             [
                 (1, "CA-59", "59", "122"),
                 (2, "CA-WYM", "Wymondham Conservation Area", "122"),
@@ -228,8 +227,7 @@ def placeholder_check_dataset_path(tmp_path):
     with spatialite.connect(dataset_path) as con:
         con.execute(create_entity_table_sql)
         con.executemany(
-            "INSERT INTO entity (entity, reference, name, organisation_entity, json)"
-            " VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO entity (entity, reference, name, organisation_entity, json)" " VALUES (?, ?, ?, ?, ?)",
             [
                 (
                     1,
@@ -277,9 +275,7 @@ def listed_building_artifact_path(tmp_path):
 
 
 @pytest.fixture
-def placeholder_check_config_path(
-    tmp_path, specification_dir, listed_building_artifact_path
-):
+def placeholder_check_config_path(tmp_path, specification_dir, listed_building_artifact_path):
     """a configuration enabling name_is_a_placeholder_check, carrying the artifact path
     in parameters exactly as the rule will be written in config"""
     config_path = tmp_path / "placeholder_check_config.sqlite3"
@@ -289,9 +285,7 @@ def placeholder_check_config_path(
             "organisations": "",
             "name": "Check no entities have a placeholder name",
             "operation": "name_is_a_placeholder_check",
-            "parameters": json.dumps(
-                {"listed_building_path": str(listed_building_artifact_path)}
-            ),
+            "parameters": json.dumps({"listed_building_path": str(listed_building_artifact_path)}),
             "responsibility": "external",
             "severity": "error",
         }
@@ -309,9 +303,7 @@ def placeholder_check_config_path(
     return config_path
 
 
-def test_run_some_expectations(
-    tmp_path, organisation_path, dataset_path, config_path, specification_dir, mocker
-):
+def test_run_some_expectations(tmp_path, organisation_path, dataset_path, config_path, specification_dir, mocker):
 
     # set up inputs
     dataset = "test"
@@ -360,9 +352,7 @@ def test_run_some_expectations(
         print(result.exception)
 
     assert result.exit_code == 0, "error returned when running expectations"
-    assert (
-        tmp_path / f"log/expectation/dataset={dataset}/{dataset}.parquet"
-    ).exists(), "no logs created"
+    assert (tmp_path / f"log/expectation/dataset={dataset}/{dataset}.parquet").exists(), "no logs created"
 
     # logs are there
     conn = duckdb.connect()
@@ -397,9 +387,7 @@ def test_run_some_expectations(
     ]
     for field in required_fields:
         assert field in results[0].keys(), f"field : {field} not found in log"
-    assert (
-        len([result for result in results if result["passed"] == "True"]) == 1
-    ), "expected 1 passed expectation"
+    assert len([result for result in results if result["passed"] == "True"]) == 1, "expected 1 passed expectation"
 
 
 def test_run_name_is_a_code_expectation(
@@ -447,9 +435,7 @@ def test_run_name_is_a_code_expectation(
     assert log["passed"] == "False", "the bare code name should have failed the check"
     assert log["severity"] == "warning"
     assert log["responsibility"] == "external"
-    assert (
-        log["organisation"] == ""
-    ), "a rule with no organisations logs a blank organisation"
+    assert log["organisation"] == "", "a rule with no organisations logs a blank organisation"
 
     details = json.loads(log["details"])
     assert details["actual"] == 1
@@ -502,15 +488,9 @@ def test_run_name_is_a_placeholder_expectation(
     assert log["passed"] == "False", "the placeholder name should have failed the check"
     assert log["severity"] == "error"
     assert log["responsibility"] == "external"
-    assert (
-        log["organisation"] == ""
-    ), "a rule with no organisations logs a blank organisation"
+    assert log["organisation"] == "", "a rule with no organisations logs a blank organisation"
 
     details = json.loads(log["details"])
     assert details["actual"] == 1
-    assert [failure["name"] for failure in details["failures"]] == [
-        "No name for this Entry"
-    ]
-    assert (
-        details["failures"][0]["listed_building_name"] == "33, 37 AND 39, BAYFORD GREEN"
-    ), "the real name must reach details so the bridge can quote it back to the LPA"
+    assert [failure["name"] for failure in details["failures"]] == ["No name for this Entry"]
+    assert details["failures"][0]["listed_building_name"] == "33, 37 AND 39, BAYFORD GREEN", "the real name must reach details so the bridge can quote it back to the LPA"

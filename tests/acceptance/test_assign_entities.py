@@ -258,9 +258,7 @@ def test_command_assign_entities(
     assert "ancient-woodland , government-organisation:D1342 , Ref2 , 110000001" in out
 
 
-def test_cli_assign_entities_success(
-    collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource
-):
+def test_cli_assign_entities_success(collection_dir, pipeline_dir, specification_dir, organisation_path, mock_resource):
     """
     Tests assign entities from cli
     """
@@ -444,6 +442,4 @@ def test_assign_entities_unique_assignment(
     updated_entities = [entry["entity"] for entry in lookups_second_call.entries]
 
     combined_entities = initial_entities + [entry for entry in updated_entities]
-    assert len(set(combined_entities)) == len(set(initial_entities)) + len(
-        set(updated_entities) - set(initial_entities)
-    ), "No duplicates introduced."
+    assert len(set(combined_entities)) == len(set(initial_entities)) + len(set(updated_entities) - set(initial_entities)), "No duplicates introduced."

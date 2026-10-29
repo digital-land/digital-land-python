@@ -56,9 +56,7 @@ class TestLookupPhase:
         output_entity = phase.redirect_entity(input_entity)
         assert output_entity == input_entity
 
-    @pytest.mark.parametrize(
-        "entry_organisation", ["local-authority-eng:DNC", "local-authority:DNC"]
-    )
+    @pytest.mark.parametrize("entry_organisation", ["local-authority-eng:DNC", "local-authority:DNC"])
     def test_process_organisation_is_matched(self, entry_organisation):
         input_stream = [
             {
@@ -83,9 +81,7 @@ class TestLookupPhase:
         lookups = get_lookup
         issues = IssueLog()
         redirect_lookups = {"1": {"entity": "", "status": "410"}}
-        phase = LookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
-        )
+        phase = LookupPhase(lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues)
         phase.entity_field = "entity"
         output = [block for block in phase.process(input_stream)]
 
@@ -98,9 +94,7 @@ class TestLookupPhase:
         lookups = {",ancient-woodland,1,test": "1"}
         issues = IssueLog()
         redirect_lookups = {"10": {"entity": "", "status": "410"}}
-        phase = LookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
-        )
+        phase = LookupPhase(lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues)
         phase.entity_field = "entity"
         output = [block for block in phase.process(input_stream)]
 
@@ -139,9 +133,7 @@ class TestLookupPhase:
         lookups = get_lookup
         issues = IssueLog()
         redirect_lookups = {}
-        phase = LookupPhase(
-            lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues
-        )
+        phase = LookupPhase(lookups=lookups, redirect_lookups=redirect_lookups, issue_log=issues)
         phase.entity_field = "entity"
         output = [block for block in phase.process(input_stream)]
 
@@ -210,18 +202,8 @@ class TestLookupPhase:
             }
         ]
         phase = LookupPhase(lookup_rules=lookup_rules)
-        assert (
-            phase.lookup_rule(
-                prefix="dataset", organisation="local-authority:ABC", reference="100"
-            )
-            == "1100"
-        )
-        assert (
-            phase.lookup_rule(
-                prefix="dataset", organisation="local-authority:XYZ", reference="100"
-            )
-            == ""
-        )
+        assert phase.lookup_rule(prefix="dataset", organisation="local-authority:ABC", reference="100") == "1100"
+        assert phase.lookup_rule(prefix="dataset", organisation="local-authority:XYZ", reference="100") == ""
 
     def test_lookup_rule_fallback_in_get_entity(self):
         lookup_rules = [
@@ -259,9 +241,7 @@ class TestPrintLookupPhase:
 
         list(phase.process(input_stream))
 
-        assert phase.new_lookup_entries == [
-            [{"prefix": "dataset", "organisation": "", "reference": "1"}]
-        ]
+        assert phase.new_lookup_entries == [[{"prefix": "dataset", "organisation": "", "reference": "1"}]]
 
     def test_process_does_not_produce_new_lookup(self, get_input_stream, get_lookup):
         input_stream = get_input_stream
@@ -518,9 +498,7 @@ class TestEntityLookupPhase:
 
 
 class TestFactLookupPhase:
-    def test_missing_associated_entity_issue_raised(
-        self, get_input_stream_with_linked_field
-    ):
+    def test_missing_associated_entity_issue_raised(self, get_input_stream_with_linked_field):
         input_stream = get_input_stream_with_linked_field
         lookups = {
             ",article-4-direction,a4d2,local-authorityabc": "1",
@@ -540,9 +518,7 @@ class TestFactLookupPhase:
         assert issues.rows[0]["issue-type"] == "missing associated entity"
         assert issues.rows[0]["value"] == "a4d1"
 
-    def test_missing_associated_entity_issue_for_retired_entity(
-        self, get_input_stream_with_linked_field
-    ):
+    def test_missing_associated_entity_issue_for_retired_entity(self, get_input_stream_with_linked_field):
         input_stream = get_input_stream_with_linked_field
 
         lookups = {
@@ -565,9 +541,7 @@ class TestFactLookupPhase:
         assert issues.rows[0]["issue-type"] == "missing associated entity"
         assert issues.rows[0]["value"] == "a4d1"
 
-    def test_missing_associated_entity_issue_not_raised(
-        self, get_input_stream_with_linked_field
-    ):
+    def test_missing_associated_entity_issue_not_raised(self, get_input_stream_with_linked_field):
         input_stream = get_input_stream_with_linked_field
         lookups = {
             ",article-4-direction,a4d1,local-authorityabc": "1",
@@ -586,9 +560,7 @@ class TestFactLookupPhase:
         assert output[0]["row"]["reference-entity"] == "1"
         assert len(issues.rows) == 0
 
-    def test_missing_associated_entity_issue_no_organisation(
-        self, get_input_stream_with_linked_field
-    ):
+    def test_missing_associated_entity_issue_no_organisation(self, get_input_stream_with_linked_field):
         """
         Ensure issue is not raised when a linked entity is found using only the prefix and reference (without organisation).
         """

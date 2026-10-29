@@ -50,9 +50,7 @@ from digital_land.state import compare_state
 @click.option("-d", "--debug/--no-debug", type=click.BOOL, default=False)
 @click.option("--dataset", "-n", type=click.STRING)
 @click.option("--pipeline-dir", "-p", type=click.Path(), default="pipeline/")
-@click.option(
-    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
-)
+@click.option("--specification-dir", "-s", type=click.Path(exists=True), default="specification/")
 @click.pass_context
 def cli(ctx, debug, dataset, pipeline_dir, specification_dir):
     ctx.ensure_object(dict)
@@ -517,9 +515,7 @@ def retire_endpoints_cmd(config_collections_dir, csv_path):
 @click.argument("collection-name", nargs=1, type=click.STRING)
 @click.option("--collection-dir", "-c", nargs=1, type=click.Path(exists=True))
 @click.option("--pipeline-dir", "-p", nargs=1, type=click.Path(exists=True))
-@click.option(
-    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
-)
+@click.option("--specification-dir", "-s", type=click.Path(exists=True), default="specification/")
 @click.option(
     "--organisation-path",
     "-o",
@@ -564,9 +560,7 @@ def add_data_cmd(
 @click.argument("collection-name", nargs=1, type=click.Path())
 @collection_dir
 @organisation_path
-@click.option(
-    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
-)
+@click.option("--specification-dir", "-s", type=click.Path(exists=True), default="specification/")
 @click.option("--pipeline-dir", "-p", type=click.Path(exists=True), default="pipeline/")
 def add_endpoint_and_lookups_cmd(
     csv_path,
@@ -606,9 +600,7 @@ def add_endpoint_and_lookups_cmd(
 @click.argument("organisation", nargs=1, type=click.Path())
 @collection_dir
 @organisation_path
-@click.option(
-    "--specification-dir", "-s", type=click.Path(exists=True), default="specification/"
-)
+@click.option("--specification-dir", "-s", type=click.Path(exists=True), default="specification/")
 @click.option("--pipeline-dir", "-p", type=click.Path(exists=True), default="pipeline/")
 def assign_entities_cmd(
     resource_path,

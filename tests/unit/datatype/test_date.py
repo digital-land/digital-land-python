@@ -80,9 +80,7 @@ class TestDateDataType:
             ("22/05/2018\xa0", "2018-05-22"),
         ],
     )
-    def test_normalise_values_are_normalised_correctly_with__no_issues(
-        self, input, expected
-    ):
+    def test_normalise_values_are_normalised_correctly_with__no_issues(self, input, expected):
         date = DateDataType()
         assert date.normalise(input) == expected
 

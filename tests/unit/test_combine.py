@@ -6,9 +6,7 @@ from digital_land.phase.combine import combine_geometries, FactCombinePhase
 
 
 def test_combine_geometries():
-    expected_geometry = shapely.wkt.loads(
-        "MULTIPOLYGON (((40 10, 15 5, 5 10, 10 20, 17 33, 10 40, 20 40, 40 40, 45 40, 36 28, 31 13, 40 10)))"
-    )
+    expected_geometry = shapely.wkt.loads("MULTIPOLYGON (((40 10, 15 5, 5 10, 10 20, 17 33, 10 40, 20 40, 40 40, 45 40, 36 28, 31 13, 40 10)))")
 
     combined_wkt = combine_geometries(
         [
@@ -26,9 +24,7 @@ def test_combine_geometries():
 
 
 def test_combine_geometries_handles_disjoint_geometries():
-    expected_geometry = shapely.wkt.loads(
-        "MULTIPOLYGON (((5 10, 10 20, 40 10, 15 5, 5 10)), ((10 40, 45 40, 30 20, 10 40)))"
-    )  # noqa
+    expected_geometry = shapely.wkt.loads("MULTIPOLYGON (((5 10, 10 20, 40 10, 15 5, 5 10)), ((10 40, 45 40, 30 20, 10 40)))")  # noqa
     combined_wkt = combine_geometries(
         [
             "MULTIPOLYGON (((30 20,45 40,10 40,30 20)))",

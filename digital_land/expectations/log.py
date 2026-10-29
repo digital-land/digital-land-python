@@ -34,12 +34,7 @@ class ExpectationLog:
         self.pq_partition = f"dataset={dataset}"
         # create a pyarrow schema from the fields This helps ensure
         # parquet data is saved correctlly and blank partitions can be saved
-        self.pq_schema = pa.schema(
-            [
-                (field, pa.uint32() if "number" in field else pa.string())
-                for field in self.fieldnames
-            ]
-        )
+        self.pq_schema = pa.schema([(field, pa.uint32() if "number" in field else pa.string()) for field in self.fieldnames])
 
     def add(self, entry: dict):
         """
@@ -95,9 +90,7 @@ class ExpectationLog:
             # TODO can entries be fomatted on input could be time to
             # dataclasses
             for i, log in enumerate(formatted_entries):
-                formatted_entries[i] = {
-                    key: log[key] if "number" in key else str(log[key]) for key in log
-                }
+                formatted_entries[i] = {key: log[key] if "number" in key else str(log[key]) for key in log}
             table = pa.Table.from_pylist(formatted_entries, schema=self.pq_schema)
         else:
             rows = [pa.array([], type=field.type) for field in self.pq_schema]

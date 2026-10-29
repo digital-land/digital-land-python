@@ -7,7 +7,5 @@ from digital_land.phase.save import SavePhase
 
 def TestPhase(phase, inputs):
     output = StringIO()
-    run_pipeline(
-        LoadPhase(f=StringIO(inputs)), ParsePhase(), phase, SavePhase(f=output)
-    )
+    run_pipeline(LoadPhase(f=StringIO(inputs)), ParsePhase(), phase, SavePhase(f=output))
     return output.getvalue()

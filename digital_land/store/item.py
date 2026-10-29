@@ -46,9 +46,7 @@ class ItemStore(CSVStore):
                 # If we are loading items after a tinmestamp, we can skip anything
                 # in a directory before the date part of that stamp. We want to INCLUDE
                 # the directory of the 'after' date in case the item is later in the day.
-                dirdate = datetime.fromisoformat(
-                    os.path.split(os.path.dirname(path))[-1]
-                )
+                dirdate = datetime.fromisoformat(os.path.split(os.path.dirname(path))[-1])
                 if dirdate < startdate:
                     continue
 

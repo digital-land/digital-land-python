@@ -28,9 +28,7 @@ osgb_to_wgs84 = Transformer.from_crs(27700, 4326, always_xy=True)
 # https://epsg.io/4326
 mercator_to_wgs84 = Transformer.from_crs(3857, 4326, always_xy=True)
 
-DEFAULT_BOUNDARY = shapely.wkt.loads(
-    "POLYGON ((2.95 56, 2.95 49.5, -7 49.5, -7 53.4, -4 53.4, -4 56, 2.95 56))"
-)
+DEFAULT_BOUNDARY = shapely.wkt.loads("POLYGON ((2.95 56, 2.95 49.5, -7 49.5, -7 53.4, -4 53.4, -4 56, 2.95 56))")
 
 
 def degrees_like(x, y):
@@ -47,12 +45,7 @@ MERCATOR_X_LIMIT = 20037508.34
 
 
 def metres_like(x, y):
-    return (
-        x > -MERCATOR_X_LIMIT
-        and x < MERCATOR_X_LIMIT
-        and y > 6000000.0
-        and y < 10000000.0
-    )
+    return x > -MERCATOR_X_LIMIT and x < MERCATOR_X_LIMIT and y > 6000000.0 and y < 10000000.0
 
 
 def flip(x, y, z=None):
@@ -73,9 +66,7 @@ def parse_wkt(value, boundary):
         geometry = value
     else:
         if not isinstance(value, str):
-            return None, [
-                ("invalid WKT", "Geometry must be in Well-Known Text (WKT) format")
-            ]
+            return None, [("invalid WKT", "Geometry must be in Well-Known Text (WKT) format")]
         try:
             geometry = shapely.wkt.loads(value)
         except ShapelyError:
@@ -83,9 +74,7 @@ def parse_wkt(value, boundary):
                 geometry = shape(json.loads(value))
                 issues.append(("invalid type geojson", None))
             except Exception:
-                return None, [
-                    ("invalid WKT", "Geometry must be in Well-Known Text (WKT) format")
-                ]
+                return None, [("invalid WKT", "Geometry must be in Well-Known Text (WKT) format")]
 
     # an empty geometry has no coordinates to check - empty WKT values are
     # blanked earlier by the null patterns, so there is nothing more to log
@@ -114,9 +103,7 @@ def parse_wkt(value, boundary):
                 )
             ]
     else:
-        return None, issues + [
-            ("Unexpected geom type", "Geometry must be a point, line or polygon")
-        ]
+        return None, issues + [("Unexpected geom type", "Geometry must be a point, line or polygon")]
 
     x, y = first_point[:2]
 
@@ -134,33 +121,25 @@ def parse_wkt(value, boundary):
         if boundary.intersects(Point(y, x)):
             return transform(flip, geometry), issues + [("WGS84 flipped", None)]
 
-        return None, issues + [
-            ("WGS84 out of bounds of " + boundary_issue_info, boundary_message)
-        ]
+        return None, issues + [("WGS84 out of bounds of " + boundary_issue_info, boundary_message)]
 
     if easting_northing_like(x, y):
         _x, _y = osgb_to_wgs84.transform(x, y)
         if boundary.intersects(Point(_x, _y)):
-            return transform(osgb_to_wgs84.transform, geometry), issues + [
-                ("OSGB", None)
-            ]
+            return transform(osgb_to_wgs84.transform, geometry), issues + [("OSGB", None)]
         _x, _y = osgb_to_wgs84.transform(y, x)
         if boundary.intersects(Point(_x, _y)):
             geometry = transform(flip, geometry)
             geometry = transform(osgb_to_wgs84.transform, geometry)
             return geometry, issues + [("OSGB flipped", None)]
 
-        return None, issues + [
-            ("OSGB out of bounds of " + boundary_issue_info, boundary_message)
-        ]
+        return None, issues + [("OSGB out of bounds of " + boundary_issue_info, boundary_message)]
 
     if metres_like(x, y) or metres_like(y, x):
         if metres_like(x, y):
             _x, _y = mercator_to_wgs84.transform(x, y)
             if boundary.intersects(Point(_x, _y)):
-                return transform(mercator_to_wgs84.transform, geometry), issues + [
-                    ("Mercator", None)
-                ]
+                return transform(mercator_to_wgs84.transform, geometry), issues + [("Mercator", None)]
 
         if metres_like(y, x):
             _x, _y = mercator_to_wgs84.transform(y, x)
@@ -169,9 +148,7 @@ def parse_wkt(value, boundary):
                 geometry = transform(mercator_to_wgs84.transform, geometry)
                 return geometry, issues + [("Mercator flipped", None)]
 
-        return None, issues + [
-            ("Mercator out of bounds of " + boundary_issue_info, boundary_message)
-        ]
+        return None, issues + [("Mercator out of bounds of " + boundary_issue_info, boundary_message)]
 
     return None, issues + [
         (
@@ -257,9 +234,7 @@ def normalise_geometry(geometry, simplification=0.000001):
 
 
 def dump_wkt(geometry, precision=6, dimensions=2):
-    wkt = shapely.wkt.dumps(
-        geometry, rounding_precision=precision, output_dimension=dimensions
-    )
+    wkt = shapely.wkt.dumps(geometry, rounding_precision=precision, output_dimension=dimensions)
     return wkt.replace(", ", ",")
 
 

@@ -43,19 +43,11 @@ class Log:
             )
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             # Define the schema, using strings for non '-number' field
-            schema = pa.schema(
-                [
-                    (field, pa.uint32() if "number" in field else pa.string())
-                    for field in self.fieldnames
-                ]
-            )
+            schema = pa.schema([(field, pa.uint32() if "number" in field else pa.string()) for field in self.fieldnames])
             if len(self.rows) > 0:
                 formatted_rows = self.rows.copy()
                 for i, log in enumerate(formatted_rows):
-                    formatted_rows[i] = {
-                        key: log[key] if "number" in key else str(log[key])
-                        for key in log
-                    }
+                    formatted_rows[i] = {key: log[key] if "number" in key else str(log[key]) for key in log}
                 table = pa.Table.from_pylist(formatted_rows, schema=schema)
             else:
                 rows = [pa.array([], type=field.type) for field in schema]
@@ -111,9 +103,7 @@ class IssueLog(Log):
 
     def record_entity_map(self, entry, entity):
         if entry in self.entry_to_entity and self.entry_to_entity[entry] != entry:
-            print(
-                f"Entry {entry} is already mapped to {self.entry_to_entity[entry]}, trying to map to {entity}"
-            )
+            print(f"Entry {entry} is already mapped to {self.entry_to_entity[entry]}, trying to map to {entity}")
         else:
             self.entry_to_entity[entry] = entity
 
@@ -127,9 +117,7 @@ class IssueLog(Log):
     def add_severity_column(self, severity_mapping_path=None, severity_mapping=None):
         # Load only the 'severity' column from severity_mapping, optional path if Specifiaction has already loaded it
         if severity_mapping is None and severity_mapping_path is None:
-            raise ValueError(
-                "Either severity_mapping_path or severity_mapping must be provided"
-            )
+            raise ValueError("Either severity_mapping_path or severity_mapping must be provided")
         if severity_mapping is None:
             severity_mapping = pd.read_csv(
                 severity_mapping_path,
@@ -138,12 +126,7 @@ class IssueLog(Log):
         elif isinstance(severity_mapping, dict):
             # Convert the dictionary to a DataFrame, keeping only relevant cols
             _cols = {"issue-type", "severity", "description", "responsibility"}
-            severity_mapping = pd.DataFrame(
-                [
-                    {k: v for k, v in row.items() if k in _cols}
-                    for row in severity_mapping.values()
-                ]
-            )
+            severity_mapping = pd.DataFrame([{k: v for k, v in row.items() if k in _cols} for row in severity_mapping.values()])
 
         # Convert the existing log data to a DataFrame
         log_df = pd.DataFrame(self.rows)
@@ -163,10 +146,7 @@ class IssueLog(Log):
             self.fieldnames.append("description")
             self.fieldnames.append("responsibility")
             # Switch Pandas NaN to None to avoid issues with JSON
-            self.rows = [
-                {k: (None if pd.isna(v) else v) for k, v in row.items()}
-                for row in merged_df.to_dict(orient="records")
-            ]
+            self.rows = [{k: (None if pd.isna(v) else v) for k, v in row.items()} for row in merged_df.to_dict(orient="records")]
 
     def appendErrorMessage(self, mapping_path):
         # Read the mapping from the JSON config file
@@ -176,10 +156,7 @@ class IssueLog(Log):
 
         # Update the 'description' column based on the mapping data
         for row in self.rows:
-            mapping_row = mapping[
-                (mapping["field"] == row["field"])
-                & (mapping["issue-type"] == row["issue-type"])
-            ]
+            mapping_row = mapping[(mapping["field"] == row["field"]) & (mapping["issue-type"] == row["issue-type"])]
             if not mapping_row["description"].empty:
                 row["description"] = mapping_row["description"].values[0]
 

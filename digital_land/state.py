@@ -38,9 +38,7 @@ class State(dict):
             {
                 "code": State.get_code_hash(),
                 "specification": specification_hash,
-                "collection": State.get_dir_hash(
-                    collection_dir, ["log/", "log.csv", "pipeline.mk", "resource/"]
-                ),
+                "collection": State.get_dir_hash(collection_dir, ["log/", "log.csv", "pipeline.mk", "resource/"]),
                 "resource": State.get_dir_hash(resource_dir),
                 "pipeline": pipeline_hash,
                 "incremental_loading_override": incremental_loading_override,
@@ -81,9 +79,7 @@ class State(dict):
 
     def get_dir_hash(dir, exclude=[]):
         if not os.path.isdir(dir):
-            raise RuntimeError(
-                f"Can't hash {dir} as it doesn't exist of is not a directory"
-            )
+            raise RuntimeError(f"Can't hash {dir} as it doesn't exist of is not a directory")
 
         # SHA1 - good enough for git, good enough for us
         hash = hashlib.sha1()
@@ -122,14 +118,8 @@ class State(dict):
         Applies the same redirect filtering as makerules so that counts and
         resource lists only include resources that will actually be processed.
         """
-        redirect = {
-            entry["old-resource"]: entry["resource"]
-            for entry in collection.old_resource.entries
-        }
-        return {
-            dataset: {r for r in resources if redirect.get(r, r)}
-            for dataset, resources in collection.dataset_resource_map().items()
-        }
+        redirect = {entry["old-resource"]: entry["resource"] for entry in collection.old_resource.entries}
+        return {dataset: {r for r in resources if redirect.get(r, r)} for dataset, resources in collection.dataset_resource_map().items()}
 
     def get_transform_count(
         collection: Collection,

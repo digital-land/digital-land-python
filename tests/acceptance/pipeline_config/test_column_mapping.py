@@ -150,9 +150,7 @@ def test_pipeline_run(test_dirs):
     )
 
     # -- Asert --
-    df = pd.read_csv(
-        test_dirs["column_field_dir"] / f"{test_resource}.csv", index_col=False
-    )
+    df = pd.read_csv(test_dirs["column_field_dir"] / f"{test_resource}.csv", index_col=False)
 
     assert "end-date" in df["column"].values
     assert "ep-col-one" in df["column"].values
@@ -271,9 +269,7 @@ def test_pipeline_run_with_default_values(test_dirs):
     )
 
     # -- Asert --
-    df = pd.read_csv(
-        test_dirs["issues_log_dir"] / f"{test_resource}.csv", index_col=False
-    )
+    df = pd.read_csv(test_dirs["issues_log_dir"] / f"{test_resource}.csv", index_col=False)
 
     assert test_pipeline in df["dataset"].unique()
     assert test_resource in df["resource"].unique()

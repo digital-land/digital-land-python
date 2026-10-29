@@ -72,14 +72,9 @@ class DatasetCheckpoint(BaseCheckpoint):
                 if dataset_orgs:
                     final_rule_orgs.extend(dataset_orgs)
                 else:
-                    raise ValueError(
-                        f"Cannot attribute organisations to the provided value {org}"
-                    )
+                    raise ValueError(f"Cannot attribute organisations to the provided value {org}")
 
-        return [
-            {key.replace("-", "_"): value for key, value in rule_org.items()}
-            for rule_org in final_rule_orgs
-        ]
+        return [{key.replace("-", "_"): value for key, value in rule_org.items()} for rule_org in final_rule_orgs]
 
     def parse_rule(self, rule, org=None) -> dict:
         """
@@ -91,18 +86,14 @@ class DatasetCheckpoint(BaseCheckpoint):
             operation = self.operation_factory(rule["operation"])
             expectation["operation"] = operation
             expectation["name"] = Template(rule["name"]).render(organisation=org)
-            expectation["description"] = Template(rule.get("description", "")).render(
-                organisation=org
-            )
+            expectation["description"] = Template(rule.get("description", "")).render(organisation=org)
             expectation["organisation"] = org
             expectation["dataset"] = self.dataset
             expectation["severity"] = rule.get("severity", "")
             expectation["responsibility"] = rule.get("responsibility", "")
 
             # params are different string needs to be rendered and then loaded from json
-            expectation["parameters"] = json.loads(
-                Template(rule["parameters"]).render(organisation=org)
-            )
+            expectation["parameters"] = json.loads(Template(rule["parameters"]).render(organisation=org))
         else:
             operation = self.operation_factory(rule["operation"])
             expectation["operation"] = operation
@@ -164,9 +155,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         # self.failed_expectation_with_error_severity = 0
 
         logger = logging.getLogger(__name__)
-        logger.warning(
-            f"[expectations] Starting run for dataset '{self.dataset}' with {len(self.expectations)} expectations"
-        )
+        logger.warning(f"[expectations] Starting run for dataset '{self.dataset}' with {len(self.expectations)} expectations")
 
         resources_cache = None
         if prefetch_resources:
@@ -186,17 +175,11 @@ class DatasetCheckpoint(BaseCheckpoint):
             org = expectation.get("organisation", {})
             org_name = org.get("organisation", "") if org else ""
             label = f"{expectation['operation'].__name__}({org_name})"
-            logger.warning(
-                f"[expectations] {i + 1}/{len(self.expectations)} {label} — {'PASSED' if passed else 'FAILED'}"
-            )
+            logger.warning(f"[expectations] {i + 1}/{len(self.expectations)} {label} — {'PASSED' if passed else 'FAILED'}")
 
             self.log.add(
                 {
-                    "organisation": (
-                        expectation["organisation"]["organisation"]
-                        if expectation.get("organisation", "")
-                        else ""
-                    ),
+                    "organisation": (expectation["organisation"]["organisation"] if expectation.get("organisation", "") else ""),
                     "name": expectation["name"],
                     "passed": passed,
                     "message": message,
@@ -221,9 +204,7 @@ class DatasetCheckpoint(BaseCheckpoint):
         and stored in the provided directory
         """
         if self.skipped_rule_names:
-            existing_path = (
-                Path(output_dir) / self.log.pq_partition / (self.dataset + ".parquet")
-            )
+            existing_path = Path(output_dir) / self.log.pq_partition / (self.dataset + ".parquet")
             if existing_path.exists():
                 previous = pq.ParquetFile(existing_path).read().to_pylist()
                 for row in previous:

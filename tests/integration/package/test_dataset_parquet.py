@@ -297,10 +297,7 @@ transformed_2_data = {
 
 def fact_resource_fields():
     """fact-resource field names, underscored, in specification order."""
-    return [
-        field.replace("-", "_")
-        for field in Specification().schema["fact-resource"]["fields"]
-    ]
+    return [field.replace("-", "_") for field in Specification().schema["fact-resource"]["fields"]]
 
 
 @pytest.fixture
@@ -350,10 +347,7 @@ def dataset_sqlite_path(tmp_path):
     # Built from the specification rather than hardcoded, so this fixture tracks
     # fact-resource gaining or losing fields without needing an edit here.
     integer_fields = {"entry_number", "priority", "entity"}
-    fact_resource_columns = ",\n            ".join(
-        f"{name} {'INTEGER' if name in integer_fields else 'TEXT'}"
-        for name in fact_resource_fields()
-    )
+    fact_resource_columns = ",\n            ".join(f"{name} {'INTEGER' if name in integer_fields else 'TEXT'}" for name in fact_resource_fields())
     conn.execute(
         f"""
         CREATE TABLE fact_resource(
@@ -393,33 +387,18 @@ def test_load_facts_single_file(data: dict, expected: int, tmp_path):
     # we should try leveraging the power of duckdb and parquet.
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact"
-        / "dataset=conservation-area"
-        / "fact.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact" / "dataset=conservation-area" / "fact.parquet"
     assert os.path.exists(output_file), "fact.parquet file does not exist"
 
     df = pd.read_parquet(output_file)
 
     assert len(df) > 0, "No data in fact.parquet file"
-    assert (
-        len(df) == expected
-    ), "No. of facts does not match expected"  # No of unique facts
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact.parquet columns do not match the specification"
+    assert len(df) == expected, "No. of facts does not match expected"  # No of unique facts
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact.parquet columns do not match the specification"
 
 
-@pytest.mark.parametrize(
-    "data1,data2,expected", [(transformed_1_data, transformed_2_data, 35)]
-)
+@pytest.mark.parametrize("data1,data2,expected", [(transformed_1_data, transformed_2_data, 35)])
 def test_load_facts_multiple_files(data1, data2, expected, tmp_path):
     """
     test loading multiple files into the fact table when they're from a single directory
@@ -429,12 +408,8 @@ def test_load_facts_multiple_files(data1, data2, expected, tmp_path):
     df2 = pd.DataFrame.from_dict(data2)
     transformed_parquet_dir = tmp_path / "transformed"
     transformed_parquet_dir.mkdir(parents=True, exist_ok=True)
-    df1.to_parquet(
-        transformed_parquet_dir / "transformed_resource_1.parquet", index=False
-    )
-    df2.to_parquet(
-        transformed_parquet_dir / "transformed_resource_2.parquet", index=False
-    )
+    df1.to_parquet(transformed_parquet_dir / "transformed_resource_1.parquet", index=False)
+    df2.to_parquet(transformed_parquet_dir / "transformed_resource_2.parquet", index=False)
 
     package = DatasetParquetPackage(
         dataset="conservation-area",
@@ -444,28 +419,15 @@ def test_load_facts_multiple_files(data1, data2, expected, tmp_path):
 
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact"
-        / "dataset=conservation-area"
-        / "fact.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact" / "dataset=conservation-area" / "fact.parquet"
     assert os.path.exists(output_file), "fact.parquet file does not exist"
 
     df = pd.read_parquet(output_file)
 
     assert len(df) > 0, "No data in fact.parquet file"
-    assert (
-        len(df) == expected
-    ), "No. of facts does not match expected"  # No of unique facts
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact.parquet columns do not match the specification"
+    assert len(df) == expected, "No. of facts does not match expected"  # No of unique facts
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize("data,expected", [(transformed_1_data, 16)])
@@ -505,37 +467,22 @@ def test_load_facts_one_file_with_empty_file(data, expected, tmp_path):
 
     package.load_facts(transformed_parquet_dir=transformed_parquet_dir)
 
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact"
-        / "dataset=conservation-area"
-        / "fact.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact" / "dataset=conservation-area" / "fact.parquet"
     assert os.path.exists(output_file), "fact.parquet file does not exist"
 
     df = pd.read_parquet(output_file)
 
     assert len(df) > 0, "No data in fact.parquet file"
-    assert (
-        len(df) == expected
-    ), "No. of facts does not match expected"  # No of unique facts
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact.parquet columns do not match the specification"
+    assert len(df) == expected, "No. of facts does not match expected"  # No of unique facts
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize(
     "data1,data2,expected_facts,expected_entities",
     [(transformed_1_data, transformed_2_data, 35 * 100 / 2, 3 * 100)],
 )
-def test_load_functions_batch(
-    data1, data2, expected_facts, expected_entities, tmp_path, org_path, resource_path
-):
+def test_load_functions_batch(data1, data2, expected_facts, expected_entities, tmp_path, org_path, resource_path):
     """
     test loading multiple files into the fact table when they're from a single directory and batched into a single file
     """
@@ -562,9 +509,7 @@ def test_load_functions_batch(
         if i % 2 == 0:
             df1_copy = df1_copy.assign(
                 fact=["".join(random.choices(chars, k=10)) for _ in range(ldf1)],
-                entity=[base] * one_third1
-                + [base + 1] * (two_third1 - one_third1)
-                + [base + 2] * (ldf1 - two_third1),
+                entity=[base] * one_third1 + [base + 1] * (two_third1 - one_third1) + [base + 2] * (ldf1 - two_third1),
             )
             df1_copy.to_parquet(
                 transformed_parquet_dir / f"transformed_resource_{i}.parquet",
@@ -573,9 +518,7 @@ def test_load_functions_batch(
         else:
             df2_copy = df2_copy.assign(
                 fact=["".join(random.choices(chars, k=10)) for _ in range(ldf2)],
-                entity=[base] * one_third2
-                + [base + 1] * (two_third2 - one_third2)
-                + [base + 2] * (ldf2 - two_third2),
+                entity=[base] * one_third2 + [base + 1] * (two_third2 - one_third2) + [base + 2] * (ldf2 - two_third2),
             )
             df2_copy.to_parquet(
                 transformed_parquet_dir / f"transformed_resource_{i}.parquet",
@@ -595,37 +538,18 @@ def test_load_functions_batch(
     package.load_entities(transformed_parquet_dir, resource_path, org_path)
 
     # test facts
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact"
-        / "dataset=conservation-area"
-        / "fact.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact" / "dataset=conservation-area" / "fact.parquet"
     assert os.path.exists(output_file), "fact.parquet file does not exist"
 
     df = pd.read_parquet(output_file)
 
     assert len(df) > 0, "No data in fact.parquet file"
-    assert (
-        len(df) == expected_facts
-    ), "No. of facts does not match expected"  # No of unique facts
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact.parquet columns do not match the specification"
+    assert len(df) == expected_facts, "No. of facts does not match expected"  # No of unique facts
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact.parquet columns do not match the specification"
 
     # test fact_resource
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact-resource"
-        / "dataset=conservation-area"
-        / "fact-resource.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact-resource" / "dataset=conservation-area" / "fact-resource.parquet"
     assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
 
     df = pd.read_parquet(output_file)
@@ -633,22 +557,11 @@ def test_load_functions_batch(
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected_facts, "Not all data saved in fact-resource.parquet file"
 
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact-resource"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact-resource.parquet columns do not match the specification"
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact-resource"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact-resource.parquet columns do not match the specification"
 
     # test entities
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "entity"
-        / "dataset=conservation-area"
-        / "entity.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "entity" / "dataset=conservation-area" / "entity.parquet"
     assert os.path.exists(output_file), "entity.parquet file does not exist"
 
     df = pd.read_parquet(output_file)
@@ -674,13 +587,7 @@ def test_load_fact_resource_single_file(data, expected, tmp_path):
     package.load_fact_resource(transformed_parquet_dir)
 
     # Check if the output parquet file exists and verify contents
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact-resource"
-        / "dataset=conservation-area"
-        / "fact-resource.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact-resource" / "dataset=conservation-area" / "fact-resource.parquet"
     assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
 
     # Load Parquet into a DataFrame to verify data correctness
@@ -689,29 +596,18 @@ def test_load_fact_resource_single_file(data, expected, tmp_path):
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected, "Not all data saved in fact-resource.parquet file"
 
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact-resource"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact-resource.parquet columns do not match the specification"
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact-resource"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact-resource.parquet columns do not match the specification"
 
 
-@pytest.mark.parametrize(
-    "data_1,data_2,expected", [(transformed_1_data, transformed_2_data, 35)]
-)
+@pytest.mark.parametrize("data_1,data_2,expected", [(transformed_1_data, transformed_2_data, 35)])
 def test_load_fact_resource_two_filea(data_1, data_2, expected, tmp_path):
     df_1 = pd.DataFrame.from_dict(data_1)
     df_2 = pd.DataFrame.from_dict(data_2)
     transformed_parquet_dir = tmp_path / "transformed"
     transformed_parquet_dir.mkdir(parents=True, exist_ok=True)
-    df_1.to_parquet(
-        transformed_parquet_dir / "transformed_resource_1.parquet", index=False
-    )
-    df_2.to_parquet(
-        transformed_parquet_dir / "transformed_resource_2.parquet", index=False
-    )
+    df_1.to_parquet(transformed_parquet_dir / "transformed_resource_1.parquet", index=False)
+    df_2.to_parquet(transformed_parquet_dir / "transformed_resource_2.parquet", index=False)
 
     package = DatasetParquetPackage(
         dataset="conservation-area",
@@ -721,13 +617,7 @@ def test_load_fact_resource_two_filea(data_1, data_2, expected, tmp_path):
     package.load_fact_resource(transformed_parquet_dir)
 
     # Check if the output parquet file exists and verify contents
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact-resource"
-        / "dataset=conservation-area"
-        / "fact-resource.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact-resource" / "dataset=conservation-area" / "fact-resource.parquet"
     assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
 
     # Load Parquet into a DataFrame to verify data correctness
@@ -736,13 +626,8 @@ def test_load_fact_resource_two_filea(data_1, data_2, expected, tmp_path):
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected, "Not all data saved in fact-resource.parquet file"
 
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact-resource"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact-resource.parquet columns do not match the specification"
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact-resource"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact-resource.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize("data,expected", [(transformed_1_data, 16)])
@@ -780,13 +665,7 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
     package.load_fact_resource(transformed_parquet_dir)
 
     # Check if the output parquet file exists and verify contents
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "fact-resource"
-        / "dataset=conservation-area"
-        / "fact-resource.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "fact-resource" / "dataset=conservation-area" / "fact-resource.parquet"
     assert os.path.exists(output_file), "fact-resource.parquet file does not exist"
 
     # Load Parquet into a DataFrame to verify data correctness
@@ -795,13 +674,8 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
     assert len(df) > 0, "No data in fact-resource,parquet file"
     assert len(df) == expected, "Not all data saved in fact-resource.parquet file"
 
-    expected_columns = [
-        field.replace("-", "_")
-        for field in package.specification.schema["fact-resource"]["fields"]
-    ]
-    assert (
-        list(df.columns) == expected_columns
-    ), "fact-resource.parquet columns do not match the specification"
+    expected_columns = [field.replace("-", "_") for field in package.specification.schema["fact-resource"]["fields"]]
+    assert list(df.columns) == expected_columns, "fact-resource.parquet columns do not match the specification"
 
 
 @pytest.mark.parametrize(
@@ -851,9 +725,7 @@ def test_load_fact_resource_empty_file_with_another(data, expected, tmp_path):
         ),
     ],
 )
-def test_load_entities_single_file(
-    data, expected_count, expected_props, tmp_path, org_path, resource_path
-):
+def test_load_entities_single_file(data, expected_count, expected_props, tmp_path, org_path, resource_path):
     # Create dummy organisation.csv file for use in 'load_entities'
     # Test data for the tables. This checks that 'field' get pivoted
     df = pd.DataFrame.from_dict(data)
@@ -868,37 +740,25 @@ def test_load_entities_single_file(
     )
     package.load_entities(transformed_parquet_dir, resource_path, org_path)
 
-    output_file = (
-        tmp_path
-        / "conservation-area"
-        / "entity"
-        / "dataset=conservation-area"
-        / "entity.parquet"
-    )
+    output_file = tmp_path / "conservation-area" / "entity" / "dataset=conservation-area" / "entity.parquet"
     assert os.path.exists(output_file), "entity.parquet file does not exist"
 
     df = pd.read_parquet(output_file)
 
     assert len(df) > 0, "No data in entity.parquet file"
     entities = list(df["entity"])
-    assert (
-        len(df) == expected_count
-    ), f"No. of entities is not correct, entities are: {entities}"
+    assert len(df) == expected_count, f"No. of entities is not correct, entities are: {entities}"
 
     assert df["entity"].nunique() == len(df), "Entity column contains duplicate values"
     for entity in expected_props:
         for key, value in expected_props[entity].items():
             logging.info(f"entity={entity}, key={key}, value={value}")
             actual_value = df[df["entity"] == entity][key].iloc[0]
-            assert (
-                actual_value == value
-            ), f"Expected {key} to be {value} for entity {entity} but value is {actual_value}"
+            assert actual_value == value, f"Expected {key} to be {value} for entity {entity} but value is {actual_value}"
     # test non expected columns in entity table which may accidenltally get added
     not_expected_fields = ["priority"]
     for field in not_expected_fields:
-        assert (
-            field not in df.columns
-        ), f"Expected field {field} not found in entity table"
+        assert field not in df.columns, f"Expected field {field} not found in entity table"
 
 
 # not  great test as have to feed so much in, would be  better to test each table  loading at a time
@@ -948,47 +808,29 @@ def test_load_entities_single_file(
         )
     ],
 )
-def test_load_pq_to_sqlite_basic(
-    fact_data, fact_resource_data, entity_data, dataset_sqlite_path, tmp_path
-):
+def test_load_pq_to_sqlite_basic(fact_data, fact_resource_data, entity_data, dataset_sqlite_path, tmp_path):
 
     dataset_parquet_path = tmp_path / "dataset"
-    (dataset_parquet_path / "dataset=conservation-area").mkdir(
-        parents=True, exist_ok=True
-    )
+    (dataset_parquet_path / "dataset=conservation-area").mkdir(parents=True, exist_ok=True)
     # write data to parquet files in the dataset path
     fact_df = pd.DataFrame.from_dict(fact_data)
-    fact_resource_df = pd.DataFrame.from_dict(fact_resource_data)[
-        fact_resource_fields()
-    ]
+    fact_resource_df = pd.DataFrame.from_dict(fact_resource_data)[fact_resource_fields()]
     entity_df = pd.DataFrame.from_dict(entity_data)
 
-    (dataset_parquet_path / "fact" / "dataset=conservation-area").mkdir(
-        parents=True, exist_ok=True
-    )
-    (dataset_parquet_path / "fact-resource" / "dataset=conservation-area").mkdir(
-        parents=True, exist_ok=True
-    )
-    (dataset_parquet_path / "entity" / "dataset=conservation-area").mkdir(
-        parents=True, exist_ok=True
-    )
+    (dataset_parquet_path / "fact" / "dataset=conservation-area").mkdir(parents=True, exist_ok=True)
+    (dataset_parquet_path / "fact-resource" / "dataset=conservation-area").mkdir(parents=True, exist_ok=True)
+    (dataset_parquet_path / "entity" / "dataset=conservation-area").mkdir(parents=True, exist_ok=True)
 
     fact_df.to_parquet(
         dataset_parquet_path / "fact" / "dataset=conservation-area" / "fact.parquet",
         index=False,
     )
     fact_resource_df.to_parquet(
-        dataset_parquet_path
-        / "fact-resource"
-        / "dataset=conservation-area"
-        / "fact-resource.parquet",
+        dataset_parquet_path / "fact-resource" / "dataset=conservation-area" / "fact-resource.parquet",
         index=False,
     )
     entity_df.to_parquet(
-        dataset_parquet_path
-        / "entity"
-        / "dataset=conservation-area"
-        / "entity.parquet",
+        dataset_parquet_path / "entity" / "dataset=conservation-area" / "entity.parquet",
         index=False,
     )
 
@@ -1007,39 +849,21 @@ def test_load_pq_to_sqlite_basic(
     cnx = sqlite3.connect(output_path)
     df_sql = pd.read_sql_query("SELECT * FROM fact_resource", cnx)
     assert len(df_sql) > 0, "No data in fact_resource table"
-    assert len(df_sql) == len(
-        fact_resource_df
-    ), "Not all data saved in fact_resource table"
-    assert np.all(
-        len(df_sql["end_date"] == 0)
-    ), "Non-empty strings in end_date from fact_resource table"
+    assert len(df_sql) == len(fact_resource_df), "Not all data saved in fact_resource table"
+    assert np.all(len(df_sql["end_date"] == 0)), "Non-empty strings in end_date from fact_resource table"
 
     df_sql = pd.read_sql_query("SELECT * FROM fact", cnx)
     assert len(df_sql) > 0, "No data in fact table"
     assert len(df_sql) == len(fact_df), "Not all data saved in fact table"
-    assert np.all(
-        len(df_sql["end_date"] == 0)
-    ), "Non-empty strings in end_date from fact table"
+    assert np.all(len(df_sql["end_date"] == 0)), "Non-empty strings in end_date from fact table"
 
     df_sql = pd.read_sql_query("SELECT * FROM entity", cnx)
     assert len(df_sql) > 0, "No data in entity table"
     assert len(df_sql) == len(entity_df), "Not all data saved in entity table"
-    assert np.any(
-        len(df_sql["geometry"] == 0)
-    ), "All geometries from entity table have values"
-    assert np.any(
-        len(df_sql["geometry"] == 0)
-    ), "All geometries from entity table have non-blank values"
+    assert np.any(len(df_sql["geometry"] == 0)), "All geometries from entity table have values"
+    assert np.any(len(df_sql["geometry"] == 0)), "All geometries from entity table have non-blank values"
     assert not any(
-        [
-            (
-                any("_" in key for key in json.loads(row).keys())
-                if isinstance(row, str)
-                else False
-            )
-            for row in df_sql["json"]
-            if row != ""
-        ]
+        [(any("_" in key for key in json.loads(row).keys()) if isinstance(row, str) else False) for row in df_sql["json"] if row != ""]
     ), "Some json object have underscores in their 'keys'"
 
     cnx.close()
@@ -1098,17 +922,12 @@ def test_multi_bucket_load_facts_no_fact_loss(tmp_path):
 
     package.load_facts(transformed_dir)
 
-    output_file = (
-        tmp_path / "output" / "fact" / "dataset=conservation-area" / "fact.parquet"
-    )
+    output_file = tmp_path / "output" / "fact" / "dataset=conservation-area" / "fact.parquet"
     assert output_file.exists(), "fact.parquet was not created"
 
     df_result = pd.read_parquet(output_file)
 
-    assert len(df_result) == n_facts, (
-        f"Expected {n_facts} facts but got {len(df_result)}. "
-        "The multi-bucket path silently dropped some facts."
-    )
+    assert len(df_result) == n_facts, f"Expected {n_facts} facts but got {len(df_result)}. " "The multi-bucket path silently dropped some facts."
 
 
 def test_assign_to_buckets_creates_correct_files(tmp_path):
@@ -1149,25 +968,18 @@ def test_assign_to_buckets_creates_correct_files(tmp_path):
     )
     bucket_paths = package._assign_to_buckets(batch_dir, bucket_dir, n_buckets)
 
-    assert (
-        len(bucket_paths) == n_buckets
-    ), f"Expected {n_buckets} bucket files, got {len(bucket_paths)}"
+    assert len(bucket_paths) == n_buckets, f"Expected {n_buckets} bucket files, got {len(bucket_paths)}"
     assert all(p.exists() for p in bucket_paths), "Not all bucket files were created"
 
     bucket_total = sum(len(pd.read_parquet(p)) for p in bucket_paths)
-    assert bucket_total == n_facts, (
-        f"Expected {n_facts} total rows across buckets, got {bucket_total}. "
-        "Rows were dropped or duplicated during bucket assignment."
-    )
+    assert bucket_total == n_facts, f"Expected {n_facts} total rows across buckets, got {bucket_total}. " "Rows were dropped or duplicated during bucket assignment."
 
     # each fact hash should appear in exactly one bucket
     fact_counts = {}
     for p in bucket_paths:
         for fact in pd.read_parquet(p)["fact"]:
             fact_counts[fact] = fact_counts.get(fact, 0) + 1
-    assert all(
-        v == 1 for v in fact_counts.values()
-    ), "Some fact hashes appear in more than one bucket"
+    assert all(v == 1 for v in fact_counts.values()), "Some fact hashes appear in more than one bucket"
 
 
 def test_deduplicate_buckets_creates_correct_files(tmp_path):
@@ -1226,18 +1038,12 @@ def test_deduplicate_buckets_creates_correct_files(tmp_path):
     bucket_paths = [bucket_dir / "bucket_00.parquet", bucket_dir / "bucket_01.parquet"]
     result_paths = package._deduplicate_buckets(bucket_paths, result_dir)
 
-    assert (
-        len(result_paths) == n_buckets
-    ), f"Expected {n_buckets} result files, got {len(result_paths)}"
+    assert len(result_paths) == n_buckets, f"Expected {n_buckets} result files, got {len(result_paths)}"
     assert all(p.exists() for p in result_paths), "Not all result files were created"
 
     df_00 = pd.read_parquet(result_paths[0])
-    assert (
-        len(df_00) == 1
-    ), "Duplicate fact in bucket_00 should be deduplicated to 1 row"
-    assert (
-        df_00.iloc[0]["value"] == "new_value"
-    ), "The row with the latest entry_date should be kept"
+    assert len(df_00) == 1, "Duplicate fact in bucket_00 should be deduplicated to 1 row"
+    assert df_00.iloc[0]["value"] == "new_value", "The row with the latest entry_date should be kept"
 
     df_01 = pd.read_parquet(result_paths[1])
     assert len(df_01) == 2, "bucket_01 has 2 distinct facts, both should be kept"
@@ -1309,9 +1115,7 @@ def _load_single_entity(data, tmp_path, org_path, resource_path):
     """Run load_entities over one transformed frame and return the single entity row."""
     transformed_parquet_dir = tmp_path / "transformed"
     transformed_parquet_dir.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame.from_dict(data).to_parquet(
-        transformed_parquet_dir / "transformed_resource.parquet", index=False
-    )
+    pd.DataFrame.from_dict(data).to_parquet(transformed_parquet_dir / "transformed_resource.parquet", index=False)
 
     package = DatasetParquetPackage(
         dataset="conservation-area",
@@ -1320,20 +1124,12 @@ def _load_single_entity(data, tmp_path, org_path, resource_path):
     )
     package.load_entities(transformed_parquet_dir, resource_path, org_path)
 
-    df = pd.read_parquet(
-        tmp_path
-        / "conservation-area"
-        / "entity"
-        / "dataset=conservation-area"
-        / "entity.parquet"
-    )
+    df = pd.read_parquet(tmp_path / "conservation-area" / "entity" / "dataset=conservation-area" / "entity.parquet")
     assert len(df) == 1, f"Expected exactly one entity, got {len(df)}"
     return df.iloc[0]
 
 
-def test_load_entities_prefers_later_resource_over_higher_entry_number(
-    tmp_path, org_path, dated_resource_path
-):
+def test_load_entities_prefers_later_resource_over_higher_entry_number(tmp_path, org_path, dated_resource_path):
     """A later-ended resource wins even when its row has the lower entry_number.
 
     Reproduces config#2945: a Leicester listed-building-outline entity kept
@@ -1350,14 +1146,11 @@ def test_load_entities_prefers_later_resource_over_higher_entry_number(
     entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
 
     assert _which_geometry(entity["geometry"]) == "current", (
-        "Expected the value from the resource with the later end-date, but got the "
-        "earlier resource's value -- entry_number is outranking resource end-date"
+        "Expected the value from the resource with the later end-date, but got the " "earlier resource's value -- entry_number is outranking resource end-date"
     )
 
 
-def test_load_entities_prefers_live_resource_over_ended_resource(
-    tmp_path, org_path, dated_resource_path
-):
+def test_load_entities_prefers_live_resource_over_ended_resource(tmp_path, org_path, dated_resource_path):
     """A live resource (no end-date) beats an end-dated one.
 
     This is the production shape of config#2945: the current Leicester resource
@@ -1373,14 +1166,10 @@ def test_load_entities_prefers_live_resource_over_ended_resource(
 
     entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
 
-    assert (
-        _which_geometry(entity["geometry"]) == "current"
-    ), "Expected the live resource's value to beat the end-dated resource's value"
+    assert _which_geometry(entity["geometry"]) == "current", "Expected the live resource's value to beat the end-dated resource's value"
 
 
-def test_load_entities_breaks_ties_on_entry_number_within_one_resource(
-    tmp_path, org_path, dated_resource_path
-):
+def test_load_entities_breaks_ties_on_entry_number_within_one_resource(tmp_path, org_path, dated_resource_path):
     """Within a single resource the higher entry_number still wins.
 
     Guards the tie-breaker itself: with `resource_end_date` equal, `entry_number`
@@ -1395,14 +1184,10 @@ def test_load_entities_breaks_ties_on_entry_number_within_one_resource(
 
     entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
 
-    assert (
-        _which_geometry(entity["geometry"]) == "current"
-    ), "Within one resource the row with the higher entry_number should win"
+    assert _which_geometry(entity["geometry"]) == "current", "Within one resource the row with the higher entry_number should win"
 
 
-def test_load_entities_prefers_later_starting_live_resource(
-    tmp_path, org_path, dated_resource_path
-):
+def test_load_entities_prefers_later_starting_live_resource(tmp_path, org_path, dated_resource_path):
     """Between two live resources, the one that started later wins.
 
     `resource_end_date` cannot separate live resources -- they both coalesce to
@@ -1418,7 +1203,4 @@ def test_load_entities_prefers_later_starting_live_resource(
 
     entity = _load_single_entity(data, tmp_path, org_path, dated_resource_path)
 
-    assert _which_geometry(entity["geometry"]) == "current", (
-        "Both resources are live so end-date ties; expected the later-starting "
-        "resource to win, but entry_number decided it"
-    )
+    assert _which_geometry(entity["geometry"]) == "current", "Both resources are live so end-date ties; expected the later-starting " "resource to win, but entry_number decided it"

@@ -34,9 +34,7 @@ def write_csv_rows(file_path, rows):
         writer.writerows(rows)
 
 
-def run_pipeline_transform(
-    test_dirs, dataset, resource, input_path, output_path, disable_lookups=True
-):
+def run_pipeline_transform(test_dirs, dataset, resource, input_path, output_path, disable_lookups=True):
     # Set up paths and parameters used in transform
     endpoints = ["d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"]
     organisation = "test-org:test"
@@ -63,9 +61,7 @@ def run_pipeline_transform(
     ]
     write_csv_rows(os.path.join(test_dirs["pipeline_dir"], "lookup.csv"), lookup_rows)
 
-    write_csv_rows(
-        organisation_path, [{"organisation": "test-org:test", "name": "Test Org"}]
-    )
+    write_csv_rows(organisation_path, [{"organisation": "test-org:test", "name": "Test Org"}])
 
     specification = Specification(test_dirs["specification_dir"])
     pipeline = Pipeline(test_dirs["pipeline_dir"], dataset, specification=specification)
@@ -83,9 +79,7 @@ def run_pipeline_transform(
     )
 
     column_field_path = os.path.join(test_dirs["column_field_dir"], resource + ".csv")
-    dataset_resource_path = os.path.join(
-        test_dirs["dataset_resource_dir"], resource + ".csv"
-    )
+    dataset_resource_path = os.path.join(test_dirs["dataset_resource_dir"], resource + ".csv")
 
     # For purpose of check tool, duplicate reference check is run externally to transform
     issue_log = duplicate_reference_check(issues=issue_log, csv_path=output_path)
@@ -154,9 +148,7 @@ def test_async_pipeline_run(test_dirs):
     ]
     for col in expected_columns:
         assert col in output_df.columns, f"Missing expected column '{col}' in output."
-    assert len(output_df) >= len(
-        rows
-    ), "Output row count does not match input row count."
+    assert len(output_df) >= len(rows), "Output row count does not match input row count."
 
 
 def test_pipeline_output_is_complete(test_dirs):
@@ -244,9 +236,7 @@ def test_issue_log_creation(test_dirs):
     # Load the issue log and check its contents
     issue_log_df = pd.read_csv(issue_log_path)
     assert not issue_log_df.empty, "Issue log should not be empty."
-    assert (
-        "issue-type" in issue_log_df.columns
-    ), "Issue log is missing 'issue-type' column."
+    assert "issue-type" in issue_log_df.columns, "Issue log is missing 'issue-type' column."
 
 
 def test_column_field_log_creation(test_dirs):
@@ -284,9 +274,7 @@ def test_column_field_log_creation(test_dirs):
     # Load the column field log and check its contents
     column_field_log_df = pd.read_csv(column_field_log_path)
     assert not column_field_log_df.empty, "Column field log should not be empty."
-    assert (
-        "field" in column_field_log_df.columns
-    ), "Column field log is missing 'field' column."
+    assert "field" in column_field_log_df.columns, "Column field log is missing 'field' column."
 
 
 def test_pipeline_lookup_phase(test_dirs):
@@ -316,11 +304,7 @@ def test_pipeline_lookup_phase(test_dirs):
     )
     issue_log_path = pipeline_logs["issue_log_path"]
     issue_dict = next(
-        (
-            row
-            for _, row in pd.read_csv(issue_log_path).iterrows()
-            if row.get("field") == "article-4-direction"
-        ),
+        (row for _, row in pd.read_csv(issue_log_path).iterrows() if row.get("field") == "article-4-direction"),
         None,
     )
 
@@ -357,10 +341,7 @@ def test_pipeline_lookup_phase_assign_reference_entity(test_dirs):
     issue_log_path = pipeline_logs["issue_log_path"]
 
     issue_log_df = pd.read_csv(issue_log_path)
-    assert all(
-        row.get("issue-type") != "missing associated entity"
-        for _, row in issue_log_df.iterrows()
-    )
+    assert all(row.get("issue-type") != "missing associated entity" for _, row in issue_log_df.iterrows())
 
     output_df = pd.read_csv(output_path)
 

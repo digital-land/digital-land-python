@@ -67,9 +67,7 @@ def load_csv(path, encoding="UTF-8", log=None):
 
 def execute(command, env=os.environ):
     logging.debug("execute: %s", command)
-    proc = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
-    )
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 
     try:
         outs, errs = proc.communicate(timeout=600)
@@ -126,18 +124,12 @@ def convert_features_to_csv(input_path, output_path=None):
         output_path,
         input_path,
     ]
-    env = (
-        dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
-        if gdal_version >= Version("3.5.2")
-        else dict(os.environ)
-    )
+    env = dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0") if gdal_version >= Version("3.5.2") else dict(os.environ)
 
     rc, outs, errs = execute(command, env=env)
 
     if rc != 0:
-        raise ConversionError(
-            f"ogr2ogr failed ({rc}). stdout='{outs}', stderr='{errs}'. gdal version {gdal_version}"
-        )
+        raise ConversionError(f"ogr2ogr failed ({rc}). stdout='{outs}', stderr='{errs}'. gdal version {gdal_version}")
 
     if not os.path.isfile(output_path):
         return None
@@ -250,9 +242,7 @@ class ConvertPhase(Phase):
                     reader = self._read_text_file(input_path, encoding)
 
             if not reader:
-                raise ConversionError(
-                    f"failed to create reader, cannot process {input_path}"
-                )
+                raise ConversionError(f"failed to create reader, cannot process {input_path}")
 
                 # raise StopIteration()
                 reader = iter(())
@@ -329,13 +319,7 @@ class ConvertPhase(Phase):
     def _find_zip_file(self, input_file, suffix=".gml"):
         zip_ = zipfile.ZipFile(input_file)
         files = zip_.namelist()
-        files = list(
-            set(
-                filter(
-                    lambda s: s.endswith(suffix) or s.endswith(suffix.upper()), files
-                )
-            )
-        )
+        files = list(set(filter(lambda s: s.endswith(suffix) or s.endswith(suffix.upper()), files)))
         if not files or not len(files):
             return None
         if len(files) > 1:
@@ -376,9 +360,7 @@ class ConvertPhase(Phase):
             logging.debug(f"{input_path} looks like excel")
             self.dataset_resource_log.mime_type = "application/vnd.ms-excel"
             if not self.output_path:
-                self.output_path = tempfile.NamedTemporaryFile(
-                    suffix=".csv", delete=False
-                ).name
+                self.output_path = tempfile.NamedTemporaryFile(suffix=".csv", delete=False).name
             excel.to_csv(
                 self.output_path,
                 index=False,
@@ -400,9 +382,7 @@ class ConvertPhase(Phase):
                 self.dataset_resource_log.internal_mime_type = mime_type
                 # TODO erpace temp path with output path
                 if self.output_path:
-                    temp_path = tempfile.NamedTemporaryFile(
-                        suffix=".zip", dir=str(self.output_path.parent)
-                    ).name
+                    temp_path = tempfile.NamedTemporaryFile(suffix=".zip", dir=str(self.output_path.parent)).name
                 else:
                     temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
                 os.link(input_path, temp_path)

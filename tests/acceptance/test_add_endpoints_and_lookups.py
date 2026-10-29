@@ -551,10 +551,7 @@ def test_command_add_endpoints_and_lookups_considers_organisation(
 
     # assert to verify new lookup with the same reference is added
     assert len(lookups.entries) == 2
-    assert (
-        "ancient-woodland , government-organisation:D1342 , ABC_0001 , 110000001"
-        in out[0]
-    )
+    assert "ancient-woodland , government-organisation:D1342 , ABC_0001 , 110000001" in out[0]
 
 
 # adding endpoint requirements

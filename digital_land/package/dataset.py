@@ -55,9 +55,7 @@ class DatasetPackage(SqlitePackage):
 
         # hack until FactReference is reliable ..
         if not row.get("organisation-entity", ""):
-            row["organisation-entity"] = self.organisations.get(
-                row.get("organisation", ""), {}
-            ).get("entity", "")
+            row["organisation-entity"] = self.organisations.get(row.get("organisation", ""), {}).get("entity", "")
 
         # extended fields as JSON properties
         if not row.get("json", ""):
@@ -201,9 +199,7 @@ class DatasetPackage(SqlitePackage):
         for result in results:
             resource = result[0]
             count = result[1]
-            self.execute(
-                f"update dataset_resource set entity_count = {count} where resource = '{resource}'"
-            )
+            self.execute(f"update dataset_resource set entity_count = {count} where resource = '{resource}'")
         self.commit()
         self.disconnect()
 
@@ -226,12 +222,7 @@ class DatasetPackage(SqlitePackage):
                 ",".join([colname(field) for field in fields]),
                 ",".join(["%s" % self.colvalue(row, field) for field in fields]),
                 ",".join([colname(field) for field in conflict_fields]),
-                ", ".join(
-                    [
-                        "%s=excluded.%s" % (colname(field), colname(field))
-                        for field in update_fields
-                    ]
-                ),
+                ", ".join(["%s=excluded.%s" % (colname(field), colname(field)) for field in update_fields]),
                 colname(table),
             )
         )
@@ -242,13 +233,9 @@ class DatasetPackage(SqlitePackage):
         fact_fields = self.specification.schema["fact"]["fields"]
         fact_resource_fields = self.specification.schema["fact-resource"]["fields"]
         fact_conflict_fields = ["fact"]
-        fact_update_fields = [
-            field for field in fact_fields if field not in fact_conflict_fields
-        ]
+        fact_update_fields = [field for field in fact_fields if field not in fact_conflict_fields]
         for row in csv.DictReader(open(path, newline="")):
-            self.entry_date_upsert(
-                "fact", fact_fields, row, fact_conflict_fields, fact_update_fields
-            )
+            self.entry_date_upsert("fact", fact_fields, row, fact_conflict_fields, fact_update_fields)
             self.insert("fact-resource", fact_resource_fields, row, upsert=True)
 
     def load_column_fields(self, path):
