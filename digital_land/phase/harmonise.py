@@ -4,8 +4,9 @@ from calendar import monthrange
 from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
-import logging
 import re
+import logging
+
 
 logger = logging.getLogger(__name__)
 
