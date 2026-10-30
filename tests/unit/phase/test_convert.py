@@ -30,6 +30,7 @@ class TestConvertPhase:
             "tests/data/resource_examples/geopackage.resource",
             "tests/data/resource_examples/gml.resource",
             "tests/data/resource_examples/kml.resource",
+            "tests/data/resource_examples/shapefile_zip.resource",
             "tests/expectations/resources_to_test_expectations/data_for_url_expect_test.sqlite3",
         ],
     )

@@ -401,7 +401,7 @@ class ConvertPhase(Phase):
                 # TODO erpace temp path with output path
                 if self.output_path:
                     temp_path = tempfile.NamedTemporaryFile(
-                        suffix=".zip", dir=str(self.output_path.parent)
+                        suffix=".zip", dir=os.path.dirname(self.output_path)
                     ).name
                 else:
                     temp_path = tempfile.NamedTemporaryFile(suffix=".zip").name
