@@ -44,6 +44,10 @@ endif
 # install pre-commits
 	pre-commit install
 
+# format code with black, the formatter make lint checks against
+format::
+	black .
+
 # Build documentation with Sphinx use for deploying documentation
 .PHONY: docs
 docs:
