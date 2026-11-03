@@ -660,7 +660,7 @@ def test_normalise_geometry_hole_outside_shell():
     assert fixed_geom.is_valid
     # The large square (0,0 to 10,10) should have an area of 100,
     # plus 1 from the tiny square. Total area should be 101, NOT ~98.
-    assert pytest.approx(fixed_geom.area) == 101.0
+    assert fixed_geom.area == pytest.approx(101.0)
 
 
 def test_normalise_geometry_overlapping_parts():
@@ -677,7 +677,7 @@ def test_normalise_geometry_overlapping_parts():
 
     assert fixed_geom.is_valid
     # Two 2x2 squares overlapping by 1 unit
-    assert pytest.approx(fixed_geom.area) == 7.0
+    assert fixed_geom.area == pytest.approx(7.0)
 
 
 def test_normalise_geometry_bowtie_unchanged():
