@@ -661,7 +661,9 @@ def test_normalise_geometry_hole_outside_shell():
 
 
 def test_normalise_geometry_overlapping_parts():
-    input_wkt = "MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((1 0, 3 0, 3 2, 1 2, 1 0)))"
+    input_wkt = (
+        "MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((1 0, 3 0, 3 2, 1 2, 1 0)))"
+    )
     output_wkt = shapely.wkt.loads(input_wkt)
 
     fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
@@ -687,7 +689,9 @@ def test_normalise_geometry_bowtie_unchanged():
 
 
 def test_normalise_geometry_valid_unchanged():
-    input_wkt = "MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((4 4, 6 4, 6 6, 4 6, 4 4)))"
+    input_wkt = (
+        "MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((4 4, 6 4, 6 6, 4 6, 4 4)))"
+    )
     output_wkt = shapely.wkt.loads(input_wkt)
 
     fixed_geom = normalise_geometry(
