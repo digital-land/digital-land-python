@@ -652,7 +652,7 @@ def test_normalise_geometry_hole_outside_shell():
     assert not output_wkt.is_valid  # Verify baseline invalidity
 
     result = normalise_geometry(
-        output_wkt
+        input_wkt
     )  # unary_union([make_valid(part) for part in output_wkt.geoms])
 
     fixed_geom = result[0] if isinstance(result, tuple) else result
@@ -670,7 +670,7 @@ def test_normalise_geometry_overlapping_parts():
     output_wkt = shapely.wkt.loads(input_wkt)
 
     result = normalise_geometry(
-        output_wkt
+        input_wkt
     )  # unary_union([make_valid(part) for part in output_wkt.geoms])
 
     fixed_geom = result[0] if isinstance(result, tuple) else result
@@ -688,7 +688,7 @@ def test_normalise_geometry_bowtie_unchanged():
     exp_geom = make_valid(output_wkt)
     if output_wkt.geom_type == "Multipolygon":
         result = normalise_geometry(
-            output_wkt
+            input_wkt
         )  # unary_union([make_valid(part) for part in output_wkt.geoms])
     else:
         result = make_valid(output_wkt)
@@ -705,7 +705,7 @@ def test_normalise_geometry_valid_unchanged():
     )
     output_wkt = shapely.wkt.loads(input_wkt)
 
-    result = normalise_geometry(output_wkt)  # normalise_geometry function from wkt.py
+    result = normalise_geometry(input_wkt)  # normalise_geometry function from wkt.py
 
     fixed_geom = result[0] if isinstance(result, tuple) else result
 
