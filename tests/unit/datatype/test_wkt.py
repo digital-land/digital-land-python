@@ -706,7 +706,7 @@ def test_normalise_geometry_valid_unchanged():
 
     output_wkt = shapely.wkt.loads(input_wkt)
 
-    result = normalise_geometry(input_wkt)  # normalise_geometry function from wkt.py
+    result = normalise_geometry(output_wkt)  # normalise_geometry function from wkt.py
 
     fixed_geom = result[0] if isinstance(result, tuple) else result
 
