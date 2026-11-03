@@ -140,7 +140,7 @@ def parse_wkt(value, boundary, check_boundary=True):
         return None, issues + [
             ("WGS84 out of bounds of " + boundary_issue_info, boundary_message)
         ]
-    
+
     if easting_northing_like(x, y):
         _x, _y = osgb_to_wgs84.transform(x, y)
         if boundary.intersects(Point(_x, _y)):
@@ -270,7 +270,9 @@ class WktDataType(DataType):
     def __init__(self):
         pass
 
-    def normalise(self, value, default="", issues=None, boundary=None, check_boundary=True):
+    def normalise(
+        self, value, default="", issues=None, boundary=None, check_boundary=True
+    ):
         if not value:
             return default
         if boundary:
@@ -289,7 +291,9 @@ class WktDataType(DataType):
                 boundary = DEFAULT_BOUNDARY
         else:
             boundary = DEFAULT_BOUNDARY
-        geometry, parse_issues = parse_wkt(value, boundary, check_boundary=check_boundary)
+        geometry, parse_issues = parse_wkt(
+            value, boundary, check_boundary=check_boundary
+        )
 
         if issues:
             for issue, message in parse_issues:

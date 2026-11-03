@@ -464,9 +464,7 @@ def test_harmonise_blank_site_reference_is_not_a_missing_value():
 
 
 def test_offshore_geometry_is_only_allowed_for_infrastructure_project():
-    offshore_geometry = (
-        "MULTIPOLYGON (((0 0, 0.1 0, 0.1 0.1, 0 0.1, 0 0)))"
-    )
+    offshore_geometry = "MULTIPOLYGON (((0 0, 0.1 0, 0.1 0.1, 0 0.1, 0 0)))"
 
     infrastructure_issues = IssueLog()
     infrastructure_phase = HarmonisePhase(

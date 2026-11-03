@@ -5,7 +5,9 @@ from .wkt import WktDataType
 
 
 class MultiPolygonDataType(WktDataType):
-    def normalise(self, values, default="", issues=None, boundary=None, check_boundary=True):
+    def normalise(
+        self, values, default="", issues=None, boundary=None, check_boundary=True
+    ):
         try:
             # Try to load the value as WKT
             multipolygon = shapely.wkt.loads(values)
@@ -43,7 +45,10 @@ class MultiPolygonDataType(WktDataType):
 
         # Normalize the multipolygon representation
         normalized_multipolygon = super().normalise(
-            multipolygon, issues=issues, boundary=boundary, check_boundary=check_boundary
+            multipolygon,
+            issues=issues,
+            boundary=boundary,
+            check_boundary=check_boundary,
         )
 
         if not normalized_multipolygon:
