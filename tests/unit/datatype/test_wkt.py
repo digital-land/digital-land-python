@@ -653,8 +653,8 @@ def test_normalise_geometry_hole_outside_shell():
     assert not output_wkt.is_valid  # Verify baseline invalidity
 
     fixed_geom = normalise_geometry(
-            output_wkt
-        )  # unary_union([make_valid(part) for part in output_wkt.geoms])
+        output_wkt
+    )  # unary_union([make_valid(part) for part in output_wkt.geoms])
 
     assert fixed_geom.is_valid
     # The large square (0,0 to 10,10) should have an area of 100,
@@ -685,8 +685,8 @@ def test_normalise_geometry_bowtie_unchanged():
     exp_geom = make_valid(output_wkt)
     if output_wkt.geom_type == "Multipolygon":
         fixed_geom = normalise_geometry(
-                output_wkt
-            )  # unary_union([make_valid(part) for part in output_wkt.geoms])
+            output_wkt
+        )  # unary_union([make_valid(part) for part in output_wkt.geoms])
     else:
         fixed_geom = make_valid(output_wkt)
 
