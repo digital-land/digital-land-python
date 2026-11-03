@@ -648,10 +648,7 @@ def test_metres_like_checks_both_axes():
 
 # tests to check the unary_union function of shapely
 def test_normalise_geometry_hole_outside_shell():
-    input_wkt = "MULTIPOLYGON ("
-    "((0 0, 10 0, 10 10, 0 10, 0 0)), "  # Part 1 (Solid large square)
-    "((20 20, 21 20, 21 21, 20 21, 20 20), (2 2, 2 3, 3 3, 3 2, 2 2))"  # Part 2 with stray hole
-    ")"
+    input_wkt = "MULTIPOLYGON (((0 0, 10 0, 10 10, 0 10, 0 0)),((20 20, 21 20, 21 21, 20 21, 20 20), (2 2, 2 3, 3 3, 3 2, 2 2))"
     output_wkt = shapely.wkt.loads(input_wkt)
     assert not output_wkt.is_valid  # Verify baseline invalidity
 
@@ -664,10 +661,7 @@ def test_normalise_geometry_hole_outside_shell():
 
 
 def test_normalise_geometry_overlapping_parts():
-    input_wkt = "MULTIPOLYGON ("
-    "((0 0, 2 0, 2 2, 0 2, 0 0)), "
-    "((1 0, 3 0, 3 2, 1 2, 1 0))"
-    ")"
+    input_wkt = "MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((1 0, 3 0, 3 2, 1 2, 1 0)))"
     output_wkt = shapely.wkt.loads(input_wkt)
 
     fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
@@ -693,10 +687,7 @@ def test_normalise_geometry_bowtie_unchanged():
 
 
 def test_normalise_geometry_valid_unchanged():
-    input_wkt = "MULTIPOLYGON ("
-    "((0 0, 2 0, 2 2, 0 2, 0 0)), "
-    "((4 4, 6 4, 6 6, 4 6, 4 4))"
-    ")"
+    input_wkt = "MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((4 4, 6 4, 6 6, 4 6, 4 4)))"
     output_wkt = shapely.wkt.loads(input_wkt)
 
     fixed_geom = normalise_geometry(
