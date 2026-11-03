@@ -652,7 +652,9 @@ def test_normalise_geometry_hole_outside_shell():
     output_wkt = shapely.wkt.loads(input_wkt)
     assert not output_wkt.is_valid  # Verify baseline invalidity
 
-    fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
+    fixed_geom = normalise_geometry(
+            output_wkt
+        )  # unary_union([make_valid(part) for part in output_wkt.geoms])
 
     assert fixed_geom.is_valid
     # The large square (0,0 to 10,10) should have an area of 100,
@@ -666,7 +668,9 @@ def test_normalise_geometry_overlapping_parts():
     )
     output_wkt = shapely.wkt.loads(input_wkt)
 
-    fixed_geom = normalise_geometry(input_wkt)#unary_union([make_valid(part) for part in output_wkt.geoms])
+    fixed_geom = normalise_geometry(
+        input_wkt
+    )  # unary_union([make_valid(part) for part in output_wkt.geoms])
 
     assert fixed_geom.is_valid
     # Two 2x2 squares overlapping by 1 unit
@@ -680,7 +684,9 @@ def test_normalise_geometry_bowtie_unchanged():
     assert not output_wkt.is_valid
     exp_geom = make_valid(output_wkt)
     if output_wkt.geom_type == "Multipolygon":
-        fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
+        fixed_geom = normalise_geometry(
+                input_wkt
+            )  # unary_union([make_valid(part) for part in output_wkt.geoms])
     else:
         fixed_geom = make_valid(output_wkt)
 
@@ -694,9 +700,7 @@ def test_normalise_geometry_valid_unchanged():
     )
     output_wkt = shapely.wkt.loads(input_wkt)
 
-    result = normalise_geometry(
-        output_wkt
-    )  # normalise_geometry function from wkt.py
+    result = normalise_geometry(output_wkt)  # normalise_geometry function from wkt.py
 
     fixed_geom = result[0] if isinstance(result, tuple) else result
 
