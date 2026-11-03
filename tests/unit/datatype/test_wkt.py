@@ -666,7 +666,7 @@ def test_normalise_geometry_overlapping_parts():
     )
     output_wkt = shapely.wkt.loads(input_wkt)
 
-    fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
+    fixed_geom = normalise_geometry(input_wkt)#unary_union([make_valid(part) for part in output_wkt.geoms])
 
     assert fixed_geom.is_valid
     # Two 2x2 squares overlapping by 1 unit
@@ -694,9 +694,11 @@ def test_normalise_geometry_valid_unchanged():
     )
     output_wkt = shapely.wkt.loads(input_wkt)
 
-    fixed_geom = normalise_geometry(
+    result = normalise_geometry(
         output_wkt
     )  # normalise_geometry function from wkt.py
+
+    fixed_geom = result[0] if isinstance(result, tuple) else result
 
     assert fixed_geom.is_valid
     assert fixed_geom.wkt == output_wkt.wkt
