@@ -669,7 +669,7 @@ def test_normalise_geometry_overlapping_parts():
     output_wkt = shapely.wkt.loads(input_wkt)
 
     fixed_geom = normalise_geometry(
-        input_wkt
+        output_wkt
     )  # unary_union([make_valid(part) for part in output_wkt.geoms])
 
     assert fixed_geom.is_valid
@@ -685,7 +685,7 @@ def test_normalise_geometry_bowtie_unchanged():
     exp_geom = make_valid(output_wkt)
     if output_wkt.geom_type == "Multipolygon":
         fixed_geom = normalise_geometry(
-                input_wkt
+                output_wkt
             )  # unary_union([make_valid(part) for part in output_wkt.geoms])
     else:
         fixed_geom = make_valid(output_wkt)
