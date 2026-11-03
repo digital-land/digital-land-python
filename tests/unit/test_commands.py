@@ -3,6 +3,7 @@ import logging
 import os
 import tempfile
 from unittest.mock import Mock
+
 import pytest
 from requests import HTTPError
 
@@ -161,9 +162,7 @@ def test_validate_and_add_data_input_no_error(
         assert len(caplog.text) == 0
 
 
-def test_validate_and_add_data_input_error_thrown_when_no_resource_downloaded(
-    collection_dir, specification_dir, organisation_csv, mocker
-):
+def test_validate_and_add_data_input_error_thrown_when_no_resource_downloaded(collection_dir, specification_dir, organisation_csv, mocker):
 
     mock_response = Mock()
     mock_response.status_code = 200

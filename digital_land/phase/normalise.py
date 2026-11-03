@@ -1,9 +1,10 @@
 #
 #  normalise CSV file formatting
 #
+import csv
 import os
 import re
-import csv
+
 from .phase import Phase
 
 patch_dir = os.path.join(os.path.dirname(__file__), "../patch")
@@ -24,9 +25,7 @@ class NormalisePhase(Phase):
             self.null_patterns.append(re.compile(row["pattern"]))
 
     def normalise_whitespace(self, row):
-        return [
-            v.strip(self.spaces).replace("\r", "").replace("\n", "\r\n") for v in row
-        ]
+        return [v.strip(self.spaces).replace("\r", "").replace("\n", "\r\n") for v in row]
 
     def strip_nulls(self, row):
         for pattern in self.null_patterns:

@@ -1,6 +1,7 @@
 import re
 
 import pytest
+
 from digital_land.phase.normalise import NormalisePhase
 
 
@@ -70,6 +71,4 @@ def test_skip():
 
 def test_skip_blank_rows():
     n = NormalisePhase()
-    assert list(
-        n.process([{"line": ["1", "2"]}, {"line": ["", ""]}, {"line": ["3", "4"]}])
-    ) == [{"line": ["1", "2"]}, {"line": ["3", "4"]}]
+    assert list(n.process([{"line": ["1", "2"]}, {"line": ["", ""]}, {"line": ["3", "4"]}])) == [{"line": ["1", "2"]}, {"line": ["3", "4"]}]

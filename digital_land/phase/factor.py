@@ -1,4 +1,5 @@
 import hashlib
+
 from .phase import Phase
 
 

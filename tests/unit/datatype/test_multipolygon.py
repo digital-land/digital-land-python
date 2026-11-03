@@ -1,10 +1,10 @@
-import shapely.wkt
-from shapely.validation import explain_validity, make_valid
 import pytest
+import shapely.wkt
+from shapely.geometry import MultiPolygon
+from shapely.validation import explain_validity, make_valid
 
 from digital_land.datatype.multipolygon import MultiPolygonDataType
 from digital_land.log import IssueLog
-from shapely.geometry import MultiPolygon
 
 
 def test_normalise_returns_valid_shape_and_record_issue():

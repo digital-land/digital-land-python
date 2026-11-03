@@ -1,5 +1,6 @@
 def test_close_conn_removes_duckdb_file(tmp_path):
     import duckdb
+
     from digital_land.package.dataset_parquet import DatasetParquetPackage
 
     duckdb_path = tmp_path / "overflow.duckdb"
@@ -18,6 +19,7 @@ def test_close_conn_removes_duckdb_file(tmp_path):
 
 def test_close_conn_handles_in_memory_db():
     import duckdb
+
     from digital_land.package.dataset_parquet import DatasetParquetPackage
 
     # in-memory mode never sets duckdb_path; close_conn must not raise

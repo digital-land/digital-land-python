@@ -1,6 +1,7 @@
-import re
 import logging
+import re
 import warnings
+
 from .phase import Phase
 
 logger = logging.getLogger(__name__)
@@ -75,9 +76,7 @@ class FactReferencePhase(EntityReferencePhase):
         specification=None,
     ):
         if dataset:
-            warnings.warn(
-                "depreciated dataset arguement is not required", DeprecationWarning, 2
-            )
+            warnings.warn("depreciated dataset arguement is not required", DeprecationWarning, 2)
         self.specification = specification
         self.field_typology_map = field_typology_map
         self.field_prefix_map = field_prefix_map

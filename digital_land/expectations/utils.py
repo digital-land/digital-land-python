@@ -6,9 +6,9 @@ notes:
 not be useful for everything
 """
 
+import pandas as pd
 import spatialite
 import yaml
-import pandas as pd
 
 
 def transform_df_first_column_into_set(dataframe: pd.DataFrame) -> set:

@@ -31,9 +31,7 @@ def config_collections_dir(f):
 
 
 def issue_dir(f):
-    return click.option(
-        "--issue-dir", "-i", type=click.Path(exists=True), default="issue/"
-    )(f)
+    return click.option("--issue-dir", "-i", type=click.Path(exists=True), default="issue/")(f)
 
 
 def column_field_dir(f):
@@ -45,9 +43,7 @@ def column_field_dir(f):
 
 
 def output_log_dir(f):
-    return click.option(
-        "--output-log-dir", "-i", type=click.Path(exists=True), default="log/"
-    )(f)
+    return click.option("--output-log-dir", "-i", type=click.Path(exists=True), default="log/")(f)
 
 
 def dataset_resource_dir(f):

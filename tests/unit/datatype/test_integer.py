@@ -1,7 +1,7 @@
 #!/usr/bin/env pytest
 
-from digital_land.log import IssueLog
 from digital_land.datatype.integer import IntegerDataType
+from digital_land.log import IssueLog
 
 
 def test_integer_format():

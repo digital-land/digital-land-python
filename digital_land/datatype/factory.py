@@ -4,12 +4,12 @@ from .date import DateDataType
 from .decimal import DecimalDataType
 from .flag import FlagDataType
 from .integer import IntegerDataType
+from .latitude import LatitudeDataType
+from .longitude import LongitudeDataType
 from .multipolygon import MultiPolygonDataType
 from .point import PointDataType
 from .string import StringDataType
 from .uri import URIDataType
-from .latitude import LatitudeDataType
-from .longitude import LongitudeDataType
 
 
 def datatype_factory(datatype_name, **kwargs):

@@ -83,9 +83,7 @@ def test_get_passes_retry_configuration_to_esri_dumper(mocker, caplog):
     assert "metadata timed out" in caplog.text
 
 
-def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(
-    mocker, caplog
-):
+def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(mocker, caplog):
     init_kwargs = {}
 
     class FakeResponse:
@@ -122,7 +120,4 @@ def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(
         "pause_seconds": 2,
         "num_of_retry": 2,
     }
-    assert (
-        "ArcGIS get expects parameters to be an ArcGISParameters instance. using default parameters"
-        in caplog.text
-    )
+    assert "ArcGIS get expects parameters to be an ArcGISParameters instance. using default parameters" in caplog.text

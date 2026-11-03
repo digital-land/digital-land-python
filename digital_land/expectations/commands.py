@@ -1,8 +1,8 @@
-from .checkpoints.dataset import DatasetCheckpoint
-from .checkpoints.csv import CsvCheckpoint
-
 from digital_land.configuration.main import Config
 from digital_land.organisation import Organisation
+
+from .checkpoints.csv import CsvCheckpoint
+from .checkpoints.dataset import DatasetCheckpoint
 
 
 # in principle the command needs a few things:
@@ -25,9 +25,7 @@ def run_dataset_checkpoint(
     rules = config.get_expectation_rules(dataset)
     checkpoint = DatasetCheckpoint(dataset, file_path, organisations)
     checkpoint.load(rules)
-    prefetch_resources = any(
-        rule["operation"] == "count_deleted_entities" for rule in rules
-    )
+    prefetch_resources = any(rule["operation"] == "count_deleted_entities" for rule in rules)
     checkpoint.run(prefetch_resources=prefetch_resources)
     checkpoint.save(output_dir)
     # TODO add failure on critical error back in

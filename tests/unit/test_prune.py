@@ -1,11 +1,12 @@
 #!/usr/bin/env -S pytest -s
 
-from io import StringIO
 import csv
+from io import StringIO
+
 from digital_land.phase.phase import Phase
-from digital_land.pipeline import run_pipeline
-from digital_land.phase.save import SavePhase
 from digital_land.phase.prune import FactPrunePhase
+from digital_land.phase.save import SavePhase
+from digital_land.pipeline import run_pipeline
 
 test_data = [
     {"field": "name", "value": "Testy McTestFace"},

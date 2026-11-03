@@ -1,6 +1,7 @@
 import csv
-import logging
 import itertools
+import logging
+
 from .phase import Phase
 
 

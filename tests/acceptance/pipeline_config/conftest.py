@@ -1,12 +1,10 @@
 import os
 import urllib.request
-import pandas as pd
-
-import pytest
-
 from pathlib import Path
 from urllib.error import URLError
 
+import pandas as pd
+import pytest
 
 test_pipeline = "national-park"
 test_resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
@@ -30,24 +28,16 @@ def test_dirs(tmp_path_factory):
 
     collection_dir = tmp_path_factory.mktemp("column_collection", numbered=False)
     issues_log_dir = tmp_path_factory.mktemp("column_issues-log", numbered=False)
-    datasource_log_dir = tmp_path_factory.mktemp(
-        "column_datasource-log", numbered=False
-    )
-    dataset_resource_dir = tmp_path_factory.mktemp(
-        "column_dataset-resource", numbered=False
-    )
-    converted_resource_dir = tmp_path_factory.mktemp(
-        "column_converted-resource", numbered=False
-    )
+    datasource_log_dir = tmp_path_factory.mktemp("column_datasource-log", numbered=False)
+    dataset_resource_dir = tmp_path_factory.mktemp("column_dataset-resource", numbered=False)
+    converted_resource_dir = tmp_path_factory.mktemp("column_converted-resource", numbered=False)
     column_field_dir = tmp_path_factory.mktemp("column_field", numbered=False)
     output_log_dir = tmp_path_factory.mktemp("column_output_log", numbered=False)
 
     output_dir = tmp_path_factory.mktemp("column_output", numbered=False)
 
     # data - pipeline
-    raw_data = get_pipeline_csv_data_with_resources_and_endpoints(
-        test_pipeline, test_resource, test_endpoint
-    )
+    raw_data = get_pipeline_csv_data_with_resources_and_endpoints(test_pipeline, test_resource, test_endpoint)
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -68,9 +58,7 @@ def test_dirs(tmp_path_factory):
     fields_df.to_csv(specification_dir / "schema-field.csv", index=False)
 
     # data - collection
-    generate_test_collection_files(
-        str(collection_dir), test_pipeline, test_resource, test_endpoint
-    )
+    generate_test_collection_files(str(collection_dir), test_pipeline, test_resource, test_endpoint)
 
     return {
         "collection_dir": collection_dir,
@@ -87,9 +75,7 @@ def test_dirs(tmp_path_factory):
     }
 
 
-def get_pipeline_csv_data_with_resources_and_endpoints(
-    pipeline: str = "", resource: str = "", endpoint: str = ""
-):
+def get_pipeline_csv_data_with_resources_and_endpoints(pipeline: str = "", resource: str = "", endpoint: str = ""):
     return {
         "dataset": [pipeline, pipeline, pipeline],
         "resource": [
@@ -189,9 +175,7 @@ def get_additional_schema_field_csv_data(test_schema: str = ""):
     }
 
 
-def generate_test_collection_files(
-    collection_dir: str = "", pipeline: str = "", resource: str = "", endpoint: str = ""
-):
+def generate_test_collection_files(collection_dir: str = "", pipeline: str = "", resource: str = "", endpoint: str = ""):
     collection_csv_list = [
         "endpoint.csv",
         "source.csv",

@@ -1,11 +1,8 @@
 import pandas as pd
 import pydantic
-from digital_land.expectations.utils import (
-    transform_df_first_column_into_set,
-    config_parser,
-    QueryRunner,
-)
+
 from digital_land.expectations.result import ExpectationResult
+from digital_land.expectations.utils import QueryRunner, config_parser, transform_df_first_column_into_set
 
 
 def test_transform_first_col_into_set():
@@ -18,9 +15,7 @@ def test_transform_first_col_into_set():
 
 
 def test_query_runner():
-    tested_dataset = (
-        "tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
-    )
+    tested_dataset = "tests/expectations/resources_to_test_expectations/lb_single_res.sqlite3"
     query_runner = QueryRunner(tested_dataset)
     sql_query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
     result = query_runner.run_query(sql_query)
@@ -44,9 +39,7 @@ def test_query_runner():
 
 
 def test_config_parser():
-    file_path = (
-        "tests/expectations/resources_to_test_expectations/testing_config_dq_suite.yaml"
-    )
+    file_path = "tests/expectations/resources_to_test_expectations/testing_config_dq_suite.yaml"
     result = config_parser(file_path)
 
     expected_dictionary = {
@@ -102,9 +95,7 @@ def test_config_parser():
                 ],
             }
         ],
-        "custom_queries": [
-            {"query": "not implemented yet", "expected_result": "not implemented yet"}
-        ],
+        "custom_queries": [{"query": "not implemented yet", "expected_result": "not implemented yet"}],
     }
 
     assert result == expected_dictionary

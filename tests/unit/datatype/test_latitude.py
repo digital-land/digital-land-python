@@ -1,7 +1,7 @@
 #!/usr/bin/env pytest
 
-from digital_land.log import IssueLog
 from digital_land.datatype.latitude import LatitudeDataType
+from digital_land.log import IssueLog
 
 
 def test_decimal_normalise():

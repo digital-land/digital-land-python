@@ -1,7 +1,9 @@
-import pytest
-from digital_land.log import DatasetResourceLog, IssueLog
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
+
 import pandas as pd
+import pytest
+
+from digital_land.log import DatasetResourceLog, IssueLog
 
 
 @pytest.fixture

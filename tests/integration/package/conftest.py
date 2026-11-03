@@ -1,7 +1,7 @@
-import pytest
 import os
-
 from urllib.request import urlretrieve
+
+import pytest
 
 
 @pytest.fixture(scope="session")

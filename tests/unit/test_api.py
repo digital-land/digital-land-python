@@ -1,11 +1,12 @@
 import csv
 import os
-from digital_land.api import API
-from unittest.mock import Mock, mock_open
-import pytest
-from requests import Response, RequestException
 from os import stat_result
+from unittest.mock import Mock, mock_open
 
+import pytest
+from requests import RequestException, Response
+
+from digital_land.api import API
 from digital_land.pipeline.main import Pipeline
 
 _tpz_type_data = b"""dataset,end-date,entity,entry-date,geojson,geometry,name,organisation-entity,point,prefix,reference,start-date,typology,description,notes
@@ -52,9 +53,7 @@ class MockSpecification:
         }
         self.dataset_field_dataset = {
             "tree-preservation-zone": {"tree-preservation-zone-type": ""},
-            "conservation-area-document": {
-                "document-type": "conservation-area-document-type"
-            },
+            "conservation-area-document": {"document-type": "conservation-area-document-type"},
         }
 
     def get_category_fields(self, dataset):
@@ -98,9 +97,7 @@ def test_download_dataset_overwrite(mocker, tmp_path):
     path = tmp_path / "test.csv"
     path.write_bytes(b"stale")
 
-    API(Mock(), "http://test", str(tmp_path)).download_dataset(
-        "test", overwrite=True, path=str(path)
-    )
+    API(Mock(), "http://test", str(tmp_path)).download_dataset("test", overwrite=True, path=str(path))
 
     assert path.read_bytes() == _tpz_type_data
 

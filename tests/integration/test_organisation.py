@@ -1,6 +1,7 @@
-from digital_land.organisation import Organisation
 import csv
 import logging
+
+from digital_land.organisation import Organisation
 
 
 class TestOrganisation:
@@ -11,44 +12,14 @@ class TestOrganisation:
         )
 
         assert organisation.lookup("Borchester") == ""
-        assert (
-            organisation.lookup("local-authority-eng:LBH") == "local-authority-eng:LBH"
-        )
-        assert (
-            organisation.lookup("government-organisation:PB1164")
-            == "government-organisation:PB1164"
-        )
-        assert (
-            organisation.lookup(
-                "http://opendatacommunities.org/id/district-council/brentwood"
-            )
-            == "local-authority-eng:BRW"
-        )
+        assert organisation.lookup("local-authority-eng:LBH") == "local-authority-eng:LBH"
+        assert organisation.lookup("government-organisation:PB1164") == "government-organisation:PB1164"
+        assert organisation.lookup("http://opendatacommunities.org/id/district-council/brentwood") == "local-authority-eng:BRW"
 
-        assert (
-            organisation.lookup(
-                "http://opendatacommunities.org/id/district-council/tamworth"
-            )
-            == "local-authority-eng:TAW"
-        )
-        assert (
-            organisation.lookup(
-                "http://opendatacommunities.org/doc/district-council/tamworth"
-            )
-            == "local-authority-eng:TAW"
-        )
-        assert (
-            organisation.lookup(
-                "https://opendatacommunities.org/id/district-council/tamworth"
-            )
-            == "local-authority-eng:TAW"
-        )
-        assert (
-            organisation.lookup(
-                "https://opendatacommunities.org/doc/district-council/tamworth"
-            )
-            == "local-authority-eng:TAW"
-        )
+        assert organisation.lookup("http://opendatacommunities.org/id/district-council/tamworth") == "local-authority-eng:TAW"
+        assert organisation.lookup("http://opendatacommunities.org/doc/district-council/tamworth") == "local-authority-eng:TAW"
+        assert organisation.lookup("https://opendatacommunities.org/id/district-council/tamworth") == "local-authority-eng:TAW"
+        assert organisation.lookup("https://opendatacommunities.org/doc/district-council/tamworth") == "local-authority-eng:TAW"
 
         assert organisation.lookup("E07000068") == "local-authority-eng:BRW"
         assert organisation.lookup("Lambeth") == "local-authority-eng:LBH"
@@ -72,6 +43,4 @@ class TestOrganisation:
             organisation_path="tests/data/listed-building/organisation.csv",
             pipeline_dir=None,
         )
-        assert (
-            organisation.lookup("local-authority-eng:BRW") == "local-authority-eng:BRW"
-        )
+        assert organisation.lookup("local-authority-eng:BRW") == "local-authority-eng:BRW"

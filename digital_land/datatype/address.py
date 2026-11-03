@@ -1,4 +1,5 @@
 import re
+
 from .datatype import DataType
 
 comma_re = re.compile(r"(\s*,\s*){1,}")

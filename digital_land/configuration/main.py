@@ -8,8 +8,8 @@ import sqlite3
 import urllib
 from pathlib import Path
 
-from digital_land.package.sqlite import SqlitePackage
 from digital_land.package.package import Specification
+from digital_land.package.sqlite import SqlitePackage
 
 
 class Config(SqlitePackage):
@@ -46,9 +46,7 @@ class Config(SqlitePackage):
     def get_entity_organisation(self, entity):
         self.connect()
         self.create_cursor()
-        self.cursor.execute(
-            f"select organisation from entity_organisation where entity_minimum <= {entity} and entity_maximum >= {entity}"
-        )
+        self.cursor.execute(f"select organisation from entity_organisation where entity_minimum <= {entity} and entity_maximum >= {entity}")
         row = self.cursor.fetchone()
 
         result = row[0] if row else None

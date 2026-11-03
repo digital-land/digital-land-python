@@ -1,10 +1,11 @@
-import pytest
-import pandas as pd
-import logging
 import json
+import logging
 
-from digital_land.specification import Specification
+import pandas as pd
+import pytest
+
 from digital_land.configuration.main import Config
+from digital_land.specification import Specification
 
 
 def mock_init(self):

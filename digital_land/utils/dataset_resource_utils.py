@@ -42,8 +42,4 @@ def resource_needs_processing(
     log = read_dataset_resource_log(dataset_resource_dir, dataset, resource)
     if log is None:
         return True
-    return (
-        log["code-version"] != current_code_version
-        or log["config-hash"] != current_config_hash
-        or log["specification-hash"] != current_specification_hash
-    )
+    return log["code-version"] != current_code_version or log["config-hash"] != current_config_hash or log["specification-hash"] != current_specification_hash

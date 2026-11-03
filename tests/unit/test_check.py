@@ -1,7 +1,9 @@
 import csv
 import logging
 import os
+
 import pytest
+
 from digital_land.check import duplicate_reference_check
 from digital_land.log import IssueLog
 

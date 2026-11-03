@@ -1,10 +1,11 @@
 #!/usr/bin/env -S py.test -svv
 import csv
 import pathlib
+
 import pytest
 import xlsxwriter
-
 from click.testing import CliRunner
+
 from digital_land.cli import cli
 
 
@@ -42,9 +43,7 @@ def test_convert(input_file, tmp_path):
     for output_row, expected_row in zip(output, expected):
         for column, value in expected_row.items():
             if value:
-                assert normalise_csv_value(output_row[column]) == normalise_csv_value(
-                    value
-                )
+                assert normalise_csv_value(output_row[column]) == normalise_csv_value(value)
 
 
 @pytest.fixture()

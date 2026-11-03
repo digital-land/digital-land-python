@@ -899,9 +899,7 @@ from ..utils import QueryRunner
 
 
 def check_old_entities(query_runner: QueryRunner, **kwargs):
-    entities_in_old = query_runner.run_query(
-        "SELECT * FROM entity WHERE entity IN (SELECT old_entity FROM old_entity)"
-    )
+    entities_in_old = query_runner.run_query("SELECT * FROM entity WHERE entity IN (SELECT old_entity FROM old_entity)")
 
     result = not len(entities_in_old) > 0
 

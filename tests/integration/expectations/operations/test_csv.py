@@ -1,32 +1,33 @@
 import csv
+
 import duckdb
 import pytest
 
 from digital_land.expectations.operations.csv import (
-    count_rows,
-    check_unique,
-    check_no_shared_values,
-    check_no_overlapping_ranges,
     check_allowed_values,
-    check_no_blank_rows,
-    check_fields_are_within_range,
     check_field_is_within_range_by_dataset_org,
-    expect_column_to_be_decimal,
-    expect_column_to_be_flag,
-    expect_column_to_be_latitude,
-    expect_column_to_be_longitude,
-    expect_column_to_be_hash,
+    check_fields_are_within_range,
+    check_no_blank_rows,
+    check_no_overlapping_ranges,
+    check_no_shared_values,
+    check_unique,
+    count_rows,
     expect_column_to_be_curie,
     expect_column_to_be_curie_list,
-    expect_column_to_be_json,
-    expect_column_to_be_url,
     expect_column_to_be_date,
     expect_column_to_be_datetime,
-    expect_column_to_be_pattern,
-    expect_column_to_match_pattern,
-    expect_column_to_be_point,
+    expect_column_to_be_decimal,
+    expect_column_to_be_flag,
+    expect_column_to_be_hash,
     expect_column_to_be_integer,
+    expect_column_to_be_json,
+    expect_column_to_be_latitude,
+    expect_column_to_be_longitude,
     expect_column_to_be_multipolygon,
+    expect_column_to_be_pattern,
+    expect_column_to_be_point,
+    expect_column_to_be_url,
+    expect_column_to_match_pattern,
 )
 
 
@@ -61,30 +62,22 @@ def test_count_rows_greater_than_fails(duckdb_conn, csv_file):
 
 
 def test_count_rows_equals_to(duckdb_conn, csv_file):
-    passed, message, details = count_rows(
-        duckdb_conn, file_path=csv_file, expected=3, comparison_rule="equals_to"
-    )
+    passed, message, details = count_rows(duckdb_conn, file_path=csv_file, expected=3, comparison_rule="equals_to")
     assert passed is True
 
 
 def test_count_rows_equals_to_fails(duckdb_conn, csv_file):
-    passed, message, details = count_rows(
-        duckdb_conn, file_path=csv_file, expected=2, comparison_rule="equals_to"
-    )
+    passed, message, details = count_rows(duckdb_conn, file_path=csv_file, expected=2, comparison_rule="equals_to")
     assert passed is False
 
 
 def test_count_rows_invalid_comparison_rule(duckdb_conn, csv_file):
     with pytest.raises(ValueError):
-        count_rows(
-            duckdb_conn, file_path=csv_file, expected=3, comparison_rule="invalid"
-        )
+        count_rows(duckdb_conn, file_path=csv_file, expected=3, comparison_rule="invalid")
 
 
 def test_check_unique_passes(duckdb_conn, csv_file):
-    passed, message, details = check_unique(
-        duckdb_conn, file_path=csv_file, field="reference"
-    )
+    passed, message, details = check_unique(duckdb_conn, file_path=csv_file, field="reference")
     assert passed is True
     assert len(details["duplicates"]) == 0
 
@@ -127,9 +120,7 @@ def test_check_no_shared_values_passes(tmp_path, rows):
             writer.writerow(row)
 
     conn = duckdb.connect()
-    passed, message, details = check_no_shared_values(
-        conn, file_path=file_path, field_1="col1", field_2="col2"
-    )
+    passed, message, details = check_no_shared_values(conn, file_path=file_path, field_1="col1", field_2="col2")
     assert passed is True
     assert len(details["shared_values"]) == 0
 
@@ -143,9 +134,7 @@ def test_check_no_shared_values_fails(tmp_path):
         writer.writerow(["b", "c"])
 
     conn = duckdb.connect()
-    passed, message, details = check_no_shared_values(
-        conn, file_path=file_path, field_1="col1", field_2="col2"
-    )
+    passed, message, details = check_no_shared_values(conn, file_path=file_path, field_1="col1", field_2="col2")
     assert passed is False
     assert "b" in details["shared_values"]
 
@@ -159,9 +148,7 @@ def test_check_no_shared_values_ignores_empty(tmp_path):
         writer.writerow(["b", ""])
 
     conn = duckdb.connect()
-    passed, message, details = check_no_shared_values(
-        conn, file_path=file_path, field_1="col1", field_2="col2"
-    )
+    passed, message, details = check_no_shared_values(conn, file_path=file_path, field_1="col1", field_2="col2")
     assert passed is True
 
 
@@ -181,9 +168,7 @@ def test_check_no_overlapping_ranges_passes(tmp_path, rows):
             writer.writerow(row)
 
     conn = duckdb.connect()
-    passed, message, details = check_no_overlapping_ranges(
-        conn, file_path=file_path, min_field="min", max_field="max"
-    )
+    passed, message, details = check_no_overlapping_ranges(conn, file_path=file_path, min_field="min", max_field="max")
     assert passed is True
     assert len(details["overlaps"]) == 0
 
@@ -197,9 +182,7 @@ def test_check_no_overlapping_ranges_fails(tmp_path):
         writer.writerow(["10", "20"])
 
     conn = duckdb.connect()
-    passed, message, details = check_no_overlapping_ranges(
-        conn, file_path=file_path, min_field="min", max_field="max"
-    )
+    passed, message, details = check_no_overlapping_ranges(conn, file_path=file_path, min_field="min", max_field="max")
     assert passed is False
     assert len(details["overlaps"]) == 1
     assert details["overlaps"][0]["range_1"] == ["1", "15"]
@@ -216,9 +199,7 @@ def test_check_no_overlapping_ranges_adjacent_fails(tmp_path):
         writer.writerow(["10", "20"])
 
     conn = duckdb.connect()
-    passed, message, details = check_no_overlapping_ranges(
-        conn, file_path=file_path, min_field="min", max_field="max"
-    )
+    passed, message, details = check_no_overlapping_ranges(conn, file_path=file_path, min_field="min", max_field="max")
     assert passed is False
     assert len(details["overlaps"]) == 1
 
@@ -241,9 +222,7 @@ def test_check_no_overlapping_ranges_same_minimum_fails(tmp_path, rows):
             writer.writerow(row)
 
     conn = duckdb.connect()
-    passed, message, details = check_no_overlapping_ranges(
-        conn, file_path=file_path, min_field="min", max_field="max"
-    )
+    passed, message, details = check_no_overlapping_ranges(conn, file_path=file_path, min_field="min", max_field="max")
     assert passed is False
     assert len(details["overlaps"]) == 1
 
@@ -473,9 +452,7 @@ def test_check_field_is_within_ranges_by_dataset_org_supports_custom_column_name
     external_file = tmp_path / "ranges_custom.csv"
     with open(external_file, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(
-            ["dataset_name", "organisation", "entity-minimum", "entity-maximum"]
-        )
+        writer.writerow(["dataset_name", "organisation", "entity-minimum", "entity-maximum"])
         writer.writerow(["dataset-x", "org-a", "50", "100"])
 
     conn = duckdb.connect()
@@ -643,9 +620,7 @@ def test_check_field_is_within_ranges_lookup_rules_operator_in(tmp_path):
         min_field="entity-minimum",
         max_field="entity-maximum",
         field="entity",
-        rules={
-            "lookup_rules": {"organisation": {"op": "in", "value": ["org-a", "org-b"]}}
-        },
+        rules={"lookup_rules": {"organisation": {"op": "in", "value": ["org-a", "org-b"]}}},
     )
 
     assert passed is False
@@ -731,9 +706,7 @@ def test_expect_column_to_be_integer(tmp_path):
         writer.writerow(["abc"])
 
     conn = duckdb.connect()
-    passed, message, details = expect_column_to_be_integer(
-        conn, file_path=file_path, field="count"
-    )
+    passed, message, details = expect_column_to_be_integer(conn, file_path=file_path, field="count")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -752,9 +725,7 @@ def test_expect_column_to_be_multipolygon(tmp_path):
     conn = duckdb.connect()
     conn.execute("INSTALL spatial")
     conn.execute("LOAD spatial")
-    passed, _, details = expect_column_to_be_multipolygon(
-        conn, file_path=file_path, field="boundary"
-    )
+    passed, _, details = expect_column_to_be_multipolygon(conn, file_path=file_path, field="boundary")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -772,9 +743,7 @@ def test_expect_column_to_be_decimal(tmp_path):
         writer.writerow(["bad"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_decimal(
-        conn, file_path=file_path, field="price"
-    )
+    passed, _, details = expect_column_to_be_decimal(conn, file_path=file_path, field="price")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -793,9 +762,7 @@ def test_expect_column_to_be_flag(tmp_path):
         writer.writerow(["maybe"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_flag(
-        conn, file_path=file_path, field="active"
-    )
+    passed, _, details = expect_column_to_be_flag(conn, file_path=file_path, field="active")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -814,9 +781,7 @@ def test_expect_column_to_be_latitude(tmp_path):
         writer.writerow(["91"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_latitude(
-        conn, file_path=file_path, field="lat"
-    )
+    passed, _, details = expect_column_to_be_latitude(conn, file_path=file_path, field="lat")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -835,9 +800,7 @@ def test_expect_column_to_be_longitude(tmp_path):
         writer.writerow(["181"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_longitude(
-        conn, file_path=file_path, field="lon"
-    )
+    passed, _, details = expect_column_to_be_longitude(conn, file_path=file_path, field="lon")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -854,9 +817,7 @@ def test_expect_column_to_be_hash(tmp_path):
         writer.writerow(["xyz:notahex"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_hash(
-        conn, file_path=file_path, field="hash"
-    )
+    passed, _, details = expect_column_to_be_hash(conn, file_path=file_path, field="hash")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -873,9 +834,7 @@ def test_expect_column_to_be_curie(tmp_path):
         writer.writerow(["no_colon"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_curie(
-        conn, file_path=file_path, field="id"
-    )
+    passed, _, details = expect_column_to_be_curie(conn, file_path=file_path, field="id")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -892,9 +851,7 @@ def test_expect_column_to_be_curie_list(tmp_path):
         writer.writerow(["not-valid"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_curie_list(
-        conn, file_path=file_path, field="ids"
-    )
+    passed, _, details = expect_column_to_be_curie_list(conn, file_path=file_path, field="ids")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -911,9 +868,7 @@ def test_expect_column_to_be_json(tmp_path):
         writer.writerow(["not json"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_json(
-        conn, file_path=file_path, field="payload"
-    )
+    passed, _, details = expect_column_to_be_json(conn, file_path=file_path, field="payload")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -964,9 +919,7 @@ def test_expect_column_to_be_datetime(tmp_path):
         writer.writerow(["not-a-datetime"])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_datetime(
-        conn, file_path=file_path, field="dt"
-    )
+    passed, _, details = expect_column_to_be_datetime(conn, file_path=file_path, field="dt")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -983,9 +936,7 @@ def test_expect_column_to_be_pattern(tmp_path):
         writer.writerow(["["])
 
     conn = duckdb.connect()
-    passed, _, details = expect_column_to_be_pattern(
-        conn, file_path=file_path, field="regex"
-    )
+    passed, _, details = expect_column_to_be_pattern(conn, file_path=file_path, field="regex")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1
@@ -1050,9 +1001,7 @@ def test_expect_column_to_be_point(tmp_path):
     conn = duckdb.connect()
     conn.execute("INSTALL spatial")
     conn.execute("LOAD spatial")
-    passed, _, details = expect_column_to_be_point(
-        conn, file_path=file_path, field="geom"
-    )
+    passed, _, details = expect_column_to_be_point(conn, file_path=file_path, field="geom")
 
     assert passed is False
     assert len(details["invalid_rows"]) == 1

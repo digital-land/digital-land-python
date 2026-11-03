@@ -2,16 +2,23 @@ PIP_INSTALL_PACKAGE=[test]
 
 all:: lint test coverage
 
-lint:: black-check flake8
+lint:: black-check flake8 isort-check
 
 black-check:
-	black --check .
+	black --check --line-length 180 .
 
 black:
 	black .
 
+format:
+	black --line-length 180 .
+	isort --profile black --line-length 180 .
+
 flake8:
 	flake8 .
+
+isort-check:
+	isort --check-only --profile black --line-length 180 .
 
 test:: test-unit test-integration test-acceptance
 

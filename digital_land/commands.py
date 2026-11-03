@@ -1,45 +1,39 @@
-from collections import OrderedDict
 import csv
 import itertools
+import json
+import logging
 import os
 import shutil
 import sys
-import json
-import logging
-from packaging.version import Version
-import pandas as pd
-from pathlib import Path
+from collections import OrderedDict
 
 # from datetime import datetime
 from distutils.dir_util import copy_tree
-import geojson
-from requests import HTTPError
-import shapely
-import duckdb
+from pathlib import Path
 
-from digital_land.package.organisation import OrganisationPackage
-from digital_land.specification import Specification
+import duckdb
+import geojson
+import pandas as pd
+import shapely
+from packaging.version import Version
+from requests import HTTPError
+
+from digital_land.api import API
 from digital_land.collect import Collector, FetchStatus
 from digital_land.collection import Collection, endpoint_plugins_for, resource_path
-from digital_land.log import (
-    DatasetResourceLog,
-    IssueLog,
-    ColumnFieldLog,
-    ConvertedResourceLog,
-)
+from digital_land.configuration.main import Config
+from digital_land.log import ColumnFieldLog, ConvertedResourceLog, DatasetResourceLog, IssueLog
 from digital_land.organisation import Organisation
-
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.dataset_parquet import DatasetParquetPackage
+from digital_land.package.organisation import OrganisationPackage
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase, execute
 from digital_land.phase.default import DefaultPhase
 from digital_land.phase.dump import DumpPhase
 from digital_land.phase.filter import FilterPhase
 from digital_land.phase.harmonise import HarmonisePhase
-from digital_land.phase.lookup import (
-    PrintLookupPhase,
-)
+from digital_land.phase.lookup import PrintLookupPhase
 from digital_land.phase.map import MapPhase
 from digital_land.phase.migrate import MigratePhase
 from digital_land.phase.normalise import NormalisePhase
@@ -49,25 +43,24 @@ from digital_land.phase.patch import PatchPhase
 from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.prune import FieldPrunePhase
 from digital_land.phase.reference import EntityReferencePhase
-from digital_land.pipeline import run_pipeline, Lookups, Pipeline
+from digital_land.pipeline import Lookups, Pipeline, run_pipeline
 from digital_land.pipeline.process import convert_tranformed_csv_to_pq
 from digital_land.schema import Schema
-from digital_land.update import add_source_endpoint
-from digital_land.configuration.main import Config
-from digital_land.api import API
+from digital_land.specification import Specification
 from digital_land.state import State
+from digital_land.update import add_source_endpoint
 from digital_land.utils.add_data_utils import (
     clear_log,
     download_dataset,
     get_column_field_summary,
-    get_transformed_entities,
     get_entity_summary,
     get_existing_endpoints_summary,
     get_issue_summary,
+    get_transformed_entities,
     get_updated_entities_summary,
+    get_user_response,
     is_date_valid,
     is_url_valid,
-    get_user_response,
 )
 
 from .register import hash_value
@@ -131,9 +124,7 @@ def collection_save_csv(collection_dir, refill_todays_logs=False):
     collection.save_csv()
 
 
-def collection_retire_endpoints_and_sources(
-    config_collections_dir, endpoints_sources_to_retire_csv_path
-):
+def collection_retire_endpoints_and_sources(config_collections_dir, endpoints_sources_to_retire_csv_path):
     """
     Retires endpoints and sources based on an input.csv.
     Please note this requires an input csv with the columns: collection, endpoint and source.
@@ -153,9 +144,7 @@ def collection_retire_endpoints_and_sources(
         # Iterate over unique collection names to create dictionary
         for current_collection_name in unique_collections:
             # Filter the DataFrame for the current collection
-            collection_df = endpoints_sources_to_retire[
-                endpoints_sources_to_retire["collection"] == current_collection_name
-            ].copy()
+            collection_df = endpoints_sources_to_retire[endpoints_sources_to_retire["collection"] == current_collection_name].copy()
 
             # Remove the 'collection' column from the filtered DataFrame
             collection_df.drop(columns=["collection"], inplace=True)
@@ -240,9 +229,7 @@ def pipeline_run(
     pipeline.specification = specification
 
     # load organisations
-    organisation = Organisation(
-        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
-    )
+    organisation = Organisation(organisation_path=organisation_path, pipeline_dir=Path(pipeline.path))
 
     # load the resource default values from the collection
     if not endpoints:
@@ -359,9 +346,7 @@ def dataset_create(
         sys.exit(2)
 
     # Set up initial objects
-    organisation = Organisation(
-        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
-    )
+    organisation = Organisation(organisation_path=organisation_path, pipeline_dir=Path(pipeline.path))
 
     # create sqlite dataset packageas before and load inn data that isn't in the parquetpackage yet
     package = DatasetPackage(
@@ -377,9 +362,7 @@ def dataset_create(
         logging.info(f"loading column field log into {output_path}")
         package.load_column_fields(column_field_dir / dataset / f"{path.stem}.csv")
         logging.info(f"loading dataset resource log into {output_path}")
-        package.load_dataset_resource(
-            dataset_resource_dir / dataset / f"{path.stem}.csv"
-        )
+        package.load_dataset_resource(dataset_resource_dir / dataset / f"{path.stem}.csv")
     logger.info(f"loading old entities into {output_path}")
     old_entity_path = Path(pipeline.path) / "old-entity.csv"
     if old_entity_path.exists():
@@ -418,9 +401,7 @@ def dataset_create(
         pqpackage.group_parquet_files(input_dir, target_mb=256)
     pqpackage.load_facts(input_dir)
     # temporary diagnostic to verify fact count before sqlite load
-    fact_parquet_count = pqpackage.conn.execute(
-        f"SELECT COUNT(*) FROM parquet_scan('{pqpackage.fact_path}')"
-    ).fetchone()[0]
+    fact_parquet_count = pqpackage.conn.execute(f"SELECT COUNT(*) FROM parquet_scan('{pqpackage.fact_path}')").fetchone()[0]
     logger.info(f"fact.parquet row count before sqlite load: {fact_parquet_count}")
     pqpackage.load_fact_resource(input_dir)
     pqpackage.load_entities(input_dir, resource_path, organisation_path)
@@ -478,9 +459,7 @@ def dataset_update(
     # Set up initial objects
     column_field_dir = Path(column_field_dir)
     dataset_resource_dir = Path(dataset_resource_dir)
-    organisation = Organisation(
-        organisation_path=organisation_path, pipeline_dir=Path(pipeline.path)
-    )
+    organisation = Organisation(organisation_path=organisation_path, pipeline_dir=Path(pipeline.path))
     if not dataset_path:
         package = DatasetPackage(
             dataset,
@@ -491,9 +470,7 @@ def dataset_update(
         # Copy files from S3 and load into tables
         table_name = dataset
         object_key = output_path
-        package.load_from_s3(
-            bucket_name=bucket_name, object_key=object_key, table_name=table_name
-        )
+        package.load_from_s3(bucket_name=bucket_name, object_key=object_key, table_name=table_name)
     else:
         # Reading from local dataset file
         logging.info(f"Reading from local dataset file {dataset_path}")
@@ -542,10 +519,7 @@ def _free_parquet_cache(parquet_dir):
         shutil.rmtree(parquet_dir)
         after = shutil.disk_usage(parquet_dir.parent).free
         freed_gb = (after - before) / 1024**3
-        logger.info(
-            f"removed intermediate parquet cache {parquet_dir}, "
-            f"freed ~{freed_gb:.1f} GiB (now {after / 1024**3:.1f} GiB free)"
-        )
+        logger.info(f"removed intermediate parquet cache {parquet_dir}, " f"freed ~{freed_gb:.1f} GiB (now {after / 1024**3:.1f} GiB free)")
     except OSError as e:
         logger.warning(f"could not remove parquet cache {parquet_dir}: {e}")
 
@@ -556,9 +530,7 @@ def dataset_dump(input_path, output_path):
     os.system(cmd)
 
 
-def _create_parquet_from_csv(
-    csv_path, output_dir, dataset_name, specification, field_names
-):
+def _create_parquet_from_csv(csv_path, output_dir, dataset_name, specification, field_names):
     """
     Create a parquet file from the flattened CSV using DuckDB with data types from specification.
 
@@ -582,13 +554,7 @@ def _create_parquet_from_csv(
             column_specs[field] = duckdb_type
 
         # Format the columns dict for DuckDB: {'col1': 'TYPE1', 'col2': 'TYPE2'}
-        columns_str = (
-            "{"
-            + ", ".join(
-                [f"'{field}': '{dtype}'" for field, dtype in column_specs.items()]
-            )
-            + "}"
-        )
+        columns_str = "{" + ", ".join([f"'{field}': '{dtype}'" for field, dtype in column_specs.items()]) + "}"
 
         # Create DuckDB connection and export to parquet
         conn = duckdb.connect()
@@ -616,9 +582,7 @@ def _create_parquet_from_csv(
     except (IOError, OSError) as e:
         # File system errors - log but don't fail the whole process
         logging.error(f"File system error creating parquet file: {e}")
-        logging.error(
-            f"Parquet file creation failed, but CSV file is available at {csv_path}"
-        )
+        logging.error(f"Parquet file creation failed, but CSV file is available at {csv_path}")
     except Exception as e:
         # Unexpected errors - log and re-raise so we're aware
         logging.error(f"Unexpected error creating parquet file: {e}")
@@ -639,20 +603,8 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
     with open(csv_path, "r") as read_file, open(flattened_csv_path, "w+") as write_file:
         reader = csv.DictReader(read_file)
 
-        spec_field_names = [
-            field
-            for field in itertools.chain(
-                *[
-                    specification.current_fieldnames(schema)
-                    for schema in specification.dataset_schema[dataset]
-                ]
-            )
-        ]
-        reader_fieldnames = [
-            field.replace("_", "-")
-            for field in list(reader.fieldnames)
-            if field != "json"
-        ]
+        spec_field_names = [field for field in itertools.chain(*[specification.current_fieldnames(schema) for schema in specification.dataset_schema[dataset]])]
+        reader_fieldnames = [field.replace("_", "-") for field in list(reader.fieldnames) if field != "json"]
 
         flattened_field_names = set(spec_field_names).difference(set(reader_fieldnames))
         # Make sure we put flattened fieldnames last
@@ -666,16 +618,12 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             row = OrderedDict(row)
             json_string = row.pop("json") or "{}"
             row.update(json.loads(json_string))
-            kebab_case_row = dict(
-                [(key.replace("_", "-"), val) for key, val in row.items()]
-            )
+            kebab_case_row = dict([(key.replace("_", "-"), val) for key, val in row.items()])
             writer.writerow(kebab_case_row)
             entities.append(kebab_case_row)
 
     # Create parquet file from the flattened CSV using DuckDB
-    _create_parquet_from_csv(
-        flattened_csv_path, flattened_dir, dataset_name, specification, field_names
-    )
+    _create_parquet_from_csv(flattened_csv_path, flattened_dir, dataset_name, specification, field_names)
 
     # write the entities to json file as well
     flattened_json_path = os.path.join(flattened_dir, f"{dataset_name}.json")
@@ -705,11 +653,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             logging.error(f"Failed to get GDAL version: {e} assuming 3.5.2 or later")
             gdal_version = Version("3.5.2")
 
-        env = (
-            dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
-            if gdal_version >= Version("3.5.2")
-            else os.environ
-        )
+        env = dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0") if gdal_version >= Version("3.5.2") else os.environ
         for temp_path in temp_geojson_files:
             responseCode, _, _ = execute(
                 [
@@ -726,9 +670,7 @@ def dataset_dump_flattened(csv_path, flattened_dir, specification, dataset):
             )
 
             if responseCode != 0:
-                logging.error(
-                    "Could not generate rfc7946 compliant geojson. Use existing file."
-                )
+                logging.error("Could not generate rfc7946 compliant geojson. Use existing file.")
                 execute(
                     [
                         "ogr2ogr",
@@ -756,9 +698,7 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
     """
     entry["collection"] = collection
     entry["endpoint-url"] = endpoint_url
-    allowed_names = set(
-        list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames)
-    )
+    allowed_names = set(list(Schema("endpoint").fieldnames) + list(Schema("source").fieldnames))
     for key in entry.keys():
         if key not in allowed_names:
             logging.error(f"unrecognised argument '{key}'")
@@ -766,9 +706,7 @@ def collection_add_source(entry, collection, endpoint_url, collection_dir):
     add_source_endpoint(entry, directory=collection_dir)
 
 
-def validate_and_add_data_input(
-    csv_file_path, collection_name, collection_dir, specification_dir, organisation_path
-):
+def validate_and_add_data_input(csv_file_path, collection_name, collection_dir, specification_dir, organisation_path):
     expected_cols = [
         "pipelines",
         "organisation",
@@ -802,20 +740,12 @@ def validate_and_add_data_input(
             if row["licence"] == "":
                 raise ValueError("Licence is blank")
             elif not specification.licence.get(row["licence"], None):
-                raise ValueError(
-                    f"Licence '{row['licence']}' is not a valid licence according to the specification."
-                )
+                raise ValueError(f"Licence '{row['licence']}' is not a valid licence according to the specification.")
             # check if urls are not blank and valid urls
-            is_endpoint_valid, endpoint_valid_error = is_url_valid(
-                row["endpoint-url"], "endpoint_url"
-            )
-            is_documentation_valid, documentation_valid_error = is_url_valid(
-                row["documentation-url"], "documentation_url"
-            )
+            is_endpoint_valid, endpoint_valid_error = is_url_valid(row["endpoint-url"], "endpoint_url")
+            is_documentation_valid, documentation_valid_error = is_url_valid(row["documentation-url"], "documentation_url")
             if not is_endpoint_valid or not is_documentation_valid:
-                raise ValueError(
-                    f"{endpoint_valid_error} \n {documentation_valid_error}"
-                )
+                raise ValueError(f"{endpoint_valid_error} \n {documentation_valid_error}")
 
             # if there is no start-date, do we want to populate it with today's date?
             if row["start-date"]:
@@ -827,24 +757,16 @@ def validate_and_add_data_input(
             if row["organisation"] == "":
                 raise ValueError("The organisation must not be blank")
             elif not organisation.lookup(row["organisation"]):
-                raise ValueError(
-                    f"The given organisation '{row['organisation']}' is not in our valid organisations"
-                )
+                raise ValueError(f"The given organisation '{row['organisation']}' is not in our valid organisations")
 
             # validate pipeline(s) - do they exist and are they in the collection
             pipelines = row["pipelines"].split(";")
             for pipeline in pipelines:
                 if not specification.dataset.get(pipeline, None):
-                    raise ValueError(
-                        f"'{pipeline}' is not a valid dataset in the specification"
-                    )
-                collection_in_specification = specification.dataset.get(
-                    pipeline, None
-                ).get("collection")
+                    raise ValueError(f"'{pipeline}' is not a valid dataset in the specification")
+                collection_in_specification = specification.dataset.get(pipeline, None).get("collection")
                 if collection_name != collection_in_specification:
-                    raise ValueError(
-                        f"'{pipeline}' does not belong to provided collection {collection_name}"
-                    )
+                    raise ValueError(f"'{pipeline}' does not belong to provided collection {collection_name}")
 
     # VALIDATION DONE, NOW ADD TO COLLECTION
     print("======================================================================")
@@ -868,9 +790,7 @@ def validate_and_add_data_input(
         endpoints.append(endpoint)
     else:
         # We rely on the add_source_endpoint function to log why it couldn't be added
-        raise Exception(
-            "Endpoint and source could not be added - is this a duplicate endpoint?"
-        )
+        raise Exception("Endpoint and source could not be added - is this a duplicate endpoint?")
 
     # if successfully added we can now attempt to fetch from endpoint
     collector = Collector(
@@ -890,14 +810,10 @@ def validate_and_add_data_input(
         log_status = log.get("status", None)
         exception = log.get("exception", None)
         if fetch_status not in [FetchStatus.OK, FetchStatus.ALREADY_FETCHED]:
-            raise HTTPError(
-                f"Failed to collect from URL. fetch status: {fetch_status}, log status: {log_status}, exception: {exception}"
-            )
+            raise HTTPError(f"Failed to collect from URL. fetch status: {fetch_status}, log status: {log_status}, exception: {exception}")
         # Raise exception if status is not 200
         if not log_status or log_status != "200":
-            raise HTTPError(
-                f"Failed to collect from URL with status: {log_status if log_status else exception}"
-            )
+            raise HTTPError(f"Failed to collect from URL with status: {log_status if log_status else exception}")
 
         # Resource and path will only be printed if downloaded successfully but should only happen if status is 200
         resource = log.get("resource", None)
@@ -952,9 +868,7 @@ def add_data(
     clear_log(collection_dir, endpoint_resource_info["endpoint"])
 
     # Ask if user wants to proceed
-    if not get_user_response(
-        "Do you want to continue processing this resource? (yes/no): "
-    ):
+    if not get_user_response("Do you want to continue processing this resource? (yes/no): "):
         return
 
     if not cache_dir:
@@ -975,12 +889,7 @@ def add_data(
         converted_resource_dir = add_data_cache_dir / "converted_resource/"
         converted_dir = add_data_cache_dir / "converted/"
         output_log_dir = add_data_cache_dir / "log/"
-        output_path = (
-            add_data_cache_dir
-            / "transformed/"
-            / dataset
-            / (endpoint_resource_info["resource"] + ".csv")
-        )
+        output_path = add_data_cache_dir / "transformed/" / dataset / (endpoint_resource_info["resource"] + ".csv")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         issue_dir.mkdir(parents=True, exist_ok=True)
@@ -1009,21 +918,15 @@ def add_data(
                 organisations=[endpoint_resource_info["organisation"]],
                 resource=endpoint_resource_info["resource"],
                 output_log_dir=output_log_dir,
-                converted_path=os.path.join(
-                    converted_dir, endpoint_resource_info["resource"] + ".csv"
-                ),
+                converted_path=os.path.join(converted_dir, endpoint_resource_info["resource"] + ".csv"),
             )
         except Exception as e:
-            raise RuntimeError(
-                f"Pipeline failed to process resource with the following error: {e}"
-            )
+            raise RuntimeError(f"Pipeline failed to process resource with the following error: {e}")
         print("======================================================================")
         print("Pipeline successful!")
         print("======================================================================")
 
-        converted_path = os.path.join(
-            converted_dir, endpoint_resource_info["resource"] + ".csv"
-        )
+        converted_path = os.path.join(converted_dir, endpoint_resource_info["resource"] + ".csv")
         if not os.path.isfile(converted_path):
             # The pipeline doesn't convert .csv resources so direct user to original resource
             converted_path = endpoint_resource_info["resource_path"]
@@ -1043,9 +946,7 @@ def add_data(
         issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
         print(issue_summary)
 
-        entity_summary = get_entity_summary(
-            endpoint_resource_info, output_path, dataset, issue_dir, pipeline_dir
-        )
+        entity_summary = get_entity_summary(endpoint_resource_info, output_path, dataset, issue_dir, pipeline_dir)
         print(entity_summary)
 
         entities_assigned = False
@@ -1053,9 +954,7 @@ def add_data(
         if "unknown entity" in issue_summary or "missing reference" in issue_summary:
             # Ask if user wants to proceed
             print("\nThere are unknown entities")
-            if not get_user_response(
-                "Do you want to assign entities for this resource? (yes/no): "
-            ):
+            if not get_user_response("Do you want to assign entities for this resource? (yes/no): "):
                 return
 
             # Resource has been processed, run assign entities and reprocess
@@ -1096,14 +995,10 @@ def add_data(
                     organisations=[endpoint_resource_info["organisation"]],
                     resource=endpoint_resource_info["resource"],
                     output_log_dir=output_log_dir,
-                    converted_path=os.path.join(
-                        converted_dir, endpoint_resource_info["resource"] + ".csv"
-                    ),
+                    converted_path=os.path.join(converted_dir, endpoint_resource_info["resource"] + ".csv"),
                 )
             except Exception as e:
-                raise RuntimeError(
-                    f"Pipeline failed to process resource with the following error: {e}"
-                )
+                raise RuntimeError(f"Pipeline failed to process resource with the following error: {e}")
 
             entity_summary = get_entity_summary(
                 endpoint_resource_info,
@@ -1116,21 +1011,14 @@ def add_data(
 
             # Check if there are unassigned entities in the issue summary - raise exception if they still exist
             issue_summary = get_issue_summary(endpoint_resource_info, issue_dir)
-            if (
-                "unknown entity" in issue_summary
-                or "missing reference" in issue_summary
-            ):
+            if "unknown entity" in issue_summary or "missing reference" in issue_summary:
                 print(issue_summary)
-                raise Exception(
-                    f"Unknown entities remain in resource {endpoint_resource_info['resource']} after assigning entities"
-                )
+                raise Exception(f"Unknown entities remain in resource {endpoint_resource_info['resource']} after assigning entities")
 
             entities_assigned = True
 
         # Ask if user wants to proceed
-        if not get_user_response(
-            "Do you want to save changes made in this session? (yes/no): "
-        ):
+        if not get_user_response("Do you want to save changes made in this session? (yes/no): "):
             return
 
         # Save changes to collection
@@ -1140,19 +1028,13 @@ def add_data(
             shutil.copy(cache_pipeline_dir / "lookup.csv", pipeline_dir / "lookup.csv")
 
         # Now check for existing endpoints for this provision/organisation
-        print(
-            "\n======================================================================"
-        )
+        print("\n======================================================================")
         print("Retire old endpoints/sources")
         print("======================================================================")
-        existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(
-            endpoint_resource_info, collection, dataset
-        )
+        existing_endpoints_summary, existing_sources = get_existing_endpoints_summary(endpoint_resource_info, collection, dataset)
         print(existing_endpoints_summary)
         if existing_sources:
-            if get_user_response(
-                "Do you want to retire any of these existing endpoints? (yes/no): "
-            ):
+            if get_user_response("Do you want to retire any of these existing endpoints? (yes/no): "):
                 # iterate over existing sources and ask if they should be retired
                 sources_to_retire = []
                 for source in existing_sources:
@@ -1160,14 +1042,10 @@ def add_data(
                         sources_to_retire.append(source)
 
                 if sources_to_retire:
-                    collection.retire_endpoints_and_sources(
-                        pd.DataFrame.from_records(sources_to_retire)
-                    )
+                    collection.retire_endpoints_and_sources(pd.DataFrame.from_records(sources_to_retire))
 
         # Update dataset and view newly updated dataset
-        print(
-            "\n======================================================================"
-        )
+        print("\n======================================================================")
         print("Update dataset")
         print("======================================================================")
         if get_user_response(
@@ -1191,17 +1069,10 @@ def add_data(
                 dataset_path=dataset_path,
             )
             updated_entities = get_transformed_entities(dataset_path, output_path)
-            updated_entities_summary, diffs_df = get_updated_entities_summary(
-                original_entities, updated_entities
-            )
+            updated_entities_summary, diffs_df = get_updated_entities_summary(original_entities, updated_entities)
             print(updated_entities_summary)
             if diffs_df is not None:
-                diffs_path = (
-                    add_data_cache_dir
-                    / dataset
-                    / "diffs"
-                    / f"{endpoint_resource_info['resource']}.csv"
-                )
+                diffs_path = add_data_cache_dir / dataset / "diffs" / f"{endpoint_resource_info['resource']}.csv"
                 os.makedirs(os.path.dirname(diffs_path))
                 diffs_df.to_csv(diffs_path)
                 print(f"\nDetailed breakdown found in file: {diffs_path}")
@@ -1261,13 +1132,9 @@ def add_endpoints_and_lookups(
         endpoints = []
         for row in reader:
             if row["licence"] not in valid_licenses:
-                raise ValueError(
-                    f"Licence '{row['licence']}' is not a valid licence according to the specification."
-                )
+                raise ValueError(f"Licence '{row['licence']}' is not a valid licence according to the specification.")
             if not row["documentation-url"].strip():
-                raise ValueError(
-                    "The 'documentation-url' must be populated for each row."
-                )
+                raise ValueError("The 'documentation-url' must be populated for each row.")
             if collection.add_source_endpoint(row):
                 endpoint = {
                     "endpoint-url": row["endpoint-url"],
@@ -1301,10 +1168,7 @@ def add_endpoints_and_lookups(
         resources_to_assign = []
         for resource in dataset_resource_map[dataset]:
             resource_endpoints = collection.resource_endpoints(resource)
-            if any(
-                endpoint in [new_endpoint["endpoint"] for new_endpoint in endpoints]
-                for endpoint in resource_endpoints
-            ):
+            if any(endpoint in [new_endpoint["endpoint"] for new_endpoint in endpoints] for endpoint in resource_endpoints):
                 resource_file_path = Path(collection_dir) / "resource" / resource
                 resources_to_assign.append(resource_file_path)
         assign_entities(
@@ -1396,12 +1260,8 @@ def assign_entities(
     # save edited csvs
     max_entity_num = lookups.get_max_entity(pipeline_name, specification)
     lookups.entity_num_gen.state["current"] = max_entity_num
-    lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(
-        pipeline_name
-    )
-    lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(
-        pipeline_name
-    )
+    lookups.entity_num_gen.state["range_max"] = specification.get_dataset_entity_max(pipeline_name)
+    lookups.entity_num_gen.state["range_min"] = specification.get_dataset_entity_min(pipeline_name)
 
     # TO DO: Currently using pipeline_name to find dataset min, max, current
     # This would not function properly if each resource had a different dataset
@@ -1472,16 +1332,12 @@ def get_resource_unidentified_lookups(
     schema = specification.pipeline[pipeline.name]["schema"]
 
     # organisation phase
-    organisation = Organisation(
-        organisation_path=org_csv_path, pipeline_dir=Path(pipeline.path)
-    )
+    organisation = Organisation(organisation_path=org_csv_path, pipeline_dir=Path(pipeline.path))
 
     # print lookups phase
     pipeline_lookups = pipeline.lookups()
     redirect_lookups = pipeline.redirect_lookups()
-    print_lookup_phase = PrintLookupPhase(
-        lookups=pipeline_lookups, redirect_lookups=redirect_lookups
-    )
+    print_lookup_phase = PrintLookupPhase(lookups=pipeline_lookups, redirect_lookups=redirect_lookups)
 
     run_pipeline(
         ConvertPhase(
@@ -1555,14 +1411,10 @@ def process_data_in_batches(entities, flattened_dir, dataset_name):
                 logging.error(f"Error loading wkt from entity {entity['entity']}")
                 logging.error(e)
         else:
-            logging.error(
-                f"No geometry or point data for entity {entity['entity']} with typology 'geography'"
-            )
+            logging.error(f"No geometry or point data for entity {entity['entity']} with typology 'geography'")
 
     if features:
-        feature_collection = geojson.FeatureCollection(
-            features=features, name=dataset_name
-        )
+        feature_collection = geojson.FeatureCollection(features=features, name=dataset_name)
 
     return feature_collection
 
@@ -1599,11 +1451,7 @@ def add_redirections(csv_file_path, pipeline_dir):
             if row["entity_source"] == "" or row["entity_destination"] == "":
                 print(
                     "Missing entity number for",
-                    (
-                        row["entity_destination"]
-                        if row["entity_source"] == ""
-                        else row["entity_source"]
-                    ),
+                    (row["entity_destination"] if row["entity_source"] == "" else row["entity_source"]),
                 )
             else:
                 writer.writerow(
@@ -1729,9 +1577,7 @@ def check_and_assign_entities(
             converted_path=os.path.join(converted_dir, resource + ".csv"),
         )
     except Exception as e:
-        raise RuntimeError(
-            f"Pipeline failed to process resource with the following error: {e}"
-        )
+        raise RuntimeError(f"Pipeline failed to process resource with the following error: {e}")
 
     endpoint_resource_info = {
         "resource": resource,
@@ -1742,8 +1588,6 @@ def check_and_assign_entities(
     print(issue_summary)
 
     if prompt_user and "No issues found" not in issue_summary:
-        if not get_user_response(
-            "Do you want to continue processing this resource? (yes/no): "
-        ):
+        if not get_user_response("Do you want to continue processing this resource? (yes/no): "):
             return False
     return True

@@ -1,18 +1,16 @@
-import pandas as pd
 import csv
+from io import StringIO
 
+import pandas as pd
 import pytest
 
 from digital_land.commands import pipeline_run
 from digital_land.log import ColumnFieldLog
+from digital_land.phase.load import LoadPhase
 from digital_land.phase.map import MapPhase
+from digital_land.phase.parse import ParsePhase
 from digital_land.pipeline import Pipeline, run_pipeline
 from digital_land.specification import Specification
-
-from io import StringIO
-from digital_land.phase.load import LoadPhase
-from digital_land.phase.parse import ParsePhase
-
 
 test_pipeline = "national-park"
 test_resource = "5158d13bfc6f0723b1fb07c975701a906e83a1ead4aee598ee34e241c79a5f3d"
@@ -150,9 +148,7 @@ def test_pipeline_run(test_dirs):
     )
 
     # -- Asert --
-    df = pd.read_csv(
-        test_dirs["column_field_dir"] / f"{test_resource}.csv", index_col=False
-    )
+    df = pd.read_csv(test_dirs["column_field_dir"] / f"{test_resource}.csv", index_col=False)
 
     assert "end-date" in df["column"].values
     assert "ep-col-one" in df["column"].values
@@ -271,9 +267,7 @@ def test_pipeline_run_with_default_values(test_dirs):
     )
 
     # -- Asert --
-    df = pd.read_csv(
-        test_dirs["issues_log_dir"] / f"{test_resource}.csv", index_col=False
-    )
+    df = pd.read_csv(test_dirs["issues_log_dir"] / f"{test_resource}.csv", index_col=False)
 
     assert test_pipeline in df["dataset"].unique()
     assert test_resource in df["resource"].unique()

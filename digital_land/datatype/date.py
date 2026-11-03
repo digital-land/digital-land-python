@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timedelta
+
 from .datatype import DataType
 
 EPOCH = datetime(1970, 1, 1)

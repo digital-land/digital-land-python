@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Optional
+
 from esridump.dumper import EsriDumper
 from pydantic import ConfigDict, Field
 from pydantic.dataclasses import dataclass
-from typing import Optional
 
 DEFAULT_TIMEOUT = 60
 DEFAULT_RETRIES = 2
@@ -28,9 +29,7 @@ def get(collector, url, log={}, plugin="arcgis", parameters=None):
     if parameters is None:
         parameters = ArcGISParameters()
     elif not isinstance(parameters, ArcGISParameters):
-        logging.warning(
-            "ArcGIS get expects parameters to be an ArcGISParameters instance. using default parameters"
-        )
+        logging.warning("ArcGIS get expects parameters to be an ArcGISParameters instance. using default parameters")
         parameters = ArcGISParameters()
 
     retries = parameters.retries

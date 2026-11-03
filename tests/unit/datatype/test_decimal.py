@@ -1,9 +1,9 @@
 #!/usr/bin/env pytest
 
 from decimal import Decimal
-from digital_land.log import IssueLog
-from digital_land.datatype.decimal import DecimalDataType
 
+from digital_land.datatype.decimal import DecimalDataType
+from digital_land.log import IssueLog
 
 pi = Decimal("3.1415926535897932384626433832795028841971")
 

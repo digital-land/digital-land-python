@@ -1,14 +1,15 @@
 import csv
-from datetime import datetime
 import os
-from pathlib import Path
 import shutil
 import tempfile
+from datetime import datetime
+from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock, patch
-from click.testing import CliRunner
+
 import pandas as pd
 import pytest
+from click.testing import CliRunner
 
 from digital_land.cli import cli
 from tests.acceptance.conftest import copy_latest_specification_files_to
@@ -423,9 +424,7 @@ def test_cli_add_data_pipeline_fail(
         )
 
     assert result.exit_code == 1
-    assert "Pipeline failed to process resource with the following error" in str(
-        result.exception
-    )
+    assert "Pipeline failed to process resource with the following error" in str(result.exception)
     assert "Exception while running pipeline" in str(result.exception)
 
 

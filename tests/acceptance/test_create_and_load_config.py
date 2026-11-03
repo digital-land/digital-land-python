@@ -2,8 +2,8 @@
 Module to test the create and loading on config sqlite from the pipeline directory, uses the current specification.
 """
 
-import pytest
 import pandas as pd
+import pytest
 from click.testing import CliRunner
 
 from digital_land.cli import cli

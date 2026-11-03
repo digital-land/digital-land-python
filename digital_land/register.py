@@ -2,8 +2,9 @@
 
 import hashlib
 import json
-from canonicaljson import encode_canonical_json
 from collections import UserDict, UserList
+
+from canonicaljson import encode_canonical_json
 
 
 def hash_value(data):

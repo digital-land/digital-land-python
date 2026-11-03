@@ -1,35 +1,36 @@
 import json
-import duckdb
 from pathlib import Path
 
-from .base import BaseCheckpoint
+import duckdb
+
 from ..log import ExpectationLog
 from ..operations.csv import (
-    count_rows,
-    check_unique,
-    check_no_shared_values,
-    check_no_overlapping_ranges,
-    check_fields_are_within_range,
-    check_field_is_within_range_by_dataset_org,
     check_allowed_values,
+    check_field_is_within_range_by_dataset_org,
+    check_fields_are_within_range,
     check_no_blank_rows,
-    expect_column_to_be_integer,
-    expect_column_to_be_decimal,
-    expect_column_to_be_flag,
-    expect_column_to_be_latitude,
-    expect_column_to_be_longitude,
-    expect_column_to_be_hash,
+    check_no_overlapping_ranges,
+    check_no_shared_values,
+    check_unique,
+    count_rows,
     expect_column_to_be_curie,
     expect_column_to_be_curie_list,
-    expect_column_to_be_json,
-    expect_column_to_be_url,
     expect_column_to_be_date,
     expect_column_to_be_datetime,
-    expect_column_to_be_pattern,
-    expect_column_to_match_pattern,
+    expect_column_to_be_decimal,
+    expect_column_to_be_flag,
+    expect_column_to_be_hash,
+    expect_column_to_be_integer,
+    expect_column_to_be_json,
+    expect_column_to_be_latitude,
+    expect_column_to_be_longitude,
     expect_column_to_be_multipolygon,
+    expect_column_to_be_pattern,
     expect_column_to_be_point,
+    expect_column_to_be_url,
+    expect_column_to_match_pattern,
 )
+from .base import BaseCheckpoint
 
 
 class CsvCheckpoint(BaseCheckpoint):
@@ -66,9 +67,7 @@ class CsvCheckpoint(BaseCheckpoint):
             "expect_column_to_be_point": expect_column_to_be_point,
         }
         if operation_string not in operation_map:
-            raise ValueError(
-                f"Unknown operation: '{operation_string}'. Must be one of {list(operation_map.keys())}."
-            )
+            raise ValueError(f"Unknown operation: '{operation_string}'. Must be one of {list(operation_map.keys())}.")
         return operation_map[operation_string]
 
     def load(self, rules):
@@ -81,19 +80,13 @@ class CsvCheckpoint(BaseCheckpoint):
                 "dataset": self.dataset,
                 "severity": rule.get("severity", ""),
                 "responsibility": rule.get("responsibility", ""),
-                "parameters": (
-                    json.loads(rule["parameters"])
-                    if isinstance(rule["parameters"], str)
-                    else rule["parameters"]
-                ),
+                "parameters": (json.loads(rule["parameters"]) if isinstance(rule["parameters"], str) else rule["parameters"]),
             }
             self.expectations.append(expectation)
 
     def run_expectation(self, conn, expectation) -> tuple:
         params = expectation["parameters"]
-        passed, msg, details = expectation["operation"](
-            conn=conn, file_path=self.file_path, **params
-        )
+        passed, msg, details = expectation["operation"](conn=conn, file_path=self.file_path, **params)
         return passed, msg, details
 
     def get_connection(self):

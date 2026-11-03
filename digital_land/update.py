@@ -1,8 +1,8 @@
-from datetime import datetime
 import hashlib
+from datetime import datetime
 
-from .register import Item, hash_value
 from .collection import Collection
+from .register import Item, hash_value
 
 
 def recalculate_source_hashes(collection):

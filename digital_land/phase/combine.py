@@ -1,11 +1,12 @@
 from copy import deepcopy
 
+import shapely.wkt
 from shapely.geometry import MultiPolygon
+from shapely.ops import unary_union
+
+from digital_land.datatype.wkt import dump_wkt
 
 from .phase import Phase
-from shapely.ops import unary_union
-from digital_land.datatype.wkt import dump_wkt
-import shapely.wkt
 
 
 def combine_geometries(wkts, precision=6):
@@ -43,9 +44,7 @@ class FactCombinePhase(Phase):
         for entity, e in self.cache.items():
             for field, blocks in e.items():
                 # combine unique values for this entity
-                values = (
-                    block["row"]["value"] for block in blocks if block["row"]["value"]
-                )
+                values = (block["row"]["value"] for block in blocks if block["row"]["value"])
                 values = sorted(set(values))
 
                 if field == "geometry":

@@ -1,6 +1,7 @@
-from digital_land.phase.organisation import OrganisationPhase
-from digital_land.log import IssueLog
 from unittest.mock import Mock
+
+from digital_land.log import IssueLog
+from digital_land.phase.organisation import OrganisationPhase
 
 
 def test_process_with_valid_organisation(mocker):

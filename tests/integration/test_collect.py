@@ -1,17 +1,14 @@
 import csv
 import json
 import urllib.request
-import pytest
-
+from datetime import datetime
 from pathlib import Path
 
-from datetime import datetime
+import pytest
 from click.testing import CliRunner
-from digital_land.collect import FetchStatus
+
 from digital_land.cli import cli
-
-from digital_land.collect import Collector
-
+from digital_land.collect import Collector, FetchStatus
 from tests.utils.helpers import hash_digest
 
 ENDPOINT = "https://raw.githubusercontent.com/digital-land/digital-land-python/main/tests/data/resource_examples/csv.csv"
@@ -89,9 +86,7 @@ class TestCollector:
         url = "https://example.com/test-endpoint.csv"
         mock_content = b"reference,name\n1,Test Name\n2,Another Name"
 
-        mock_response = create_mock_response(
-            mocker, status_code=500, content=mock_content
-        )
+        mock_response = create_mock_response(mocker, status_code=500, content=mock_content)
 
         mocker.patch(
             "digital_land.collect.requests.Session.get",
@@ -115,9 +110,7 @@ class TestCollector:
         # now run without refill_todays_logs to ensure log is not overwritten
         fetch_status, log = collector.fetch(url=url, refill_todays_logs=False)
 
-        assert (
-            fetch_status == FetchStatus.ALREADY_FETCHED
-        ), "log should not be overwritten"
+        assert fetch_status == FetchStatus.ALREADY_FETCHED, "log should not be overwritten"
         mock_response.status_code = 200
         fetch_status, log = collector.fetch(url=url, refill_todays_logs=True)
 
@@ -142,9 +135,7 @@ class TestCollector:
         # -- Arrange --
         url = "https://example.com/not-found.csv"
 
-        mock_response = create_mock_response(
-            mocker, status_code=404, content=b"Not Found", content_type="text/html"
-        )
+        mock_response = create_mock_response(mocker, status_code=404, content=b"Not Found", content_type="text/html")
 
         mocker.patch(
             "digital_land.collect.requests.Session.get",

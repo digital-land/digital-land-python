@@ -1,10 +1,11 @@
 #!/usr/bin/env -S pytest -s
 
 from io import StringIO
-from digital_land.pipeline import run_pipeline
+
 from digital_land.phase.load import LoadPhase
-from digital_land.phase.save import SavePhase
 from digital_land.phase.parse import ParsePhase
+from digital_land.phase.save import SavePhase
+from digital_land.pipeline import run_pipeline
 
 
 def TestParsePipeline(inputs):

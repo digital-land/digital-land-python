@@ -1,10 +1,11 @@
 import csv
-import os
-from datetime import datetime
 import logging
-import warnings
+import os
 import urllib.request
+import warnings
+from datetime import datetime
 from pathlib import Path
+
 from cloudpathlib import AnyPath
 
 from .datatype.address import AddressDataType
@@ -13,17 +14,15 @@ from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
 from .datatype.flag import FlagDataType
 from .datatype.integer import IntegerDataType
+from .datatype.multipolygon import MultiPolygonDataType
 from .datatype.organisation import OrganisationURIDataType
+from .datatype.point import PointDataType
 from .datatype.string import StringDataType
 from .datatype.uri import URIDataType
-from .datatype.point import PointDataType
-from .datatype.multipolygon import MultiPolygonDataType
 
 logger = logging.getLogger(__name__)
 
-specification_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "specification"
-)
+specification_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "specification")
 
 
 class Specification:
@@ -169,12 +168,7 @@ class Specification:
         else:
             fields = self.field
 
-        fields = [
-            field
-            for field, value in fields.items()
-            if not value["end-date"]
-            or value["end-date"] > datetime.now().strftime("%Y-%m-%d")
-        ]
+        fields = [field for field, value in fields.items() if not value["end-date"] or value["end-date"] > datetime.now().strftime("%Y-%m-%d")]
 
         # TBD: remove these hacks
         if "entity" not in fields:
@@ -192,9 +186,7 @@ class Specification:
         return sorted(fieldnames)
 
     def factor_fieldnames(self):
-        return set(self.current_fieldnames("fact")).union(
-            self.current_fieldnames("fact-resource")
-        )
+        return set(self.current_fieldnames("fact")).union(self.current_fieldnames("fact-resource"))
 
     def field_type(self, fieldname):
         warnings.warn(
@@ -318,10 +310,7 @@ class Specification:
         field_datatype_map = self.get_field_datatype_map()
         duckdb_type_mapping = self.get_duckdb_type_mapping()
 
-        return {
-            field: duckdb_type_mapping.get(datatype, "VARCHAR")
-            for field, datatype in field_datatype_map.items()
-        }
+        return {field: duckdb_type_mapping.get(datatype, "VARCHAR") for field, datatype in field_datatype_map.items()}
 
     def get_field_typology_map(self):
         return {key: self.field_typology(key) for key in self.field.keys()}
@@ -349,13 +338,7 @@ class Specification:
         return [
             field
             for field in self.dataset_field.get(dataset, [])
-            if dataset in self.dataset_field
-            and field
-            in [
-                field
-                for field, data in self.field.items()
-                if data["typology"] == "category"
-            ]
+            if dataset in self.dataset_field and field in [field for field, data in self.field.items() if data["typology"] == "category"]
         ]
 
     def get_odp_collections(self):

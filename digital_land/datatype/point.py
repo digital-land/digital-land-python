@@ -1,6 +1,7 @@
 import shapely.wkt
-from .wkt import WktDataType
 from shapely.geometry import Point
+
+from .wkt import WktDataType
 
 
 class PointDataType(WktDataType):

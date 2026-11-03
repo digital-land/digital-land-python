@@ -25,9 +25,7 @@ def test_process_no_config():
     "organisation, expected_priority",
     [("local-authority:DNC", 2), ("local-authority:NOO", 1)],
 )
-def test_process_config_provided_with_authorative_org(
-    mocker, organisation, expected_priority
-):
+def test_process_config_provided_with_authorative_org(mocker, organisation, expected_priority):
     config = mocker.Mock()
     config.get_entity_organisation.return_value = "local-authority:DNC"
     input_stream = [
@@ -53,9 +51,7 @@ def test_process_config_provided_with_authorative_org(
     "organisation, expected_priority",
     [("local-authority:DNC", 1), ("local-authority:NOO", 1)],
 )
-def test_process_config_provided_without_authorative_org(
-    mocker, organisation, expected_priority
-):
+def test_process_config_provided_without_authorative_org(mocker, organisation, expected_priority):
     config = mocker.Mock()
     config.get_entity_organisation.return_value = None
     input_stream = [
@@ -83,9 +79,7 @@ def test_process_config_provided_without_authorative_org(
         ("local-authority:DNC", ["local-authority:NOO"], 1),
     ],
 )
-def test_process_config_provided_with_different_org_in_data(
-    mocker, organisation, providers, expected_priority
-):
+def test_process_config_provided_with_different_org_in_data(mocker, organisation, providers, expected_priority):
     config = mocker.Mock()
     config.get_entity_organisation.return_value = "local-authority:DNC"
     input_stream = [

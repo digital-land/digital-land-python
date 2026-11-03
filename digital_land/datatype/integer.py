@@ -1,4 +1,5 @@
 import re
+
 from .datatype import DataType
 
 strip_re = re.compile(r"\.0+$")

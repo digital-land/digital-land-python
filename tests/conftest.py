@@ -1,14 +1,13 @@
-import pytest
-import urllib
-import os
 import logging
+import os
+import urllib
+
+import pytest
 
 
 def pytest_configure(config):
     # Set up a logger for the tests
-    logging.basicConfig(
-        level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s"
-    )
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s")
 
 
 @pytest.fixture(scope="session")

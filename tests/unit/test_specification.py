@@ -1,8 +1,8 @@
 import pytest
 
-from digital_land.specification import Specification
-from digital_land.datatype.string import StringDataType
 from digital_land.datatype.integer import IntegerDataType
+from digital_land.datatype.string import StringDataType
+from digital_land.specification import Specification
 
 
 def test_dataset_names():

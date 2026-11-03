@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+
 from .datatype import DataType
 
 

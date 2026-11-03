@@ -24,35 +24,25 @@ class Specification:
             self.specification_dir = "specification"
 
     def load(self):
-        for row in csv.DictReader(
-            open(f"{self.specification_dir}/field.csv", newline="")
-        ):
+        for row in csv.DictReader(open(f"{self.specification_dir}/field.csv", newline="")):
             self.field[row["field"]] = row
 
-        for row in csv.DictReader(
-            open(f"{self.specification_dir}/schema.csv", newline="")
-        ):
+        for row in csv.DictReader(open(f"{self.specification_dir}/schema.csv", newline="")):
             self.schema[row["schema"]] = row
             self.schema[row["schema"]].setdefault("fields", [])
 
-        for row in csv.DictReader(
-            open(f"{self.specification_dir}/dataset.csv", newline="")
-        ):
+        for row in csv.DictReader(open(f"{self.specification_dir}/dataset.csv", newline="")):
             self.schema[row["dataset"]]["prefix"] = row["prefix"]
             self.schema[row["dataset"]]["typology"] = row["typology"]
             self.schema[row["dataset"]]["entity-minimum"] = row["entity-minimum"]
             self.schema[row["dataset"]]["entity-maximum"] = row["entity-maximum"]
 
-        for row in csv.DictReader(
-            open(f"{self.specification_dir}/schema-field.csv", newline="")
-        ):
+        for row in csv.DictReader(open(f"{self.specification_dir}/schema-field.csv", newline="")):
             self.schema[row["schema"]]["fields"].append(row["field"])
 
     def get_field_datatype_map(self):
         """Get mapping of field names to their datatypes."""
-        return {
-            key: value.get("datatype", "string") for key, value in self.field.items()
-        }
+        return {key: value.get("datatype", "string") for key, value in self.field.items()}
 
     def get_duckdb_type_mapping(self):
         """
@@ -96,10 +86,7 @@ class Specification:
         field_datatype_map = self.get_field_datatype_map()
         duckdb_type_mapping = self.get_duckdb_type_mapping()
 
-        return {
-            field: duckdb_type_mapping.get(datatype, "VARCHAR")
-            for field, datatype in field_datatype_map.items()
-        }
+        return {field: duckdb_type_mapping.get(datatype, "VARCHAR") for field, datatype in field_datatype_map.items()}
 
 
 class Package:

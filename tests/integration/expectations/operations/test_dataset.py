@@ -1,16 +1,17 @@
 import json
-import spatialite
 import sqlite3
-import pytest
-import pandas as pd
-import requests
 import urllib
+
+import pandas as pd
+import pytest
+import requests
+import spatialite
 
 from digital_land.expectations.operations.dataset import (
     check_columns,
     check_fields_required_after_plan_event,
-    count_lpa_boundary,
     count_deleted_entities,
+    count_lpa_boundary,
     duplicate_geometry_check,
     duplicate_name_check,
     fetch_active_resources_for_dataset,
@@ -72,9 +73,7 @@ def dataset_path(tmp_path):
         (1, "centroid_within", "equals_to"),
     ],
 )
-def test_count_lpa_boundary_passes(
-    expected, geometric_relation, comparison_rule, dataset_path, mocker
-):
+def test_count_lpa_boundary_passes(expected, geometric_relation, comparison_rule, dataset_path, mocker):
     # define parameters constant parameters that aren't parametised
     organisation_entity = 122
     lpa = "test"
@@ -117,9 +116,7 @@ def test_count_lpa_boundary_passes(
             comparison_rule=comparison_rule,
         )
 
-    assert (
-        passed
-    ), f"test expected to pass but it failed expected {details['expected']} but got {details['actual']}"
+    assert passed, f"test expected to pass but it failed expected {details['expected']} but got {details['actual']}"
     assert message, "test should have had a message returned"
     detail_keys = ["actual", "expected"]
     for key in detail_keys:
@@ -178,14 +175,11 @@ def fake_datasette(mocker):
 def test_fetch_active_resources_for_dataset_ignores_rows_without_a_resource(
     fake_datasette,
 ):
-    fake_datasette.execute(
-        "INSERT INTO organisation VALUES ('local-authority:LBH', 192)"
-    )
+    fake_datasette.execute("INSERT INTO organisation VALUES ('local-authority:LBH', 192)")
     # log rows for days the endpoint returned no resource, then its active resource
     fake_datasette.executemany(
         "INSERT INTO reporting_historic_endpoints VALUES (?, ?, ?, ?, ?)",
-        [("local-authority:LBH", "test-dataset", "endpoint_a", "", None)] * 3
-        + [("local-authority:LBH", "test-dataset", "endpoint_a", "resource_a", "")],
+        [("local-authority:LBH", "test-dataset", "endpoint_a", "", None)] * 3 + [("local-authority:LBH", "test-dataset", "endpoint_a", "resource_a", "")],
     )
 
     result = fetch_active_resources_for_dataset("test-dataset")
@@ -196,9 +190,7 @@ def test_fetch_active_resources_for_dataset_ignores_rows_without_a_resource(
 def test_fetch_all_resources_for_dataset_reads_past_the_datasette_row_limit(
     fake_datasette,
 ):
-    fake_datasette.execute(
-        "INSERT INTO organisation VALUES ('local-authority:LBH', 192)"
-    )
+    fake_datasette.execute("INSERT INTO organisation VALUES ('local-authority:LBH', 192)")
     fake_datasette.executemany(
         "INSERT INTO reporting_historic_endpoints VALUES (?, ?, ?, ?, ?)",
         [
@@ -265,9 +257,7 @@ def test_count_deleted_entities(dataset_path, mocker):
     with spatialite.connect(dataset_path) as conn:
         # load data into required tables
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
-        test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="replace", index=False
-        )
+        test_fact_resource_data.to_sql("fact_resource", conn, if_exists="replace", index=False)
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
         # run expectation
@@ -321,9 +311,7 @@ def test_count_deleted_entities_none_deleted(dataset_path, mocker):
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
-        test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="replace", index=False
-        )
+        test_fact_resource_data.to_sql("fact_resource", conn, if_exists="replace", index=False)
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
         passed, message, details = count_deleted_entities(
@@ -387,9 +375,7 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
-        test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="replace", index=False
-        )
+        test_fact_resource_data.to_sql("fact_resource", conn, if_exists="replace", index=False)
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
         passed, message, details = count_deleted_entities(
@@ -398,10 +384,7 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
             organisation_entity=organisation_entity,
         )
 
-    assert passed, (
-        f"expected exactly 1 deleted entity (1002) but got {details['actual']}: "
-        f"{details['entities']}"
-    )
+    assert passed, f"expected exactly 1 deleted entity (1002) but got {details['actual']}: " f"{details['entities']}"
     assert details["actual"] == 1
     assert "1002" in details["entities"]
     assert "2001" not in details["entities"]
@@ -411,9 +394,7 @@ def test_count_deleted_entities_org_isolation(dataset_path, mocker):
     "organisation_entity, expected_deleted",
     [(61, []), (304, ["3002"])],
 )
-def test_count_deleted_entities_shared_resource_with_same_references(
-    dataset_path, organisation_entity, expected_deleted
-):
+def test_count_deleted_entities_shared_resource_with_same_references(dataset_path, organisation_entity, expected_deleted):
     """
     Organisations sharing a resource (e.g. a joint plan published by BRO and SNO)
     each have their own entity for the same reference. Every organisation's
@@ -457,9 +438,7 @@ def test_count_deleted_entities_shared_resource_with_same_references(
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
-        test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="replace", index=False
-        )
+        test_fact_resource_data.to_sql("fact_resource", conn, if_exists="replace", index=False)
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
         passed, _, details = count_deleted_entities(
@@ -474,9 +453,7 @@ def test_count_deleted_entities_shared_resource_with_same_references(
     assert passed == (expected_deleted == [])
 
 
-def test_count_deleted_entities_ignores_entities_supplied_by_another_organisation(
-    dataset_path, mocker
-):
+def test_count_deleted_entities_ignores_entities_supplied_by_another_organisation(dataset_path, mocker):
     """
     Entities assigned to an organisation but only ever supplied by another
     organisation (e.g. MHCLG seeded plan-timetable data for an LPA) were never
@@ -517,9 +494,7 @@ def test_count_deleted_entities_ignores_entities_supplied_by_another_organisatio
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
-        test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="replace", index=False
-        )
+        test_fact_resource_data.to_sql("fact_resource", conn, if_exists="replace", index=False)
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
         passed, _, details = count_deleted_entities(
@@ -570,9 +545,7 @@ def test_count_deleted_entities_uses_cache_instead_of_http(dataset_path, mocker)
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
-        test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="replace", index=False
-        )
+        test_fact_resource_data.to_sql("fact_resource", conn, if_exists="replace", index=False)
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
 
         passed, _, details = count_deleted_entities(
@@ -690,10 +663,7 @@ def test_duplicate_geometry_check(dataset_path):
     conn.close()
 
     assert not result
-    assert (
-        message
-        == "There are 1 complete matches, 2 single matches and 3 any matches in the dataset"
-    )
+    assert message == "There are 1 complete matches, 2 single matches and 3 any matches in the dataset"
     assert details["actual"] == 6
     assert details["expected"] == 0
 
@@ -708,17 +678,9 @@ def test_duplicate_geometry_check(dataset_path):
     assert details["single_matches"][1]["organisation_entity_b"] == 102
 
     # entity 4 has partial overlap with entities 1, 2 and 3 - flagged as any_match only
-    assert not any(
-        row["entity_a"] == 4 or row["entity_b"] == 4
-        for row in details["complete_matches"]
-    )
-    assert not any(
-        row["entity_a"] == 4 or row["entity_b"] == 4
-        for row in details["single_matches"]
-    )
-    assert any(
-        row["entity_a"] == 4 or row["entity_b"] == 4 for row in details["any_matches"]
-    )
+    assert not any(row["entity_a"] == 4 or row["entity_b"] == 4 for row in details["complete_matches"])
+    assert not any(row["entity_a"] == 4 or row["entity_b"] == 4 for row in details["single_matches"])
+    assert any(row["entity_a"] == 4 or row["entity_b"] == 4 for row in details["any_matches"])
 
 
 def test_duplicate_geometry_check_point(dataset_path):
@@ -868,9 +830,7 @@ def test_duplicate_geometry_check_point_near_but_not_equal(dataset_path):
         ("point", "POINT(0 0)"),
     ],
 )
-def test_duplicate_geometry_check_searches_spatial_index_by_bounding_box(
-    dataset_path, spatial_field, wkt
-):
+def test_duplicate_geometry_check_searches_spatial_index_by_bounding_box(dataset_path, spatial_field, wkt):
     # The spatial index must be searched with each entity's bounding box; a scan of
     # the index with no constraint compares every pair of entities in the dataset
     with spatialite.connect(dataset_path) as conn:
@@ -952,8 +912,7 @@ def test_check_fields_required_after_plan_event(dataset_path, plan_timetable_pat
             if reference == "started-plan-complete":
                 fields = {**fields, "period-end-date": "2042-01-01"}
             con.execute(
-                "INSERT INTO entity (entity, reference, organisation_entity, json)"
-                " VALUES (?, ?, ?, ?)",
+                "INSERT INTO entity (entity, reference, organisation_entity, json)" " VALUES (?, ?, ?, ?)",
                 (entity, reference, str(entity), json.dumps(fields)),
             )
 
@@ -995,9 +954,7 @@ def test_check_fields_required_after_plan_event(dataset_path, plan_timetable_pat
     ]
 
 
-def test_check_fields_required_after_plan_event_missing_timetable(
-    dataset_path, tmp_path
-):
+def test_check_fields_required_after_plan_event_missing_timetable(dataset_path, tmp_path):
     """a missing artifact must skip the check, never fail the build"""
     with spatialite.connect(dataset_path) as con:
         passed, message, details = check_fields_required_after_plan_event(
@@ -1011,14 +968,11 @@ def test_check_fields_required_after_plan_event_missing_timetable(
     assert "check skipped" in message
 
 
-def test_check_fields_required_after_plan_event_null_value(
-    dataset_path, plan_timetable_path
-):
+def test_check_fields_required_after_plan_event_null_value(dataset_path, plan_timetable_path):
     """an explicit null must count as missing, not as populated"""
     with spatialite.connect(dataset_path) as con:
         con.execute(
-            "INSERT INTO entity (entity, reference, organisation_entity, json)"
-            " VALUES (?, ?, ?, ?)",
+            "INSERT INTO entity (entity, reference, organisation_entity, json)" " VALUES (?, ?, ?, ?)",
             (
                 1,
                 "started-plan",
@@ -1066,8 +1020,7 @@ def test_name_is_a_code_check(dataset_path):
     with spatialite.connect(dataset_path) as con:
         for entity, reference, name, organisation_entity, _organisation in entities:
             con.execute(
-                "INSERT INTO entity (entity, reference, name, organisation_entity)"
-                " VALUES (?, ?, ?, ?)",
+                "INSERT INTO entity (entity, reference, name, organisation_entity)" " VALUES (?, ?, ?, ?)",
                 (entity, reference, name, organisation_entity),
             )
 
@@ -1103,8 +1056,7 @@ def test_name_is_a_code_check(dataset_path):
 def test_name_is_a_code_check_all_descriptive(dataset_path):
     with spatialite.connect(dataset_path) as con:
         con.execute(
-            "INSERT INTO entity (entity, reference, name, organisation_entity)"
-            " VALUES (?, ?, ?, ?)",
+            "INSERT INTO entity (entity, reference, name, organisation_entity)" " VALUES (?, ?, ?, ?)",
             (1, "CA-WYM", "Wymondham Conservation Area", "600001"),
         )
 
@@ -1149,8 +1101,7 @@ def listed_building_path(tmp_path):
 def _insert_outline(con, entity, reference, name, organisation_entity, listed_building):
     """listed-building is not a core entity column, so it goes in the json blob"""
     con.execute(
-        "INSERT INTO entity (entity, reference, name, organisation_entity, json)"
-        " VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO entity (entity, reference, name, organisation_entity, json)" " VALUES (?, ?, ?, ?, ?)",
         (
             entity,
             reference,
@@ -1193,9 +1144,7 @@ def test_name_is_a_placeholder_check(dataset_path, listed_building_path):
             _insert_outline(con, *row)
 
     with spatialite.connect(dataset_path) as con:
-        passed, message, details = name_is_a_placeholder_check(
-            conn=con, listed_building_path=listed_building_path
-        )
+        passed, message, details = name_is_a_placeholder_check(conn=con, listed_building_path=listed_building_path)
 
     assert not passed, message
     assert details["actual"] == 2
@@ -1224,9 +1173,7 @@ def test_name_is_a_placeholder_check_all_real_names(dataset_path, listed_buildin
         _insert_outline(con, 1, "LBO-C", "NORTH LODGE", "600001", "2222222")
 
     with spatialite.connect(dataset_path) as con:
-        passed, message, details = name_is_a_placeholder_check(
-            conn=con, listed_building_path=listed_building_path
-        )
+        passed, message, details = name_is_a_placeholder_check(conn=con, listed_building_path=listed_building_path)
 
     assert passed, message
     assert details["failures"] == []
@@ -1246,9 +1193,7 @@ def test_name_is_a_placeholder_check_missing_artifact(dataset_path, tmp_path):
     assert "check skipped" in message
 
 
-def test_name_is_a_placeholder_check_placeholders_from_config(
-    dataset_path, listed_building_path
-):
+def test_name_is_a_placeholder_check_placeholders_from_config(dataset_path, listed_building_path):
     """the list is overridable from the parameters cell, so new boilerplate spotted in
     the data can be added without a code release"""
     with spatialite.connect(dataset_path) as con:
@@ -1256,9 +1201,7 @@ def test_name_is_a_placeholder_check_placeholders_from_config(
 
     with spatialite.connect(dataset_path) as con:
         # not in the default list, so nothing is flagged
-        passed, _message, _details = name_is_a_placeholder_check(
-            conn=con, listed_building_path=listed_building_path
-        )
+        passed, _message, _details = name_is_a_placeholder_check(conn=con, listed_building_path=listed_building_path)
         assert passed
 
         passed, _message, details = name_is_a_placeholder_check(
@@ -1271,9 +1214,7 @@ def test_name_is_a_placeholder_check_placeholders_from_config(
     assert [failure["name"] for failure in details["failures"]] == ["No given name"]
 
 
-def test_name_is_a_placeholder_check_single_string_placeholder(
-    dataset_path, listed_building_path
-):
+def test_name_is_a_placeholder_check_single_string_placeholder(dataset_path, listed_building_path):
     """a bare string in config must be treated as one placeholder rather than iterated
     as characters, which would match any single character name"""
     with spatialite.connect(dataset_path) as con:
@@ -1293,8 +1234,7 @@ def test_name_is_a_placeholder_check_single_string_placeholder(
 
 def _insert_named(con, entity, reference, name, organisation_entity, dataset=None):
     con.execute(
-        "INSERT INTO entity (entity, reference, name, organisation_entity, dataset)"
-        " VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO entity (entity, reference, name, organisation_entity, dataset)" " VALUES (?, ?, ?, ?, ?)",
         (entity, reference, name, organisation_entity, dataset),
     )
 
@@ -1359,9 +1299,7 @@ def test_duplicate_name_check_is_scoped_per_dataset(dataset_path):
     """one connection may hold more than one dataset. the same name in two of them is
     not a duplicate - grouping is per provision, which is dataset and organisation"""
     with spatialite.connect(dataset_path) as con:
-        _insert_named(
-            con, 1, "A4D-1", "Town Centre", "600001", "article-4-direction-area"
-        )
+        _insert_named(con, 1, "A4D-1", "Town Centre", "600001", "article-4-direction-area")
         _insert_named(con, 2, "CA-1", "Town Centre", "600001", "conservation-area")
 
     with spatialite.connect(dataset_path) as con:
@@ -1375,12 +1313,8 @@ def test_duplicate_name_check_still_flags_within_one_dataset(dataset_path):
     """the dataset partition must not suppress a genuine duplicate sitting alongside
     the same name in another dataset"""
     with spatialite.connect(dataset_path) as con:
-        _insert_named(
-            con, 1, "A4D-1", "Town Centre", "600001", "article-4-direction-area"
-        )
-        _insert_named(
-            con, 2, "A4D-2", "Town Centre", "600001", "article-4-direction-area"
-        )
+        _insert_named(con, 1, "A4D-1", "Town Centre", "600001", "article-4-direction-area")
+        _insert_named(con, 2, "A4D-2", "Town Centre", "600001", "article-4-direction-area")
         _insert_named(con, 3, "CA-1", "Town Centre", "600001", "conservation-area")
 
     with spatialite.connect(dataset_path) as con:
@@ -1445,9 +1379,7 @@ def test_duplicate_name_check_threshold_from_config(dataset_path):
     assert "3 or more entities" in message
 
 
-def test_count_lpa_boundary_failures_carry_organisation_from_the_data(
-    dataset_path, mocker
-):
+def test_count_lpa_boundary_failures_carry_organisation_from_the_data(dataset_path, mocker):
     """the organisation must come from the entity row, not the optional
     organisation_entity parameter, which not every config row supplies"""
     geometry = "MULTIPOLYGON(((-0.4914554581046105 53.80708847427775,-0.5012039467692374 53.773842823566696,-0.4584064520895481 53.783669118729875,-0.4914554581046105 53.80708847427775)))"  # noqa E501
@@ -1469,9 +1401,7 @@ def test_count_lpa_boundary_failures_carry_organisation_from_the_data(
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="append", index=False)
         # deliberately no organisation_entity parameter
-        passed, message, details = count_lpa_boundary(
-            conn, lpa="test", expected=2, geometric_relation="within"
-        )
+        passed, message, details = count_lpa_boundary(conn, lpa="test", expected=2, geometric_relation="within")
 
     assert passed, message
     assert details["failures"] == [
@@ -1482,9 +1412,7 @@ def test_count_lpa_boundary_failures_carry_organisation_from_the_data(
     assert details["entities"] == [1, 2]
 
 
-def test_count_lpa_boundary_marks_a_failed_geometry_fetch_as_an_error(
-    dataset_path, mocker
-):
+def test_count_lpa_boundary_marks_a_failed_geometry_fetch_as_an_error(dataset_path, mocker):
     """a check that could not run must be distinguishable from a real finding without
     string-matching the message"""
     mocker.patch(
@@ -1501,9 +1429,7 @@ def test_count_lpa_boundary_marks_a_failed_geometry_fetch_as_an_error(
     assert "failures" not in details
 
 
-def test_count_deleted_entities_failures_carry_organisation_as_a_string(
-    dataset_path, mocker
-):
+def test_count_deleted_entities_failures_carry_organisation_as_a_string(dataset_path, mocker):
     """one aggregated record rather than one per entity, since the check is already scoped
     to a single organisation and the entity list can be very large. config renders
     organisation_entity as a number, but every other check emits it as a string - a mixed
@@ -1537,9 +1463,7 @@ def test_count_deleted_entities_failures_carry_organisation_as_a_string(
 
     with spatialite.connect(dataset_path) as conn:
         test_entity_data.to_sql("entity", conn, if_exists="replace", index=False)
-        test_fact_resource_data.to_sql(
-            "fact_resource", conn, if_exists="replace", index=False
-        )
+        test_fact_resource_data.to_sql("fact_resource", conn, if_exists="replace", index=False)
         test_fact_data.to_sql("fact", conn, if_exists="replace", index=False)
         passed, _message, details = count_deleted_entities(
             conn,
@@ -1568,8 +1492,7 @@ def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_p
     with spatialite.connect(dataset_path) as conn:
         for entity, geometry, organisation_entity in rows:
             conn.execute(
-                "INSERT INTO entity (entity, geometry, organisation_entity)"
-                " VALUES (?, ?, ?)",
+                "INSERT INTO entity (entity, geometry, organisation_entity)" " VALUES (?, ?, ?)",
                 (entity, geometry, organisation_entity),
             )
         conn.commit()

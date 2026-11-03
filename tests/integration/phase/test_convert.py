@@ -1,7 +1,9 @@
-import pytest
 import json
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+import pytest
+
 from digital_land.phase.convert import ConvertPhase
 
 # the convert phase ran even though the input file didn't exist might need another test
@@ -39,6 +41,4 @@ def test_convert_phase_process_converts_a_json_array(input_data, tmp_path: Path)
     assert output_path.exists(), "the output file hasn't been made"
 
     output_df = pd.read_csv(output_path)
-    assert len(input_df) == len(
-        output_df
-    ), "the number of rows in the input and output files should be the same"
+    assert len(input_df) == len(output_df), "the number of rows in the input and output files should be the same"

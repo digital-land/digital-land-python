@@ -1,8 +1,9 @@
-import os.path
-import hashlib
-import shutil
-import requests
 import functools
+import hashlib
+import os.path
+import shutil
+
+import requests
 
 cache_dir = "./var/cache"
 

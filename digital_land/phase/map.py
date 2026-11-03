@@ -1,7 +1,7 @@
 import re
+
 from ..log import ColumnFieldLog
 from .phase import Phase
-
 
 normalise_pattern = re.compile(r"[^a-z0-9-_]")
 

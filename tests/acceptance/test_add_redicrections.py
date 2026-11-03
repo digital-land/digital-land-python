@@ -1,7 +1,9 @@
-import os
 import csv
-import pytest
+import os
 from pathlib import Path
+
+import pytest
+
 from digital_land.commands import add_redirections
 
 

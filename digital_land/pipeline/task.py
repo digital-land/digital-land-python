@@ -78,12 +78,8 @@ class TaskPipeline:
             endpoint = endpoint or (cfg.endpoint if cfg else None)
             log_path = log_path or (cfg.log_path if cfg else None)
             issue_path = issue_path or (cfg.issue_path if cfg else None)
-            severity_filter = severity_filter or (
-                cfg.severity_filter if cfg else ["error"]
-            )
-            responsibility_filter = responsibility_filter or (
-                cfg.responsibility_filter if cfg else ["external"]
-            )
+            severity_filter = severity_filter or (cfg.severity_filter if cfg else ["error"])
+            responsibility_filter = responsibility_filter or (cfg.responsibility_filter if cfg else ["external"])
             entry_date = entry_date or (cfg.entry_date if cfg else str(date.today()))
 
             if output_path is None:
@@ -92,9 +88,7 @@ class TaskPipeline:
                 return self.status
 
             if column_field_path and not mandatory_fields:
-                logger.warning(
-                    "column_field_path provided but mandatory_fields not supplied — skipping missing field checks"
-                )
+                logger.warning("column_field_path provided but mandatory_fields not supplied — skipping missing field checks")
                 column_field_path = None
             elif column_field_path and not Path(column_field_path).exists():
                 logger.warning(
@@ -109,20 +103,14 @@ class TaskPipeline:
                 log_df = (
                     # infer_schema_length=0 means that polas will interpret all values as strings
                     # rather than the defaul of infering datatypes on first 100 rows
-                    pl.scan_csv(
-                        log_path, infer_schema_length=0, null_values=[""]
-                    ).collect()
+                    pl.scan_csv(log_path, infer_schema_length=0, null_values=[""]).collect()
                 )
-                log_tasks = _transform_log_to_tasks(
-                    log_df, dataset, organisation, entry_date
-                )
+                log_tasks = _transform_log_to_tasks(log_df, dataset, organisation, entry_date)
                 if not log_tasks.is_empty():
                     frames.append(log_tasks)
 
             if issue_path and Path(issue_path).exists():
-                issue_df = pl.scan_csv(
-                    issue_path, infer_schema_length=0, null_values=[""]
-                ).collect()
+                issue_df = pl.scan_csv(issue_path, infer_schema_length=0, null_values=[""]).collect()
                 issue_tasks = _transform_issues_to_tasks(
                     issue_df,
                     organisation,
@@ -135,9 +123,7 @@ class TaskPipeline:
                     frames.append(issue_tasks)
 
             if column_field_path:
-                column_field_df = pl.scan_csv(
-                    column_field_path, infer_schema_length=0, null_values=[""]
-                ).collect()
+                column_field_df = pl.scan_csv(column_field_path, infer_schema_length=0, null_values=[""]).collect()
                 column_field_tasks = _transform_column_field_to_tasks(
                     column_field_df,
                     organisation,
@@ -182,11 +168,7 @@ def _transform_log_to_tasks(
             lambda row: json.dumps(
                 {
                     # status codes are converted to ints and nulls come in as empty strings
-                    "status": (
-                        int(row["status"])
-                        if row["status"] and row["status"].isdigit()
-                        else row["status"]
-                    ),
+                    "status": (int(row["status"]) if row["status"] and row["status"].isdigit() else row["status"]),
                     "exception": row["exception"] or "",
                 }
             ),
@@ -253,9 +235,7 @@ def _transform_column_field_to_tasks(
 
     resource = df["resource"][0] if "resource" in df.columns and len(df) > 0 else ""
     n = len(missing)
-    details_col = [
-        json.dumps({"field": f, "issue_type": "missing-field"}) for f in missing
-    ]
+    details_col = [json.dumps({"field": f, "issue_type": "missing-field"}) for f in missing]
 
     result = pl.DataFrame(
         {

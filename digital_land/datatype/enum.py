@@ -1,15 +1,14 @@
+import csv
 import os
 import re
-import csv
+
 from .datatype import DataType
 
 strip_re = re.compile(r"([^a-z0-9-_ ]+)")
 
 
 class EnumDataType(DataType):
-    def __init__(
-        self, enum=[], name="enum", patches_path="patch/enum.csv", dataset=None
-    ):
+    def __init__(self, enum=[], name="enum", patches_path="patch/enum.csv", dataset=None):
         self.name = name
         self.enum = set()
         self.value = {}

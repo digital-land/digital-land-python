@@ -1,10 +1,11 @@
 # CSV store, a set of CSV files of entries in a directory
 
-import os
 import csv
 import logging
-from pathlib import Path
+import os
 from datetime import datetime
+from pathlib import Path
+
 from .memory import MemoryStore
 
 
@@ -22,10 +23,7 @@ class CSVStore(MemoryStore):
                 self.add_entry(row)
             else:
                 # Don't load in values of today's log so it can be overwritten
-                if (
-                    "entry-date" in row
-                    and datetime.fromisoformat(row["entry-date"]).date() < today
-                ):
+                if "entry-date" in row and datetime.fromisoformat(row["entry-date"]).date() < today:
                     self.add_entry(row)
 
     def load(self, *args, **kwargs):
@@ -40,9 +38,7 @@ class CSVStore(MemoryStore):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         logging.debug("saving %s" % path)
         f = open(path, "w", newline="")
-        writer = csv.DictWriter(
-            f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
-        )
+        writer = csv.DictWriter(f, fieldnames=self.schema.fieldnames, extrasaction="ignore")
         writer.writeheader()
         for entry in entries:
             writer.writerow(entry)

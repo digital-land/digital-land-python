@@ -1,15 +1,16 @@
-import pytest
-import os
 import csv
-import urllib.request
-import pandas as pd
 import logging
+import os
+import urllib.request
 from urllib.error import URLError
-from digital_land.pipeline import Pipeline
-from digital_land.pipeline import Lookups
+
+import pandas as pd
+import pytest
+
+from digital_land.organisation import Organisation
+from digital_land.pipeline import Lookups, Pipeline
 from digital_land.pipeline.main import count_distinct_entities
 from digital_land.specification import Specification
-from digital_land.organisation import Organisation
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +56,7 @@ def empty_pipeline_dir(tmp_path):
     return pipeline_dir
 
 
-def get_test_column_csv_data_with_resources_and_endpoints(
-    pipeline: str = "", resource: str = "", endpoint: str = ""
-):
+def get_test_column_csv_data_with_resources_and_endpoints(pipeline: str = "", resource: str = "", endpoint: str = ""):
     return {
         "dataset": [pipeline, pipeline, pipeline],
         "resource": [
@@ -83,9 +82,7 @@ def get_test_column_csv_data_with_resources_and_endpoints(
     }
 
 
-def get_test_column_csv_data_with_resource_endpoint_clash_ep_first(
-    pipeline: str = "", resource: str = "", endpoint: str = ""
-):
+def get_test_column_csv_data_with_resource_endpoint_clash_ep_first(pipeline: str = "", resource: str = "", endpoint: str = ""):
     return {
         "dataset": [
             pipeline,
@@ -103,9 +100,7 @@ def get_test_column_csv_data_with_resource_endpoint_clash_ep_first(
     }
 
 
-def get_test_column_csv_data_with_resource_endpoint_clash_res_first(
-    pipeline: str = "", resource: str = "", endpoint: str = ""
-):
+def get_test_column_csv_data_with_resource_endpoint_clash_res_first(pipeline: str = "", resource: str = "", endpoint: str = ""):
     return {
         "dataset": [
             pipeline,
@@ -123,9 +118,7 @@ def get_test_column_csv_data_with_resource_endpoint_clash_res_first(
     }
 
 
-def get_test_concat_csv_data_with_endpoints_and_resources(
-    pipeline: str = "", resource: str = "", endpoint: str = ""
-):
+def get_test_concat_csv_data_with_endpoints_and_resources(pipeline: str = "", resource: str = "", endpoint: str = ""):
     return {
         "dataset": [pipeline, pipeline, pipeline],
         "resource": [resource, "", resource],
@@ -149,9 +142,7 @@ def test_load_column_when_csv_contains_endpoints_and_resources(tmp_path):
     test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     # create the datasource file used by the Pipeline class
-    raw_data = get_test_column_csv_data_with_resources_and_endpoints(
-        test_pipeline, test_resource, test_endpoint
-    )
+    raw_data = get_test_column_csv_data_with_resources_and_endpoints(test_pipeline, test_resource, test_endpoint)
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -179,9 +170,7 @@ def test_load_concat_when_csv_contains_endpoints_and_resources(tmp_path):
     test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
 
     # create the datasource file used by the Pipeline class
-    raw_data = get_test_concat_csv_data_with_endpoints_and_resources(
-        test_pipeline, test_resource, test_endpoint
-    )
+    raw_data = get_test_concat_csv_data_with_endpoints_and_resources(test_pipeline, test_resource, test_endpoint)
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/concat.csv", index=False)
 
@@ -245,9 +234,7 @@ def test_resource_specific_columns():
     p = Pipeline("tests/data/pipeline/", "pipeline-one")
     column = p.columns("some-resource")
 
-    assert (
-        list(column)[0] == "quatro"
-    ), "resource specific column 'quatro' should appear first in the returned dict"
+    assert list(column)[0] == "quatro", "resource specific column 'quatro' should appear first in the returned dict"
 
     assert column == {
         "dos": "two",
@@ -273,9 +260,7 @@ def test_columns_when_csv_contains_endpoints_and_resources(tmp_path):
     test_endpoint = "d779ad1c91c5a46e2d4ace4d5446d7d7f81df1ed058f882121070574697a5412"
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
-    raw_data = get_test_column_csv_data_with_resources_and_endpoints(
-        test_pipeline, test_resource, test_endpoint
-    )
+    raw_data = get_test_column_csv_data_with_resources_and_endpoints(test_pipeline, test_resource, test_endpoint)
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -308,9 +293,7 @@ def test_columns_when_csv_contains_clashing_entries_res_first(tmp_path):
     dummy_endpoint = "abcde12345fghij67890abcde12345fghij67890abcde12345fghij67890abcd"
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
-    raw_data = get_test_column_csv_data_with_resource_endpoint_clash_res_first(
-        test_pipeline, test_resource, test_endpoint
-    )
+    raw_data = get_test_column_csv_data_with_resource_endpoint_clash_res_first(test_pipeline, test_resource, test_endpoint)
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -343,9 +326,7 @@ def test_columns_when_csv_contains_clashing_entries_ep_first(tmp_path):
     dummy_endpoint = "abcde12345fghij67890abcde12345fghij67890abcde12345fghij67890abcd"
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
-    raw_data = get_test_column_csv_data_with_resource_endpoint_clash_ep_first(
-        test_pipeline, test_resource, test_endpoint
-    )
+    raw_data = get_test_column_csv_data_with_resource_endpoint_clash_ep_first(test_pipeline, test_resource, test_endpoint)
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/column.csv", index=False)
 
@@ -372,9 +353,7 @@ def test_concatenations_when_csv_contains_endpoints_and_resources(tmp_path):
     test_endpoints = [dummy_endpoint, test_endpoint, dummy_endpoint[::-1]]
 
     # create the datasource file used by the Pipeline class
-    raw_data = get_test_concat_csv_data_with_endpoints_and_resources(
-        test_pipeline, test_resource, test_endpoint
-    )
+    raw_data = get_test_concat_csv_data_with_endpoints_and_resources(test_pipeline, test_resource, test_endpoint)
     columns_data = pd.DataFrame.from_dict(raw_data)
     columns_data.to_csv(f"{pipeline_dir}/concat.csv", index=False)
 
@@ -748,9 +727,7 @@ def test_resource_file(tmp_path):
     return str(test_file)
 
 
-def test_pipeline_transform_basic(
-    specification_dir, organisation_path, test_resource_file, tmp_path
-):
+def test_pipeline_transform_basic(specification_dir, organisation_path, test_resource_file, tmp_path):
     """
     Lightweight integration test for Pipeline.transform() method.
 
@@ -768,14 +745,10 @@ def test_pipeline_transform_basic(
     dataset_name = "central-activities-zone"
 
     # Column mappings: CSV columns -> dataset fields
-    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
-        f"{pipeline_dir}/column.csv", index=False
-    )
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(f"{pipeline_dir}/column.csv", index=False)
 
     # Lookup mappings: reference values -> entity IDs
-    pd.DataFrame(get_test_lookup_config()).to_csv(
-        f"{pipeline_dir}/lookup.csv", index=False
-    )
+    pd.DataFrame(get_test_lookup_config()).to_csv(f"{pipeline_dir}/lookup.csv", index=False)
     # Initialize pipeline components
     spec = Specification(specification_dir)
     org = Organisation(organisation_path=organisation_path)
@@ -810,9 +783,7 @@ def test_pipeline_transform_basic(
     # Verify expected fields are present
     actual_fields = set(output_df["field"].unique())
     expected_fields = {"prefix", "geometry", "reference", "name", "organisation"}
-    assert expected_fields.issubset(
-        actual_fields
-    ), f"Expected fields {expected_fields} not all present in {actual_fields}"
+    assert expected_fields.issubset(actual_fields), f"Expected fields {expected_fields} not all present in {actual_fields}"
 
     # Verify entities were created
     assert output_df["entity"].notna().any(), "At least one entity should be created"
@@ -867,9 +838,7 @@ def test_count_distinct_entities_counts_non_empty_entities(tmp_path):
     assert count == 2
 
 
-def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
-    specification_dir, organisation_path, tmp_path
-):
+def test_pipeline_transform_with_unmapped_reference_lookup_enabled(specification_dir, organisation_path, tmp_path):
     """
     Test that when lookups are enabled and data has unmapped references,
     issue log contains 'unknown entity' errors.
@@ -882,19 +851,13 @@ def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
 
     # Create test resource with unmapped reference
     test_file = tmp_path / "test_resource.csv"
-    pd.DataFrame(get_test_resource_data_with_unmapped_reference()).to_csv(
-        test_file, index=False
-    )
+    pd.DataFrame(get_test_resource_data_with_unmapped_reference()).to_csv(test_file, index=False)
 
     # Column mappings
-    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
-        f"{pipeline_dir}/column.csv", index=False
-    )
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(f"{pipeline_dir}/column.csv", index=False)
 
     # Lookup mappings (only references 0 and 1, not 99)
-    pd.DataFrame(get_test_lookup_config()).to_csv(
-        f"{pipeline_dir}/lookup.csv", index=False
-    )
+    pd.DataFrame(get_test_lookup_config()).to_csv(f"{pipeline_dir}/lookup.csv", index=False)
 
     spec = Specification(specification_dir)
     org = Organisation(organisation_path=organisation_path)
@@ -920,9 +883,7 @@ def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
     # Check that issue log contains "unknown entity"
     issues = issue_log.rows
     issue_types = [issue["issue-type"] for issue in issues if "issue-type" in issue]
-    assert (
-        "unknown entity" in issue_types
-    ), "Should have 'unknown entity' error for unmapped reference 99"
+    assert "unknown entity" in issue_types, "Should have 'unknown entity' error for unmapped reference 99"
 
     # Verify the unmapped reference (99) was NOT included in output (pruned)
     output_df = pd.read_csv(output_path)
@@ -931,9 +892,7 @@ def test_pipeline_transform_with_unmapped_reference_lookup_enabled(
     assert len(entities) == 2, "Should only have 2 entities (reference 99 pruned)"
 
 
-def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
-    specification_dir, organisation_path, tmp_path
-):
+def test_pipeline_transform_with_unmapped_reference_lookup_disabled(specification_dir, organisation_path, tmp_path):
     """
     Test that when lookups are disabled and data has unmapped references,
     issue log does NOT contain 'unknown entity' errors,
@@ -947,19 +906,13 @@ def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
 
     # Create test resource with unmapped reference
     test_file = tmp_path / "test_resource.csv"
-    pd.DataFrame(get_test_resource_data_with_unmapped_reference()).to_csv(
-        test_file, index=False
-    )
+    pd.DataFrame(get_test_resource_data_with_unmapped_reference()).to_csv(test_file, index=False)
 
     # Column mappings
-    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
-        f"{pipeline_dir}/column.csv", index=False
-    )
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(f"{pipeline_dir}/column.csv", index=False)
 
     # Lookup mappings (only references 0 and 1, not 99)
-    pd.DataFrame(get_test_lookup_config()).to_csv(
-        f"{pipeline_dir}/lookup.csv", index=False
-    )
+    pd.DataFrame(get_test_lookup_config()).to_csv(f"{pipeline_dir}/lookup.csv", index=False)
 
     spec = Specification(specification_dir)
     org = Organisation(organisation_path=organisation_path)
@@ -985,20 +938,14 @@ def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
     # Check that issue log does NOT contain "unknown entity"
     issues = issue_log.rows
     issue_types = [issue["issue-type"] for issue in issues if "issue-type" in issue]
-    assert (
-        "unknown entity" not in issue_types
-    ), "Should NOT have 'unknown entity' error when lookups disabled"
+    assert "unknown entity" not in issue_types, "Should NOT have 'unknown entity' error when lookups disabled"
 
     # Verify all data was created including unmapped reference
     output_df = pd.read_csv(output_path)
 
     # Check that we have rows with empty entity values (the unmapped reference)
-    empty_entity_rows = output_df[
-        output_df["entity"].isna() | (output_df["entity"] == "")
-    ]
-    assert (
-        len(empty_entity_rows) > 0
-    ), "Should have rows with empty entity for unmapped reference 99"
+    empty_entity_rows = output_df[output_df["entity"].isna() | (output_df["entity"] == "")]
+    assert len(empty_entity_rows) > 0, "Should have rows with empty entity for unmapped reference 99"
 
     # Verify reference field for unmapped data exists in output
     reference_values = output_df[output_df["field"] == "reference"]["value"].tolist()
@@ -1006,9 +953,7 @@ def test_pipeline_transform_with_unmapped_reference_lookup_disabled(
 
 
 @pytest.mark.parametrize("disable_lookups", [True, False])
-def test_pipeline_transform_raises_one_missing_reference_for_a_blank_reference(
-    specification_dir, organisation_path, tmp_path, disable_lookups
-):
+def test_pipeline_transform_raises_one_missing_reference_for_a_blank_reference(specification_dir, organisation_path, tmp_path, disable_lookups):
     """
     A row with no reference raises a single missing reference issue, whether lookups
     are disabled (as the check tool runs) or enabled (as the full pipeline runs),
@@ -1021,15 +966,9 @@ def test_pipeline_transform_raises_one_missing_reference_for_a_blank_reference(
     dataset_name = "central-activities-zone"
 
     test_file = tmp_path / "test_resource.csv"
-    pd.DataFrame(get_test_resource_data_with_blank_reference()).to_csv(
-        test_file, index=False
-    )
-    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(
-        f"{pipeline_dir}/column.csv", index=False
-    )
-    pd.DataFrame(get_test_lookup_config()).to_csv(
-        f"{pipeline_dir}/lookup.csv", index=False
-    )
+    pd.DataFrame(get_test_resource_data_with_blank_reference()).to_csv(test_file, index=False)
+    pd.DataFrame(get_test_column_config(dataset_name)).to_csv(f"{pipeline_dir}/column.csv", index=False)
+    pd.DataFrame(get_test_lookup_config()).to_csv(f"{pipeline_dir}/lookup.csv", index=False)
 
     spec = Specification(specification_dir)
     org = Organisation(organisation_path=organisation_path)
@@ -1050,9 +989,7 @@ def test_pipeline_transform_raises_one_missing_reference_for_a_blank_reference(
     )
 
     # -- Assert --
-    missing_references = [
-        issue for issue in issue_log.rows if issue["issue-type"] == "missing reference"
-    ]
+    missing_references = [issue for issue in issue_log.rows if issue["issue-type"] == "missing reference"]
     assert len(missing_references) == 1
     assert missing_references[0]["field"] == "reference"
     assert missing_references[0]["line-number"] == 3
@@ -1060,7 +997,4 @@ def test_pipeline_transform_raises_one_missing_reference_for_a_blank_reference(
     issue_types = [issue["issue-type"] for issue in issue_log.rows]
     assert "unknown entity" not in issue_types
     assert "unknown entity - missing reference" not in issue_types
-    assert not any(
-        issue["issue-type"] == "missing value" and issue["field"] == "reference"
-        for issue in issue_log.rows
-    )
+    assert not any(issue["issue-type"] == "missing value" and issue["field"] == "reference" for issue in issue_log.rows)

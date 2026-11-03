@@ -2,19 +2,18 @@
 Contains data classes representing the result of an expectation being ran from expectation functions
 """
 
-from datetime import datetime
-import os
-
 # TODO I think we can remove copy, often promotes bad behaviour
 import copy
+import os
 
 # TODO is warnings the right module for this? or should we use logging
 import warnings
-
-from enum import Enum
-from pydantic.dataclasses import dataclass
-from dataclasses_json import config, dataclass_json
 from dataclasses import field
+from datetime import datetime
+from enum import Enum
+
+from dataclasses_json import config, dataclass_json
+from pydantic.dataclasses import dataclass
 
 
 class SeverityEnum(str, Enum):

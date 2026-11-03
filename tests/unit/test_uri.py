@@ -1,15 +1,12 @@
-from digital_land.log import IssueLog
 from digital_land.datatype.uri import URIDataType
+from digital_land.log import IssueLog
 
 
 def test_uri_normalise():
     uri = URIDataType()
     assert uri.normalise("https://example.com/foo") == "https://example.com/foo"
 
-    assert (
-        uri.normalise("https://example.com/foo\nbar\n/baz")
-        == "https://example.com/foobar/baz"
-    )
+    assert uri.normalise("https://example.com/foo\nbar\n/baz") == "https://example.com/foobar/baz"
 
     issues = IssueLog()
     issues.fieldname = "documentation-url"

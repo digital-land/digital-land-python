@@ -1,6 +1,7 @@
 import pytest
-from digital_land.log import IssueLog
+
 from digital_land.datatype.enum import EnumDataType
+from digital_land.log import IssueLog
 
 
 def test_enum_normalise():

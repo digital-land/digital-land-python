@@ -1,12 +1,14 @@
-from datetime import datetime, date
-from .phase import Phase
-from calendar import monthrange
-from digital_land.datatype.point import PointDataType
-from digital_land.datatype.factory import datatype_factory
-import shapely.wkt
-import re
 import logging
+import re
+from calendar import monthrange
+from datetime import date, datetime
 
+import shapely.wkt
+
+from digital_land.datatype.factory import datatype_factory
+from digital_land.datatype.point import PointDataType
+
+from .phase import Phase
 
 logger = logging.getLogger(__name__)
 
@@ -210,11 +212,7 @@ class HarmonisePhase(Phase):
                                 raw_value.replace(r"\s", "-"),
                             )
                             matching_value = next(
-                                (
-                                    v
-                                    for v in self.valid_category_values[field]
-                                    if v.lower() == normalised_value.lower()
-                                ),
+                                (v for v in self.valid_category_values[field] if v.lower() == normalised_value.lower()),
                                 None,
                             )
                             if matching_value:
@@ -222,20 +220,14 @@ class HarmonisePhase(Phase):
                                 # TODO: log a warning where we've replaced spaces to match categorical value
                                 harmonised_values.append(matching_value)
                             else:
-                                self.issues.log_issue(
-                                    field, "invalid category value", raw_value
-                                )
+                                self.issues.log_issue(field, "invalid category value", raw_value)
                                 harmonised_values.append(raw_value)
                         row[field] = ";".join(harmonised_values)
                 o[field] = self.harmonise_field(field, row[field])
 
             # remove future entry dates
             for field in ["entry-date", "LastUpdatedDate"]:
-                if (
-                    o.get(field, "")
-                    and datetime.strptime(o[field][:10], "%Y-%m-%d").date()
-                    > datetime.today().date()
-                ):
+                if o.get(field, "") and datetime.strptime(o[field][:10], "%Y-%m-%d").date() > datetime.today().date():
                     self.issues.log_issue(
                         field,
                         "future entry-date",
@@ -251,9 +243,7 @@ class HarmonisePhase(Phase):
 
                 point = PointDataType()
                 try:
-                    geometry = point.normalise(
-                        [o["GeoX"], o["GeoY"]], issues=self.issues
-                    )
+                    geometry = point.normalise([o["GeoX"], o["GeoY"]], issues=self.issues)
                     if geometry:
                         point_geometry = shapely.wkt.loads(geometry)
                         x, y = point_geometry.coords[0]
@@ -263,9 +253,7 @@ class HarmonisePhase(Phase):
                         del o["GeoX"]
                         del o["GeoY"]
                 except Exception as e:
-                    logger.error(
-                        f"Exception occurred while fetching geoX, geoY coordinates: {e}"
-                    )
+                    logger.error(f"Exception occurred while fetching geoX, geoY coordinates: {e}")
             # TODO need to identify why below exists and possibly remove
             # ensure typology fields are a CURIE
             for typology in ["organisation", "geography", "document"]:
@@ -280,9 +268,7 @@ class HarmonisePhase(Phase):
             # One of geometry or point must not be empty if either field is given
             for field in row:
                 if field in ["geometry", "point"]:
-                    if (row.get("geometry") == "" or row.get("geometry") is None) and (
-                        row.get("point") == "" or row.get("point") is None
-                    ):
+                    if (row.get("geometry") == "" or row.get("geometry") is None) and (row.get("point") == "" or row.get("point") is None):
                         self.issues.log_issue(
                             field,
                             "missing value",
@@ -291,11 +277,7 @@ class HarmonisePhase(Phase):
                         )
                 # a blank reference is raised as missing reference by EntityReferencePhase
                 # (SiteReference is brownfield-land's name for reference until it is migrated)
-                elif (
-                    mandatory_fields
-                    and field in mandatory_fields
-                    and field not in ["reference", "SiteReference"]
-                ):
+                elif mandatory_fields and field in mandatory_fields and field not in ["reference", "SiteReference"]:
                     if row.get(field) == "" or row.get(field) is None:
                         self.issues.log_issue(
                             field,
@@ -306,12 +288,8 @@ class HarmonisePhase(Phase):
 
             # migrate wikipedia URLs to a reference compatible with dbpedia CURIEs with a wikipedia-en prefix
             if row.get("wikipedia", "").startswith("http"):
-                self.issues.log_issue(
-                    "wikipedia", "removed URI prefix", row["wikipedia"]
-                )
-                o["wikipedia"] = row["wikipedia"].replace(
-                    "https://en.wikipedia.org/wiki/", ""
-                )
+                self.issues.log_issue("wikipedia", "removed URI prefix", row["wikipedia"])
+                o["wikipedia"] = row["wikipedia"].replace("https://en.wikipedia.org/wiki/", "")
             block["row"] = o
 
             yield block

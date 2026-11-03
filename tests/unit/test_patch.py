@@ -1,7 +1,7 @@
 #!/usr/bin/env -S py.test -svv
 
-from digital_land.phase.patch import PatchPhase
 from digital_land.log import IssueLog
+from digital_land.phase.patch import PatchPhase
 
 
 def test_patch_regex():
@@ -62,8 +62,5 @@ def test_patch_regex():
     issue = issues.rows.pop()
     assert issue["field"] == "OrganisationURI"
     assert issue["issue-type"] == "patch"
-    assert (
-        issue["value"]
-        == "https://example.com/search?query=data&filter=name%20contains%20test"
-    )
+    assert issue["value"] == "https://example.com/search?query=data&filter=name%20contains%20test"
     assert issues.rows == []

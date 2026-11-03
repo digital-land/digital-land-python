@@ -7,10 +7,10 @@ import tempfile
 from typing import Optional
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
-from digital_land.phase.convert import detect_encoding
 from pydantic import ConfigDict, Field
 from pydantic.dataclasses import dataclass
 
+from digital_land.phase.convert import detect_encoding
 
 # TBD: split this code into a WFS API plugin and a canonicalisation step
 
@@ -45,9 +45,7 @@ def get(collector, url, log={}, plugin="wfs", parameters=None):
     if parameters is None:
         parameters = WFSParameters()
     elif not isinstance(parameters, WFSParameters):
-        logging.warning(
-            "WFS get expects parameters to be a WFSParameters instance. using default parameters"
-        )
+        logging.warning("WFS get expects parameters to be a WFSParameters instance. using default parameters")
         parameters = WFSParameters()
 
     if parameters.page_size:

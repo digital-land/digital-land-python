@@ -1,14 +1,15 @@
-import pytest
 import csv
 import os
-import urllib.request
-import pandas as pd
-from pathlib import Path
 import sqlite3
+import urllib.request
+from pathlib import Path
 
+import pandas as pd
+import pytest
+
+from digital_land.organisation import Organisation
 from digital_land.package.dataset import DatasetPackage
 from digital_land.package.package import Specification
-from digital_land.organisation import Organisation
 
 
 @pytest.fixture
@@ -174,9 +175,7 @@ def test_load_entities_uses_resource_start_date_as_tiebreaker(tmp_path):
     package.load_entities()
 
     with sqlite3.connect(package.path) as connection:
-        name = connection.execute(
-            "select name from entity where entity = 44006677"
-        ).fetchone()[0]
+        name = connection.execute("select name from entity where entity = 44006677").fetchone()[0]
 
     assert name == "Newer resource value"
 
@@ -219,9 +218,7 @@ def test_load_old_entities_entities_outside_of_range_are_removed(tmp_path):
     }
 
     specification = Specification(schema=schema, field=field)
-    organisation = Organisation(
-        organisation_path=None, pipeline_dir=None, organisation={}
-    )
+    organisation = Organisation(organisation_path=None, pipeline_dir=None, organisation={})
 
     # write data to csv as we only seem to load from csv
     data = [
@@ -310,13 +307,9 @@ def test_entry_date_upsert_uploads_newest_date(
     package.create_cursor()
     fact_fields = package.specification.schema["fact"]["fields"]
     fact_conflict_fields = ["fact"]
-    fact_update_fields = [
-        field for field in fact_fields if field not in fact_conflict_fields
-    ]
+    fact_update_fields = [field for field in fact_fields if field not in fact_conflict_fields]
     for row in transformed_fact_resources:
-        package.entry_date_upsert(
-            "fact", fact_fields, row, fact_conflict_fields, fact_update_fields
-        )
+        package.entry_date_upsert("fact", fact_fields, row, fact_conflict_fields, fact_update_fields)
     package.commit()
     package.disconnect()
 
@@ -325,9 +318,7 @@ def test_entry_date_upsert_uploads_newest_date(
     package.create_cursor()
     package.cursor.execute("SELECT * FROM fact;")
     cols = [column[0] for column in package.cursor.description]
-    actual_result = pd.DataFrame.from_records(
-        package.cursor.fetchall(), columns=cols
-    ).to_dict(orient="records")
+    actual_result = pd.DataFrame.from_records(package.cursor.fetchall(), columns=cols).to_dict(orient="records")
     expected_result = [
         {
             "end_date": "",
@@ -393,9 +384,7 @@ def test_load_issues_uploads_issues_from_csv(tmp_path):
     }
 
     specification = Specification(schema=schema, field=field)
-    organisation = Organisation(
-        organisation_path=None, pipeline_dir=None, organisation={}
-    )
+    organisation = Organisation(organisation_path=None, pipeline_dir=None, organisation={})
 
     # write data to csv as we only seem to load from csv
     data = [
@@ -478,13 +467,9 @@ def test_entry_date_upsert_uploads_blank_fields(
 
     fact_fields = package.specification.schema["fact"]["fields"]
     fact_conflict_fields = ["fact"]
-    fact_update_fields = [
-        field for field in fact_fields if field not in fact_conflict_fields
-    ]
+    fact_update_fields = [field for field in fact_fields if field not in fact_conflict_fields]
     for row in transformed_fact_resources_with_blank:
-        package.entry_date_upsert(
-            "fact", fact_fields, row, fact_conflict_fields, fact_update_fields
-        )
+        package.entry_date_upsert("fact", fact_fields, row, fact_conflict_fields, fact_update_fields)
     package.commit()
     package.disconnect()
 
@@ -493,9 +478,7 @@ def test_entry_date_upsert_uploads_blank_fields(
     package.create_cursor()
     package.cursor.execute("SELECT * FROM fact;")
     cols = [column[0] for column in package.cursor.description]
-    actual_result = pd.DataFrame.from_records(
-        package.cursor.fetchall(), columns=cols
-    ).to_dict(orient="records")
+    actual_result = pd.DataFrame.from_records(package.cursor.fetchall(), columns=cols).to_dict(orient="records")
     expected_result = [
         {
             "end_date": "",
@@ -553,9 +536,7 @@ def test_insert_newest_date(
     package.create_cursor()
     package.cursor.execute("SELECT * FROM fact_resource;")
     cols = [column[0] for column in package.cursor.description]
-    actual_result = pd.DataFrame.from_records(
-        package.cursor.fetchall(), columns=cols
-    ).to_dict(orient="records")
+    actual_result = pd.DataFrame.from_records(package.cursor.fetchall(), columns=cols).to_dict(orient="records")
     expected_result = [
         {
             "end_date": "",
@@ -601,9 +582,7 @@ def test_insert_newest_date(
     package.create_cursor()
     package.cursor.execute("SELECT * FROM fact_resource;")
     cols = [column[0] for column in package.cursor.description]
-    actual_result = pd.DataFrame.from_records(
-        package.cursor.fetchall(), columns=cols
-    ).to_dict(orient="records")
+    actual_result = pd.DataFrame.from_records(package.cursor.fetchall(), columns=cols).to_dict(orient="records")
     expected_result = [
         {
             "end_date": "2021-12-31",

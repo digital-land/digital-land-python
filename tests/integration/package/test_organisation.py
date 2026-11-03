@@ -1,9 +1,10 @@
-import pytest
-import json
 import csv
+import json
 import os
 import shutil
 import urllib.request
+
+import pytest
 
 from digital_land.package.organisation import OrganisationPackage
 

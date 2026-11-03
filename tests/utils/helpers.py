@@ -1,6 +1,7 @@
-import subprocess
-import hashlib
 import difflib
+import hashlib
+import subprocess
+
 from wasabi import color
 
 

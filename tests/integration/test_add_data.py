@@ -3,6 +3,7 @@ import logging
 import os
 import tempfile
 from unittest.mock import Mock
+
 import pytest
 from requests import HTTPError
 
@@ -159,9 +160,7 @@ def test_validate_and_add_data_input_no_error(
         assert len(caplog.text) == 0
 
 
-def test_validate_and_add_data_input_missing_columns(
-    collection_dir, specification_dir, organisation_csv, mock_request_get
-):
+def test_validate_and_add_data_input_missing_columns(collection_dir, specification_dir, organisation_csv, mock_request_get):
     collection_name = "conservation-area"
     missing_column_input_data = {
         "organisation": "local-authority:SST",
@@ -179,9 +178,7 @@ def test_validate_and_add_data_input_missing_columns(
         "pipelines",
         "plugin",
     ]
-    tmp_input_path = create_input_csv(
-        missing_column_input_data, fieldnames=missing_column_fieldnames
-    )
+    tmp_input_path = create_input_csv(missing_column_input_data, fieldnames=missing_column_fieldnames)
 
     with pytest.raises(Exception) as error:
         validate_and_add_data_input(
@@ -352,9 +349,7 @@ def test_validate_and_add_data(
     assert error_message in str(error)
 
 
-def test_validate_and_add_data_input_non_200(
-    collection_dir, specification_dir, organisation_csv, mocker
-):
+def test_validate_and_add_data_input_non_200(collection_dir, specification_dir, organisation_csv, mocker):
 
     mock_response = Mock()
     mock_response.status_code = 404

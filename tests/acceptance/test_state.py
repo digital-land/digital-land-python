@@ -1,7 +1,8 @@
-import os
 import json
+import os
 import subprocess
 from pathlib import Path
+
 from digital_land.commands import save_state
 from digital_land.state import compare_state
 
@@ -12,9 +13,7 @@ resource_hash = "063e908c6695671063dee27c534bf3471aa3f5d5"
 
 
 def get_code_hash():
-    proc = subprocess.run(
-        "git log -n 1".split(), cwd=os.path.dirname(__file__), stdout=subprocess.PIPE
-    )
+    proc = subprocess.run("git log -n 1".split(), cwd=os.path.dirname(__file__), stdout=subprocess.PIPE)
     # the first line of this is "commit <hash>"
     hash = proc.stdout.splitlines()[0].split()[1].decode()
     return hash

@@ -1,26 +1,23 @@
+import csv
 import hashlib
 import json
-import csv
 import os
 import pathlib
-from datetime import datetime, timedelta
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
 
 import pytest
-import responses
 import requests
+import responses
 
 from digital_land.collect import Collector, FetchStatus
 from digital_land.plugins.arcgis import ArcGISParameters
-from digital_land.plugins.wfs import WFSFileResource
-from digital_land.plugins.wfs import WFSParameters
+from digital_land.plugins.wfs import WFSFileResource, WFSParameters
 
 
 @pytest.fixture
 def collector(tmp_path):
-    collector = Collector(
-        resource_dir=str(tmp_path / "resource"), log_dir=str(tmp_path / "log")
-    )
+    collector = Collector(resource_dir=str(tmp_path / "resource"), log_dir=str(tmp_path / "log"))
     return collector
 
 
@@ -175,9 +172,7 @@ def test_strip_timestamp(collector, tmp_path):
 @responses.activate
 def test_strip_timestamp_xml(collector, tmp_path):
     url = "http://test.timestamp"
-    xml_with_timestamp = (
-        '<root timeStamp="2024-10-02T13:41:59Z" numberMatched="unknown" />'
-    )
+    xml_with_timestamp = '<root timeStamp="2024-10-02T13:41:59Z" numberMatched="unknown" />'
     xml_parsed = ET.fromstring(xml_with_timestamp)
 
     responses.add(
@@ -343,9 +338,7 @@ def test_collect_reads_parameters_from_csv(tmp_path, mocker):
     assert captured["parameters"] == {"max_page_size": 20}
 
 
-def test_collect_falls_back_to_default_parameters_for_invalid_parameters_json(
-    tmp_path, mocker
-):
+def test_collect_falls_back_to_default_parameters_for_invalid_parameters_json(tmp_path, mocker):
     collector = Collector(
         resource_dir=str(tmp_path / "resource"),
         log_dir=str(tmp_path / "log"),

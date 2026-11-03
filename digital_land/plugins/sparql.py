@@ -1,8 +1,8 @@
-import io
 import csv
+import io
 import logging
-from SPARQLWrapper import SPARQLWrapper, JSON
 
+from SPARQLWrapper import JSON, SPARQLWrapper
 
 url_prefix = {"https://query.wikidata.org/sparql": "http://www.wikidata.org/entity/"}
 

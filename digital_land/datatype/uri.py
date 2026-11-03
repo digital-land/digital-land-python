@@ -1,4 +1,5 @@
 import validators
+
 from .datatype import DataType
 
 

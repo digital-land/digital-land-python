@@ -1,13 +1,14 @@
 import csv
+import json
 import os
-from pathlib import Path
 import shutil
 import sqlite3
 import tempfile
-import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
+
 from digital_land.commands import dataset_update
 from digital_land.pipeline.main import Pipeline
 from digital_land.specification import Specification
@@ -41,9 +42,7 @@ def column_field_file(test_dirs):
 
 @pytest.fixture
 def dataset_resource_file(test_dirs):
-    dataset_resource_path = (
-        test_dirs["dataset_resource_dir"] / dataset / "resource-hash.csv"
-    )
+    dataset_resource_path = test_dirs["dataset_resource_dir"] / dataset / "resource-hash.csv"
     dataset_resource_headers = [
         "dataset",
         "resource",
@@ -66,18 +65,14 @@ def dataset_resource_file(test_dirs):
             "internal-mime-type": "",
         }
     ]
-    write_csv_file(
-        dataset_resource_path, dataset_resource_headers, dataset_resource_data
-    )
+    write_csv_file(dataset_resource_path, dataset_resource_headers, dataset_resource_data)
     return dataset_resource_path
 
 
 @pytest.fixture
 def issue_file(test_dirs):
     issue_path = test_dirs["issues_log_dir"] / dataset / "resource-hash.csv"
-    issue_headers = [
-        "dataset,resource,line-number,entry-number,field,entity,issue-type,value,message"
-    ]
+    issue_headers = ["dataset,resource,line-number,entry-number,field,entity,issue-type,value,message"]
     issue_data = []
     write_csv_file(issue_path, issue_headers, issue_data)
     return issue_path
@@ -103,9 +98,7 @@ def organisation_path(tmp_path):
 
 
 # Testing dataset update ability to add new entity
-def test_dataset_update_local_new_entity(
-    test_dirs, column_field_file, dataset_resource_file, issue_file, organisation_path
-):
+def test_dataset_update_local_new_entity(test_dirs, column_field_file, dataset_resource_file, issue_file, organisation_path):
     # existing test db path
     original_dataset_path = Path(f"tests/data/dataset/{dataset}.sqlite3")
     updated_dataset_path = tempfile.NamedTemporaryFile(suffix=".sqlite3").name
@@ -174,9 +167,7 @@ def test_dataset_update_local_new_entity(
         column_field_row = cursor.fetchone()
         assert column_field_row["column"] == "new_column"
 
-        cursor.execute(
-            "SELECT * from dataset_resource where resource = 'resource-hash';"
-        )
+        cursor.execute("SELECT * from dataset_resource where resource = 'resource-hash';")
         dataset_resource_row = cursor.fetchone()
         assert dataset_resource_row["entity_count"] == 1
 
@@ -191,9 +182,7 @@ def test_dataset_update_local_new_entity(
 
 
 # Testing dataset update function to update existing entity values
-def test_dataset_update_local_existing_entity(
-    test_dirs, column_field_file, dataset_resource_file, issue_file, organisation_path
-):
+def test_dataset_update_local_existing_entity(test_dirs, column_field_file, dataset_resource_file, issue_file, organisation_path):
     # existing test db path
     original_dataset_path = Path(f"tests/data/dataset/{dataset}.sqlite3")
     updated_dataset_path = tempfile.NamedTemporaryFile(suffix=".sqlite3").name
@@ -273,10 +262,7 @@ def test_dataset_update_local_existing_entity(
 
         entity_row = entity_rows[0]
         # Check relevant fields have been updated
-        assert (
-            entity_row["geometry"]
-            == "MULTIPOLYGON(((1 1, 1 2, 2 2, 2 1, 1 1)), ((0 0, 0 1, 1 1, 1 0, 0 0)))"
-        )
+        assert entity_row["geometry"] == "MULTIPOLYGON(((1 1, 1 2, 2 2, 2 1, 1 1)), ((0 0, 0 1, 1 1, 1 0, 0 0)))"
         entity_json = json.loads(entity_row["json"])
         assert entity_json["description"] == "interesting description"
 

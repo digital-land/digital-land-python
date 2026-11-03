@@ -1,22 +1,18 @@
-from enum import Enum
-import os
 import csv
 import functools
 import importlib.util
 import logging
-import polars as pl
+import os
+from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import polars as pl
+
 from digital_land import __version__
-from digital_land.utils.hash_utils import hash_directory
-
+from digital_land.check import duplicate_reference_check
+from digital_land.log import ColumnFieldLog, ConvertedResourceLog, DatasetResourceLog, IssueLog
 from digital_land.organisation import Organisation
-
-from digital_land.phase.map import normalise
-from digital_land.phase.lookup import key as lookup_key
-from digital_land.schema import Schema
-
 from digital_land.phase.combine import FactCombinePhase
 from digital_land.phase.concat import ConcatFieldPhase
 from digital_land.phase.convert import ConvertPhase
@@ -25,7 +21,8 @@ from digital_land.phase.factor import FactorPhase
 from digital_land.phase.filter import FilterPhase
 from digital_land.phase.harmonise import HarmonisePhase
 from digital_land.phase.lookup import EntityLookupPhase, FactLookupPhase
-from digital_land.phase.map import MapPhase
+from digital_land.phase.lookup import key as lookup_key
+from digital_land.phase.map import MapPhase, normalise
 from digital_land.phase.migrate import MigratePhase
 from digital_land.phase.normalise import NormalisePhase
 from digital_land.phase.organisation import OrganisationPhase
@@ -34,18 +31,11 @@ from digital_land.phase.patch import PatchPhase
 from digital_land.phase.pivot import PivotPhase
 from digital_land.phase.prefix import EntityPrefixPhase
 from digital_land.phase.priority import PriorityPhase
-from digital_land.phase.prune import FieldPrunePhase, EntityPrunePhase, FactPrunePhase
+from digital_land.phase.prune import EntityPrunePhase, FactPrunePhase, FieldPrunePhase
 from digital_land.phase.reference import EntityReferencePhase, FactReferencePhase
 from digital_land.phase.save import SavePhase
-
-from digital_land.log import (
-    DatasetResourceLog,
-    IssueLog,
-    ColumnFieldLog,
-    ConvertedResourceLog,
-)
-
-from digital_land.check import duplicate_reference_check
+from digital_land.schema import Schema
+from digital_land.utils.hash_utils import hash_directory
 
 
 class PipelineStatus(Enum):
@@ -59,16 +49,7 @@ class PipelineStatus(Enum):
 def count_distinct_entities(csv_path):
     entity = pl.col("entity").cast(pl.Utf8).str.strip_chars()
 
-    return (
-        pl.scan_csv(csv_path)
-        .select(
-            entity.filter(entity.is_not_null() & (entity != ""))
-            .n_unique()
-            .alias("entity_count")
-        )
-        .collect()
-        .item()
-    )
+    return pl.scan_csv(csv_path).select(entity.filter(entity.is_not_null() & (entity != "")).n_unique().alias("entity_count")).collect().item()
 
 
 def chain_phases(phases):
@@ -259,10 +240,7 @@ class Pipeline:
                 continue
 
             if row["replacement-field"] in self.migrate:
-                raise ValueError(
-                    "replacement-field %s has more than one entry"
-                    % row["replacement-field"]
-                )
+                raise ValueError("replacement-field %s has more than one entry" % row["replacement-field"])
 
             self.migrate[row["replacement-field"]] = row["field"]
 
@@ -270,17 +248,11 @@ class Pipeline:
         for row in self.file_reader("lookup.csv"):
             # migrate old lookup.csv files
             entry_number = row.get("entry-number", "")
-            prefix = (
-                row.get("prefix", "")
-                or row.get("dataset", "")
-                or row.get("pipeline", "")
-            )
+            prefix = row.get("prefix", "") or row.get("dataset", "") or row.get("pipeline", "")
             reference = row.get("reference", "") or row.get("value", "")
             organisation = row.get("organisation", "")
             # TODO  remove this replacement for local-authority-eng now that migration is complete
-            organisation = organisation.replace(
-                "local-authority-eng", "local-authority"
-            )
+            organisation = organisation.replace("local-authority-eng", "local-authority")
 
             # composite key, ordered by specificity
             resource_lookup = self.lookup.setdefault(row.get("resource", ""), {})
@@ -305,28 +277,15 @@ class Pipeline:
         observed_fields = set().union(*(row.keys() for row in rows))
         unexpected = observed_fields - allowed_fields
         if unexpected:
-            raise RuntimeError(
-                "unexpected columns in lookup-rule.csv: "
-                f"{', '.join(sorted(unexpected))}"
-            )
+            raise RuntimeError("unexpected columns in lookup-rule.csv: " f"{', '.join(sorted(unexpected))}")
 
         rule_count = 0
         for row in rows:
-            prefix = (
-                row.get("prefix", "")
-                or row.get("dataset", "")
-                or row.get("pipeline", "")
-            )
-            organisation = row.get("organisation", "").replace(
-                "local-authority-eng", "local-authority"
-            )
+            prefix = row.get("prefix", "") or row.get("dataset", "") or row.get("pipeline", "")
+            organisation = row.get("organisation", "").replace("local-authority-eng", "local-authority")
             resource = row.get("resource", "")
 
-            if (
-                row.get("offset", "")
-                and row.get("entity-minimum", "")
-                and row.get("entity-maximum", "")
-            ):
+            if row.get("offset", "") and row.get("entity-minimum", "") and row.get("entity-maximum", ""):
                 rule = {
                     "prefix": prefix,
                     "organisation": organisation,
@@ -338,10 +297,7 @@ class Pipeline:
                 rule_count += 1
 
         if rule_count == 0:
-            logging.warning(
-                "lookup-rule.csv was found but produced no valid rules; "
-                "check the offset, entity-minimum and entity-maximum columns"
-            )
+            logging.warning("lookup-rule.csv was found but produced no valid rules; " "check the offset, entity-minimum and entity-maximum columns")
 
     def load_redirect_lookup(self):
         for row in self.file_reader("old-entity.csv"):
@@ -379,10 +335,7 @@ class Pipeline:
         for key in general_columns:
             if key in result:
                 continue
-            if (
-                general_columns[key] in endpoint_columns.values()
-                or general_columns[key] in resource_columns.values()
-            ):
+            if general_columns[key] in endpoint_columns.values() or general_columns[key] in resource_columns.values():
                 continue
             result[key] = general_columns[key]
         return result
@@ -394,11 +347,7 @@ class Pipeline:
         for endpoint in endpoints:
             endpoint_patterns.extend(self.skip_pattern.get(endpoint, []))
 
-        return (
-            self.skip_pattern.get(resource, [])
-            + self.skip_pattern.get("", [])
-            + endpoint_patterns
-        )
+        return self.skip_pattern.get(resource, []) + self.skip_pattern.get("", []) + endpoint_patterns
 
     def patches(self, resource="", endpoints=[]):
         general_patch = self.patch.get("", {})
@@ -494,9 +443,7 @@ class Pipeline:
         self._status = PipelineStatus.RUNNING
         self.issue_log = IssueLog(dataset=dataset, resource=resource)
         self.column_field_log = ColumnFieldLog(dataset=dataset, resource=resource)
-        self.dataset_resource_log = DatasetResourceLog(
-            dataset=dataset, resource=resource
-        )
+        self.dataset_resource_log = DatasetResourceLog(dataset=dataset, resource=resource)
         self.dataset_resource_log.code_version = __version__
         try:
             self.dataset_resource_log.config_hash = hash_directory(self.path)
@@ -504,16 +451,10 @@ class Pipeline:
             logging.warning(f"Could not hash pipeline config directory: {self.path}")
         if self.specification:
             try:
-                self.dataset_resource_log.specification_hash = hash_directory(
-                    self.specification.path
-                )
+                self.dataset_resource_log.specification_hash = hash_directory(self.specification.path)
             except Exception:
-                logging.warning(
-                    f"Could not hash specification directory: {self.specification.path}"
-                )
-        self.converted_resource_log = ConvertedResourceLog(
-            dataset=dataset, resource=resource
-        )
+                logging.warning(f"Could not hash specification directory: {self.specification.path}")
+        self.converted_resource_log = ConvertedResourceLog(dataset=dataset, resource=resource)
 
     def save_logs(
         self,
@@ -526,11 +467,7 @@ class Pipeline:
 
         Returns:
             bool: True if all logs saved successfully, False otherwise."""
-        if (
-            self._status != PipelineStatus.COMPLETE
-            and self._status != PipelineStatus.ERROR
-            and self._status != PipelineStatus.FAILED
-        ):
+        if self._status != PipelineStatus.COMPLETE and self._status != PipelineStatus.ERROR and self._status != PipelineStatus.FAILED:
             logging.error("Cannot save logs for incomplete pipeline run")
             return False
         try:
@@ -717,9 +654,7 @@ class Pipeline:
                 ]
             )
         else:
-            logging.info(
-                "Skipping EntityLookupPhase and EntityPrunePhase (disable_lookups=True)"
-            )
+            logging.info("Skipping EntityLookupPhase and EntityPrunePhase (disable_lookups=True)")
 
         phases.extend(
             [
@@ -732,9 +667,7 @@ class Pipeline:
         )
 
         if not disable_lookups:
-            phases.append(
-                EntityPrunePhase(dataset_resource_log=self.dataset_resource_log)
-            )
+            phases.append(EntityPrunePhase(dataset_resource_log=self.dataset_resource_log))
 
         phases.extend(
             [
@@ -769,9 +702,7 @@ class Pipeline:
         # If we have done this then we will not call duplicate_reference_check as we have already carried out a
         # duplicate check and stop messages appearing in issues about reference values not being unique
         if combine_fields == {}:
-            self.issue_log = duplicate_reference_check(
-                issues=self.issue_log, csv_path=output_path
-            )
+            self.issue_log = duplicate_reference_check(issues=self.issue_log, csv_path=output_path)
 
         self._status = PipelineStatus.COMPLETE
 
@@ -863,9 +794,7 @@ class Lookups:
         extra_fields = set(reader.fieldnames) - set(self.schema.fieldnames)
 
         if len(extra_fields):
-            raise RuntimeError(
-                f"{len(extra_fields)} extra fields founds in lookup.csv ({','.join(list(extra_fields))})"
-            )
+            raise RuntimeError(f"{len(extra_fields)} extra fields founds in lookup.csv ({','.join(list(extra_fields))})")
 
         for row in reader:
             self.add_entry(row, is_new_entry=False)
@@ -887,14 +816,7 @@ class Lookups:
 
         dataset_prefix = specification.dataset_prefix(prefix)
         try:
-            ret_val = max(
-                [
-                    int(entry["entity"])
-                    for entry in self.entries
-                    if (entry["prefix"] == prefix or entry["prefix"] == dataset_prefix)
-                    and (entry.get("entity", None))
-                ]
-            )
+            ret_val = max([int(entry["entity"]) for entry in self.entries if (entry["prefix"] == prefix or entry["prefix"] == dataset_prefix) and (entry.get("entity", None))])
             return ret_val
         except ValueError:
             return 0
@@ -936,9 +858,7 @@ class Lookups:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         logging.debug("saving %s" % (path))
         f = open(path, "w", newline="")
-        writer = csv.DictWriter(
-            f, fieldnames=self.schema.fieldnames, extrasaction="ignore"
-        )
+        writer = csv.DictWriter(f, fieldnames=self.schema.fieldnames, extrasaction="ignore")
         writer.writeheader()
 
         old_entity_file_path = old_entity_path or self.old_entity_path
@@ -963,9 +883,7 @@ class Lookups:
                         generated_entity = self.entity_num_gen.next()
 
                         if generated_entity == get_entity:
-                            print(
-                                "There are no more entity numbers available within this dataset."
-                            )
+                            print("There are no more entity numbers available within this dataset.")
                             break
 
                         if get_entity is None:
@@ -973,13 +891,9 @@ class Lookups:
 
                         if str(generated_entity) not in entity_values:
                             entry["entity"] = generated_entity
-                            if (
-                                not minimum_generated_entity
-                            ) or generated_entity < minimum_generated_entity:
+                            if (not minimum_generated_entity) or generated_entity < minimum_generated_entity:
                                 minimum_generated_entity = generated_entity
-                            if (
-                                not maximum_generated_entity
-                            ) or generated_entity > maximum_generated_entity:
+                            if (not maximum_generated_entity) or generated_entity > maximum_generated_entity:
                                 maximum_generated_entity = generated_entity
                             new_entities.append(entry)
                             entity_values.add(str(generated_entity))

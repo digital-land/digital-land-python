@@ -1,33 +1,27 @@
-import pytest
 import csv
+import json
+import logging
 import os
+import shutil
 import sqlite3
 import tempfile
-import shutil
-import boto3
-import logging
-import json
 import urllib.request
-import pandas as pd
-
-from moto import mock_aws
-from pathlib import Path
 from csv import DictReader
+from pathlib import Path
 
-from digital_land.commands import (
-    dataset_dump_flattened,
-    _create_parquet_from_csv,
-    fetch,
-)
-from digital_land.package.dataset import DatasetPackage
-
-from digital_land.specification import Specification
-from digital_land.organisation import Organisation
-from digital_land.collect import Collector
-from digital_land.pipeline.main import Pipeline
+import boto3
 import duckdb
+import pandas as pd
+import pytest
 import responses
+from moto import mock_aws
 
+from digital_land.collect import Collector
+from digital_land.commands import _create_parquet_from_csv, dataset_dump_flattened, fetch
+from digital_land.organisation import Organisation
+from digital_land.package.dataset import DatasetPackage
+from digital_land.pipeline.main import Pipeline
+from digital_land.specification import Specification
 
 """ dataset_create & dataset_update """
 
@@ -136,16 +130,10 @@ def resource_files_fixture(transformed_data_fixture, temp_dir):
     for i, res in enumerate(resources):
         csv_filename = transformed_dir / f"{res}.csv"
         with open(csv_filename, "w", newline="") as file:
-            fieldnames = transformed_data_fixture["current"][
-                0
-            ].keys()  # Extract column names
+            fieldnames = transformed_data_fixture["current"][0].keys()  # Extract column names
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()  # Write column headers
-            writer.writerows(
-                transformed_data_fixture["current"]
-                if i == 0
-                else transformed_data_fixture["new"]
-            )
+            writer.writerows(transformed_data_fixture["current"] if i == 0 else transformed_data_fixture["new"])
         all_input_paths.append(csv_filename)
 
         # Create column field files
@@ -272,9 +260,7 @@ def specification_fixture_new_resources(temp_dir):
         },
     }
 
-    specification = Specification(
-        specification_dir=temp_dir, schema=schema, field=field
-    )
+    specification = Specification(specification_dir=temp_dir, schema=schema, field=field)
 
     return specification
 
@@ -326,17 +312,11 @@ def test_dataset_create_fixture(
     package.create()
     path = resource_files_fixture["all_input_paths"][0]
     package.load_transformed(path)
-    package.load_column_fields(
-        resource_files_fixture["column_field_dir"] / Path(path).name
-    )
-    package.load_dataset_resource(
-        resource_files_fixture["dataset_resource_dir"] / Path(path).name
-    )
+    package.load_column_fields(resource_files_fixture["column_field_dir"] / Path(path).name)
+    package.load_dataset_resource(resource_files_fixture["dataset_resource_dir"] / Path(path).name)
     package.load_entities()
 
-    old_entity_path = os.path.join(
-        resource_files_fixture["pipeline_dir"], "old-entity.csv"
-    )
+    old_entity_path = os.path.join(resource_files_fixture["pipeline_dir"], "old-entity.csv")
     if os.path.exists(old_entity_path):
         package.load_old_entities(old_entity_path)
 
@@ -355,9 +335,7 @@ def test_dataset_create_fixture(
     package.cursor.execute("SELECT * FROM fact;")
 
     cols = [column[0] for column in package.cursor.description]
-    actual_result = pd.DataFrame.from_records(
-        package.cursor.fetchall(), columns=cols
-    ).to_dict(orient="records")
+    actual_result = pd.DataFrame.from_records(package.cursor.fetchall(), columns=cols).to_dict(orient="records")
     package.disconnect()
 
     # Copy file to new location and use this later on when checking to original
@@ -407,17 +385,11 @@ def test_dataset_update_fixture(
     package.create_cursor()
     path = resource_files_fixture["all_input_paths"][1]
     package.load_transformed(path)
-    package.load_column_fields(
-        resource_files_fixture["column_field_dir"] / Path(path).name
-    )
-    package.load_dataset_resource(
-        resource_files_fixture["dataset_resource_dir"] / Path(path).name
-    )
+    package.load_column_fields(resource_files_fixture["column_field_dir"] / Path(path).name)
+    package.load_dataset_resource(resource_files_fixture["dataset_resource_dir"] / Path(path).name)
     package.load_entities()
 
-    old_entity_path = os.path.join(
-        resource_files_fixture["pipeline_dir"], "old-entity_updated.csv"
-    )
+    old_entity_path = os.path.join(resource_files_fixture["pipeline_dir"], "old-entity_updated.csv")
     if os.path.exists(old_entity_path):
         package.load_old_entities(old_entity_path)
 
@@ -473,15 +445,11 @@ def test_create_tables_fixture(test_dataset_create_fixture):
         table_name = table[0]
         package.cursor.execute(f"SELECT * FROM {table_name};")
         cols = [column[0] for column in package.cursor.description]
-        orig_values[table_name] = pd.DataFrame.from_records(
-            package.cursor.fetchall(), columns=cols
-        ).to_dict(orient="records")
+        orig_values[table_name] = pd.DataFrame.from_records(package.cursor.fetchall(), columns=cols).to_dict(orient="records")
 
     assert len(orig_values["fact"]) > 0, "Fact table should not be empty"
     assert len(orig_values["fact"]) == 1, "No. of facts not correct"
-    assert (
-        test_dataset_create_fixture["actual_result"] == orig_values["fact"]
-    ), "results differ across scopes"
+    assert test_dataset_create_fixture["actual_result"] == orig_values["fact"], "results differ across scopes"
 
 
 @pytest.fixture(scope="session")
@@ -501,23 +469,16 @@ def test_mock_s3_bucket(test_dataset_create_fixture):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
         )
 
-        s3.upload_file(
-            str(sqlite3_path), bucket_name, f"{object_key}/{dataset}.sqlite3"
-        )
+        s3.upload_file(str(sqlite3_path), bucket_name, f"{object_key}/{dataset}.sqlite3")
 
         # Verify file is in mock S3
         response = s3.list_objects_v2(Bucket=bucket_name)
         assert "Contents" in response, "SQLite file should be present in mock S3"
-        assert any(
-            obj["Key"] == f"{object_key}/{dataset}.sqlite3"
-            for obj in response["Contents"]
-        )
+        assert any(obj["Key"] == f"{object_key}/{dataset}.sqlite3" for obj in response["Contents"])
 
         # Delete to ensure that we download the file from mock s3 (have keopt a copy earlier)
         os.remove(str(sqlite3_path))
-        assert not os.path.exists(
-            str(sqlite3_path)
-        ), "sqlite3 file still exists after move to s3"
+        assert not os.path.exists(str(sqlite3_path)), "sqlite3 file still exists after move to s3"
 
         # Keep mock AWS for later tests
         yield s3
@@ -547,9 +508,7 @@ def test_dataset_update_with_new_resources(
     updated_cursor = updated_conn.cursor()
     updated_counts = get_table_row_counts(updated_cursor)
 
-    assert set(initial_counts.keys()) == set(
-        updated_counts.keys()
-    ), "❌ Table names mismatch between initial and updated counts"
+    assert set(initial_counts.keys()) == set(updated_counts.keys()), "❌ Table names mismatch between initial and updated counts"
 
     for table in initial_counts:
         initial = initial_counts[table]
@@ -559,9 +518,7 @@ def test_dataset_update_with_new_resources(
         if initial == 0:
             assert initial == updated, "One table empty but not the other"
         else:
-            assert (
-                updated > initial
-            ), f"❌ {table}: Expected count to increase (Initial: {initial}, Updated: {updated})"
+            assert updated > initial, f"❌ {table}: Expected count to increase (Initial: {initial}, Updated: {updated})"
 
             # Check rows in original table in updated table
             orig_cursor.execute(f"SELECT * FROM {table}")
@@ -571,9 +528,7 @@ def test_dataset_update_with_new_resources(
             updated_rows = set(updated_cursor.fetchall())  # Use set for quick lookup
 
             for row in orig_rows:
-                assert (
-                    row in updated_rows
-                ), f"❌ Row {row} from table '{table}' is missing in the updated database!"
+                assert row in updated_rows, f"❌ Row {row} from table '{table}' is missing in the updated database!"
 
     orig_cursor.close()
     updated_cursor.close()
@@ -634,15 +589,9 @@ def test_dataset_dump_flattened_for_non_geospatial_data(
         expected_fields = get_expected_fields(specification, dataset_name)
         assert sorted(actual_dict_reader.fieldnames) == sorted(expected_fields)
         for row_actual, row_expected in zip(actual_dict_reader, expected_dict_reader):
-            check_fields = [
-                field
-                for field in expected_fields
-                if field in expected_dict_reader.fieldnames
-            ]
+            check_fields = [field for field in expected_fields if field in expected_dict_reader.fieldnames]
             for field in check_fields:
-                assert (
-                    row_actual[field] == row_expected[field]
-                ), f"Field '{field}' mismatch in row {row_actual}"
+                assert row_actual[field] == row_expected[field], f"Field '{field}' mismatch in row {row_actual}"
 
     assert os.path.isfile(flattened_json_path)
     with flattened_json_path.open() as actual:
@@ -682,20 +631,12 @@ def test_dataset_dump_flattened_for_geospatial_data(
     with flattened_csv_path.open() as actual, expected_flattened_csv_result.open() as expected:
         actual_dict_reader = DictReader(actual)
         expected_dict_reader = DictReader(expected)
-        expected_fields = expected_fields = get_expected_fields(
-            specification, dataset_name
-        )
+        expected_fields = expected_fields = get_expected_fields(specification, dataset_name)
         assert sorted(actual_dict_reader.fieldnames) == sorted(expected_fields)
         for row_actual, row_expected in zip(actual_dict_reader, expected_dict_reader):
-            check_fields = [
-                field
-                for field in expected_fields
-                if field in expected_dict_reader.fieldnames
-            ]
+            check_fields = [field for field in expected_fields if field in expected_dict_reader.fieldnames]
             for field in check_fields:
-                assert (
-                    row_actual[field] == row_expected[field]
-                ), f"Field '{field}' mismatch in row {row_actual}"
+                assert row_actual[field] == row_expected[field], f"Field '{field}' mismatch in row {row_actual}"
 
     assert os.path.isfile(flattened_json_path)
     with flattened_json_path.open() as actual:
@@ -718,15 +659,11 @@ def test_collection_dir_file_hashes(temp_dir, caplog):
     ]
     caplog.set_level(logging.INFO)
     # Create and run Collector
-    collector = Collector(
-        resource_dir=str(temp_dir / "resource"), log_dir=str(temp_dir / "log")
-    )
+    collector = Collector(resource_dir=str(temp_dir / "resource"), log_dir=str(temp_dir / "log"))
     collector.collection_dir_file_hashes(temp_dir)
 
     for expected in expected_logs:
-        assert any(
-            expected in record.message for record in caplog.records
-        ), f"Missing log: {expected}"
+        assert any(expected in record.message for record in caplog.records), f"Missing log: {expected}"
 
 
 def test_create_parquet_from_csv_creates_parquet_file(tmp_path, specification_dir):
@@ -746,9 +683,7 @@ def test_create_parquet_from_csv_creates_parquet_file(tmp_path, specification_di
     field_names = ["entity", "name", "start-date", "reference", "entry-date"]
 
     # Execute
-    _create_parquet_from_csv(
-        str(csv_path), str(tmp_path), dataset_name, specification, field_names
-    )
+    _create_parquet_from_csv(str(csv_path), str(tmp_path), dataset_name, specification, field_names)
 
     # Assert parquet file exists
     parquet_path = tmp_path / f"{dataset_name}.parquet"
@@ -771,9 +706,7 @@ def test_create_parquet_from_csv_preserves_data_types(tmp_path, specification_di
     field_names = ["entity", "name", "start-date", "reference"]
 
     # Execute
-    _create_parquet_from_csv(
-        str(csv_path), str(tmp_path), dataset_name, specification, field_names
-    )
+    _create_parquet_from_csv(str(csv_path), str(tmp_path), dataset_name, specification, field_names)
 
     # Assert - Read parquet and check data types
     parquet_path = tmp_path / f"{dataset_name}.parquet"
@@ -786,9 +719,7 @@ def test_create_parquet_from_csv_preserves_data_types(tmp_path, specification_di
     assert result[0][1] == "Test Name", "Name should be string"
 
     # Check schema types
-    schema = conn.execute(
-        f"DESCRIBE SELECT * FROM read_parquet('{parquet_path}')"
-    ).fetchall()
+    schema = conn.execute(f"DESCRIBE SELECT * FROM read_parquet('{parquet_path}')").fetchall()
     schema_dict = {row[0]: row[1] for row in schema}
 
     # entity should be BIGINT (integer type)
@@ -815,9 +746,7 @@ def test_create_parquet_from_csv_handles_empty_strings(tmp_path, specification_d
     field_names = ["entity", "name", "start-date"]
 
     # Execute
-    _create_parquet_from_csv(
-        str(csv_path), str(tmp_path), dataset_name, specification, field_names
-    )
+    _create_parquet_from_csv(str(csv_path), str(tmp_path), dataset_name, specification, field_names)
 
     # Assert - Check that empty strings are handled properly
     parquet_path = tmp_path / f"{dataset_name}.parquet"
@@ -831,9 +760,7 @@ def test_create_parquet_from_csv_handles_empty_strings(tmp_path, specification_d
     conn.close()
 
 
-def test_create_parquet_from_csv_raises_on_unexpected_errors(
-    tmp_path, specification_dir
-):
+def test_create_parquet_from_csv_raises_on_unexpected_errors(tmp_path, specification_dir):
     """Test that _create_parquet_from_csv raises exceptions for unexpected errors"""
     # Setup with invalid CSV path
     dataset_name = "test-dataset"
@@ -844,9 +771,7 @@ def test_create_parquet_from_csv_raises_on_unexpected_errors(
 
     # Execute & Assert - Should raise an exception
     with pytest.raises(Exception):
-        _create_parquet_from_csv(
-            str(csv_path), str(tmp_path), dataset_name, specification, field_names
-        )
+        _create_parquet_from_csv(str(csv_path), str(tmp_path), dataset_name, specification, field_names)
 
 
 def test_create_parquet_from_csv_errors_on_invalid_data(tmp_path, specification_dir):
@@ -866,14 +791,10 @@ not-a-number,Another Name"""
 
     # Execute & Assert - Should raise an exception due to type mismatch
     with pytest.raises(Exception):
-        _create_parquet_from_csv(
-            str(csv_path), str(tmp_path), dataset_name, specification, field_names
-        )
+        _create_parquet_from_csv(str(csv_path), str(tmp_path), dataset_name, specification, field_names)
 
 
-def test_create_parquet_from_csv_handles_large_multipolygon(
-    tmp_path, specification_dir
-):
+def test_create_parquet_from_csv_handles_large_multipolygon(tmp_path, specification_dir):
     """Test that _create_parquet_from_csv can handle very large multipolygon/geometry columns"""
     # Setup
     dataset_name = "test-dataset"
@@ -881,9 +802,7 @@ def test_create_parquet_from_csv_handles_large_multipolygon(
 
     # Create a large multipolygon string (simulate 1MB of WKT data)
     # This represents a complex geometry with many coordinates
-    large_multipolygon = (
-        "MULTIPOLYGON(((" + ",".join([f"{i} {i}" for i in range(100000)]) + ")))"
-    )
+    large_multipolygon = "MULTIPOLYGON(((" + ",".join([f"{i} {i}" for i in range(100000)]) + ")))"
 
     # Write CSV with proper quoting using csv module to handle large fields correctly
     import csv as csv_module
@@ -898,9 +817,7 @@ def test_create_parquet_from_csv_handles_large_multipolygon(
     field_names = ["entity", "geometry"]
 
     # Execute
-    _create_parquet_from_csv(
-        str(csv_path), str(tmp_path), dataset_name, specification, field_names
-    )
+    _create_parquet_from_csv(str(csv_path), str(tmp_path), dataset_name, specification, field_names)
 
     # Assert - Verify parquet file was created and contains the large geometry
     parquet_path = tmp_path / f"{dataset_name}.parquet"
@@ -908,21 +825,15 @@ def test_create_parquet_from_csv_handles_large_multipolygon(
 
     # Read back and verify the large geometry was preserved
     conn = duckdb.connect()
-    result = conn.execute(
-        f"SELECT entity, length(geometry) FROM read_parquet('{parquet_path}') WHERE entity = 123"
-    ).fetchone()
+    result = conn.execute(f"SELECT entity, length(geometry) FROM read_parquet('{parquet_path}') WHERE entity = 123").fetchone()
 
     assert result[0] == 123, "Entity should match"
-    assert result[1] == len(
-        large_multipolygon
-    ), f"Geometry length should be preserved ({len(large_multipolygon):,} bytes)"
+    assert result[1] == len(large_multipolygon), f"Geometry length should be preserved ({len(large_multipolygon):,} bytes)"
 
     conn.close()
 
 
-def test_dataset_dump_flattened_creates_parquet_file(
-    dataset_dir, tmp_path, specification_dir
-):
+def test_dataset_dump_flattened_creates_parquet_file(dataset_dir, tmp_path, specification_dir):
     """Test that dataset_dump_flattened creates a parquet file alongside CSV and JSON"""
     # Setup
     dataset_name = "listed-building-grade"
@@ -946,9 +857,7 @@ def test_dataset_dump_flattened_creates_parquet_file(
     assert flattened_parquet_path.exists(), "Parquet file should be created"
 
 
-def test_dataset_dump_flattened_parquet_matches_csv_data(
-    dataset_dir, tmp_path, specification_dir
-):
+def test_dataset_dump_flattened_parquet_matches_csv_data(dataset_dir, tmp_path, specification_dir):
     """Test that parquet file created by dataset_dump_flattened contains same data as CSV"""
     # Setup
     dataset_name = "listed-building-grade"
@@ -973,39 +882,24 @@ def test_dataset_dump_flattened_parquet_matches_csv_data(
 
     # Read parquet
     conn = duckdb.connect()
-    parquet_rows = conn.execute(
-        f"SELECT * FROM read_parquet('{flattened_parquet_path}')"
-    ).fetchall()
+    parquet_rows = conn.execute(f"SELECT * FROM read_parquet('{flattened_parquet_path}')").fetchall()
 
     # Get column names from parquet
-    columns = [
-        desc[0]
-        for desc in conn.execute(
-            f"DESCRIBE SELECT * FROM read_parquet('{flattened_parquet_path}')"
-        ).fetchall()
-    ]
+    columns = [desc[0] for desc in conn.execute(f"DESCRIBE SELECT * FROM read_parquet('{flattened_parquet_path}')").fetchall()]
 
     conn.close()
 
     # Compare row counts
-    assert len(csv_rows) == len(
-        parquet_rows
-    ), "CSV and parquet should have same number of rows"
+    assert len(csv_rows) == len(parquet_rows), "CSV and parquet should have same number of rows"
 
     # Compare first row entity values
     csv_entity = csv_rows[0].get("entity", "")
-    parquet_entity = (
-        str(parquet_rows[0][columns.index("entity")]) if "entity" in columns else ""
-    )
+    parquet_entity = str(parquet_rows[0][columns.index("entity")]) if "entity" in columns else ""
 
-    assert (
-        csv_entity == parquet_entity
-    ), "Entity values should match between CSV and parquet"
+    assert csv_entity == parquet_entity, "Entity values should match between CSV and parquet"
 
 
-def test_dataset_dump_flattened_parquet_has_correct_schema(
-    dataset_dir, tmp_path, specification_dir
-):
+def test_dataset_dump_flattened_parquet_has_correct_schema(dataset_dir, tmp_path, specification_dir):
     """Test that parquet file has correct column types based on specification"""
     # Setup
     dataset_name = "listed-building-grade"
@@ -1023,9 +917,7 @@ def test_dataset_dump_flattened_parquet_has_correct_schema(
     flattened_parquet_path = flattened_output_dir.joinpath(f"{dataset_name}.parquet")
 
     conn = duckdb.connect()
-    schema = conn.execute(
-        f"DESCRIBE SELECT * FROM read_parquet('{flattened_parquet_path}')"
-    ).fetchall()
+    schema = conn.execute(f"DESCRIBE SELECT * FROM read_parquet('{flattened_parquet_path}')").fetchall()
 
     schema_dict = {row[0]: row[1] for row in schema}
 
@@ -1070,9 +962,7 @@ def test_fetch_creates_resource_file(tmp_path):
         resource_file = resource_files[0]
         with open(resource_file, "r") as f:
             content = f.read()
-        assert (
-            content == "test data content"
-        ), "Resource file should contain fetched content"
+        assert content == "test data content", "Resource file should contain fetched content"
 
     finally:
         os.chdir(original_dir)
