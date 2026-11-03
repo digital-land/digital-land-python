@@ -4,7 +4,7 @@ from shapely.geometry import Point
 
 
 class PointDataType(WktDataType):
-    def normalise(self, values, default="", issues=None, boundary=None):
+    def normalise(self, values, default="", issues=None, boundary=None, check_boundary=True):
         try:
             # Try to load the value as WKT
             point = shapely.wkt.loads(values)
@@ -24,7 +24,7 @@ class PointDataType(WktDataType):
                 return default
 
         # Normalize the point representation
-        point = super().normalise(point, issues=issues, boundary=boundary)
+        point = super().normalise(point, issues=issues, boundary=boundary, check_boundary=check_boundary)
         if not point:
             return default
         return point

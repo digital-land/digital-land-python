@@ -81,6 +81,7 @@ test = [
     "sphinx-autobuild",
     "sphinx_rtd_theme",
     "black==24.8.0",
+    "isort==5.13.2",
 ]
 
 notebook = [
@@ -100,3 +101,6 @@ readme = { file = ["README.md"], content-type = "text/markdown" }
 [tool.setuptools_scm]
 # Configure custom options here (version schemes, file writing, etc.)
 version_file = "digital_land/_version.py"
+
+[tool.black]
+line-length = 180

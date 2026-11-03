@@ -59,7 +59,7 @@ def flip(x, y, z=None):
     return (y, x) if z is None else (y, x, z)
 
 
-def parse_wkt(value, boundary):
+def parse_wkt(value, boundary, check_boundary=True):
     """
     Parse a WKT (or GeoJSON) value and convert it to WGS84 within the boundary.
 
@@ -134,10 +134,13 @@ def parse_wkt(value, boundary):
         if boundary.intersects(Point(y, x)):
             return transform(flip, geometry), issues + [("WGS84 flipped", None)]
 
+        if not check_boundary:
+            return geometry, issues
+
         return None, issues + [
             ("WGS84 out of bounds of " + boundary_issue_info, boundary_message)
         ]
-
+    
     if easting_northing_like(x, y):
         _x, _y = osgb_to_wgs84.transform(x, y)
         if boundary.intersects(Point(_x, _y)):
@@ -267,7 +270,7 @@ class WktDataType(DataType):
     def __init__(self):
         pass
 
-    def normalise(self, value, default="", issues=None, boundary=None):
+    def normalise(self, value, default="", issues=None, boundary=None, check_boundary=True):
         if not value:
             return default
         if boundary:
@@ -286,7 +289,7 @@ class WktDataType(DataType):
                 boundary = DEFAULT_BOUNDARY
         else:
             boundary = DEFAULT_BOUNDARY
-        geometry, parse_issues = parse_wkt(value, boundary)
+        geometry, parse_issues = parse_wkt(value, boundary, check_boundary=check_boundary)
 
         if issues:
             for issue, message in parse_issues:
