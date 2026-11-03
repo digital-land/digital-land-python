@@ -648,7 +648,7 @@ def test_metres_like_checks_both_axes():
 
 # tests to check the unary_union function of shapely
 def test_normalise_geometry_hole_outside_shell():
-    input_wkt = "MULTIPOLYGON (((0 0, 10 0, 10 10, 0 10, 0 0)),((20 20, 21 20, 21 21, 20 21, 20 20), (2 2, 2 3, 3 3, 3 2, 2 2))"
+    input_wkt = "MULTIPOLYGON (((0 0, 10 0, 10 10, 0 10, 0 0)),((20 20, 21 20, 21 21, 20 21, 20 20), (2 2, 2 3, 3 3, 3 2, 2 2)))"
     output_wkt = shapely.wkt.loads(input_wkt)
     assert not output_wkt.is_valid  # Verify baseline invalidity
 
