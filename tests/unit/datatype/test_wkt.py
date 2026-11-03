@@ -14,7 +14,6 @@ from digital_land.datatype.wkt import DEFAULT_BOUNDARY
 from digital_land.datatype.multipolygon import MultiPolygonDataType
 from digital_land.log import IssueLog
 from shapely.geometry import MultiPolygon
-from shapely.ops import unary_union
 
 
 def test_normalise_returns_valid_shape_and_record_issue():
