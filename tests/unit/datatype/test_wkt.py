@@ -651,7 +651,7 @@ def test_normalise_geometry_hole_outside_shell():
     output_wkt = shapely.wkt.loads(input_wkt)
     assert not output_wkt.is_valid  # Verify baseline invalidity
 
-    result= normalise_geometry(
+    result = normalise_geometry(
         output_wkt
     )  # unary_union([make_valid(part) for part in output_wkt.geoms])
 
