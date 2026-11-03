@@ -3,11 +3,18 @@ import platform
 from shapely.validation import explain_validity, make_valid
 import pytest
 
-from digital_land.datatype.wkt import WktDataType, parse_wkt, flip, metres_like
+from digital_land.datatype.wkt import (
+    WktDataType,
+    parse_wkt,
+    flip,
+    metres_like,
+    normalise_geometry,
+)
 from digital_land.datatype.wkt import DEFAULT_BOUNDARY
 from digital_land.datatype.multipolygon import MultiPolygonDataType
 from digital_land.log import IssueLog
 from shapely.geometry import MultiPolygon
+from shapely.ops import unary_union
 
 
 def test_normalise_returns_valid_shape_and_record_issue():
@@ -637,3 +644,64 @@ def test_metres_like_checks_both_axes():
     assert metres_like(-14245.78, 6711600.07)
     assert not metres_like(30000000.0, 6711600.07)
     assert not metres_like(-30000000.0, 6711600.07)
+
+
+# tests to check the unary_union function of shapely
+def test_normalise_geometry_hole_outside_shell():
+    input_wkt = "MULTIPOLYGON ("
+    "((0 0, 10 0, 10 10, 0 10, 0 0)), "  # Part 1 (Solid large square)
+    "((20 20, 21 20, 21 21, 20 21, 20 20), (2 2, 2 3, 3 3, 3 2, 2 2))"  # Part 2 with stray hole
+    ")"
+    output_wkt = shapely.wkt.loads(input_wkt)
+    assert not output_wkt.is_valid  # Verify baseline invalidity
+
+    fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
+
+    assert fixed_geom.is_valid
+    # The large square (0,0 to 10,10) should have an area of 100,
+    # plus 1 from the tiny square. Total area should be 101, NOT ~98.
+    assert pytest.approx(fixed_geom.area) == 101.0
+
+
+def test_normalise_geometry_overlapping_parts():
+    input_wkt = "MULTIPOLYGON ("
+    "((0 0, 2 0, 2 2, 0 2, 0 0)), "
+    "((1 0, 3 0, 3 2, 1 2, 1 0))"
+    ")"
+    output_wkt = shapely.wkt.loads(input_wkt)
+
+    fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
+
+    assert fixed_geom.is_valid
+    # Two 2x2 squares overlapping by 1 unit
+    assert pytest.approx(fixed_geom.area) == 7.0
+
+
+def test_normalise_geometry_bowtie_unchanged():
+    input_wkt = "POLYGON ((0 0, 0 2, 2 0, 2 2, 0 0))"
+    output_wkt = shapely.wkt.loads(input_wkt)
+
+    assert not output_wkt.is_valid
+    exp_geom = make_valid(output_wkt)
+    if output_wkt.geom_type == "Multipolygon":
+        fixed_geom = unary_union([make_valid(part) for part in output_wkt.geoms])
+    else:
+        fixed_geom = make_valid(output_wkt)
+
+    assert fixed_geom.is_valid
+    assert fixed_geom.equals(exp_geom)
+
+
+def test_normalise_geometry_valid_unchanged():
+    input_wkt = "MULTIPOLYGON ("
+    "((0 0, 2 0, 2 2, 0 2, 0 0)), "
+    "((4 4, 6 4, 6 6, 4 6, 4 4))"
+    ")"
+    output_wkt = shapely.wkt.loads(input_wkt)
+
+    fixed_geom = normalise_geometry(
+        output_wkt
+    )  # normalise_geometry function from wkt.py
+
+    assert fixed_geom.is_valid
+    assert fixed_geom.wkt == output_wkt.wkt
