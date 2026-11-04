@@ -461,3 +461,37 @@ def test_harmonise_blank_site_reference_is_not_a_missing_value():
 
     assert len(output) == 1
     assert [issue["field"] for issue in issues.rows] == ["SiteNameAddress"]
+
+
+def test_offshore_geometry_is_only_allowed_for_infrastructure_project():
+    offshore_geometry = "MULTIPOLYGON (((0 0, 0.1 0, 0.1 0.1, 0 0.1, 0 0)))"
+
+    infrastructure_issues = IssueLog()
+    infrastructure_phase = HarmonisePhase(
+        field_datatype_map={"geometry": "multipolygon"},
+        issues=infrastructure_issues,
+        dataset="infrastructure-project",
+    )
+
+    result = infrastructure_phase.harmonise_field("geometry", offshore_geometry)
+
+    assert result
+    assert not any(
+        issue["issue-type"] == "WGS84 out of bounds of England"
+        for issue in infrastructure_issues.rows
+    )
+
+    conservation_issues = IssueLog()
+    conservation_phase = HarmonisePhase(
+        field_datatype_map={"geometry": "multipolygon"},
+        issues=conservation_issues,
+        dataset="conservation-area",
+    )
+
+    result = conservation_phase.harmonise_field("geometry", offshore_geometry)
+
+    assert result == ""
+    assert any(
+        issue["issue-type"] == "WGS84 out of bounds of England"
+        for issue in conservation_issues.rows
+    )

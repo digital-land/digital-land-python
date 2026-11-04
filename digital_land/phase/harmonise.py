@@ -182,6 +182,17 @@ class HarmonisePhase(Phase):
         else:
             datatype = datatype_factory(datatype_name=datatype_name)
 
+        if (
+            self.dataset == "infrastructure-project"
+            and fieldname in {"geometry", "point"}
+            and datatype_name in {"multipolygon", "point"}
+        ):
+            return datatype.normalise(
+                value,
+                issues=self.issues,
+                check_boundary=False,
+            )
+
         return datatype.normalise(value, issues=self.issues)
 
     def category_values(self, value):
