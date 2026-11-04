@@ -4,7 +4,7 @@ import json
 import logging
 from shapely.geometry import shape, Point
 from shapely.errors import ShapelyError
-from shapely.ops import transform
+from shapely.ops import transform, unary_union
 from shapely.geometry import MultiPolygon
 from shapely.geometry.polygon import orient
 from shapely.validation import explain_validity, make_valid
@@ -230,7 +230,10 @@ def normalise_geometry(geometry, simplification=0.000001):
     issue = None
     if not geometry.is_valid:
         issue = explain_validity(geometry)
-        geometry = make_valid(geometry)
+        if geometry.geom_type == "MultiPolygon":
+            geometry = unary_union([make_valid(part) for part in geometry.geoms])
+        else:
+            geometry = make_valid(geometry)
 
     # ensure geometry is a MultiPolygon
     geometry = make_multipolygon(geometry)
