@@ -8,7 +8,7 @@ import urllib
 import os
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 # # TODO is there a way to represent this in a generalised count or not
@@ -933,6 +933,83 @@ def check_fields_required_after_plan_event(
         "fields": fields,
         "plan_event": plan_event,
         "plans_past_event": len(rows),
+    }
+
+    return result, message, details
+
+
+def check_overdue_plan_events(
+    conn,
+    plan_events: list,
+    earliest_event_date: str,
+    grace_days: int = 7,
+    today: str = None,
+):
+    """
+    Checks plan-timetable rows have an actual-date once their event-date has passed.
+
+    A blank actual-date is expected while an event is in the future, so a row is only
+    flagged once its event-date is more than grace_days old. This runs against the
+    assembled dataset so a row becomes overdue without its resource having to change.
+
+    Each organisation's row is checked separately, including for joint plans, as each
+    authority provides its own endpoint and is responsible for keeping it up to date.
+
+    args:
+        conn: connection to the dataset being checked, created by the checkpoint class
+        plan_events: the plan-events which must be given an actual-date
+        earliest_event_date: ignore rows with an event-date before this, as YYYY-MM-DD
+        grace_days: how many days after the event-date to allow for an update
+        today: date to compare against as YYYY-MM-DD, defaults to the current date
+    """
+    if not plan_events:
+        raise ValueError("At least one plan event must be provided to check")
+
+    today = today or datetime.now().strftime("%Y-%m-%d")
+    overdue_before = (
+        datetime.strptime(today, "%Y-%m-%d") - timedelta(days=grace_days)
+    ).strftime("%Y-%m-%d")
+
+    placeholders = ", ".join("?" for _ in plan_events)
+    query = f"""
+        select
+            organisation_entity,
+            reference,
+            json_extract(json, '$.plan') as plan,
+            json_extract(json, '$."plan-event"') as plan_event,
+            json_extract(json, '$."event-date"') as event_date
+        from entity
+        where coalesce(end_date, '') = ''
+            and coalesce(json_extract(json, '$."actual-date"'), '') = ''
+            and json_extract(json, '$."plan-event"') in ({placeholders})
+            and json_extract(json, '$."event-date"') >= ?
+            and json_extract(json, '$."event-date"') < ?
+        order by reference, organisation_entity
+    """
+    rows = conn.execute(query, (*plan_events, earliest_event_date, overdue_before))
+
+    failures = [
+        {
+            "organisation_entity": organisation_entity,
+            "reference": reference,
+            "plan": plan,
+            "plan-event": plan_event,
+            "event-date": event_date,
+        }
+        for organisation_entity, reference, plan, plan_event, event_date in rows
+    ]
+
+    result = len(failures) == 0
+    message = (
+        f"{len(failures)} plan events have no actual-date "
+        f"more than {grace_days} days after their event-date"
+    )
+    details = {
+        "failures": failures,
+        "field": "actual-date",
+        "actual": len(failures),
+        "expected": 0,
+        "overdue_before": overdue_before,
     }
 
     return result, message, details

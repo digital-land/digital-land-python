@@ -9,6 +9,7 @@ import urllib
 from digital_land.expectations.operations.dataset import (
     check_columns,
     check_fields_required_after_plan_event,
+    check_overdue_plan_events,
     count_lpa_boundary,
     count_deleted_entities,
     duplicate_geometry_check,
@@ -1045,6 +1046,171 @@ def test_check_fields_required_after_plan_event_null_value(
             "actual-date": "2024-12-12",
         }
     ]
+
+
+def _insert_timetable_rows(dataset_path, rows):
+    with spatialite.connect(dataset_path) as con:
+        for entity, (reference, organisation_entity, end_date, fields) in enumerate(
+            rows, start=1
+        ):
+            con.execute(
+                "INSERT INTO entity"
+                " (entity, reference, organisation_entity, end_date, json)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (
+                    entity,
+                    reference,
+                    organisation_entity,
+                    end_date,
+                    json.dumps({"plan": "plan-1", **fields}),
+                ),
+            )
+
+
+def _timetable_fields(event_date=None, actual_date=None, plan_event="adopted"):
+    fields = {"plan-event": plan_event}
+    if event_date is not None:
+        fields["event-date"] = event_date
+    if actual_date is not None:
+        fields["actual-date"] = actual_date
+    return fields
+
+
+def test_check_overdue_plan_events(dataset_path):
+    _insert_timetable_rows(
+        dataset_path,
+        [
+            # event-date has passed the grace period, should be flagged
+            ("overdue", "1", None, _timetable_fields("2026-06-01")),
+            # an explicit blank actual-date is treated the same as no actual-date
+            ("blank", "1", None, _timetable_fields("2026-06-01", "")),
+            # actual-date provided, should not be flagged
+            ("updated", "1", None, _timetable_fields("2026-06-01", "2026-06-02")),
+            # event-date in the future, should not be flagged
+            ("future", "1", None, _timetable_fields("2026-12-01")),
+            # no event-date, nothing to be overdue against
+            ("undated", "1", None, _timetable_fields()),
+            # event-date before the earliest date, should not be flagged
+            ("too-early", "1", None, _timetable_fields("2026-03-01")),
+            # first day in range, should be flagged
+            ("earliest", "1", None, _timetable_fields("2026-03-02")),
+            # a plan event which is not being checked, should not be flagged
+            (
+                "other-event",
+                "1",
+                None,
+                _timetable_fields("2026-06-01", plan_event="withdrawn"),
+            ),
+            # removed from the timetable, should not be flagged
+            ("ended", "1", "2026-07-01", _timetable_fields("2026-06-01")),
+        ],
+    )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = check_overdue_plan_events(
+            conn=con,
+            plan_events=["adopted"],
+            earliest_event_date="2026-03-02",
+            today="2026-11-06",
+        )
+
+    assert not passed, message
+    assert details["field"] == "actual-date"
+    assert details["actual"] == 3
+    assert [failure["reference"] for failure in details["failures"]] == [
+        "blank",
+        "earliest",
+        "overdue",
+    ]
+    assert details["failures"][2] == {
+        "organisation_entity": "1",
+        "reference": "overdue",
+        "plan": "plan-1",
+        "plan-event": "adopted",
+        "event-date": "2026-06-01",
+    }
+
+
+@pytest.mark.parametrize(
+    "event_date,grace_days,is_overdue",
+    [
+        ("2026-10-29", 7, True),
+        # exactly on the grace period, the LPA still has until the end of the day
+        ("2026-10-30", 7, False),
+        ("2026-11-05", 7, False),
+        ("2026-11-05", 0, True),
+        ("2026-11-06", 0, False),
+    ],
+)
+def test_check_overdue_plan_events_grace_period(
+    dataset_path, event_date, grace_days, is_overdue
+):
+    _insert_timetable_rows(
+        dataset_path, [("event", "1", None, _timetable_fields(event_date))]
+    )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, _, details = check_overdue_plan_events(
+            conn=con,
+            plan_events=["adopted"],
+            earliest_event_date="2026-03-02",
+            grace_days=grace_days,
+            today="2026-11-06",
+        )
+
+    assert passed is not is_overdue
+    assert details["actual"] == int(is_overdue)
+
+
+def test_check_overdue_plan_events_joint_plan(dataset_path):
+    """each authority must update its own row, even if another already has"""
+    _insert_timetable_rows(
+        dataset_path,
+        [
+            ("joint", "1", None, _timetable_fields("2026-06-01", "2026-06-01")),
+            ("joint", "2", None, _timetable_fields("2026-06-01")),
+            ("joint", "3", None, _timetable_fields("2026-06-01")),
+        ],
+    )
+
+    with spatialite.connect(dataset_path) as con:
+        _, _, details = check_overdue_plan_events(
+            conn=con,
+            plan_events=["adopted"],
+            earliest_event_date="2026-03-02",
+            today="2026-11-06",
+        )
+
+    assert [failure["organisation_entity"] for failure in details["failures"]] == [
+        "2",
+        "3",
+    ]
+
+
+def test_check_overdue_plan_events_passes_with_no_overdue_rows(dataset_path):
+    _insert_timetable_rows(
+        dataset_path,
+        [("updated", "1", None, _timetable_fields("2026-06-01", "2026-06-02"))],
+    )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, _, details = check_overdue_plan_events(
+            conn=con,
+            plan_events=["adopted"],
+            earliest_event_date="2026-03-02",
+            today="2026-11-06",
+        )
+
+    assert passed
+    assert details["failures"] == []
+
+
+def test_check_overdue_plan_events_requires_plan_events(dataset_path):
+    with spatialite.connect(dataset_path) as con:
+        with pytest.raises(ValueError):
+            check_overdue_plan_events(
+                conn=con, plan_events=[], earliest_event_date="2026-03-02"
+            )
 
 
 def test_name_is_a_code_check(dataset_path):
