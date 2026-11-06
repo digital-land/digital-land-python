@@ -49,6 +49,7 @@ def get_lookup():
 
 
 class TestLookupPhase:
+    
     def test_redirect_entity_entity_is_not_redirected(self):
         redirects = {"101": {"entity": "101", "status": "310"}}
         phase = LookupPhase(redirect_lookups=redirects)
@@ -257,6 +258,24 @@ class TestLookupPhase:
             "entry-number": 1,
         }
         assert phase.get_entity(block) == "1100"
+
+    def test_redirect_entity_follows_multiple_redirects(self):
+        redirects = {
+            "101": {"entity": "202", "status": "301"},
+            "202": {"entity": "303", "status": "301"},
+        }
+        phase = LookupPhase(redirect_lookups=redirects)
+
+        assert phase.redirect_entity("101") == "303"
+
+    def test_redirect_entity_returns_empty_when_chain_ends_in_410(self):
+        redirects = {
+            "101": {"entity": "202", "status": "301"},
+            "202": {"entity": "", "status": "410"},
+        }
+        phase = LookupPhase(redirect_lookups=redirects)
+
+        assert phase.redirect_entity("101") == ""
 
 
 class TestPrintLookupPhase:
