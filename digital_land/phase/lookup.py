@@ -152,18 +152,29 @@ class LookupPhase(Phase):
             )
 
     def redirect_entity(self, entity):
-        """
-        Given an entity number can check the redirect lookups to see if the entity
-        has been removed or redirected.
-        """
-        if self.redirect_lookups:
-            redirect_entity = self.redirect_lookups.get(entity, "")
-            if redirect_entity:
-                if redirect_entity["status"] == "301":
-                    return redirect_entity["entity"]
-                elif redirect_entity["status"] == "410":
-                    return ""
-        return entity
+        """Follow redirects until the entity has no further redirect."""
+        current_entity = entity
+        visited_entities = set()
+
+        while current_entity in self.redirect_lookups:
+            if current_entity in visited_entities:
+                raise ValueError(
+                    f"Cycle found while following entity redirects from {entity}"
+                )
+
+            visited_entities.add(current_entity)
+            redirect = self.redirect_lookups[current_entity]
+            status = redirect["status"]
+
+            if status == "410":
+                return ""
+
+            if status != "301":
+                return current_entity
+
+            current_entity = redirect["entity"]
+
+        return current_entity
 
     def _log_unknown_entity(self, reference, curie, line_number):
         """
