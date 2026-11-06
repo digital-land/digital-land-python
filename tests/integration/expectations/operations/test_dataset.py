@@ -1216,6 +1216,33 @@ def test_check_overdue_plan_events_requires_plan_events(dataset_path):
             )
 
 
+def test_check_overdue_plan_events_rejects_empty_string(dataset_path):
+    """an empty string must raise, not become a plan event which matches nothing"""
+    with spatialite.connect(dataset_path) as con:
+        with pytest.raises(ValueError):
+            check_overdue_plan_events(
+                conn=con, plan_events="", earliest_event_date="2026-03-02"
+            )
+
+
+def test_check_overdue_plan_events_single_string(dataset_path):
+    """a single plan event given as a string is checked, not split into characters"""
+    _insert_timetable_rows(
+        dataset_path, [("overdue", "1", None, _timetable_fields("2026-06-01"))]
+    )
+
+    with spatialite.connect(dataset_path) as con:
+        passed, _, details = check_overdue_plan_events(
+            conn=con,
+            plan_events="adopted",
+            earliest_event_date="2026-03-02",
+            today="2026-11-06",
+        )
+
+    assert not passed
+    assert details["actual"] == 1
+
+
 def test_name_is_a_code_check(dataset_path):
     entities = [
         # bare codes, should be flagged

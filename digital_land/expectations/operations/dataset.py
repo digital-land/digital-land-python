@@ -965,6 +965,11 @@ def check_overdue_plan_events(
     if not plan_events:
         raise ValueError("At least one plan event must be provided to check")
 
+    # a single string in config would otherwise iterate as characters and match
+    # nothing, so treat it as one plan event
+    if isinstance(plan_events, str):
+        plan_events = [plan_events]
+
     today = today or datetime.now().strftime("%Y-%m-%d")
     overdue_before = (
         datetime.strptime(today, "%Y-%m-%d") - timedelta(days=grace_days)
