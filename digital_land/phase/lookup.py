@@ -175,7 +175,7 @@ class LookupPhase(Phase):
             current_entity = redirect["entity"]
 
         return current_entity
-    
+
     def _log_unknown_entity(self, reference, curie, line_number):
         """
         Raise an unknown-entity issue. An entry with no reference has already been

@@ -49,7 +49,7 @@ def get_lookup():
 
 
 class TestLookupPhase:
-    
+
     def test_redirect_entity_entity_is_not_redirected(self):
         redirects = {"101": {"entity": "101", "status": "310"}}
         phase = LookupPhase(redirect_lookups=redirects)
