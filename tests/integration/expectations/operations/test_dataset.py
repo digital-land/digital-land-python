@@ -1049,6 +1049,7 @@ def test_check_fields_required_after_plan_event_null_value(
 
 
 def _insert_timetable_rows(dataset_path, rows):
+    """insert plan-timetable entities, numbering them in the order given"""
     with spatialite.connect(dataset_path) as con:
         for entity, (reference, organisation_entity, end_date, fields) in enumerate(
             rows, start=1
@@ -1068,6 +1069,7 @@ def _insert_timetable_rows(dataset_path, rows):
 
 
 def _timetable_fields(event_date=None, actual_date=None, plan_event="adopted"):
+    """build an entity's json fields, leaving out any date which isn't given"""
     fields = {"plan-event": plan_event}
     if event_date is not None:
         fields["event-date"] = event_date
@@ -1077,6 +1079,7 @@ def _timetable_fields(event_date=None, actual_date=None, plan_event="adopted"):
 
 
 def test_check_overdue_plan_events(dataset_path):
+    """only rows in scope with no actual-date past the grace period are flagged"""
     _insert_timetable_rows(
         dataset_path,
         [
