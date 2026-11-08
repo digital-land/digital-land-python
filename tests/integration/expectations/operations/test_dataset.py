@@ -17,6 +17,7 @@ from digital_land.expectations.operations.dataset import (
     fetch_all_resources_for_dataset,
     name_is_a_code_check,
     name_is_a_placeholder_check,
+    lbos_have_no_ended_date_check,
 )
 
 
@@ -1605,3 +1606,39 @@ def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_p
     assert len(details["complete_matches"]) == 1
     assert len(details["single_matches"]) == 2
     assert len(details["any_matches"]) == 3
+
+
+def _insert_end_date(con, entity, reference, name, organisation_entity, end_date):
+    con.execute(
+        "INSERT INTO entity (entity, reference, name, organisation_entity, end_date)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (entity, reference, name, organisation_entity, end_date),
+    )
+
+def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
+    """a missing artifact must skip the check, never fail the build"""
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = lbos_have_no_ended_date_check(
+            conn=con,
+            listed_building_path=tmp_path / "does-not-exist.sqlite3",
+        )
+
+    assert passed
+    assert details["skipped"] is True
+    assert "check skipped" in message
+
+def test_lbos_blank_end_date(dataset_path):
+    with spatialite.connect(dataset_path) as con:
+        _insert_end_date(con, 1, "A4D-1", "Pair", "600001",None)
+        _insert_end_date(con, 1, "A4D-2", "Pair", "600001","2020-01-01")
+
+
+    with spatialite.connect(dataset_path) as con:
+        passed, message, details = lbos_have_no_ended_date_check(
+                    conn=con,
+                    listed_building_path=tmp_path / "end_date_check_config.sqlite3",
+                )
+
+    assert not passed, message
+    assert len(details["failures"])==1#[failure["name"] for failure in details["failures"]] == ["Trio"]
+    assert "1 entities" in message

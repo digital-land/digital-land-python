@@ -936,3 +936,97 @@ def check_fields_required_after_plan_event(
     }
 
     return result, message, details
+
+def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None):
+    """
+    Checks for listed-building-outline entities that are open (blank end-date) but link to a listed building that has an end-date
+
+    args:
+        conn: connection to the dataset being checked, created by the checkpoint class
+        listed_building_path: path to a local copy of the built listed-building sqlite,
+            fetched as a published artifact during assemble
+        placeholders: list of placeholder strings; falls back to
+            DEFAULT_PLACEHOLDER_NAMES when absent or empty, so a parameters cell
+            carrying only the path still works
+    """
+    if not placeholders:
+        placeholders = DEFAULT_PLACEHOLDER_NAMES
+    # a single string in config would otherwise iterate as characters and match any
+    # one-character name, so treat it as one placeholder
+    if isinstance(placeholders, str):
+        placeholders = [placeholders]
+
+    placeholder_set = {_normalise_name(placeholder) for placeholder in placeholders}
+
+    # a missing artifact must never fail the build, the check just can't run
+    if not listed_building_path or not os.path.isfile(listed_building_path):
+        message = (
+            f"listed-building not available at '{listed_building_path}', check skipped"
+        )
+        logging.warning(message)
+        return True, message, {"skipped": True, "failures": []}
+
+    # listed-building is not a core entity column, so it lives in the json blob.
+    query = """
+        select
+            e.entity,
+            e.reference,
+            e.name,
+            e.organisation_entity,
+            e.end_date as lbo_end_date,
+            lb.name as listed_building_name,
+            lb.end_date as lb_end_date
+        from entity e
+        inner join listed_building_check.entity lb 
+            on lb.reference = json_extract(e.json, '$."listed-building"')
+        where e.reference is not null
+            and (e.end_date is null or e.end_date = '')
+            and (lb.end_date is not null or lb.end_date !='')
+    """
+
+    conn.execute("ATTACH DATABASE ? AS listed_building_check", (str(listed_building_path),))
+    try:
+        rows = conn.execute(query).fetchall()
+    finally:
+        conn.execute("DETACH DATABASE listed_building_check")
+
+    failures = [
+        {
+            "organisation_entity": organisation_entity,
+            "entity": entity,
+            "reference": reference,
+            "name": name,
+            "listed_building_name": listed_building_name,
+            "lbo_end_date": lbo_end_date,
+            "lb_end_date": lb_end_date,
+        }
+        for entity, reference, name, organisation_entity, listed_building_name, lbo_end_date, lb_end_date in rows
+        # the listed-building name must be a real name too - swapping one placeholder
+        # for another is not a fix worth asking an organisation to make
+        #if _normalise_name(name) in placeholder_set
+        #and _normalise_name(listed_building_name) not in placeholder_set
+    ]
+
+    failures.sort(
+        key=lambda failure: (
+            failure["organisation_entity"] or "",
+            failure["reference"] or "",
+            failure["entity"] or "",
+            failure["lbo_end_date"] or "",
+            failure["lb_end_date"] or "",
+        )
+    )
+
+    result = len(failures) == 0
+    message = (
+        f"{len(failures)} entities have a blank end_date "
+        "record holds a real name"
+    )
+    details = {
+        "failures": failures,
+        "field": "name",
+        "actual": len(failures),
+        "expected": 0,
+    }
+
+    return result, message, details
