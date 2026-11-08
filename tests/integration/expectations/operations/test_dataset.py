@@ -1636,7 +1636,7 @@ def test_lbos_have_no_ended_date_blank_end_date(dataset_path, tmp_path):
     with spatialite.connect(dataset_path) as con:
         passed, message, details = lbos_have_no_ended_date_check(
                     conn=con,
-                    listed_building_path=tmp_path / "end_date_check_config.sqlite3",
+                    listed_building_path=tmp_path / "end_date_check.sqlite3",
                 )
 
     assert not passed, message

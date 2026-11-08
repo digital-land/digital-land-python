@@ -569,7 +569,7 @@ def listed_building_end_date_path(tmp_path):
         )
         con.executemany(
             "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
-            " VALUES (?, ?, ?, ?, ?)",
+            " VALUES (?, ?, ?, ?, ?, ?)",
             [
                 (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-123"})),
                 (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01", json.dumps({"listed-building": "CA-WYM"})),
