@@ -541,7 +541,7 @@ def end_date_check_dataset_path(tmp_path):
         con.execute(create_entity_table_sql)
         con.executemany(
             "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
-            " VALUES (?, ?, ?, ?, ?)",
+            " VALUES (?, ?, ?, ?, ?, ?)",
             [
                 (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-123"})),
                 (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01", json.dumps({"listed-building": "CA-WYM"})),
@@ -559,9 +559,11 @@ def listed_building_end_date_path(tmp_path):
             """
             CREATE TABLE entity (
                 entity INTEGER PRIMARY KEY,
-                name TEXT,
                 reference TEXT,
-                end_date TEXT
+                name TEXT,
+                organisation_entity TEXT,
+                end_date TEXT,
+                json JSON
             );
         """
         )
