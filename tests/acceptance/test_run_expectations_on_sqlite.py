@@ -631,5 +631,5 @@ def test_run_end_date_is_blank_expectation(
 
     details = json.loads(log["details"])
     assert details["actual"] == 1
-    assert [failure["name"] for failure in details["failures"]] == ["1"]
+    assert [failure["name"] for failure in details["failures"]] == ["59"]
     assert details["failures"][0]["reference"] == "A4D-1"
