@@ -543,7 +543,7 @@ def end_date_check_dataset_path(tmp_path):
             "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
             " VALUES (?, ?, ?, ?, ?, ?)",
             [
-                (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-123"})),
+                (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-59"})),
                 (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01", json.dumps({"listed-building": "CA-WYM"})),
             ],
         )
@@ -571,7 +571,7 @@ def listed_building_end_date_path(tmp_path):
             "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
             " VALUES (?, ?, ?, ?, ?, ?)",
             [
-                (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-123"})),
+                (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-59"})),
                 (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01", json.dumps({"listed-building": "CA-WYM"})),
             ],
         )
