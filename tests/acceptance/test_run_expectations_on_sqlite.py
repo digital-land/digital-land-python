@@ -561,7 +561,9 @@ def end_date_check_config_path(tmp_path, specification_dir):
             "organisations": "",
             "name": "Check no entities have a blank end date",
             "operation": "lbos_have_no_ended_date_check",
-            "parameters": "{}",
+            "parameters": json.dumps({
+                "listed_building_path": str(listed_building_artefact_path)
+            }),
             "responsibility": "external",
             "severity": "warning",
         }
@@ -619,7 +621,7 @@ def test_run_end_date_is_blank_expectation(
 
     assert len(results) == 1, "expected one expectation to have run"
     log = results[0]
-    assert log["operation"] == "end_date_is_blank_check"
+    assert log["operation"] == "lbos_have_no_ended_date_check"
     assert log["passed"] == "False", "the blank end date should have failed the check"
     assert log["severity"] == "warning"
     assert log["responsibility"] == "external"

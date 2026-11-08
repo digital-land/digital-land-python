@@ -949,14 +949,14 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
             DEFAULT_PLACEHOLDER_NAMES when absent or empty, so a parameters cell
             carrying only the path still works
     """
-    if not placeholders:
-        placeholders = DEFAULT_PLACEHOLDER_NAMES
+    #if not placeholders:
+    #    placeholders = DEFAULT_PLACEHOLDER_NAMES
     # a single string in config would otherwise iterate as characters and match any
     # one-character name, so treat it as one placeholder
-    if isinstance(placeholders, str):
-        placeholders = [placeholders]
+    #if isinstance(placeholders, str):
+    #    placeholders = [placeholders]
 
-    placeholder_set = {_normalise_name(placeholder) for placeholder in placeholders}
+    #placeholder_set = {_normalise_name(placeholder) for placeholder in placeholders}
 
     # a missing artifact must never fail the build, the check just can't run
     if not listed_building_path or not os.path.isfile(listed_building_path):
@@ -1019,8 +1019,8 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
 
     result = len(failures) == 0
     message = (
-        f"{len(failures)} entities have a blank end_date "
-        "record holds a real name"
+        f"{len(failures)} listed building outlines have a blank end date "
+        "but their linked listed buildings have an end date"
     )
     details = {
         "failures": failures,
