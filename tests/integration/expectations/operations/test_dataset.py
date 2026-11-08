@@ -1630,7 +1630,7 @@ def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
 def test_lbos_have_no_ended_date_blank_end_date(dataset_path):
     with spatialite.connect(dataset_path) as con:
         _insert_end_date(con, 1, "A4D-1", "Pair", "600001",None)
-        _insert_end_date(con, 1, "A4D-2", "Pair", "600001","2020-01-01")
+        _insert_end_date(con, 2, "A4D-2", "Pair", "600001","2020-01-01")
 
 
     with spatialite.connect(dataset_path) as con:

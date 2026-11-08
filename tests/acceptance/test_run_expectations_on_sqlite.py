@@ -551,7 +551,32 @@ def end_date_check_dataset_path(tmp_path):
     return dataset_path
 
 @pytest.fixture
-def end_date_check_config_path(tmp_path, specification_dir):
+def listed_building_end_date_path(tmp_path):
+    """stands in for the listed-building sqlite fetched from S3 during assemble"""
+    artifact_path = tmp_path / "listed-building_end_date.sqlite3"
+    with spatialite.connect(artifact_path) as con:
+        con.execute(
+            """
+            CREATE TABLE entity (
+                entity INTEGER PRIMARY KEY,
+                name TEXT,
+                reference TEXT,
+                end_date TEXT
+            );
+        """
+        )
+        con.executemany(
+            "INSERT INTO entity (entity, name, reference, end_date) VALUES (?, ?, ?, ?)",
+            [
+                (900001, "33, 37 AND 39, BAYFORD GREEN", "CA-123", ""),
+                (900002, "NORTH LODGE", "CA-WYM", "2020-01-01"),
+            ],
+        )
+
+    return artifact_path
+
+@pytest.fixture
+def end_date_check_config_path(tmp_path, specification_dir,listed_building_end_date_path):
     """a configuration enabling name_is_a_code_check, with no organisations and empty
     parameters, matching how the rule will be written in config"""
     config_path = tmp_path / "end_date_check_config.sqlite3"
@@ -562,7 +587,7 @@ def end_date_check_config_path(tmp_path, specification_dir):
             "name": "Check no entities have a blank end date",
             "operation": "lbos_have_no_ended_date_check",
             "parameters": json.dumps({
-                "listed_building_path": str(listed_building_artefact_path)
+                "listed_building_path": str(listed_building_end_date_path)
             }),
             "responsibility": "external",
             "severity": "warning",
