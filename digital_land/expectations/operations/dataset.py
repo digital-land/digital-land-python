@@ -973,8 +973,8 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
             e.reference,
             e.name,
             e.organisation_entity,
-            e.end_date as lbo_end_date,
             lb.name as listed_building_name,
+            e.end_date as lbo_end_date,
             lb.end_date as lb_end_date
         from entity e
         inner join listed_building_check.entity lb 

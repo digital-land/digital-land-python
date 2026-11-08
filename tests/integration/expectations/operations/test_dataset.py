@@ -1608,11 +1608,11 @@ def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_p
     assert len(details["any_matches"]) == 3
 
 
-def _insert_end_date(con, entity, reference, name, organisation_entity, end_date):
+def _insert_end_date(con, entity, reference, name, organisation_entity, end_date, json):
     con.execute(
-        "INSERT INTO entity (entity, reference, name, organisation_entity, end_date)"
-        " VALUES (?, ?, ?, ?, ?)",
-        (entity, reference, name, organisation_entity, end_date),
+        "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
+        " VALUES (?, ?, ?, ?, ?, ?)",
+        (entity, reference, name, organisation_entity, end_date, json),
     )
 
 def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
@@ -1629,8 +1629,8 @@ def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
 
 def test_lbos_have_no_ended_date_blank_end_date(dataset_path, tmp_path):
     with spatialite.connect(dataset_path) as con:
-        _insert_end_date(con, 1, "A4D-1", "Pair", "600001",None)
-        _insert_end_date(con, 2, "A4D-2", "Pair", "600001","2020-01-01")
+        _insert_end_date(con, 1, "A4D-1", "Pair", "600001",None,json.dumps({"listed-building": "A4"}))
+        _insert_end_date(con, 2, "A4D-2", "Pair", "600001","2020-01-01",json.dumps({"listed-building": "A5"}))
 
 
     with spatialite.connect(dataset_path) as con:
