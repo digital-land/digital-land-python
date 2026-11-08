@@ -566,10 +566,11 @@ def listed_building_end_date_path(tmp_path):
         """
         )
         con.executemany(
-            "INSERT INTO entity (entity, name, reference, end_date) VALUES (?, ?, ?, ?)",
+            "INSERT INTO entity (entity, reference, name, organisation_entity, end_date)"
+            " VALUES (?, ?, ?, ?, ?)",
             [
-                (900001, "33, 37 AND 39, BAYFORD GREEN", "CA-123", ""),
-                (900002, "NORTH LODGE", "CA-WYM", "2020-01-01"),
+                (1, "CA-59", "59", "122", None),
+                (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01"),
             ],
         )
 
