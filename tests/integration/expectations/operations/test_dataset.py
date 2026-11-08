@@ -1606,6 +1606,7 @@ def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_p
     assert len(details["complete_matches"]) == 1
     assert len(details["single_matches"]) == 2
     assert len(details["any_matches"]) == 3
+    
 
 @pytest.fixture
 def listed_building_outline_path(tmp_path):
@@ -1627,8 +1628,8 @@ def listed_building_outline_path(tmp_path):
         con.executemany(
             "INSERT INTO entity (entity, name, reference) VALUES (?, ?, ?, ?, ?)",
             [
-                (900001, "33, 37 AND 39, BAYFORD GREEN", "1234567", "", json.dumps({"listed-building": "123"})),
-                (900002, "NORTH LODGE", "2222222", "2020-01-01", json.dumps({"listed-building": "124"})),
+                (900001, "33, 37 AND 39, BAYFORD GREEN", "1234567", "", json.dumps({"listed-building": "A4"})),
+                (900002, "NORTH LODGE", "2222222", "2020-01-01", json.dumps({"listed-building": "A5"})),
             ],
         )
     return listed_building_path
