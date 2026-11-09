@@ -50,7 +50,7 @@ class DatasetCheckpoint(BaseCheckpoint):
             "duplicate_name_check": duplicate_name_check,
             "name_is_a_code_check": name_is_a_code_check,
             "name_is_a_placeholder_check": name_is_a_placeholder_check,
-            "lbos_have_no_ended_date_check": lbos_have_no_ended_date_check
+            "lbos_have_no_ended_date_check": lbos_have_no_ended_date_check,
         }
         operation = operation_map[operation_string]
         return operation

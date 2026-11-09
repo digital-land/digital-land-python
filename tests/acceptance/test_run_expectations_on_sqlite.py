@@ -515,6 +515,7 @@ def test_run_name_is_a_placeholder_expectation(
         details["failures"][0]["listed_building_name"] == "33, 37 AND 39, BAYFORD GREEN"
     ), "the real name must reach details so the bridge can quote it back to the LPA"
 
+
 @pytest.fixture
 def end_date_check_dataset_path(tmp_path):
     """a listed-building-outline dataset with one null end date and one end date"""
@@ -543,12 +544,27 @@ def end_date_check_dataset_path(tmp_path):
             "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
             " VALUES (?, ?, ?, ?, ?, ?)",
             [
-                (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-59"})),
-                (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01", json.dumps({"listed-building": "CA-WYM"})),
+                (
+                    1,
+                    "CA-59",
+                    "59",
+                    "122",
+                    None,
+                    json.dumps({"listed-building": "CA-59"}),
+                ),
+                (
+                    2,
+                    "CA-WYM",
+                    "Wymondham Conservation Area",
+                    "122",
+                    "2020-01-01",
+                    json.dumps({"listed-building": "CA-WYM"}),
+                ),
             ],
         )
 
     return dataset_path
+
 
 @pytest.fixture
 def listed_building_end_date_path(tmp_path):
@@ -571,15 +587,32 @@ def listed_building_end_date_path(tmp_path):
             "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
             " VALUES (?, ?, ?, ?, ?, ?)",
             [
-                (1, "CA-59", "59", "122", "2020-01-01", json.dumps({"listed-building": "CA-59"})),
-                (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01", json.dumps({"listed-building": "CA-WYM"})),
+                (
+                    1,
+                    "CA-59",
+                    "59",
+                    "122",
+                    "2020-01-01",
+                    json.dumps({"listed-building": "CA-59"}),
+                ),
+                (
+                    2,
+                    "CA-WYM",
+                    "Wymondham Conservation Area",
+                    "122",
+                    "2020-01-01",
+                    json.dumps({"listed-building": "CA-WYM"}),
+                ),
             ],
         )
 
     return artifact_path
 
+
 @pytest.fixture
-def end_date_check_config_path(tmp_path, specification_dir,listed_building_end_date_path):
+def end_date_check_config_path(
+    tmp_path, specification_dir, listed_building_end_date_path
+):
     """a configuration enabling name_is_a_code_check, with no organisations and empty
     parameters, matching how the rule will be written in config"""
     config_path = tmp_path / "end_date_check_config.sqlite3"
@@ -589,9 +622,9 @@ def end_date_check_config_path(tmp_path, specification_dir,listed_building_end_d
             "organisations": "",
             "name": "Check no entities have a blank end date",
             "operation": "lbos_have_no_ended_date_check",
-            "parameters": json.dumps({
-                "listed_building_path": str(listed_building_end_date_path)
-            }),
+            "parameters": json.dumps(
+                {"listed_building_path": str(listed_building_end_date_path)}
+            ),
             "responsibility": "external",
             "severity": "warning",
         }
@@ -607,6 +640,7 @@ def end_date_check_config_path(tmp_path, specification_dir,listed_building_end_d
     config.create()
     config.load({"expect": str(tmp_path)})
     return config_path
+
 
 def test_run_end_date_is_blank_expectation(
     tmp_path,
@@ -653,9 +687,7 @@ def test_run_end_date_is_blank_expectation(
     assert log["passed"] == "False", "the blank end date should have failed the check"
     assert log["severity"] == "warning"
     assert log["responsibility"] == "external"
-    assert (
-        log["organisation"] == ""
-    ), "a rule with no end date logs an error"
+    assert log["organisation"] == "", "a rule with no end date logs an error"
 
     details = json.loads(log["details"])
     assert details["actual"] == 1

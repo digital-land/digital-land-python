@@ -1606,7 +1606,7 @@ def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_p
     assert len(details["complete_matches"]) == 1
     assert len(details["single_matches"]) == 2
     assert len(details["any_matches"]) == 3
-    
+
 
 @pytest.fixture
 def listed_building_outline_path(tmp_path):
@@ -1628,8 +1628,20 @@ def listed_building_outline_path(tmp_path):
         con.executemany(
             "INSERT INTO entity (entity, name, reference) VALUES (?, ?, ?, ?, ?)",
             [
-                (900001, "33, 37 AND 39, BAYFORD GREEN", "1234567", "", json.dumps({"listed-building": "A4"})),
-                (900002, "NORTH LODGE", "2222222", "2020-01-01", json.dumps({"listed-building": "A5"})),
+                (
+                    900001,
+                    "33, 37 AND 39, BAYFORD GREEN",
+                    "1234567",
+                    "",
+                    json.dumps({"listed-building": "A4"}),
+                ),
+                (
+                    900002,
+                    "NORTH LODGE",
+                    "2222222",
+                    "2020-01-01",
+                    json.dumps({"listed-building": "A5"}),
+                ),
             ],
         )
     return listed_building_path
@@ -1641,6 +1653,7 @@ def _insert_end_date(con, entity, reference, name, organisation_entity, end_date
         " VALUES (?, ?, ?, ?, ?, ?)",
         (entity, reference, name, organisation_entity, end_date, json),
     )
+
 
 def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
     """a missing artifact must skip the check, never fail the build"""
@@ -1654,18 +1667,38 @@ def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
     assert details["skipped"] is True
     assert "check skipped" in message
 
-def test_lbos_have_no_ended_date_blank_end_date(dataset_path, listed_building_outline_path):#tmp_path):
-    with spatialite.connect(dataset_path) as con:
-        _insert_end_date(con, 1, "A4D-1", "Pair", "600001",None,json.dumps({"listed-building": "A4"}))
-        _insert_end_date(con, 2, "A4D-2", "Pair", "600001","2020-01-01",json.dumps({"listed-building": "A5"}))
 
+def test_lbos_have_no_ended_date_blank_end_date(
+    dataset_path, listed_building_outline_path
+):  # tmp_path):
+    with spatialite.connect(dataset_path) as con:
+        _insert_end_date(
+            con,
+            1,
+            "A4D-1",
+            "Pair",
+            "600001",
+            None,
+            json.dumps({"listed-building": "A4"}),
+        )
+        _insert_end_date(
+            con,
+            2,
+            "A4D-2",
+            "Pair",
+            "600001",
+            "2020-01-01",
+            json.dumps({"listed-building": "A5"}),
+        )
 
     with spatialite.connect(dataset_path) as con:
         passed, message, details = lbos_have_no_ended_date_check(
-                    conn=con,
-                    listed_building_path=listed_building_outline_path#tmp_path / "listed-building-outline-ed.sqlite3",# was end_date_check.sqlite3
-                )
+            conn=con,
+            listed_building_path=listed_building_outline_path,  # tmp_path / "listed-building-outline-ed.sqlite3",# was end_date_check.sqlite3
+        )
 
     assert not passed, message
-    assert len(details["failures"])==1#[failure["name"] for failure in details["failures"]] == ["Trio"]
+    assert (
+        len(details["failures"]) == 1
+    )  # [failure["name"] for failure in details["failures"]] == ["Trio"]
     assert "1 listed building" in message

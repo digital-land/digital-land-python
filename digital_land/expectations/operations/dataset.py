@@ -937,6 +937,7 @@ def check_fields_required_after_plan_event(
 
     return result, message, details
 
+
 def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None):
     """
     Checks for listed-building-outline entities that are open (blank end-date) but link to a listed building that has an end-date
@@ -949,14 +950,14 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
             DEFAULT_PLACEHOLDER_NAMES when absent or empty, so a parameters cell
             carrying only the path still works
     """
-    #if not placeholders:
+    # if not placeholders:
     #    placeholders = DEFAULT_PLACEHOLDER_NAMES
     # a single string in config would otherwise iterate as characters and match any
     # one-character name, so treat it as one placeholder
-    #if isinstance(placeholders, str):
+    # if isinstance(placeholders, str):
     #    placeholders = [placeholders]
 
-    #placeholder_set = {_normalise_name(placeholder) for placeholder in placeholders}
+    # placeholder_set = {_normalise_name(placeholder) for placeholder in placeholders}
 
     # a missing artifact must never fail the build, the check just can't run
     if not listed_building_path or not os.path.isfile(listed_building_path):
@@ -984,7 +985,9 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
             and (lb.end_date is not null or lb.end_date !='')
     """
 
-    conn.execute("ATTACH DATABASE ? AS listed_building_check", (str(listed_building_path),))
+    conn.execute(
+        "ATTACH DATABASE ? AS listed_building_check", (str(listed_building_path),)
+    )
     try:
         rows = conn.execute(query).fetchall()
     finally:
@@ -1003,8 +1006,8 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
         for entity, reference, name, organisation_entity, listed_building_name, lbo_end_date, lb_end_date in rows
         # the listed-building name must be a real name too - swapping one placeholder
         # for another is not a fix worth asking an organisation to make
-        #if _normalise_name(name) in placeholder_set
-        #and _normalise_name(listed_building_name) not in placeholder_set
+        # if _normalise_name(name) in placeholder_set
+        # and _normalise_name(listed_building_name) not in placeholder_set
     ]
 
     failures.sort(
