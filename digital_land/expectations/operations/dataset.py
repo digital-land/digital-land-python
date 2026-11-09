@@ -978,7 +978,7 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
             e.end_date as lbo_end_date,
             lb.end_date as lb_end_date
         from entity e
-        inner join listed_building_check.entity lb 
+        inner join listed_building_check.entity lb
             on lb.reference = json_extract(e.json, '$."listed-building"')
         where e.reference is not null
             and (e.end_date is null or e.end_date = '')
