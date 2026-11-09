@@ -1626,13 +1626,13 @@ def listed_building_outline_path(tmp_path):
         """
         )
         con.executemany(
-            "INSERT INTO entity (entity, name, reference) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO entity (entity, name, reference, end_date, json) VALUES (?, ?, ?, ?, ?)",
             [
                 (
                     900001,
                     "33, 37 AND 39, BAYFORD GREEN",
                     "1234567",
-                    "",
+                    None,
                     json.dumps({"listed-building": "A4"}),
                 ),
                 (
