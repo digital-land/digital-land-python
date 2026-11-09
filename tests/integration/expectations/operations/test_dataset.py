@@ -1631,14 +1631,14 @@ def listed_building_outline_path(tmp_path):
                 (
                     900001,
                     "33, 37 AND 39, BAYFORD GREEN",
-                    "1234567",
+                    "A4",
                     None,
                     json.dumps({"listed-building": "A4"}),
                 ),
                 (
                     900002,
                     "NORTH LODGE",
-                    "2222222",
+                    "A5",
                     "2020-01-01",
                     json.dumps({"listed-building": "A5"}),
                 ),
@@ -1675,16 +1675,16 @@ def test_lbos_have_no_ended_date_blank_end_date(
         _insert_end_date(
             con,
             1,
-            "1234567",
+            "A4",
             "Pair",
             "600001",
-            None,
+            "2020-01-01",
             json.dumps({"listed-building": "A4"}),
         )
         _insert_end_date(
             con,
             2,
-            "2222222",
+            "A5",
             "Pair",
             "600001",
             "2020-01-01",
