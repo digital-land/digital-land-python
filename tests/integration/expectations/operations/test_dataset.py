@@ -1612,7 +1612,7 @@ def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_p
 def listed_building_outline_path(tmp_path):
     """a minimal built listed-building-outline sqlite, standing in for the Historic England
     dataset fetched during assemble"""
-    listed_building_path = tmp_path / "listed-building-outline_ed.sqlite3"
+    listed_building_path = tmp_path / "listed-building-outline-ed.sqlite3"
     with spatialite.connect(listed_building_path) as con:
         con.execute(
             """
@@ -1654,7 +1654,7 @@ def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
     assert details["skipped"] is True
     assert "check skipped" in message
 
-def test_lbos_have_no_ended_date_blank_end_date(dataset_path, tmp_path):
+def test_lbos_have_no_ended_date_blank_end_date(dataset_path, listed_building_outline_path):#tmp_path):
     with spatialite.connect(dataset_path) as con:
         _insert_end_date(con, 1, "A4D-1", "Pair", "600001",None,json.dumps({"listed-building": "A4"}))
         _insert_end_date(con, 2, "A4D-2", "Pair", "600001","2020-01-01",json.dumps({"listed-building": "A5"}))
@@ -1663,7 +1663,7 @@ def test_lbos_have_no_ended_date_blank_end_date(dataset_path, tmp_path):
     with spatialite.connect(dataset_path) as con:
         passed, message, details = lbos_have_no_ended_date_check(
                     conn=con,
-                    listed_building_path=tmp_path / "end_date_check.sqlite3",
+                    listed_building_path=listed_building_outline_path#tmp_path / "listed-building-outline-ed.sqlite3",# was end_date_check.sqlite3
                 )
 
     assert not passed, message

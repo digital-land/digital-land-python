@@ -517,7 +517,7 @@ def test_run_name_is_a_placeholder_expectation(
 
 @pytest.fixture
 def end_date_check_dataset_path(tmp_path):
-    """a dataset with one null end date and one end date"""
+    """a listed-building-outline dataset with one null end date and one end date"""
     dataset_path = tmp_path / "end_date_check.sqlite3"
     create_entity_table_sql = """
         CREATE TABLE entity (
@@ -571,7 +571,7 @@ def listed_building_end_date_path(tmp_path):
             "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
             " VALUES (?, ?, ?, ?, ?, ?)",
             [
-                (1, "CA-59", "59", "122", None, json.dumps({"listed-building": "CA-59"})),
+                (1, "CA-59", "59", "122", "2020-01-01", json.dumps({"listed-building": "CA-59"})),
                 (2, "CA-WYM", "Wymondham Conservation Area", "122", "2020-01-01", json.dumps({"listed-building": "CA-WYM"})),
             ],
         )
