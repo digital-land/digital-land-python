@@ -1647,7 +1647,7 @@ def listed_building_outline_path(tmp_path):
     return listed_building_path
 
 
-def _insert_end_date(con, entity, reference, name, organisation_entity, end_date, json):
+def _insert_end_date(con, entity, reference, name, end_date, json):
     con.execute(
         "INSERT INTO entity (entity, name, reference, end_date, json)"
         " VALUES (?, ?, ?, ?, ?)",
