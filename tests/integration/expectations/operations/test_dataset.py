@@ -1675,7 +1675,7 @@ def test_lbos_have_no_ended_date_blank_end_date(
         _insert_end_date(
             con,
             1,
-            "A4D-1",
+            "1234567",
             "Pair",
             "600001",
             None,
@@ -1684,7 +1684,7 @@ def test_lbos_have_no_ended_date_blank_end_date(
         _insert_end_date(
             con,
             2,
-            "A4D-2",
+            "2222222",
             "Pair",
             "600001",
             "2020-01-01",
