@@ -1608,7 +1608,7 @@ def test_duplicate_geometry_check_aggregates_failures_per_organisation(dataset_p
     assert len(details["any_matches"]) == 3
 
 
-@pytest.fixture # this is the lbo database
+@pytest.fixture  # this is the lbo database
 def listed_building_outline_path(tmp_path):
     """a minimal built listed-building-outline sqlite, standing in for the Historic England
     dataset fetched during assemble"""
@@ -1668,7 +1668,7 @@ def test_lbos_have_no_ended_date_check_missing_artifact(dataset_path, tmp_path):
     assert "check skipped" in message
 
 
-def test_lbos_have_no_ended_date_blank_end_date( # this is the lb database
+def test_lbos_have_no_ended_date_blank_end_date(  # this is the lb database
     dataset_path, listed_building_outline_path
 ):  # tmp_path):
     with spatialite.connect(dataset_path) as con:
