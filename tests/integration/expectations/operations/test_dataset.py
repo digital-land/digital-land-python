@@ -1649,9 +1649,9 @@ def listed_building_outline_path(tmp_path):
 
 def _insert_end_date(con, entity, reference, name, organisation_entity, end_date, json):
     con.execute(
-        "INSERT INTO entity (entity, reference, name, organisation_entity, end_date, json)"
+        "INSERT INTO entity (entity, name, reference, end_date, json)"
         " VALUES (?, ?, ?, ?, ?, ?)",
-        (entity, reference, name, organisation_entity, end_date, json),
+        (entity, name, reference, end_date, json),
     )
 
 
@@ -1674,19 +1674,17 @@ def test_lbos_have_no_ended_date_blank_end_date(  # this is the lbo database - t
     with spatialite.connect(dataset_path) as con:
         _insert_end_date(
             con,
-            1,
+            900001,
+            "33, 37 AND 39, BAYFORD GREEN",
             "A4",
-            "Pair",
-            "600001",
             None,
             json.dumps({"listed-building": "A4"}),
         )
         _insert_end_date(
             con,
-            2,
+            900002,
+            "NORTH LODGE",
             "A5",
-            "Pair",
-            "600001",
             "2020-01-01",
             json.dumps({"listed-building": "A5"}),
         )
