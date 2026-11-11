@@ -29,6 +29,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
+    - name: Use the main Ubuntu archive instead of the Azure mirror
+      run: sudo sed -i '/azure.archive.ubuntu.com/d' /etc/apt/apt-mirrors.txt
     - name: Make Init
       run: |
         make init
