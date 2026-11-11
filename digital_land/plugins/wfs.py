@@ -8,6 +8,8 @@ from typing import Optional
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from digital_land.phase.convert import detect_encoding
+from digital_land.utils.safe_fetch import check_host_resolves_publicly
+from digital_land.utils.url_safety import UnsafeUrlError
 from pydantic import ConfigDict, Field
 from pydantic.dataclasses import dataclass
 
@@ -61,6 +63,15 @@ def get(collector, url, log={}, plugin="wfs", parameters=None):
 
 
 def get_paged_wfs(url, log, plugin="wfs", parameters=None):
+    # ogr2ogr fetches in a subprocess, outside the connection checks in
+    # digital_land.utils.safe_fetch, so check the host before running it.
+    try:
+        check_host_resolves_publicly(url)
+    except UnsafeUrlError as exception:
+        logging.warning("refusing to fetch %s: %s", url, exception)
+        log["exception"] = type(exception).__name__
+        return log, None
+
     parameters = parameters or WFSParameters()
     page_size = parameters.page_size or DEFAULT_PAGE_SIZE
     output_file = tempfile.NamedTemporaryFile(suffix=".gpkg", delete=False)
