@@ -21,6 +21,36 @@ class ConversionError(Exception):
     pass
 
 
+# GDAL drivers that open other files or URLs named inside the input, or fetch
+# data over the network. Resources come from outside the platform, so these
+# must never be used to open them.
+GDAL_SKIPPED_DRIVERS = [
+    "OGR_VRT",
+    "WFS",
+    "OAPIF",
+    "OGCAPI",
+    "HTTP",
+    "GPSBabel",
+    "GMLAS",
+]
+
+# Converting a file never needs the network, so any request GDAL makes is sent
+# to a closed local port and fails.
+_NO_NETWORK_PROXY = "http://127.0.0.1:9"
+
+
+def gdal_env(gdal_version):
+    """Environment for running ogr2ogr on a resource from outside the platform."""
+    # NO_PROXY would let requests bypass the proxy
+    env = {key: value for key, value in os.environ.items() if key.lower() != "no_proxy"}
+    env["GDAL_SKIP"] = ",".join(GDAL_SKIPPED_DRIVERS)
+    env["GDAL_HTTP_PROXY"] = _NO_NETWORK_PROXY
+    env["GDAL_HTTPS_PROXY"] = _NO_NETWORK_PROXY
+    if gdal_version >= Version("3.5.2"):
+        env["OGR_GEOJSON_MAX_OBJ_SIZE"] = "0"
+    return env
+
+
 def _best_encoding(best):
     if not best:
         return None
@@ -126,13 +156,8 @@ def convert_features_to_csv(input_path, output_path=None):
         output_path,
         input_path,
     ]
-    env = (
-        dict(os.environ, OGR_GEOJSON_MAX_OBJ_SIZE="0")
-        if gdal_version >= Version("3.5.2")
-        else dict(os.environ)
-    )
 
-    rc, outs, errs = execute(command, env=env)
+    rc, outs, errs = execute(command, env=gdal_env(gdal_version))
 
     if rc != 0:
         raise ConversionError(
