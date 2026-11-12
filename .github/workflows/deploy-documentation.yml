@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout code
@@ -31,6 +31,9 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.9'
+
+    - name: Use the main Ubuntu archive instead of the Azure mirror
+      run: sudo sed -i '/azure.archive.ubuntu.com/d' /etc/apt/apt-mirrors.txt
 
     - name: Install dependencies
       run: |
@@ -46,7 +49,7 @@ jobs:
         path: docs/_build
 
   deploy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: build
     permissions:
       pages: write

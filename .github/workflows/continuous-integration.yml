@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build:
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       matrix:
@@ -29,6 +29,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
+    - name: Use the main Ubuntu archive instead of the Azure mirror
+      run: sudo sed -i '/azure.archive.ubuntu.com/d' /etc/apt/apt-mirrors.txt
     - name: Make Init
       run: |
         make init
