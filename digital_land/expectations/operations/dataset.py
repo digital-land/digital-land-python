@@ -982,7 +982,7 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
             on lb.reference = json_extract(e.json, '$."listed-building"')
         where e.reference is not null
             and (e.end_date is null or e.end_date = '')
-            and (lb.end_date is not null or lb.end_date !='')
+            and (lb.end_date is not null and lb.end_date !='')
     """
 
     conn.execute(
@@ -1027,7 +1027,7 @@ def lbos_have_no_ended_date_check(conn, listed_building_path, placeholders=None)
     )
     details = {
         "failures": failures,
-        "field": "name",
+        "field": "end_date",
         "actual": len(failures),
         "expected": 0,
     }
