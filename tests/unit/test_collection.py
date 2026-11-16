@@ -1,3 +1,5 @@
+import hashlib
+
 import pytest
 from digital_land.register import hash_value, Item
 from digital_land.collection import Collection, LogStore, ResourceLogStore, CSVStore
@@ -212,3 +214,57 @@ def test_existing_resource_datasets_recomputed_from_all_endpoints():
         "article-4-direction",
         "article-4-direction-area",
     }
+
+
+def test_add_source_endpoint_keeps_existing_source_ids():
+    collection = Collection(name="local-plan")
+    collection.source.add_entry(
+        Item(
+            {
+                "source": "existing-source-id",
+                "collection": "local-plan",
+                "organisation": "local-authority:AAA",
+                "endpoint": "existing-endpoint",
+                "pipelines": "plan-timetable",
+            }
+        )
+    )
+
+    added = collection.add_source_endpoint(
+        {
+            "endpoint-url": "https://example.com/plan-timetable.csv",
+            "documentation-url": "https://example.com/",
+            "organisation": "local-authority:BBB",
+            "pipelines": "plan-timetable",
+            "licence": "ogl3",
+        }
+    )
+
+    assert added
+    sources = [entry["source"] for entry in collection.source.entries]
+    endpoint = hash_value("https://example.com/plan-timetable.csv")
+    expected_new_source = hashlib.md5(
+        f"local-plan|local-authority:BBB|{endpoint}".encode()
+    ).hexdigest()
+    assert sources == ["existing-source-id", expected_new_source]
+
+
+def test_recalculate_source_hashes_fills_missing_source_id():
+    collection = Collection(name="local-plan")
+    collection.source.add_entry(
+        Item(
+            {
+                "source": "",
+                "collection": "local-plan",
+                "organisation": "local-authority:AAA",
+                "endpoint": "some-endpoint",
+            }
+        )
+    )
+
+    collection.recalculate_source_hashes()
+
+    assert (
+        collection.source.entries[0]["source"]
+        == hashlib.md5(b"local-plan|local-authority:AAA|some-endpoint").hexdigest()
+    )
