@@ -18,13 +18,15 @@ import canonicaljson
 import requests
 from pydantic import ValidationError
 
-from .adapter.file import FileAdapter
 from .plugins.sparql import get as sparql_get
 from .plugins.wfs import WFSFileResource
 from .plugins.wfs import WFSParameters
 from .plugins.wfs import get as wfs_get
 from .plugins.arcgis import ArcGISParameters
 from .plugins.arcgis import get as arcgis_get
+
+from .utils.safe_fetch import untrusted_fetches
+from .utils.url_safety import UnsafeUrlError, check_fetch_url
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +65,6 @@ class Collector:
         # Log directory is optional for check tool
         self.log_dir = log_dir
         self.session = requests.Session()
-        self.session.mount("file:", FileAdapter())
         self.endpoint = {}
 
     def collection_dir_file_hashes(self, collection_dir=None):
@@ -211,21 +212,17 @@ class Collector:
         # TBD: use pluggy and move modules to digital-land.plugin.xxx namespace?
 
         parameters = self._validate_plugin_parameters(plugin, parameters)
-        if not plugin:
-            log, content = self.get(url, log)
-        elif plugin == "arcgis":
-            log, content = arcgis_get(self, url, log, parameters=parameters)
-        elif plugin == "wfs":
-            log, content = wfs_get(
-                self,
-                url,
-                log,
-                parameters=parameters,
-            )
-        elif plugin == "sparql":
-            log, content = sparql_get(self, url, log)
+        content = None
+        try:
+            check_fetch_url(url)
+        except UnsafeUrlError as exception:
+            logging.warning("refusing to fetch %s: %s" % (url, exception))
+            log["exception"] = type(exception).__name__
         else:
-            logging.error("unknown plugin '%s' for endpoint %s" % (plugin, endpoint))
+            with untrusted_fetches():
+                log, content = self._fetch_with_plugin(
+                    url, log, plugin, parameters, endpoint
+                )
 
         log["elapsed"] = str(round(timer() - start, 3))
 
@@ -234,6 +231,18 @@ class Collector:
             self.save_log(log_path, log, refill_todays_logs=refill_todays_logs)
 
         return fetch_status, log
+
+    def _fetch_with_plugin(self, url, log, plugin, parameters, endpoint):
+        if not plugin:
+            return self.get(url, log)
+        if plugin == "arcgis":
+            return arcgis_get(self, url, log, parameters=parameters)
+        if plugin == "wfs":
+            return wfs_get(self, url, log, parameters=parameters)
+        if plugin == "sparql":
+            return sparql_get(self, url, log)
+        logging.error("unknown plugin '%s' for endpoint %s" % (plugin, endpoint))
+        return log, None
 
     def save_resource(self, content, url, log):
         if content:

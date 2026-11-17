@@ -1,9 +1,18 @@
 from subprocess import CompletedProcess
 
+import pytest
+
 from digital_land.plugins.wfs import WFSFileResource
 from digital_land.plugins.wfs import WFSParameters
 from digital_land.plugins.wfs import get as wfs_get
 from digital_land.plugins.wfs import wfs_source_and_layer
+from digital_land.utils.url_safety import UnsafeUrlError
+
+
+@pytest.fixture(autouse=True)
+def host_resolves_publicly(mocker):
+    # get_paged_wfs resolves the host before running ogr2ogr; don't do real DNS lookups in unit tests
+    return mocker.patch("digital_land.plugins.wfs.check_host_resolves_publicly")
 
 
 def test_get_falls_back_to_default_parameters_for_unvalidated_parameter_dict(caplog):
@@ -164,3 +173,22 @@ def test_get_paged_wfs_logs_failure_and_cleans_temp_file(tmp_path, mocker):
     assert log["status"] == "1"
     assert log["exception"] == "CalledProcessError"
     assert not output_path.exists()
+
+
+def test_get_paged_wfs_refuses_internal_host_without_running_ogr2ogr(
+    mocker, host_resolves_publicly
+):
+    host_resolves_publicly.side_effect = UnsafeUrlError(
+        "resolves to a non-public address"
+    )
+    run = mocker.patch("digital_land.plugins.wfs.subprocess.run")
+
+    log, content = wfs_get(
+        None,
+        "https://rebind.example/wfs",
+        parameters=WFSParameters(page_size=1000),
+    )
+
+    assert content is None
+    assert log["exception"] == "UnsafeUrlError"
+    run.assert_not_called()

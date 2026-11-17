@@ -601,7 +601,14 @@ class Collection:
         return False
 
     def recalculate_source_hashes(self):
+        """
+        Give a source ID to every source entry that has none, from its collection,
+        organisation and endpoint. Existing IDs are left as they are, so adding an
+        endpoint only ever appends a row and never rewrites other rows.
+        """
         for entry in self.source.entries:
+            if entry.get("source"):
+                continue
             key = "%s|%s|%s" % (
                 entry["collection"],
                 entry["organisation"],

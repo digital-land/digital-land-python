@@ -422,3 +422,63 @@ class TestCollector:
         assert status == FetchStatus.OK
         assert captured["url"] == url
         assert captured["parameters"] == ArcGISParameters(max_page_size=20)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "file:///etc/passwd",
+        "http://169.254.169.254/latest/meta-data/",
+        "http://localhost:8080/",
+    ],
+)
+def test_fetch_refuses_unsafe_url(collector, tmp_path, url):
+    status, log = collector.fetch(url)
+
+    assert status == FetchStatus.FAILED
+    assert log["exception"] == "UnsafeUrlError"
+    assert read_log(collector, url)["exception"] == "UnsafeUrlError"
+    assert not (tmp_path / "resource").exists()
+
+
+@responses.activate
+def test_fetch_does_not_follow_redirect_to_file_url(collector, tmp_path):
+    responses.add(
+        responses.GET,
+        "http://some.url",
+        status=302,
+        headers={"Location": "file:///etc/passwd"},
+    )
+
+    status, log = collector.fetch("http://some.url")
+
+    assert status == FetchStatus.FAILED
+    assert log["exception"] == "InvalidSchema"
+    assert not (tmp_path / "resource").exists()
+
+
+@pytest.mark.parametrize("plugin", ["", "arcgis", "wfs"])
+def test_fetch_runs_plugins_inside_untrusted_fetches(collector, mocker, plugin):
+    entered = []
+
+    class FakeUntrustedFetches:
+        def __enter__(self):
+            entered.append(True)
+
+        def __exit__(self, *args):
+            return False
+
+    mocker.patch(
+        "digital_land.collect.untrusted_fetches", side_effect=FakeUntrustedFetches
+    )
+
+    def fake_fetch(*args, **kwargs):
+        assert entered, "fetch ran outside untrusted_fetches"
+        return {}, b"data"
+
+    mocker.patch.object(collector, "_fetch_with_plugin", side_effect=fake_fetch)
+
+    status, log = collector.fetch("http://some.url", plugin=plugin)
+
+    assert status == FetchStatus.OK
+    assert entered == [True]
