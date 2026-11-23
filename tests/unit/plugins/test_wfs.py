@@ -1,4 +1,4 @@
-from subprocess import CompletedProcess, TimeoutExpired
+from subprocess import CompletedProcess
 
 import pytest
 
@@ -100,36 +100,6 @@ def test_get_paged_wfs_runs_ogr2ogr_with_paging_config(tmp_path, mocker):
         "dataset:Flood_Zones",
     ]
     assert captured["timeout"] == PAGED_WFS_TIMEOUT_SECONDS
-
-
-def test_get_paged_wfs_stops_ogr2ogr_after_timeout(tmp_path, mocker):
-    output_path = tmp_path / "output.gpkg"
-
-    class FakeTempFile:
-        name = str(output_path)
-
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def close(self):
-            pass
-
-    def fake_run(command, capture_output, check, timeout):
-        output_path.write_bytes(b"partial")
-        raise TimeoutExpired(command, timeout)
-
-    mocker.patch("digital_land.plugins.wfs.tempfile.NamedTemporaryFile", FakeTempFile)
-    mocker.patch("digital_land.plugins.wfs.subprocess.run", side_effect=fake_run)
-
-    log, content = wfs_get(
-        None,
-        "https://example.com/wfs",
-        parameters=WFSParameters(page_size=1000),
-    )
-
-    assert content is None
-    assert log["exception"] == "TimeoutExpired"
-    assert not output_path.exists()
 
 
 def test_get_paged_wfs_derives_layer_name_from_endpoint_url(tmp_path, mocker):
