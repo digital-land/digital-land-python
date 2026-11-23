@@ -114,6 +114,29 @@ def test_convert_does_not_open_files_named_in_a_vrt(packaging, tmp_path: Path):
     )
 
 
+def test_convert_does_not_run_gdalg_pipelines(tmp_path: Path):
+    local_file = tmp_path / "local.csv"
+    local_file.write_text("name\nLOCAL-FILE-CONTENT\n")
+    input_path = tmp_path / "resource"
+    input_path.write_text(
+        json.dumps(
+            {
+                "type": "gdal_streamed_alg",
+                "command_line": f"gdal vector pipeline ! read {local_file} "
+                "! write -f stream streamed_dataset",
+            }
+        )
+    )
+
+    output_path = tmp_path / "output.csv"
+    lines = _convert(input_path, output_path)
+
+    assert "LOCAL-FILE-CONTENT" not in str(lines)
+    assert (
+        not output_path.exists() or "LOCAL-FILE-CONTENT" not in output_path.read_text()
+    )
+
+
 def test_convert_does_not_fetch_urls_named_in_a_file(
     http_server, monkeypatch, tmp_path: Path
 ):

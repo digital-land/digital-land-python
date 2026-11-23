@@ -17,6 +17,7 @@ from pydantic.dataclasses import dataclass
 # TBD: split this code into a WFS API plugin and a canonicalisation step
 
 DEFAULT_PAGE_SIZE = 1000
+PAGED_WFS_TIMEOUT_SECONDS = 30 * 60
 
 
 strip_exps = [
@@ -103,6 +104,7 @@ def get_paged_wfs(url, log, plugin="wfs", parameters=None):
             command,
             capture_output=True,
             check=False,
+            timeout=PAGED_WFS_TIMEOUT_SECONDS,
         )
     except Exception as exception:
         logging.warning(exception)
