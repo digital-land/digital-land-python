@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from .phase import Phase
 from calendar import monthrange
+from decimal import Decimal
 from digital_land.datatype.point import PointDataType
 from digital_land.datatype.factory import datatype_factory
 import shapely.wkt
@@ -132,6 +133,18 @@ MANDATORY_FIELDS_DICT = {
 
 FAR_FUTURE_YEARS_AHEAD = 50
 
+HECTARE_LIMITS = {
+    "minimum": Decimal("0.001"),
+    "soft_minimum": Decimal("0.01"),
+    "soft_maximum": Decimal("100"),
+    "maximum": Decimal("1000"),
+}
+
+FIELD_DECIMAL_LIMITS = {
+    ("brownfield-land", "hectares"): HECTARE_LIMITS,
+    ("brownfield-land", "Hectares"): HECTARE_LIMITS,
+}
+
 
 class HarmonisePhase(Phase):
     def __init__(
@@ -162,6 +175,10 @@ class HarmonisePhase(Phase):
         """
         return "arcgis" if "arcgis" in self.endpoint_plugins else ""
 
+    def decimal_limits(self, fieldname):
+        """Range limits to check a decimal field against, or {} for the datatype defaults."""
+        return FIELD_DECIMAL_LIMITS.get((self.dataset, fieldname), {})
+
     def harmonise_field(self, fieldname, value):
         if not value:
             return ""
@@ -177,6 +194,11 @@ class HarmonisePhase(Phase):
                 far_past_date=far_past_date,
                 far_future_date=far_future_date,
                 plugin=self.date_plugin(),
+            )
+        elif datatype_name == "decimal":
+            datatype = datatype_factory(
+                datatype_name=datatype_name,
+                **self.decimal_limits(fieldname),
             )
         # for datetimes add default far past and far future issue types
         else:

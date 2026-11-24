@@ -1,4 +1,5 @@
 #!/usr/bin/env pytest
+import pytest
 
 from decimal import Decimal
 from digital_land.log import IssueLog
@@ -63,4 +64,52 @@ def test_decimal_normalise():
     assert issue["issue-type"] == "too small"
     assert issue["value"] == "-1"
     assert issue["message"] == f"{issues.fieldname} must be larger than 0.0"
+    assert issues.rows == []
+
+
+HECTARE_LIMITS = dict(
+    minimum=Decimal("0.001"),
+    soft_minimum=Decimal("0.01"),
+    soft_maximum=Decimal("100"),
+    maximum=Decimal("1000"),
+)
+
+
+@pytest.mark.parametrize(
+    "value,expected,issue_type",
+    [
+        ("0", "", "too small"),
+        ("0.0009", "", "too small"),
+        ("0.001", "0.001", "smaller than expected"),
+        ("0.005", "0.005", "smaller than expected"),
+        ("0.01", "0.01", None),
+        ("2.5", "2.5", None),
+        ("100", "100", None),
+        ("100.5", "100.5", "larger than expected"),
+        ("931", "931", "larger than expected"),
+        ("1000", "1000", "larger than expected"),
+        ("1000.1", "", "too large"),
+        ("400013", "", "too large"),
+    ],
+)
+def test_decimal_normalise_hectare_limits(value, expected, issue_type):
+    issues = IssueLog()
+    issues.fieldname = "hectares"
+    decimal = DecimalDataType(**HECTARE_LIMITS)
+
+    assert decimal.normalise(value, issues=issues) == expected
+    assert [issue["issue-type"] for issue in issues.rows] == (
+        [issue_type] if issue_type else []
+    )
+
+
+def test_decimal_soft_limits_default_to_off():
+    """Every existing caller omits the soft limits, so behaviour must be unchanged."""
+    issues = IssueLog()
+    issues.fieldname = "hectares"
+    decimal = DecimalDataType()
+
+    assert decimal.soft_minimum is None
+    assert decimal.soft_maximum is None
+    assert decimal.normalise("400013", issues=issues) == "400013"
     assert issues.rows == []

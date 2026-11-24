@@ -3,11 +3,20 @@ from .datatype import DataType
 
 
 class DecimalDataType(DataType):
-    def __init__(self, precision=6, minimum=0.0, maximum=None):
+    def __init__(
+        self,
+        precision=6,
+        minimum=0.0,
+        maximum=None,
+        soft_minimum=None,
+        soft_maximum=None,
+    ):
         # Setting default as 0.0 for minimum value. This will be applied for all decimal data.
         self.precision = precision
         self.minimum = minimum
         self.maximum = maximum
+        self.soft_minimum = soft_minimum
+        self.soft_maximum = soft_maximum
 
     def format(self, value):
         rounded_value = round(Decimal(value), self.precision).normalize()
@@ -46,6 +55,22 @@ class DecimalDataType(DataType):
                     f"{issues.fieldname} must be lower than {self.maximum}",
                 )
             return ""
+
+        if self.soft_minimum is not None and d < self.soft_minimum:
+            if issues:
+                issues.log(
+                    "smaller than expected",
+                    value,
+                    f"{issues.fieldname} is smaller than {self.soft_minimum}",
+                )
+
+        if self.soft_maximum is not None and d > self.soft_maximum:
+            if issues:
+                issues.log(
+                    "larger than expected",
+                    value,
+                    f"{issues.fieldname} is larger than {self.soft_maximum}",
+                )
 
         return self.format(d)
 
