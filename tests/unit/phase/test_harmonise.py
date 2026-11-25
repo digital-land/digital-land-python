@@ -495,3 +495,42 @@ def test_offshore_geometry_is_only_allowed_for_infrastructure_project():
         issue["issue-type"] == "WGS84 out of bounds of England"
         for issue in conservation_issues.rows
     )
+
+
+@pytest.mark.parametrize("fieldname", ["hectares", "Hectares"])
+@pytest.mark.parametrize(
+    "value,expected,issue_types",
+    [
+        ("0.0009", "", ["too small"]),
+        ("0.005", "0.005", ["smaller than expected"]),
+        ("2.5", "2.5", []),
+        ("250", "250", ["larger than expected"]),
+        ("44000", "", ["too large"]),
+    ],
+)
+def test_harmonise_checks_brownfield_hectares_range(
+    fieldname, value, expected, issue_types
+):
+    issues = IssueLog()
+    h = HarmonisePhase(
+        field_datatype_map={fieldname: "decimal"},
+        issues=issues,
+        dataset="brownfield-land",
+    )
+
+    assert h.harmonise_field(fieldname, value) == expected
+    assert [issue["issue-type"] for issue in issues.rows] == issue_types
+
+
+def test_harmonise_hectare_limits_only_apply_to_brownfield_land():
+    """The thresholds came from brownfield data, so other datasets keep the defaults."""
+    issues = IssueLog()
+    h = HarmonisePhase(
+        field_datatype_map={"hectares": "decimal"},
+        issues=issues,
+        dataset="conservation-area",
+    )
+
+    assert h.decimal_limits("hectares") == {}
+    assert h.harmonise_field("hectares", "44000") == "44000"
+    assert issues.rows == []
