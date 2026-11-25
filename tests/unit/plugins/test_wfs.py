@@ -2,6 +2,7 @@ from subprocess import CompletedProcess
 
 import pytest
 
+from digital_land.plugins.wfs import PAGED_WFS_TIMEOUT_SECONDS
 from digital_land.plugins.wfs import WFSFileResource
 from digital_land.plugins.wfs import WFSParameters
 from digital_land.plugins.wfs import get as wfs_get
@@ -64,10 +65,11 @@ def test_get_paged_wfs_runs_ogr2ogr_with_paging_config(tmp_path, mocker):
         def close(self):
             pass
 
-    def fake_run(command, capture_output, check):
+    def fake_run(command, capture_output, check, timeout):
         captured["command"] = command
         captured["capture_output"] = capture_output
         captured["check"] = check
+        captured["timeout"] = timeout
         output_path.write_bytes(b"geopackage")
         return CompletedProcess(command, 0, stdout=b"", stderr=b"")
 
@@ -97,6 +99,7 @@ def test_get_paged_wfs_runs_ogr2ogr_with_paging_config(tmp_path, mocker):
         "WFS:https://example.com/wfs",
         "dataset:Flood_Zones",
     ]
+    assert captured["timeout"] == PAGED_WFS_TIMEOUT_SECONDS
 
 
 def test_get_paged_wfs_derives_layer_name_from_endpoint_url(tmp_path, mocker):
@@ -112,7 +115,7 @@ def test_get_paged_wfs_derives_layer_name_from_endpoint_url(tmp_path, mocker):
         def close(self):
             pass
 
-    def fake_run(command, capture_output, check):
+    def fake_run(command, capture_output, check, timeout):
         captured["command"] = command
         output_path.write_bytes(b"geopackage")
         return CompletedProcess(command, 0, stdout=b"", stderr=b"")
@@ -156,7 +159,7 @@ def test_get_paged_wfs_logs_failure_and_cleans_temp_file(tmp_path, mocker):
         def close(self):
             pass
 
-    def fake_run(command, capture_output, check):
+    def fake_run(command, capture_output, check, timeout):
         output_path.write_bytes(b"partial")
         return CompletedProcess(command, 1, stdout=b"", stderr=b"failed")
 

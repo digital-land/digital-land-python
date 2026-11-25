@@ -32,6 +32,7 @@ GDAL_SKIPPED_DRIVERS = [
     "HTTP",
     "GPSBabel",
     "GMLAS",
+    "GDALG",
 ]
 
 # Converting a file never needs the network, so any request GDAL makes is sent
