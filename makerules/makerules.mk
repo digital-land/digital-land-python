@@ -23,6 +23,10 @@ ifeq ($(CONFIG_URL),)
 CONFIG_URL=$(DATASTORE_URL)config/
 endif
 
+ifeq ($(SPECIFICATION_URL),)
+SPECIFICATION_URL=$(DATASTORE_URL)specification/
+endif
+
 ifeq ($(COLLECTION_NAME),)
 COLLECTION_NAME=$(shell echo "$(REPOSITORY)"|sed 's/-collection$$//')
 endif
@@ -125,26 +129,20 @@ makerules::
 	curl -qfsL '$(MAKERULES_URL)makerules.mk' > makerules/makerules.mk
 
 ifeq (,$(wildcard ./makerules/specification.mk))
-# update local copies of specification files
-specification::
-	@mkdir -p specification/
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/attribution.csv' > specification/attribution.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/licence.csv' > specification/licence.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/typology.csv' > specification/typology.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/theme.csv' > specification/theme.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/collection.csv' > specification/collection.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/dataset.csv' > specification/dataset.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/dataset-field.csv' > specification/dataset-field.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/field.csv' > specification/field.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/datatype.csv' > specification/datatype.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/prefix.csv' > specification/prefix.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/provision-rule.csv' > specification/provision-rule.csv
-	# deprecated ..
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/pipeline.csv' > specification/pipeline.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/dataset-schema.csv' > specification/dataset-schema.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/schema.csv' > specification/schema.csv
-	curl -qfsL '$(SOURCE_URL)/specification/main/specification/schema-field.csv' > specification/schema-field.csv
+# update local copies of specification files (S3 in AWS, CDN locally — same as organisation.csv)
+SPECIFICATION_CSVS=\
+	attribution licence typology theme collection dataset dataset-field \
+	field datatype prefix provision-rule pipeline dataset-schema schema schema-field
 
+specification:: $(addprefix specification/,$(addsuffix .csv,$(SPECIFICATION_CSVS)))
+
+specification/%.csv:
+	@mkdir -p specification/
+ifneq ($(COLLECTION_DATASET_BUCKET_NAME),)
+	aws s3 cp s3://$(COLLECTION_DATASET_BUCKET_NAME)/specification/$(notdir $@) $@ --no-progress
+else
+	curl -qfsL '$(SPECIFICATION_URL)$(notdir $@)?version=$(shell date +%s)' -o $@
+endif
 
 init::	specification
 endif
