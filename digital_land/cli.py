@@ -674,6 +674,12 @@ def add_redirections_cmd(csv_path, pipeline_dir):
     help="Directory of flattened files.",
 )
 @click.option(
+    "--dataset-environment-path",
+    type=click.Path(),
+    default=None,
+    help="config pipeline/dataset.csv giving each dataset's environment.",
+)
+@click.option(
     "--dataset-dir",
     type=click.Path(exists=True),
     help="Directory of dataset files.",
@@ -711,6 +717,7 @@ def organisation_create_cmd(
     cache_dir,
     output_path,
     environment,
+    dataset_environment_path,
 ):
     return organisation_create(
         specification_dir=specification_dir,
@@ -720,6 +727,7 @@ def organisation_create_cmd(
         cache_dir=cache_dir,
         path=output_path,
         environment=environment,
+        dataset_environment_path=dataset_environment_path,
     )
 
 

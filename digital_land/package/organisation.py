@@ -100,6 +100,7 @@ class OrganisationPackage(CsvPackage):
         self.download_url = kwargs.pop("download_url", None)
         self.cache_dir = kwargs.pop("cache_dir", None)
         self.environment = kwargs.pop("environment", None)
+        self.dataset_environment_path = kwargs.pop("dataset_environment_path", None)
         if self.download_url and self.download_url[-1] != "/":
             self.download_url += "/"
         super().__init__("organisation", tables={"organisation": None}, **kwargs)
@@ -125,7 +126,15 @@ class OrganisationPackage(CsvPackage):
             os.path.join(self.specification.specification_dir, "dataset.csv"),
             newline="",
         ) as f:
-            datasets = organisation_datasets(csv.DictReader(f), self.environment)
+            rows = list(csv.DictReader(f))
+        if self.dataset_environment_path:
+            with open(self.dataset_environment_path, newline="") as f:
+                environments = {
+                    r["dataset"]: r["environment"] for r in csv.DictReader(f)
+                }
+            for row in rows:
+                row["environment"] = environments.get(row["dataset"], "")
+        datasets = organisation_datasets(rows, self.environment)
         logger.info(f"combining organisation datasets: {datasets}")
         return [f"{dataset}.csv" for dataset in datasets]
 
